@@ -3,112 +3,343 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fileserver admin</title>
+<meta name="color-scheme" content="light dark">
+<title>Fileserver</title>
 <style>
-  body { font: 15px system-ui, sans-serif; margin: 2rem auto; max-width: 52rem; padding: 0 1rem; color: #222; }
-  table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-  th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid #ddd; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .pub { color: #2e7d32; } .priv { color: #ef6c00; }
-  button, select { font: inherit; }
-  #msg { margin: .75rem 0; min-height: 1.4em; } .err { color: #b00020; }
-  progress { width: 12rem; vertical-align: middle; }
+  /* Colour roles follow the reference palette: public = categorical slot 1 (blue), private = slot 2 (orange),
+     storage meter = sequential blue with the status colours for severity. Dark values are their own steps. */
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6b6a65;
+    --line: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,.10); --wash: rgba(11,11,11,.05);
+    --public: #2a78d6; --private: #eb6834;
+    --meter-fill: #2a78d6; --meter-track: #cde2fb;
+    --warn: #fab219; --crit: #d03b3b; --good-text: #006300; --crit-text: #a82424; --warn-text: #7a5400;
+    --accent: #1c5cab; --danger: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #a09f98;
+      --line: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,.10); --wash: rgba(255,255,255,.07);
+      --public: #3987e5; --private: #d95926;
+      --meter-fill: #3987e5; --meter-track: #0d366b;
+      --good-text: #0ca30c; --crit-text: #f08080; --warn-text: #fab219;
+      --accent: #6da7ec; --danger: #e66767;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 64rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+  h1 { font-size: 1.35rem; margin: 0; } h2 { font-size: 1rem; margin: 0; }
+  .sub { color: var(--ink-2); margin: .15rem 0 1.25rem; }
+  .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 1rem 1.1rem; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: .9rem; margin-bottom: 1.1rem; }
+  .label { color: var(--ink-2); font-size: .85rem; }
+  .value { font-size: 1.7rem; font-weight: 600; margin: .1rem 0 .1rem; }
+  .value small { font-size: .9rem; font-weight: 400; color: var(--ink-2); }
+  .note { color: var(--ink-2); font-size: .85rem; margin-top: .5rem; display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+  .st-ok { color: var(--good-text); } .st-warn { color: var(--warn-text); } .st-crit { color: var(--crit-text); }
+  .st { font-weight: 600; }
+  /* meter and segmented bar */
+  .track { height: 10px; border-radius: 999px; background: var(--meter-track); overflow: hidden; margin-top: .6rem; }
+  .fill { height: 100%; border-radius: 999px; background: var(--meter-fill); transition: width .3s; }
+  .fill.warn { background: var(--warn); } .fill.crit { background: var(--crit); }
+  .seg { display: flex; gap: 2px; height: 8px; margin-top: .7rem; }
+  .seg > span { border-radius: 999px; min-width: 4px; }
+  .seg > .pub { background: var(--public); } .seg > .priv { background: var(--private); }
+  .legend { display: flex; gap: 1.1rem; margin-top: .55rem; flex-wrap: wrap; font-size: .88rem; }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: .4rem; vertical-align: -1px; }
+  .sw.pub { background: var(--public); } .sw.priv { background: var(--private); }
+  /* token */
+  .tok { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-top: .35rem; }
+  code { font: .88rem ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--wash); padding: .25rem .45rem; border-radius: 6px; overflow-wrap: anywhere; }
+  /* controls */
+  button, select, input[type=search] { font: inherit; color: inherit; }
+  button { background: var(--surface); border: 1px solid var(--axis); border-radius: 8px; padding: .3rem .7rem; cursor: pointer; min-height: 32px; }
+  button:hover { background: var(--wash); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { filter: brightness(1.08); }
+  button.danger { color: var(--danger); border-color: currentColor; }
+  button.ghost { border-color: transparent; background: transparent; padding: .3rem .5rem; }
+  button.ghost:hover { background: var(--wash); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* upload */
+  .drop { border: 2px dashed var(--axis); border-radius: 12px; padding: 1.1rem; display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 1.1rem; transition: background .15s, border-color .15s; }
+  .drop.over { background: var(--wash); border-color: var(--accent); }
+  .drop p { margin: 0; } .drop .hint { color: var(--ink-2); font-size: .85rem; }
+  .seggroup { display: inline-flex; border: 1px solid var(--axis); border-radius: 8px; overflow: hidden; }
+  .seggroup label { padding: .3rem .75rem; cursor: pointer; display: flex; gap: .4rem; align-items: center; }
+  .seggroup input { position: absolute; opacity: 0; }
+  .seggroup label:has(input:checked) { background: var(--wash); font-weight: 600; }
+  .seggroup label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .prog { display: none; margin-bottom: 1.1rem; }
+  .prog.on { display: block; }
+  .prog .track { margin-top: .4rem; }
+  .prog .fill { background: var(--meter-fill); transition: none; }
+  /* list */
+  .bar { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin-bottom: .7rem; }
+  input[type=search] { background: var(--surface); border: 1px solid var(--axis); border-radius: 8px; padding: .3rem .65rem; min-height: 32px; min-width: 14rem; }
+  .chips { display: inline-flex; gap: .3rem; }
+  .chips button[aria-pressed=true] { background: var(--wash); font-weight: 600; border-color: var(--ink-2); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: .55rem .5rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { font-weight: 600; color: var(--ink-2); font-size: .85rem; white-space: nowrap; }
+  th button { background: none; border: 0; padding: 0; min-height: 0; font-weight: 600; color: inherit; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.name { overflow-wrap: anywhere; } td.name a { color: var(--accent); }
+  td.act { text-align: right; white-space: nowrap; }
+  .pill { display: inline-flex; gap: .4rem; align-items: center; font-size: .88rem; }
+  .pill i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .pill.pub i { background: var(--public); } .pill.priv i { background: var(--private); }
+  .empty { text-align: center; color: var(--ink-2); padding: 2rem 1rem; }
+  #toast { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: .4rem; align-items: center; pointer-events: none; }
+  #toast div { background: var(--ink); color: var(--surface); padding: .5rem .9rem; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+  #toast div.err { background: var(--crit); color: #fff; }
+  #tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--surface); padding: .35rem .6rem; border-radius: 6px; font-size: .82rem; display: none; }
+  #tip b { font-weight: 600; }
+  dialog { background: var(--surface); color: var(--ink); border: 1px solid var(--ring); border-radius: 12px; padding: 1.2rem; max-width: 26rem; }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  dialog .row { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1rem; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  @media (max-width: 40rem) { th.hide, td.hide { display: none; } input[type=search] { min-width: 0; flex: 1; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
-<h1>Fileserver</h1>
-<form id="up">
-  <input type="file" name="file" required>
-  <select id="vis"><option value="private">private</option><option value="public">public</option></select>
-  <button>Upload</button> <progress id="bar" max="1" value="0" hidden></progress>
-</form>
-<div id="msg"></div>
-<details id="tok">
-  <summary>Upload token (internal upload API only)</summary>
-  <p><code id="tokval">hidden</code>
-    <button id="tokshow" type="button">Show</button>
-    <button id="tokcopy" type="button">Copy</button></p>
-  <p id="tokinfo"></p>
-</details>
-<table>
-  <thead><tr><th>Name</th><th>Visibility</th><th class="num">Size</th><th>Modified</th><th></th></tr></thead>
-  <tbody id="rows"></tbody>
-</table>
-<script>
-const H = { 'X-Requested-With': 'fileserver' };
-const msg = (t, err) => { const m = document.getElementById('msg'); m.textContent = t; m.className = err ? 'err' : ''; };
-const size = n => n >= 2**30 ? (n/2**30).toFixed(2)+' GiB' : n >= 2**20 ? (n/2**20).toFixed(1)+' MiB' : (n/1024).toFixed(1)+' KiB';
-const cell = (tr, text, cls) => { const td = tr.insertCell(); td.textContent = text; if (cls) td.className = cls; return td; };
+<main>
+  <h1>Fileserver</h1>
+  <p class="sub">Public files are downloadable from the internet. Private files are only here.</p>
 
+  <section class="kpis" aria-label="Overview">
+    <div class="card" id="k-storage">
+      <div class="label">Disk space</div>
+      <div class="value" id="st-val">&nbsp;</div>
+      <div class="track" id="st-track" role="progressbar" aria-label="Volume used" aria-valuemin="0" aria-valuemax="100"><div class="fill" id="st-fill" style="width:0"></div></div>
+      <div class="note" id="st-note"></div>
+    </div>
+    <div class="card" id="k-files">
+      <div class="label">Files</div>
+      <div class="value" id="fl-val">&nbsp;</div>
+      <div class="seg" id="fl-seg" role="img" aria-label="Share of stored bytes"></div>
+      <div class="legend" id="fl-legend"></div>
+    </div>
+    <div class="card" id="k-token">
+      <div class="label">Upload token <span class="sr">(internal upload API only)</span></div>
+      <div class="tok"><code id="tok-val">hidden</code></div>
+      <div class="tok">
+        <button id="tok-show" type="button" aria-pressed="false">Show</button>
+        <button id="tok-copy" type="button">Copy</button>
+        <button id="tok-curl" type="button" title="Copy a ready-to-run curl command">Copy curl</button>
+      </div>
+      <div class="note" id="tok-note"></div>
+    </div>
+  </section>
+
+  <div class="drop" id="drop">
+    <div>
+      <p><strong>Drop files here</strong> or <button type="button" id="pick">choose files</button></p>
+      <p class="hint" id="limit">One file per request, streamed to disk.</p>
+    </div>
+    <fieldset class="seggroup" style="border:0;padding:0;margin:0" aria-label="Visibility of new uploads">
+      <div class="seggroup">
+        <label><input type="radio" name="vis" value="private" checked> Private</label>
+        <label><input type="radio" name="vis" value="public"> Public</label>
+      </div>
+    </fieldset>
+    <input type="file" id="file" multiple hidden>
+  </div>
+  <div class="card prog" id="prog" aria-live="polite">
+    <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center">
+      <div><div id="prog-text"></div><div class="note" id="prog-sub" style="margin:0"></div></div>
+      <button type="button" id="prog-cancel">Cancel</button>
+    </div>
+    <div class="track" role="progressbar" aria-label="Upload progress" aria-valuemin="0" aria-valuemax="100" id="prog-track"><div class="fill" id="prog-fill" style="width:0"></div></div>
+  </div>
+
+  <section class="card" aria-label="Files">
+    <div class="bar">
+      <input type="search" id="q" placeholder="Filter by name" aria-label="Filter by name">
+      <div class="chips" role="group" aria-label="Visibility filter">
+        <button type="button" data-f="all" aria-pressed="true">All</button>
+        <button type="button" data-f="public" aria-pressed="false">Public</button>
+        <button type="button" data-f="private" aria-pressed="false">Private</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th aria-sort="ascending"><button type="button" data-s="name">Name</button></th>
+        <th><button type="button" data-s="visibility">Visibility</button></th>
+        <th class="num"><button type="button" data-s="size">Size</button></th>
+        <th class="hide"><button type="button" data-s="modified">Modified</button></th>
+        <th><span class="sr">Actions</span></th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden></div>
+  </section>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="tip" role="tooltip"></div>
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <h2 id="dlg-title">Delete file?</h2>
+  <p id="dlg-text"></p>
+  <div class="row"><button type="button" id="dlg-no">Cancel</button><button type="button" class="danger" id="dlg-yes">Delete</button></div>
+</dialog>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const H = { 'X-Requested-With': 'fileserver' };
+const state = { files: [], info: {}, token: {}, filter: 'all', q: '', sort: 'name', dir: 1 };
+
+const fmtBytes = n => n >= 2 ** 30 ? (n / 2 ** 30).toFixed(n >= 10 * 2 ** 30 ? 1 : 2) + ' GiB' : n >= 2 ** 20 ? (n / 2 ** 20).toFixed(1) + ' MiB' : n >= 1024 ? (n / 1024).toFixed(0) + ' KiB' : n + ' B';
+const ago = d => { const s = (Date.now() - new Date(d)) / 1000; if (s < 90) return 'just now'; const m = s / 60; if (m < 90) return Math.round(m) + ' min ago'; const h = m / 60; if (h < 36) return Math.round(h) + ' h ago'; return Math.round(h / 24) + ' days ago'; };
+const el = (tag, props, ...kids) => { const e = document.createElement(tag); Object.assign(e, props); e.append(...kids); return e; };
+
+function toast(text, err) {
+  const t = el('div', { className: err ? 'err' : '', textContent: text });
+  $('toast').append(t); setTimeout(() => t.remove(), err ? 6000 : 2500);
+}
 async function call(url, opts) {
   const r = await fetch(url, { ...opts, headers: { ...H, ...(opts && opts.headers) } });
   if (!r.ok) throw new Error((await r.text()).trim() || r.statusText);
   return r;
 }
 
-async function load() {
-  const list = await (await call('/api/files')).json();
-  const rows = document.getElementById('rows');
-  rows.replaceChildren();
+/* tooltips for the bars: one element, filled with textContent */
+const tip = $('tip');
+function tipOn(node, lines) {
+  const show = e => { tip.replaceChildren(el('b', { textContent: lines[0] }), document.createElement('br'), document.createTextNode(lines[1])); tip.style.display = 'block';
+    const r = node.getBoundingClientRect(); tip.style.left = (e.clientX || r.left + r.width / 2) + 'px'; tip.style.top = (r.bottom + 8) + 'px'; };
+  node.addEventListener('pointermove', show); node.addEventListener('focus', show);
+  node.addEventListener('pointerleave', () => tip.style.display = 'none'); node.addEventListener('blur', () => tip.style.display = 'none');
+}
+
+function renderStats() {
+  const { capacityBytes: cap = 0, freeBytes: free = 0 } = state.info;
+  const used = Math.max(0, cap - free), pct = cap ? used / cap * 100 : 0;
+  $('st-val').replaceChildren(document.createTextNode(fmtBytes(free) + ' '), el('small', { textContent: 'remaining of ' + fmtBytes(cap) }));
+  const fill = $('st-fill'); fill.style.width = pct.toFixed(1) + '%';
+  fill.className = 'fill' + (pct >= 92 ? ' crit' : pct >= 80 ? ' warn' : '');
+  $('st-track').setAttribute('aria-valuenow', Math.round(pct));
+  const note = $('st-note'); note.replaceChildren();
+  const status = pct >= 92 ? ['crit', '⚠', 'Almost full. Uploads will be refused.'] : pct >= 80 ? ['warn', '⚠', 'Getting full.'] : ['ok', '✓', 'Plenty of room.'];
+  note.append(el('span', { className: 'st st-' + status[0], textContent: status[1] + ' ' + status[2] }), document.createTextNode(fmtBytes(used) + ' used · ' + Math.round(pct) + '%'));
+  tipOn($('st-track'), ['Volume', fmtBytes(used) + ' used of ' + fmtBytes(cap)]);
+
+  const sum = v => state.files.filter(f => f.visibility === v).reduce((a, f) => a + f.size, 0);
+  const cnt = v => state.files.filter(f => f.visibility === v).length;
+  const bytes = { public: sum('public'), private: sum('private') }, total = bytes.public + bytes.private;
+  $('fl-val').replaceChildren(document.createTextNode(String(state.files.length) + ' '), el('small', { textContent: 'files · ' + fmtBytes(total) }));
+  const seg = $('fl-seg'); seg.replaceChildren();
+  for (const [v, cls] of [['public', 'pub'], ['private', 'priv']]) {
+    if (!bytes[v]) continue;
+    const s = el('span', { className: cls, tabIndex: 0 }); s.style.flex = String(bytes[v]);
+    s.setAttribute('aria-label', v + ': ' + cnt(v) + ' files, ' + fmtBytes(bytes[v]));
+    tipOn(s, [v[0].toUpperCase() + v.slice(1), cnt(v) + ' files · ' + fmtBytes(bytes[v]) + ' · ' + Math.round(bytes[v] / total * 100) + '%']);
+    seg.append(s);
+  }
+  const lg = $('fl-legend'); lg.replaceChildren();
+  for (const [v, cls] of [['public', 'pub'], ['private', 'priv']])
+    lg.append(el('span', {}, el('i', { className: 'sw ' + cls }), document.createTextNode(`${v[0].toUpperCase() + v.slice(1)} ${cnt(v)} · ${fmtBytes(bytes[v])}`)));
+
+  // token
+  const t = state.token, note2 = $('tok-note'); note2.replaceChildren();
+  if (!t.current) { note2.append(el('span', { className: 'st st-warn', textContent: '⚠ No token yet. The rotation job has not run.' })); return; }
+  const days = (Date.now() - new Date(t.rotatedAt)) / 864e5, every = (state.info.rotateAfterHours || 720) / 24;
+  const overdue = days > every + 1;
+  note2.append(el('span', { className: 'st ' + (overdue ? 'st-crit' : 'st-ok'), textContent: overdue ? '⚠ Rotation overdue' : '✓ Rotating normally' }),
+    document.createTextNode(`Rotated ${ago(t.rotatedAt)}` + (overdue ? '' : ` · next in about ${Math.max(0, Math.round(every - days))} days`)));
+  if (t.previousValidUntil) note2.append(document.createTextNode('The previous token also works until ' + new Date(t.previousValidUntil).toLocaleString() + '.'));
+}
+
+function renderRows() {
+  const rows = $('rows'); rows.replaceChildren();
+  const q = state.q.toLowerCase();
+  const list = state.files.filter(f => (state.filter === 'all' || f.visibility === state.filter) && f.name.toLowerCase().includes(q))
+    .sort((a, b) => (a[state.sort] > b[state.sort] ? 1 : a[state.sort] < b[state.sort] ? -1 : 0) * state.dir);
+  document.querySelectorAll('th[aria-sort]').forEach(th => th.removeAttribute('aria-sort'));
+  const th = document.querySelector(`th button[data-s="${state.sort}"]`).parentElement; th.setAttribute('aria-sort', state.dir > 0 ? 'ascending' : 'descending');
+  const empty = $('empty'); empty.hidden = list.length > 0;
+  empty.textContent = state.files.length ? 'No file matches the filter.' : 'No files yet. Drop one above to start.';
   for (const f of list) {
     const tr = rows.insertRow();
-    const name = tr.insertCell();
-    const a = document.createElement('a');
-    a.href = `/download/${f.visibility}/${encodeURIComponent(f.name)}`;
-    a.textContent = f.name;
-    name.append(a);
-    cell(tr, f.visibility, f.visibility === 'public' ? 'pub' : 'priv');
-    cell(tr, size(f.size), 'num');
-    cell(tr, new Date(f.modified).toLocaleString());
-    const act = tr.insertCell();
+    const a = el('a', { href: `download/${f.visibility}/${encodeURIComponent(f.name)}`, textContent: f.name });
+    tr.insertCell().className = 'name'; tr.cells[0].append(a);
+    const cls = f.visibility === 'public' ? 'pub' : 'priv';
+    tr.insertCell().append(el('span', { className: 'pill ' + cls }, el('i'), document.createTextNode(f.visibility === 'public' ? 'Public' : 'Private')));
+    const sz = tr.insertCell(); sz.className = 'num'; sz.textContent = fmtBytes(f.size);
+    const md = tr.insertCell(); md.className = 'hide'; md.textContent = ago(f.modified); md.title = new Date(f.modified).toLocaleString();
+    const act = tr.insertCell(); act.className = 'act';
+    if (f.visibility === 'public' && state.info.publicUrl) act.append(el('button', { className: 'ghost', textContent: 'Copy link', onclick: () => navigator.clipboard.writeText(`${state.info.publicUrl}/${f.name}`).then(() => toast('Link copied'), () => toast('Copy failed', true)) }), ' ');
     const to = f.visibility === 'public' ? 'private' : 'public';
-    const mv = document.createElement('button');
-    mv.textContent = 'Make ' + to;
-    mv.onclick = () => act2(() => call(`/api/files/${encodeURIComponent(f.name)}/visibility?to=${to}`, { method: 'POST' }));
-    const del = document.createElement('button');
-    del.textContent = 'Delete';
-    del.onclick = () => confirm(`Delete ${f.name}?`) && act2(() => call(`/api/files/${encodeURIComponent(f.name)}`, { method: 'DELETE' }));
-    act.append(mv, ' ', del);
+    act.append(el('button', { className: 'ghost', textContent: 'Make ' + to, onclick: () => run(() => call(`api/files/${encodeURIComponent(f.name)}/visibility?to=${to}`, { method: 'POST' }), `${f.name} is now ${to}`) }), ' ',
+      el('button', { className: 'ghost danger', textContent: 'Delete', onclick: () => confirmDelete(f) }));
   }
 }
 
-async function act2(fn) {
-  try { await fn(); msg(''); await load(); } catch (e) { msg(e.message, true); }
+async function refresh() {
+  const [files, info, token] = await Promise.all([call('api/files').then(r => r.json()), call('api/info').then(r => r.json()), call('api/token').then(r => r.json())]);
+  Object.assign(state, { files, info, token });
+  $('limit').textContent = `Up to ${fmtBytes(info.maxFileBytes || 0)} per file. Same name replaces the file.`;
+  renderStats(); renderRows();
 }
+async function run(fn, ok) { try { await fn(); if (ok) toast(ok); await refresh(); } catch (e) { toast(e.message, true); } }
 
-document.getElementById('up').addEventListener('submit', e => {
-  e.preventDefault();
-  const bar = document.getElementById('bar');
-  const xhr = new XMLHttpRequest();
-  xhr.open('POST', '/api/files?visibility=' + document.getElementById('vis').value);
-  xhr.setRequestHeader('X-Requested-With', 'fileserver');
-  xhr.upload.onprogress = p => { bar.hidden = false; bar.value = p.loaded / p.total; };
-  xhr.onload = () => {
-    bar.hidden = true;
-    if (xhr.status === 201) { msg('Uploaded'); e.target.reset(); load(); } else msg(xhr.responseText.trim() || xhr.statusText, true);
+/* delete confirmation */
+function confirmDelete(f) {
+  $('dlg-text').textContent = `${f.name} (${fmtBytes(f.size)}, ${f.visibility}) will be removed for good.`;
+  $('dlg').showModal();
+  $('dlg-yes').onclick = () => { $('dlg').close(); run(() => call('api/files/' + encodeURIComponent(f.name), { method: 'DELETE' }), 'Deleted ' + f.name); };
+}
+$('dlg-no').onclick = () => $('dlg').close();
+
+/* token */
+let revealed = false;
+const mask = t => t ? t.slice(0, 3) + '•'.repeat(12) + t.slice(-4) : 'none';
+function showToken() { $('tok-val').textContent = revealed ? (state.token.current || 'none') : mask(state.token.current); $('tok-show').textContent = revealed ? 'Hide' : 'Show'; $('tok-show').setAttribute('aria-pressed', revealed); }
+$('tok-show').onclick = () => { revealed = !revealed; showToken(); };
+$('tok-copy').onclick = () => navigator.clipboard.writeText(state.token.current || '').then(() => toast('Token copied'), () => toast('Copy failed', true));
+$('tok-curl').onclick = () => navigator.clipboard.writeText(`curl --fail -T FILE -H "Authorization: Bearer ${state.token.current}" "http://fileserver-upload.fileserver.svc:8082/v1/files/NAME?visibility=private"`).then(() => toast('curl command copied'), () => toast('Copy failed', true));
+
+/* upload: one file at a time, with progress, speed and cancel */
+let xhr = null, queue = [];
+function uploadNext() {
+  const f = queue.shift();
+  if (!f) { $('prog').classList.remove('on'); return refresh(); }
+  const vis = document.querySelector('input[name=vis]:checked').value, total = queue.length + 1;
+  $('prog').classList.add('on'); $('prog-text').textContent = `Uploading ${f.name} (${vis})`;
+  const fd = new FormData(); fd.append('file', f);
+  xhr = new XMLHttpRequest(); const t0 = Date.now();
+  xhr.open('POST', 'api/files?visibility=' + vis); xhr.setRequestHeader('X-Requested-With', 'fileserver');
+  xhr.upload.onprogress = p => {
+    const pc = p.lengthComputable ? p.loaded / p.total * 100 : 0, rate = p.loaded / Math.max(.5, (Date.now() - t0) / 1000);
+    $('prog-fill').style.width = pc.toFixed(1) + '%'; $('prog-track').setAttribute('aria-valuenow', Math.round(pc));
+    $('prog-sub').textContent = `${Math.round(pc)}% · ${fmtBytes(p.loaded)} of ${fmtBytes(p.total)} · ${fmtBytes(rate)}/s` + (queue.length ? ` · ${queue.length} more queued` : '');
   };
-  xhr.onerror = () => { bar.hidden = true; msg('Upload failed', true); };
-  xhr.send(new FormData(e.target));
-});
-
-let token = '';
-async function loadToken() {
-  const t = await (await call('/api/token')).json();
-  token = t.current || '';
-  const when = d => new Date(d).toLocaleString();
-  document.getElementById('tokinfo').textContent = !token ? 'No token yet: the rotation job has not run.'
-    : 'Rotated ' + when(t.rotatedAt) + (t.previousValidUntil ? '. The previous token also works until ' + when(t.previousValidUntil) + '.' : '.');
+  xhr.onload = () => { if (xhr.status === 201) toast('Uploaded ' + f.name); else toast(`${f.name}: ${xhr.responseText.trim() || xhr.statusText}`, true); $('prog-fill').style.width = '0'; uploadNext(); };
+  xhr.onerror = () => { toast(`${f.name}: upload failed`, true); queue = []; uploadNext(); };
+  xhr.onabort = () => { toast('Upload cancelled'); queue = []; uploadNext(); };
+  xhr.send(fd);
 }
-document.getElementById('tokshow').onclick = e => {
-  const v = document.getElementById('tokval');
-  const hidden = v.textContent === 'hidden';
-  v.textContent = hidden ? (token || 'none') : 'hidden';
-  e.target.textContent = hidden ? 'Hide' : 'Show';
-};
-document.getElementById('tokcopy').onclick = () => navigator.clipboard.writeText(token).then(() => msg('Token copied'), () => msg('Copy failed', true));
+function enqueue(files) { const idle = !queue.length && !$('prog').classList.contains('on'); queue.push(...files); if (idle) uploadNext(); }
+$('prog-cancel').onclick = () => xhr && xhr.abort();
+$('pick').onclick = () => $('file').click();
+$('file').onchange = e => { enqueue([...e.target.files]); e.target.value = ''; };
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(n => drop.addEventListener(n, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(n => drop.addEventListener(n, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => enqueue([...e.dataTransfer.files]));
 
-load().catch(e => msg(e.message, true));
-loadToken().catch(e => msg(e.message, true));
+/* list controls */
+$('q').oninput = e => { state.q = e.target.value; renderRows(); };
+document.querySelectorAll('.chips button').forEach(b => b.onclick = () => { state.filter = b.dataset.f; document.querySelectorAll('.chips button').forEach(x => x.setAttribute('aria-pressed', x === b)); renderRows(); });
+document.querySelectorAll('th button').forEach(b => b.onclick = () => { state.dir = state.sort === b.dataset.s ? -state.dir : 1; state.sort = b.dataset.s; renderRows(); });
+
+refresh().then(showToken).catch(e => toast(e.message, true));
+setInterval(() => !$('prog').classList.contains('on') && refresh().then(showToken).catch(() => {}), 30000);
 </script>
 </body>
 </html>

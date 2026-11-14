@@ -1,14 +1,13 @@
 # fileserver
 
 A small file server for the homelab cluster. First use: `homeserver-bootc` uploads its disk images here instead of to Azure.
-One static Go binary with no third-party dependencies, four modes. State is the directory a file is in, so there is no database.
+One static Go binary with no third-party dependencies, three modes. State is the directory a file is in, so there is no database.
 
 | Mode | Port | Mounts | What it does |
 |---|---|---|---|
 | `--mode=public` | 8080 | `public/` read-only | `GET /<name>` only. No listing, no other methods. Exposed through Traefik and the Cloudflare tunnel (`files.portableinfo.cloud`) |
 | `--mode=admin` | 8081 | whole volume, token Secret | List, upload, download, delete, move between public and private, and show the upload token. No login of its own: only the Omni service exposer reaches it |
 | `--mode=upload` | 8082 | whole volume, token Secret | `PUT /v1/files/<name>?visibility=public\|private` for CI with the rotating bearer token. Cluster-internal only |
-| `--mode=rotate` | none | none | CronJob: creates and rotates the upload token Secret in the fileserver and runner namespaces |
 
 The public container cannot see `private/` or the token at all, so a bug there cannot leak either.
 
@@ -17,7 +16,7 @@ flowchart TB
     NET["Internet<br/>files.portableinfo.cloud"] --> CF["Cloudflare"] --> TR["Traefik<br/>rateLimit, inFlightReq, headers"]
     OP["Operator"] --> OMNI["Omni service exposer"]
     RUN["ARC runner (arc-runners-system)<br/>env FILESERVER_TOKEN"]
-    CJ["CronJob fileserver-rotate<br/>daily, rotates after 30 days"]
+    CJ["CronJob (busybox shell + curl)<br/>daily, rotates after 30 days"]
     subgraph POD["Pod fileserver"]
         PUB["public :8080<br/>public/ read-only"]
         ADM["admin :8081<br/>read-write, shows token"]
@@ -55,7 +54,7 @@ flowchart TB
 
 One random token (`fs_` + 64 hex characters) in the Secret `fileserver-upload-token`, with the keys `current`, `previous` and `rotated-at`.
 
-- **Created and rotated by the CronJob** (`--mode=rotate`), which runs daily and rotates when `rotated-at` is older than `ROTATE_AFTER` (30 days). It writes the same data to every namespace/name in `ROTATE_TARGETS` and repairs a missing or edited copy without rotating.
+- **Created and rotated by a CronJob, not by the app.** It runs daily and rotates when `rotated-at` is older than 30 days. It writes the same data to the fileserver and runner namespaces and repairs a missing or edited copy without rotating.
 - **Readers:** the admin and upload containers mount the Secret as files and re-read them on each request, so a rotation arrives within about a minute without a restart. ARC runners get `current` as an environment variable at pod start (ARC runners are ephemeral, so each job starts with the current token).
 - **Grace period:** the previous token is also accepted for `PREVIOUS_TOKEN_GRACE` (24 h) after a rotation, so a job that started just before a rotation can still upload.
 - **Only the upload API accepts it.** The public and admin handlers ignore the header. The upload port is a ClusterIP Service that a NetworkPolicy opens only to the runner namespace.
@@ -89,7 +88,7 @@ Upload from a workflow (the file is `$FILE`):
 | `fileserver_token_rotated_timestamp_seconds` | admin, upload | alert when `time() - this > 31 * 86400`: the rotation job has stopped working |
 | `fileserver_go_goroutines`, `fileserver_go_heap_alloc_bytes`, `fileserver_start_time_seconds` | all | process health |
 
-The metrics never contain the token or file contents. The rotate CronJob exposes none; watch its Job status instead (`kube_job_status_failed`).
+The metrics never contain the token or file contents. The rotation CronJob exposes none; watch its Job status instead (`kube_job_status_failed`).
 
 ## Memory
 
@@ -117,10 +116,10 @@ These numbers are estimates, not measurements.
 | `MIN_FREE_BYTES` | `268435456` | admin, upload |
 | `TOKEN_DIR` | `/var/run/fileserver-token` | admin, upload |
 | `PREVIOUS_TOKEN_GRACE` | `24h` | admin, upload |
-| `ROTATE_TARGETS` | none, required: `namespace/name,namespace/name`, the first decides when to rotate | rotate |
-| `ROTATE_AFTER` | `720h` | rotate |
+| `ROTATE_AFTER` | `720h`, only used to show the next rotation date; the CronJob has its own setting | admin |
+| `PUBLIC_URL` | none; when set the admin page offers "Copy link" for public files | admin |
 
-The rotator uses the pod's ServiceAccount token and CA. Its RBAC is `get`, `create` and `update` on Secrets, limited to the target namespaces. It needs nothing else.
+The app never writes the Secret and has no Kubernetes API access (`automountServiceAccountToken: false`). Rotation is done by a CronJob in `k8s/apps/fileserver/`: a `curlimages/curl` container (busybox shell plus curl) that calls the Kubernetes API with its own ServiceAccount. Its RBAC is `get`/`update` on that one Secret name and `create` on Secrets, in the fileserver and runner namespaces only.
 
 ## Layout
 
@@ -131,7 +130,6 @@ images/fileserver/
 ├── store.go          names, put/list/delete/move on public/ private/ .tmp/
 ├── metrics.go        Prometheus text exposition, request and upload counters
 ├── token.go          reads the mounted token, current/previous with grace
-├── rotate.go         the CronJob: creates and rotates the Secret through the Kubernetes API
 ├── handlers.go       public, admin and upload handlers
 ├── web/index.html    the admin page (embedded, no framework)
 └── fileserver_test.go

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"io"
 	"mime/multipart"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -154,7 +153,7 @@ func TestPublicNeverServesPrivate(t *testing.T) {
 
 func TestAdminAPI(t *testing.T) {
 	s := newStore(t)
-	h := adminHandler(s, NewTokenAuth(t.TempDir(), time.Hour), 1<<20)
+	h := adminHandler(s, NewTokenAuth(t.TempDir(), time.Hour), 1<<20, adminConfig{})
 
 	var buf bytes.Buffer
 	mw := multipart.NewWriter(&buf)
@@ -276,7 +275,7 @@ func TestUploadWithToken(t *testing.T) {
 func TestAdminShowsToken(t *testing.T) {
 	dir := t.TempDir()
 	writeToken(t, dir, "tok", "", time.Now())
-	h := adminHandler(newStore(t), NewTokenAuth(dir, time.Hour), 1<<20)
+	h := adminHandler(newStore(t), NewTokenAuth(dir, time.Hour), 1<<20, adminConfig{})
 	req := httptest.NewRequest("GET", "/api/token", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -297,100 +296,6 @@ func TestAdminShowsToken(t *testing.T) {
 	publicHandler(root).ServeHTTP(rec, httptest.NewRequest("GET", "/api/token", nil))
 	if rec.Code == 200 {
 		t.Fatal("public handler served /api/token")
-	}
-}
-
-// fakeKube is just enough of the Secrets API for the rotator.
-type fakeKube struct {
-	srv     *httptest.Server
-	secrets map[string]*secretObj
-	writes  int
-}
-
-func newFakeKube(t *testing.T) *fakeKube {
-	f := &fakeKube{secrets: map[string]*secretObj{}}
-	f.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer sa-token" {
-			w.WriteHeader(401)
-			return
-		}
-		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/namespaces/"), "/") // ns, "secrets"[, name]
-		ns := parts[0]
-		switch r.Method {
-		case "GET":
-			s, ok := f.secrets[ns+"/"+parts[2]]
-			if !ok {
-				w.WriteHeader(404)
-				return
-			}
-			_ = json.NewEncoder(w).Encode(s)
-		case "POST", "PUT":
-			var s secretObj
-			_ = json.NewDecoder(r.Body).Decode(&s)
-			key := ns + "/" + s.Metadata.Name
-			_, exists := f.secrets[key]
-			if (r.Method == "POST") == exists {
-				w.WriteHeader(409)
-				return
-			}
-			s.Metadata.ResourceVersion = "1"
-			f.secrets[key] = &s
-			f.writes++
-			w.WriteHeader(200)
-			_ = json.NewEncoder(w).Encode(s)
-		}
-	}))
-	t.Cleanup(f.srv.Close)
-	return f
-}
-
-func TestRotate(t *testing.T) {
-	f := newFakeKube(t)
-	k := &kube{base: f.srv.URL, token: "sa-token", hc: f.srv.Client()}
-	targets := []secretRef{{"fileserver", "tok"}, {"arc", "tok"}}
-	month := 30 * 24 * time.Hour
-	now := time.Now()
-
-	// first run creates both copies with the same token
-	if r, err := rotate(t.Context(), k, targets, month, now); err != nil || !r {
-		t.Fatalf("first run: rotated=%v err=%v", r, err)
-	}
-	a, b := f.secrets["fileserver/tok"], f.secrets["arc/tok"]
-	if a == nil || b == nil || !sameData(a.Data, b.Data) || !strings.HasPrefix(string(a.Data["current"]), "fs_") || len(a.Data["previous"]) != 0 {
-		t.Fatalf("bad first state: %+v %+v", a, b)
-	}
-	first := string(a.Data["current"])
-
-	// a run inside the period changes nothing
-	w := f.writes
-	if r, err := rotate(t.Context(), k, targets, month, now.Add(24*time.Hour)); err != nil || r || f.writes != w {
-		t.Fatalf("early run: rotated=%v writes=%d err=%v", r, f.writes-w, err)
-	}
-
-	// a deleted copy is repaired without rotating
-	delete(f.secrets, "arc/tok")
-	if r, err := rotate(t.Context(), k, targets, month, now.Add(48*time.Hour)); err != nil || r || f.secrets["arc/tok"] == nil {
-		t.Fatalf("repair: rotated=%v err=%v", r, err)
-	}
-
-	// after 30 days it rotates, keeps the old token as previous, and updates both copies
-	if r, err := rotate(t.Context(), k, targets, month, now.Add(31*24*time.Hour)); err != nil || !r {
-		t.Fatalf("rotation: rotated=%v err=%v", r, err)
-	}
-	a, b = f.secrets["fileserver/tok"], f.secrets["arc/tok"]
-	if string(a.Data["current"]) == first || string(a.Data["previous"]) != first || !sameData(a.Data, b.Data) {
-		t.Fatalf("bad rotated state: %+v", a.Data)
-	}
-}
-
-func TestParseTargets(t *testing.T) {
-	if got, err := parseTargets("a/b, c/d"); err != nil || len(got) != 2 || got[1] != (secretRef{"c", "d"}) {
-		t.Fatalf("got %v %v", got, err)
-	}
-	for _, bad := range []string{"", "ab", "/x", "x/"} {
-		if _, err := parseTargets(bad); err == nil {
-			t.Errorf("%q should fail", bad)
-		}
 	}
 }
 
@@ -472,5 +377,16 @@ func TestMetrics(t *testing.T) {
 	}
 	if strings.Contains(out, "tok") && strings.Contains(out, "Bearer") {
 		t.Error("metrics must never contain the token")
+	}
+}
+
+func TestAdminInfo(t *testing.T) {
+	h := adminHandler(newStore(t), NewTokenAuth(t.TempDir(), time.Hour), 1<<20, adminConfig{PublicURL: "https://files.example", RotateAfter: 720 * time.Hour})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/api/info", nil))
+	var info map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &info)
+	if rec.Code != 200 || info["publicUrl"] != "https://files.example" || info["rotateAfterHours"] != float64(720) || info["capacityBytes"].(float64) <= 0 {
+		t.Fatalf("got %d %s", rec.Code, rec.Body)
 	}
 }

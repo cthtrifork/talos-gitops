@@ -2,8 +2,9 @@
 //
 //	--mode=public  GET /<name> from the public directory, read-only mount
 //	--mode=admin   admin page and JSON API, reached through the Omni service exposer
-//	--mode=upload  PUT /v1/files/<name> for CI, authenticated with a bearer token rotated by --mode=rotate
-//	--mode=rotate  CronJob: creates and rotates the upload token Secret in the pod and runner namespaces
+//	--mode=upload  PUT /v1/files/<name> for CI, authenticated with a bearer token from a mounted Secret
+//
+// The app only reads the token Secret. A CronJob (k8s/apps/fileserver) creates and rotates it.
 package main
 
 import (
@@ -15,6 +16,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -48,7 +50,7 @@ func tokenAuth() *TokenAuth {
 }
 
 func main() {
-	mode := flag.String("mode", "", "public, admin, upload or rotate")
+	mode := flag.String("mode", "", "public, admin or upload")
 	flag.Parse()
 
 	dataDir := env("DATA_DIR", "/data")
@@ -70,7 +72,10 @@ func main() {
 		a := tokenAuth()
 		m.addCollector(storeCollector(s))
 		m.addCollector(tokenCollector(a))
-		handler, addr = adminHandler(s, a, maxBytes), env("LISTEN_ADDR", ":8081")
+		rotateAfter, err := time.ParseDuration(env("ROTATE_AFTER", "720h"))
+		fatal(err)
+		cfg := adminConfig{PublicURL: strings.TrimRight(os.Getenv("PUBLIC_URL"), "/"), RotateAfter: rotateAfter}
+		handler, addr = adminHandler(s, a, maxBytes, cfg), env("LISTEN_ADDR", ":8081")
 	case "upload":
 		s, err := NewStore(dataDir, uint64(minFree))
 		fatal(err)
@@ -78,11 +83,8 @@ func main() {
 		m.addCollector(storeCollector(s))
 		m.addCollector(tokenCollector(a))
 		handler, addr = uploadHandler(s, a, maxBytes), env("LISTEN_ADDR", ":8082")
-	case "rotate":
-		fatal(runRotate())
-		return
 	default:
-		fatal(fmt.Errorf("--mode must be public, admin, upload or rotate"))
+		fatal(fmt.Errorf("--mode must be public, admin or upload"))
 	}
 
 	// No overall read/write timeout: images are several GiB. Header and idle timeouts still bound slow clients.

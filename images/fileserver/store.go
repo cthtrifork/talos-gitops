@@ -97,6 +97,15 @@ func (s *Store) freeBytes() (uint64, error) {
 	return st.Bavail * uint64(st.Bsize), nil
 }
 
+// capacityBytes is the size of the volume, for the admin page's storage meter.
+func (s *Store) capacityBytes() (uint64, error) {
+	var st syscall.Statfs_t
+	if err := syscall.Statfs(s.dir, &st); err != nil {
+		return 0, err
+	}
+	return st.Blocks * uint64(st.Bsize), nil
+}
+
 func (s *Store) exists(v Visibility, name string) bool {
 	fi, err := s.root.Stat(string(v) + "/" + name)
 	return err == nil && fi.Mode().IsRegular()
