@@ -9,6 +9,37 @@ in, so there is no database. It runs as three containers in one pod (`k8s/apps/f
 | `--mode=admin` | 8081 | everything | List, upload, download, delete, move between public and private, show the upload token. No login: only Omni reaches it |
 | `--mode=upload` | 8082 | everything | `PUT /v1/files/<name>?visibility=public\|private` with the bearer token. Cluster-internal |
 
+```mermaid
+flowchart TB
+    NET["Internet<br/>files.portableinfo.cloud"] --> CF["Cloudflare"] --> TR["Traefik<br/>rateLimit, inFlightReq"]
+    OP["Operator"] --> OMNI["Omni service exposer"]
+    RUN["ARC runner (arc-runners-system)<br/>env FILESERVER_TOKEN"]
+    CJ["CronJob, monthly<br/>curl: new token"]
+    RL["Reloader"]
+    subgraph POD["Pod fileserver (fileserver-system)"]
+        PUB["public :8080<br/>public/ read-only"]
+        ADM["admin :8081<br/>shows the token"]
+        UPL["upload :8082<br/>checks the token"]
+    end
+    S1[("Secret fileserver-system/<br/>fileserver-upload-token")]
+    S2[("Secret arc-runners-system/<br/>fileserver-upload-token")]
+    subgraph PVC["PVC 20 GiB"]
+        D1["public/"]
+        D2["private/"]
+        D3[".tmp/"]
+    end
+    TR -->|":8080"| PUB
+    OMNI -->|":8081"| ADM
+    RUN -->|":8082"| UPL
+    CJ --> S1 & S2
+    S1 -.-> ADM & UPL
+    S2 -.-> RUN
+    RL -.->|"restarts the pod when its Secret changes"| POD
+    PUB --> D1
+    ADM --> D1 & D2
+    UPL --> D1 & D2 & D3
+```
+
 ## Rules
 
 - **Names** are one plain name: `fs.ValidPath`, at most 255 bytes, no `/` or `\`, no control characters, not starting with `.`.
