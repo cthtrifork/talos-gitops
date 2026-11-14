@@ -38,7 +38,7 @@ input:
           allowed_verbs:
             - GET
             - POST
-          sync_response: &reply
+          sync_response:
             status: '${! @status.or("200") }'
             headers:
               Content-Type: '${! @content_type.or("application/json") }'
@@ -53,7 +53,11 @@ input:
           allowed_verbs:
             - GET
             - POST
-          sync_response: *reply
+          sync_response:
+            status: '${! @status.or("200") }'
+            headers:
+              Content-Type: '${! @content_type.or("application/json") }'
+              Cache-Control: no-store
         processors:
           - mapping: 'meta listener = "poll"'
 
