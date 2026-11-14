@@ -32,7 +32,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: public
-          image: &image ghcr.io/cthtrifork/talos-gitops/fileserver:v0.13.0@sha256:287d6db13996853cf2e2014a5b7c4afd59108f082a3cc2862fbe3d0c62c8848b
+          image: ghcr.io/cthtrifork/talos-gitops/fileserver:v0.13.0@sha256:287d6db13996853cf2e2014a5b7c4afd59108f082a3cc2862fbe3d0c62c8848b
           args:
             - "--mode=public"
           env:
@@ -57,7 +57,7 @@ spec:
             httpGet:
               path: /healthz
               port: m-public
-          securityContext: &sc
+          securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
@@ -76,7 +76,7 @@ spec:
               readOnly: true
 
         - name: admin
-          image: *image
+          image: ghcr.io/cthtrifork/talos-gitops/fileserver:v0.13.0@sha256:287d6db13996853cf2e2014a5b7c4afd59108f082a3cc2862fbe3d0c62c8848b
           args:
             - "--mode=admin"
           env:
@@ -109,7 +109,12 @@ spec:
             httpGet:
               path: /healthz
               port: m-admin
-          securityContext: *sc
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - "ALL"
           resources:
             requests:
               cpu: 10m
@@ -124,7 +129,7 @@ spec:
               readOnly: true
 
         - name: upload
-          image: *image
+          image: ghcr.io/cthtrifork/talos-gitops/fileserver:v0.13.0@sha256:287d6db13996853cf2e2014a5b7c4afd59108f082a3cc2862fbe3d0c62c8848b
           args:
             - "--mode=upload"
           env:
@@ -153,7 +158,12 @@ spec:
             httpGet:
               path: /healthz
               port: m-upload
-          securityContext: *sc
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - "ALL"
           resources:
             requests:
               cpu: 10m
