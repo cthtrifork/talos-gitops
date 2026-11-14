@@ -1,12 +1,11 @@
-# The three containers each serve /metrics on their own health port (m-public 9102, m-admin 9103, m-upload 9104).
-# The release label is what the kube-prometheus-stack Prometheus selects PodMonitors by.
+# The release label is how the kube-prometheus-stack Prometheus selects PodMonitors.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/monitoring.coreos.com/podmonitor_v1.json
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: fileserver
-  namespace: fileserver
+  namespace: fileserver-system
   labels:
     release: kube-prometheus-stack
 spec:

@@ -14,10 +14,9 @@ resources:
   - networkpolicy.yaml
   - podmonitor.yaml
   - prometheusrule.yaml
-# The rotation script lives in its own file so it can be linted and tested (scripts/ci/test-rotate-token.py). The name
-# gets a hash suffix, so a changed script starts the next CronJob run with the new version.
+# a new ConfigMap name on every change, so the next run uses the new script
 configMapGenerator:
   - name: fileserver-rotate-script
-    namespace: fileserver
+    namespace: fileserver-system
     files:
       - rotate-token.sh

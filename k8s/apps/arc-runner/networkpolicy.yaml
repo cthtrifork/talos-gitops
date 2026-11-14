@@ -150,10 +150,10 @@ spec:
         - ports:
             - port: "80"
               protocol: TCP
-    # The fileserver upload API (disk image uploads of homeserver-bootc), the Service is translated to the pod
+    # the fileserver upload API
     - toEndpoints:
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: fileserver
+            k8s:io.kubernetes.pod.namespace: fileserver-system
             k8s:app: fileserver
       toPorts:
         - ports:

@@ -176,6 +176,7 @@ spec:
 
               - name: RUNNER_UPDATE_CA_CERTS
                 value: "1"
+              # rotated by the CronJob in k8s/apps/fileserver; optional until the first rotation
 
               # The fileserver upload token, rotated every 30 days by the CronJob in k8s/apps/fileserver (it writes this
               # Secret too). Read at pod start: the runners are ephemeral, so every job gets the current token. optional:
@@ -187,7 +188,7 @@ spec:
                     key: current
                     optional: true
               - name: FILESERVER_URL
-                value: http://fileserver-upload.fileserver.svc:8082
+                value: http://fileserver-upload.fileserver-system.svc:8082
 
               #- name: HTTP_PROXY
               #  value: "http://192.168.1.135:3128"

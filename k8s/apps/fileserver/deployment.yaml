@@ -1,18 +1,11 @@
-# fileserver: one pod, three containers from one image, one volume. Each container mounts only what it needs: the public
-# one sees public/ read-only, so a bug there cannot leak a private file or the token. See images/fileserver/README.md.
-#
-# IMAGE: ghcr.io/cthtrifork/talos-gitops/fileserver, built and signed by build-image.yaml on a release tag. Pinned to the tag
-# and its digest; Renovate keeps both up to date. The package is public, so the pod needs no pull secret.
-#
-# Memory: the upload path streams, so the heap stays small. Written files sit in the page cache, which counts against the
-# limit, and the app fsyncs every 64 MiB to bound it. GOMEMLIMIT is about 80% of the limit because Go does not read the
-# cgroup limit itself. These numbers are estimates, not measurements: watch container_memory_working_set_bytes.
+# The public container mounts only public/ read-only, so it cannot see private files or the token.
+# GOMEMLIMIT is ~80% of the memory limit (Go does not read the cgroup limit). The memory numbers are estimates.
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fileserver
-  namespace: fileserver
+  namespace: fileserver-system
 spec:
   replicas: 1
   strategy:
@@ -95,6 +88,8 @@ spec:
               value: ":9103"
             - name: PUBLIC_URL
               value: https://files.portableinfo.cloud
+            - name: UPLOAD_URL
+              value: http://fileserver-upload.fileserver-system.svc:8082
             - name: MAX_FILE_BYTES
               value: "8589934592" # 8 GiB
             - name: ROTATE_AFTER
@@ -176,9 +171,7 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: fileserver-data
-        # Written by the rotation CronJob. optional: the pod starts before the first rotation, uploads are refused until
-        # then. The kubelet refreshes the mounted files within about a minute of a rotation and the app re-reads them on every
-        # request, so no restart is needed.
+        # optional: uploads are refused until the first rotation. The app re-reads the files, so a rotation needs no restart.
         - name: token
           secret:
             secretName: fileserver-upload-token

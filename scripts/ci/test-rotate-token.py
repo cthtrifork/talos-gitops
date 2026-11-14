@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
-"""Runs k8s/apps/fileserver/rotate-token.sh against a fake Kubernetes Secrets API and checks what it writes.
+"""Runs rotate-token.sh against a fake Secrets API that only allows GET and a merge PATCH (the job's RBAC).
 
-The fake API only knows GET and PATCH (a JSON merge patch), like the job's RBAC (get and patch on one Secret name): if the
-script tried to create or replace a Secret the fake would answer 405 and the test would fail. The Secrets are created empty
-before each test, the way Git creates them (k8s/apps/fileserver/token-secret.yaml).
-
-Needs python3, sh and curl. No cluster, no network beyond localhost. Run from the repository root:
-    python3 scripts/ci/test-rotate-token.py
+Run from the repository root: python3 scripts/ci/test-rotate-token.py
 """
 import base64
 import http.server
@@ -20,7 +15,7 @@ import threading
 import unittest
 
 SCRIPT = os.path.join(os.path.dirname(__file__), "..", "..", "k8s", "apps", "fileserver", "rotate-token.sh")
-NAMESPACES = ["fileserver", "arc-runners-system"]
+NAMESPACES = ["fileserver-system", "arc-runners-system"]
 NAME = "fileserver-upload-token"
 FLUX = {"kustomize.toolkit.fluxcd.io/ssa": "IfNotPresent", "kustomize.toolkit.fluxcd.io/prune": "disabled"}
 
@@ -135,7 +130,7 @@ class RotateTest(unittest.TestCase):
     def test_rotation_lifecycle(self):
         p = self.run_script()
         out = p.stdout + p.stderr
-        cur = self.value("fileserver", "current")
+        cur = self.value("fileserver-system", "current")
         self.assertRegex(cur, r"^fs_[0-9a-f]{64}$")
         for ns in NAMESPACES:
             self.assertEqual(self.value(ns, "current"), cur, "same token in every namespace")
@@ -152,13 +147,13 @@ class RotateTest(unittest.TestCase):
         FakeKube.secrets[("arc-runners-system", NAME)]["data"]["current"] = base64.b64encode(b"tampered").decode()
         self.run_script()
         self.assertEqual(self.value("arc-runners-system", "current"), cur)
-        self.assertEqual(self.value("fileserver", "current"), cur)
+        self.assertEqual(self.value("fileserver-system", "current"), cur)
 
         # when the token is old it rotates and keeps the old one as previous, in both namespaces
         for ns in NAMESPACES:
             self.old_enough(ns)
         p = self.run_script()
-        new = self.value("fileserver", "current")
+        new = self.value("fileserver-system", "current")
         self.assertNotEqual(new, cur)
         for ns in NAMESPACES:
             self.assertEqual(self.value(ns, "current"), new)
@@ -186,21 +181,21 @@ class RotateTest(unittest.TestCase):
         p = self.run_script(expect_ok=False)
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("arc-runners-system/" + NAME + " does not exist", p.stderr)
-        first = self.value("fileserver", "current")
+        first = self.value("fileserver-system", "current")
         self.assertRegex(first, r"^fs_[0-9a-f]{64}$", "the first copy was filled before the failure")
         # Flux creates the missing Secret empty; the next run completes it with the same token and does not rotate again
         FakeKube.secrets[("arc-runners-system", NAME)] = {"data": {}, "annotations": dict(FLUX), "labels": {}, "rv": 1}
         self.run_script()
         self.assertEqual(self.value("arc-runners-system", "current"), first)
-        self.assertEqual(self.value("fileserver", "current"), first)
+        self.assertEqual(self.value("fileserver-system", "current"), first)
 
     def test_wrong_service_account_token_fails(self):
         with open(self.token_file, "w") as f:
             f.write("wrong\n")
         try:
-            p = self.run_script(namespaces=["fileserver"], expect_ok=False)
+            p = self.run_script(namespaces=["fileserver-system"], expect_ok=False)
             self.assertNotEqual(p.returncode, 0)
-            self.assertEqual(self.value("fileserver", "current"), None)
+            self.assertEqual(self.value("fileserver-system", "current"), None)
         finally:
             with open(self.token_file, "w") as f:
                 f.write("sa-token\n")

@@ -1,5 +1,4 @@
-# Alerts for the fileserver. There is no Alertmanager: nothing is sent, read them from Prometheus (ALERTS{alertstate="firing"}).
-# The Prometheus ruleSelector requires the release label.
+# The release label is how Prometheus selects rules. There is no Alertmanager: read the alerts from Prometheus.
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -19,7 +18,7 @@ spec:
             severity: warning
           annotations:
             summary: The fileserver upload token has not rotated for over 32 days
-            description: The rotation CronJob (fileserver/fileserver-rotate) should rotate it every 30 days. Check its last Job.
+            description: The rotation CronJob (fileserver-system/fileserver-rotate) should rotate it every 30 days. Check its last Job.
         - alert: FileserverNoToken
           expr: max(fileserver_token_rotated_timestamp_seconds) == 0
           for: 1d
@@ -27,17 +26,17 @@ spec:
             severity: warning
           annotations:
             summary: The fileserver has no upload token, so every upload is refused
-            description: "Run the rotation once: kubectl -n fileserver create job --from=cronjob/fileserver-rotate rotate-first"
+            description: "Run the rotation once: kubectl -n fileserver-system create job --from=cronjob/fileserver-rotate rotate-first"
         - alert: FileserverRotationJobFailed
-          expr: kube_job_status_failed{namespace="fileserver", job_name=~"fileserver-rotate.*"} > 0
+          expr: kube_job_status_failed{namespace="fileserver-system", job_name=~"fileserver-rotate.*"} > 0
           for: 5m
           labels:
             severity: warning
           annotations:
             summary: A fileserver token rotation Job failed
-            description: kubectl -n fileserver logs job/{{ $labels.job_name }}
+            description: kubectl -n fileserver-system logs job/{{ $labels.job_name }}
         - alert: FileserverDiskLow
-          # A file is at most 8 GiB and an overwrite needs a temporary copy next to the old one.
+          # an 8 GiB file plus a temporary copy
           expr: max(fileserver_disk_free_bytes) < 9 * 1024 * 1024 * 1024
           for: 15m
           labels:
@@ -46,7 +45,7 @@ spec:
             summary: The fileserver volume has less than 9 GiB free
             description: A large upload will be refused with 507. Delete old files in the admin page.
         - alert: FileserverDown
-          expr: kube_deployment_status_replicas_available{namespace="fileserver", deployment="fileserver"} < 1
+          expr: kube_deployment_status_replicas_available{namespace="fileserver-system", deployment="fileserver"} < 1
           for: 10m
           labels:
             severity: warning

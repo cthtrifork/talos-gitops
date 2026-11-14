@@ -1,16 +1,9 @@
 #!/bin/sh
-# Rotates the fileserver upload token. Runs in the CronJob (curlimages/curl: busybox plus curl), never in the app: the
-# fileserver only reads the Secret. Idempotent: it rotates only when the token is missing or older than ROTATE_AFTER_DAYS,
-# and otherwise just repairs an edited copy.
-#
-# The Secrets themselves are created by Git (token-secret.yaml, empty, with the Flux annotation IfNotPresent), so this job
-# only needs get and patch on those names and cannot create anything. It writes three keys with a JSON merge patch and
-# leaves the metadata alone (Flux's annotations and labels survive): current, previous (empty when there is none) and
-# rotated-at (RFC 3339). The same values go to the Secret NAME in every namespace of NAMESPACES; the first one decides when
-# to rotate. Values are never printed.
-#
-# Environment: NAMESPACES (space separated, required), SECRET_NAME, ROTATE_AFTER_DAYS (30), KUBE_API,
-# KUBE_TOKEN_FILE, KUBE_CA_FILE (the last three default to the pod's ServiceAccount).
+# Rotates the fileserver upload token (CronJob, curlimages/curl). Git creates the empty Secrets, so this only reads and patches
+# them: it rotates when the token is missing or older than ROTATE_AFTER_DAYS, otherwise it repairs an edited copy. It never
+# prints the token.
+# Environment: NAMESPACES (space separated, the first decides when to rotate), SECRET_NAME, ROTATE_AFTER_DAYS (30),
+# KUBE_API, KUBE_TOKEN_FILE, KUBE_CA_FILE (the last three default to the pod's ServiceAccount).
 set -eu
 
 API="${KUBE_API:-https://kubernetes.default.svc}"

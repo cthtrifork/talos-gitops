@@ -1,12 +1,10 @@
-# One volume for everything: public/ and private/ are directories on it, and the three containers mount the parts they
-# need. The default (node-local) storage class does not enforce the size: it is a scheduling hint, so the admin page
-# and the fileserver_disk_free_bytes alert watch the real free space of the node disk.
+# The size is only a hint on the node-local class: watch fileserver_disk_free_bytes.
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: fileserver-data
-  namespace: fileserver
+  namespace: fileserver-system
 spec:
   accessModes:
     - ReadWriteOnce
