@@ -25,14 +25,22 @@ spec:
             # zot, the Prometheus config-reloader and the operator-managed exporters, Dependency-Track management,
             # Prometheus itself, the Harper Pad sync and database metrics, the AdGuard exporter, the Claude usage API
             # (Redpanda Connect, 4195)
-            - { port: "4195", protocol: TCP }
-            - { port: "5000", protocol: TCP }
-            - { port: "8080", protocol: TCP }
-            - { port: "9000", protocol: TCP }
-            - { port: "9090", protocol: TCP }
-            - { port: "9102", protocol: TCP }
-            - { port: "9187", protocol: TCP }
-            - { port: "9617", protocol: TCP }
+            - port: "4195"
+              protocol: TCP
+            - port: "5000"
+              protocol: TCP
+            - port: "8080"
+              protocol: TCP
+            - port: "9000"
+              protocol: TCP
+            - port: "9090"
+              protocol: TCP
+            - port: "9102"
+              protocol: TCP
+            - port: "9187"
+              protocol: TCP
+            - port: "9617"
+              protocol: TCP
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -62,7 +70,8 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
     # Kubernetes API
     - toEntities:
         - kube-apiserver
@@ -87,12 +96,14 @@ spec:
         - remote-node
       toPorts:
         - ports:
-            - { port: "9090", protocol: TCP }
+            - port: "9090"
+              protocol: TCP
     - fromCIDR:
         - 192.168.1.0/24
       toPorts:
         - ports:
-            - { port: "9090", protocol: TCP }
+            - port: "9090"
+              protocol: TCP
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: claude-system
@@ -102,27 +113,43 @@ spec:
             k8s:app: claude-usage
       toPorts:
         - ports:
-            - { port: "9090", protocol: TCP }
+            - port: "9090"
+              protocol: TCP
   egress:
     - toEntities:
         - cluster
       toPorts:
         - ports:
-            - { port: "4195", protocol: TCP }
-            - { port: "5000", protocol: TCP }
-            - { port: "6443", protocol: TCP }
-            - { port: "8080", protocol: TCP }
-            - { port: "9000", protocol: TCP }
-            - { port: "9090", protocol: TCP }
-            - { port: "9100", protocol: TCP }
-            - { port: "9102", protocol: TCP }
-            - { port: "9153", protocol: TCP }
-            - { port: "9187", protocol: TCP }
-            - { port: "9617", protocol: TCP }
-            - { port: "9962", protocol: TCP }
-            - { port: "9963", protocol: TCP }
-            - { port: "9965", protocol: TCP }
-            - { port: "10250", protocol: TCP }
+            - port: "4195"
+              protocol: TCP
+            - port: "5000"
+              protocol: TCP
+            - port: "6443"
+              protocol: TCP
+            - port: "8080"
+              protocol: TCP
+            - port: "9000"
+              protocol: TCP
+            - port: "9090"
+              protocol: TCP
+            - port: "9100"
+              protocol: TCP
+            - port: "9102"
+              protocol: TCP
+            - port: "9153"
+              protocol: TCP
+            - port: "9187"
+              protocol: TCP
+            - port: "9617"
+              protocol: TCP
+            - port: "9962"
+              protocol: TCP
+            - port: "9963"
+              protocol: TCP
+            - port: "9965"
+              protocol: TCP
+            - port: "10250"
+              protocol: TCP
 ---
 # Operator: the admission webhook (service port 443 to 10250) is called by the API server, and Prometheus scrapes its
 # metrics on the same port. The chart's own operator policy is disabled (prometheusOperator.networkPolicy in the
@@ -144,11 +171,13 @@ spec:
         - remote-node
       toPorts:
         - ports:
-            - { port: "10250", protocol: TCP }
+            - port: "10250"
+              protocol: TCP
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
             k8s:app.kubernetes.io/name: prometheus
       toPorts:
         - ports:
-            - { port: "10250", protocol: TCP }
+            - port: "10250"
+              protocol: TCP

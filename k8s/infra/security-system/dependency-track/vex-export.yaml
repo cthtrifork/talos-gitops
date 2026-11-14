@@ -188,10 +188,14 @@ spec:
                       key: token
                       optional: true
               volumeMounts:
-                - { name: work, mountPath: /work }
+                - name: work
+                  mountPath: /work
               resources:
-                requests: { cpu: 20m, memory: 128Mi }
-                limits: { memory: 512Mi }
+                requests:
+                  cpu: 20m
+                  memory: 128Mi
+                limits:
+                  memory: 512Mi
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true

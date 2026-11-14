@@ -29,7 +29,8 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
     # Kubernetes API
     - toEntities:
         - kube-apiserver
@@ -53,10 +54,12 @@ spec:
             k8s:app: claude-rc
       toPorts:
         - ports:
-            - { port: "8080", protocol: TCP }
+            - port: "8080"
+              protocol: TCP
     - fromEntities:
         - host
         - remote-node
       toPorts:
         - ports:
-            - { port: "8080", protocol: TCP }
+            - port: "8080"
+              protocol: TCP

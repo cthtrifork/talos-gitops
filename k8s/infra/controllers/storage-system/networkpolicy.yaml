@@ -29,7 +29,8 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
     # Kubernetes API
     - toEntities:
         - kube-apiserver
@@ -51,14 +52,19 @@ spec:
         - remote-node
       toPorts:
         - ports:
-            - { port: "9443", protocol: TCP }
+            - port: "9443"
+              protocol: TCP
   egress:
     # Instance managers of the clusters in any namespace: status on 8000, SQL on 5432
     - toEndpoints:
         - matchExpressions:
-            - { key: cnpg.io/cluster, operator: Exists }
-            - { key: k8s:io.kubernetes.pod.namespace, operator: Exists }
+            - key: cnpg.io/cluster
+              operator: Exists
+            - key: k8s:io.kubernetes.pod.namespace
+              operator: Exists
       toPorts:
         - ports:
-            - { port: "8000", protocol: TCP }
-            - { port: "5432", protocol: TCP }
+            - port: "8000"
+              protocol: TCP
+            - port: "5432"
+              protocol: TCP

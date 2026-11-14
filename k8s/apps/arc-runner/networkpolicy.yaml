@@ -31,7 +31,8 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
           rules:
             dns:
               - matchPattern: "*"
@@ -104,7 +105,8 @@ spec:
         - matchName: repo.warpnine.de
       toPorts:
         - ports:
-            - { port: "443", protocol: TCP }
+            - port: "443"
+              protocol: TCP
     # Ubuntu packages (the runner image is Ubuntu based); apt uses plain HTTP
     - toFQDNs:
         - matchName: archive.ubuntu.com
@@ -113,16 +115,20 @@ spec:
         - matchName: ppa.launchpadcontent.net
       toPorts:
         - ports:
-            - { port: "80", protocol: TCP }
-            - { port: "443", protocol: TCP }
+            - port: "80"
+              protocol: TCP
+            - port: "443"
+              protocol: TCP
     # Cisco's openh264 RPMs: the fedora-cisco-openh264 repo (metadata on codecs.fedoraproject.org, allowed above) points
     # at this host, which only serves plain HTTP
     - toFQDNs:
         - matchName: ciscobinary.openh264.org
       toPorts:
         - ports:
-            - { port: "80", protocol: TCP }
-            - { port: "443", protocol: TCP }
+            - port: "80"
+              protocol: TCP
+            - port: "443"
+              protocol: TCP
     # Certificate revocation checks (CRL and OCSP, plain HTTP) of the VS Code extension signature verification: the
     # homeserver-gui e2e VM installs extensions, and without these each check waits for a 30 to 60 s timeout, so one
     # install takes about 90 s. The names are those the VM queried during an install.
@@ -133,7 +139,8 @@ spec:
         - matchName: www.microsoft.com
       toPorts:
         - ports:
-            - { port: "80", protocol: TCP }
+            - port: "80"
+              protocol: TCP
     # NetworkManager's connectivity check in the homeserver-gui VM (NetworkManager-config-connectivity-fedora): a
     # plain HTTP GET of http://fedoraproject.org/static/hotspot.txt, retried against every address of the name when it
     # is dropped (about 100 dropped connections per address in one job).
@@ -141,7 +148,8 @@ spec:
         - matchName: fedoraproject.org
       toPorts:
         - ports:
-            - { port: "80", protocol: TCP }
+            - port: "80"
+              protocol: TCP
     # zot, the cluster's registry (image pushes and pulls; the zot-lb address is translated to the pod)
     - toEndpoints:
         - matchLabels:
@@ -149,4 +157,5 @@ spec:
             k8s:app.kubernetes.io/name: zot
       toPorts:
         - ports:
-            - { port: "5000", protocol: TCP }
+            - port: "5000"
+              protocol: TCP
