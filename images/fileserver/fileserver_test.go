@@ -33,14 +33,42 @@ func put(t *testing.T, s *Store, name string, v Visibility, body string) error {
 }
 
 func TestValidName(t *testing.T) {
-	for _, n := range []string{"a", "image-1.0.qcow2", "_x", "A_b-c.d"} {
+	valid := []string{"a", "image-1.0.qcow2", "_x", "A_b-c.d", "My File (1).iso", "naïve café.txt", "日本語.bin", "-lead", "a.b.c", strings.Repeat("a", 255)}
+	for _, n := range valid {
 		if !validName(n) {
 			t.Errorf("%q should be valid", n)
 		}
 	}
-	for _, n := range []string{"", ".", "..", ".hidden", "a/b", "../x", "a b", "a\x00b", strings.Repeat("a", 129)} {
+	invalid := []string{"", ".", "..", ".hidden", ".tmp", "a/b", "/a", "a/", `a\b`, "../x", "a\x00b", "a\nb", "a\tb", "a\x7fb", "a\xffb", strings.Repeat("a", 256)}
+	for _, n := range invalid {
 		if validName(n) {
 			t.Errorf("%q should be invalid", n)
+		}
+	}
+}
+
+func TestOddButValidNamesWork(t *testing.T) {
+	s := newStore(t)
+	for _, n := range []string{"My File (1).iso", "日本語.bin"} {
+		if err := put(t, s, n, Public, "data"); err != nil {
+			t.Fatalf("%q: %v", n, err)
+		}
+	}
+	root, _ := os.OpenRoot(filepath.Join(s.dir, "public"))
+	h := publicHandler(root)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/My%20File%20%281%29.iso", nil)) // the way a browser asks for it
+	if rec.Code != 200 || rec.Body.String() != "data" {
+		t.Fatalf("encoded name: %d %q", rec.Code, rec.Body.String())
+	}
+	if cd := rec.Header().Get("Content-Disposition"); !strings.Contains(cd, "My File (1).iso") {
+		t.Fatalf("Content-Disposition lost the name: %q", cd)
+	}
+	for _, p := range []string{"/a%2Fb", "/%2e%2e", "/..%2Fprivate%2Fx", "/a%00b", "/%0a"} {
+		rec = httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("GET", p, nil))
+		if rec.Code == 200 {
+			t.Errorf("GET %s returned 200", p)
 		}
 	}
 }

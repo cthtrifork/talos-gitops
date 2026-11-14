@@ -42,7 +42,7 @@ flowchart TB
 
 ## Rules
 
-- **Names:** flat, `^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$`. No dotfiles, no paths. Every access goes through `os.Root`.
+- **Names:** one flat, plain name. `fs.ValidPath` plus: at most 255 bytes, no `/` or `\`, no control characters, valid UTF-8, not starting with `.`. Spaces and non-ASCII letters are fine (links are percent-encoded). Every access goes through `os.Root`, so a name can never leave its directory.
 - **Visibility is the directory.** A name exists in at most one of `public/` and `private/`. Uploading it with the other visibility returns 409. Uploading it again with the same visibility replaces it (CI always overwrites). Uploads default to private.
 - **Atomic writes.** A file is streamed to `.tmp/` and renamed into place after `fsync`, so a half upload is never visible and never replaces a good file. Leftovers in `.tmp/` are removed at start-up.
 - **Limits.** `MAX_FILE_BYTES` (8 GiB) per file: 413. Free space must stay above `MIN_FREE_BYTES` (256 MiB) plus the announced size: 507.

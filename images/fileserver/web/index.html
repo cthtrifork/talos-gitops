@@ -393,7 +393,7 @@ function renderRows() {
     const dl = el('a', { className: 'btn icon has-label ghost', title: 'Download', href: `download/${f.visibility}/${encodeURIComponent(f.name)}` });
     dl.setAttribute('aria-label', 'Download ' + f.name); dl.setAttribute('download', f.name); dl.append(icon('download'), el('span', { className: 'lbl', textContent: 'Download' }));
     box.append(dl);
-    if (f.visibility === 'public' && state.info.publicUrl) box.append(ibtn('link', 'Copy link', 'ghost', e => copy(`${state.info.publicUrl}/${f.name}`, e.currentTarget, 'Copied')));
+    if (f.visibility === 'public' && state.info.publicUrl) box.append(ibtn('link', 'Copy link', 'ghost', e => copy(`${state.info.publicUrl}/${encodeURIComponent(f.name)}`, e.currentTarget, 'Copied')));
     const to = f.visibility === 'public' ? 'private' : 'public';
     box.append(ibtn(to === 'public' ? 'globe' : 'lock', 'Make ' + to, 'ghost', e => run(() => call(`api/files/${encodeURIComponent(f.name)}/visibility?to=${to}`, { method: 'POST' }), `${f.name} is now ${to}`, e.currentTarget)),
       deleteBtn(f));
@@ -447,22 +447,13 @@ $('tok-copy').onclick = e => copy(state.token.current || '', e.currentTarget, 'C
 $('tok-curl').onclick = e => copy(`curl --fail -T FILE -H "Authorization: Bearer ${state.token.current}" "http://fileserver-upload.fileserver.svc:8082/v1/files/NAME?visibility=private"`, e.currentTarget, 'Copied');
 
 /* upload: one file at a time, with progress, speed and cancel */
-// The server accepts only letters, digits, '.', '_' and '-' (up to 128, not starting with '.' or '-'). Browser file names
-// like "My File (1).iso" are renamed here ("My-File-1.iso") instead of being refused.
-function safeName(n) {
-  let s = n.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/-+\./g, '.').replace(/-{2,}/g, '-').replace(/^[^A-Za-z0-9_]+/, '');
-  if (s.length > 128) { const ext = (s.match(/\.[A-Za-z0-9]{1,16}$/) || [''])[0]; s = s.slice(0, 128 - ext.length) + ext; }
-  return s || 'file';
-}
 let xhr = null, queue = [];
 function uploadNext() {
   const f = queue.shift();
   if (!f) { $('prog').classList.remove('on'); return refresh(); }
   const vis = document.querySelector('input[name=vis]:checked').value, total = queue.length + 1;
   $('prog').classList.add('on'); $('prog-text').textContent = `Uploading ${f.name} (${vis})`;
-  const safe = safeName(f.name);
-  if (safe !== f.name) toast(`Uploading ${f.name} as ${safe} (names allow letters, digits, . _ -)`);
-  const fd = new FormData(); fd.append('file', f, safe);
+  const fd = new FormData(); fd.append('file', f);
   xhr = new XMLHttpRequest(); const t0 = Date.now();
   xhr.open('POST', 'api/files?visibility=' + vis); xhr.setRequestHeader('X-Requested-With', 'fileserver');
   xhr.upload.onprogress = p => {

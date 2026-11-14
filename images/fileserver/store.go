@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -9,12 +10,13 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 // Visibility is the directory a file lives in. There is no other metadata.
@@ -35,7 +37,7 @@ func (v Visibility) other() Visibility {
 }
 
 var (
-	ErrBadName  = errors.New("invalid file name: use letters, digits, '.', '_' and '-' (up to 128), and do not start with '.' or '-'")
+	ErrBadName  = errors.New("invalid file name: one plain name, up to 255 bytes, no / or \\, no control characters, not starting with '.'")
 	ErrNotFound = errors.New("not found")
 	ErrClash    = errors.New("name exists with the other visibility")
 	ErrTooLarge = errors.New("file too large")
@@ -44,12 +46,20 @@ var (
 	ErrChecksum = errors.New("body does not match X-Content-SHA256")
 )
 
-var sumRe = regexp.MustCompile(`^[0-9a-f]{64}$`)
+// maxName is the longest name the filesystems here take (NAME_MAX).
+const maxName = 255
 
-// A name starts with a letter, digit or underscore (no dotfiles, no "..") and has no path separator.
-var nameRe = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$`)
-
-func validName(n string) bool { return nameRe.MatchString(n) }
+// validName says whether n is one flat, plain file name. fs.ValidPath rules out "", "." and ".." and empty or rooted
+// elements; the other checks keep it to a single element (no / or \), no dotfile (so nothing can be .tmp or hidden),
+// valid UTF-8 and no control characters (a NUL or a newline in a name breaks the filesystem, the logs and the headers).
+func validName(n string) bool {
+	return len(n) <= maxName &&
+		fs.ValidPath(n) &&
+		!strings.ContainsAny(n, `/\`) &&
+		!strings.HasPrefix(n, ".") &&
+		utf8.ValidString(n) &&
+		strings.IndexFunc(n, unicode.IsControl) < 0
+}
 
 // Entry is one file as shown in the admin list.
 type Entry struct {
@@ -135,9 +145,12 @@ func (s *Store) Put(name string, vis Visibility, r io.Reader, max, sizeHint int6
 	if !validName(name) || !vis.valid() {
 		return 0, ErrBadName
 	}
-	wantSum = strings.ToLower(strings.TrimSpace(wantSum))
-	if wantSum != "" && !sumRe.MatchString(wantSum) {
-		return 0, ErrBadSum
+	var want []byte
+	if wantSum = strings.TrimSpace(wantSum); wantSum != "" {
+		var err error
+		if want, err = hex.DecodeString(wantSum); err != nil || len(want) != sha256.Size {
+			return 0, ErrBadSum
+		}
 	}
 	if sizeHint > max {
 		return 0, ErrTooLarge
@@ -182,7 +195,7 @@ func (s *Store) Put(name string, vis Visibility, r io.Reader, max, sizeHint int6
 		cleanup()
 		return 0, ErrTooLarge
 	}
-	if wantSum != "" && hex.EncodeToString(h.Sum(nil)) != wantSum {
+	if want != nil && !bytes.Equal(h.Sum(nil), want) {
 		cleanup()
 		return 0, ErrChecksum
 	}
