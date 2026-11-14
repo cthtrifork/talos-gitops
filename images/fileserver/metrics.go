@@ -71,9 +71,19 @@ func (m *metrics) instrument(mode string, h http.Handler) http.Handler {
 			sw.code = http.StatusOK
 		}
 		m.mu.Lock()
-		m.reqs[[3]string{mode, r.Method, fmt.Sprint(sw.code)}]++
+		m.reqs[[3]string{mode, methodLabel(r.Method), fmt.Sprint(sw.code)}]++
 		m.mu.Unlock()
 	})
+}
+
+// methodLabel keeps the method label to a closed set: a client can send any token as its method, and every new value
+// would otherwise be a new series that stays in memory.
+func methodLabel(m string) string {
+	switch m {
+	case http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPost, http.MethodDelete:
+		return m
+	}
+	return "other"
 }
 
 // uploadResult is the label of fileserver_uploads_total.

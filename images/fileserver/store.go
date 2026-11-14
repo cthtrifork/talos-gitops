@@ -35,7 +35,7 @@ func (v Visibility) other() Visibility {
 }
 
 var (
-	ErrBadName  = errors.New("invalid file name")
+	ErrBadName  = errors.New("invalid file name: use letters, digits, '.', '_' and '-' (up to 128), and do not start with '.' or '-'")
 	ErrNotFound = errors.New("not found")
 	ErrClash    = errors.New("name exists with the other visibility")
 	ErrTooLarge = errors.New("file too large")
@@ -65,7 +65,8 @@ type Store struct {
 	dir     string
 	root    *os.Root
 	minFree uint64
-	mu      sync.Mutex // serialises the clash check and the rename, not the copy
+	freeFn  func() (uint64, error) // free bytes on the volume; the statfs one unless a test replaces it
+	mu      sync.Mutex             // serialises the clash check and the rename, not the copy
 }
 
 func NewStore(dir string, minFree uint64) (*Store, error) {
@@ -79,15 +80,31 @@ func NewStore(dir string, minFree uint64) (*Store, error) {
 		}
 	}
 	s := &Store{dir: dir, root: root, minFree: minFree}
+	s.freeFn = s.freeBytes
 	s.cleanTmp()
 	return s, nil
 }
 
-// cleanTmp removes the leftovers of uploads that were cut off by a restart.
+// staleTmp is how old a temporary file must be before it counts as the leftover of a cut-off upload. The admin and the
+// upload container share .tmp/ and both clean it at start: removing everything would delete the other one's upload in flight.
+const staleTmp = time.Hour
+
+// cleanTmp removes the leftovers of uploads that were cut off, but only files nobody has written to for an hour.
 func (s *Store) cleanTmp() {
-	_ = s.root.RemoveAll(".tmp")
-	_ = s.root.Mkdir(".tmp", 0o755)
+	d, err := s.root.Open(".tmp")
+	if err != nil {
+		return
+	}
+	ents, _ := d.ReadDir(-1)
+	_ = d.Close()
+	for _, e := range ents {
+		if fi, err := e.Info(); err == nil && time.Since(fi.ModTime()) > staleTmp {
+			_ = s.root.Remove(".tmp/" + e.Name())
+		}
+	}
 }
+
+func (s *Store) free() (uint64, error) { return s.freeFn() }
 
 func (s *Store) freeBytes() (uint64, error) {
 	var st syscall.Statfs_t
@@ -128,11 +145,16 @@ func (s *Store) Put(name string, vis Visibility, r io.Reader, max, sizeHint int6
 	if s.exists(vis.other(), name) {
 		return 0, ErrClash
 	}
-	free, err := s.freeBytes()
+	free, err := s.free()
 	if err != nil {
 		return 0, err
 	}
-	if free < s.minFree+uint64(max0(sizeHint)) {
+	// An upload with the same name replaces the old file, so its space comes back once the new one is in place.
+	var replaced uint64
+	if fi, err := s.root.Stat(string(vis) + "/" + name); err == nil && fi.Mode().IsRegular() {
+		replaced = uint64(fi.Size())
+	}
+	if free+replaced < s.minFree+uint64(max0(sizeHint)) {
 		return 0, ErrNoSpace
 	}
 

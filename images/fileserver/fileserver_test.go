@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -388,5 +389,70 @@ func TestAdminInfo(t *testing.T) {
 	_ = json.Unmarshal(rec.Body.Bytes(), &info)
 	if rec.Code != 200 || info["publicUrl"] != "https://files.example" || info["rotateAfterHours"] != float64(720) || info["capacityBytes"].(float64) <= 0 {
 		t.Fatalf("got %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestCleanTmpKeepsLiveUploads(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := NewStore(dir, 0); err != nil {
+		t.Fatal(err)
+	}
+	tmp := filepath.Join(dir, ".tmp")
+	for _, n := range []string{"live", "stale"} {
+		if err := os.WriteFile(filepath.Join(tmp, n), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	old := time.Now().Add(-2 * time.Hour)
+	if err := os.Chtimes(filepath.Join(tmp, "stale"), old, old); err != nil {
+		t.Fatal(err)
+	}
+	// the sibling container (admin or upload) starts: it must not delete an upload that is running in the other one
+	if _, err := NewStore(dir, 0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(tmp, "live")); err != nil {
+		t.Fatal("a fresh temporary file was deleted by a second start")
+	}
+	if _, err := os.Stat(filepath.Join(tmp, "stale")); err == nil {
+		t.Fatal("a stale temporary file was kept")
+	}
+}
+
+func TestReplacingAFileCountsItsSpace(t *testing.T) {
+	s := newStore(t)
+	s.freeFn = func() (uint64, error) { return 100, nil }
+	s.minFree = 50
+	if err := os.WriteFile(filepath.Join(s.dir, "public", "img"), make([]byte, 80), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	put := func(name string) error {
+		_, err := s.Put(name, Public, strings.NewReader("x"), 1<<20, 120, "")
+		return err
+	}
+	if err := put("img"); err != nil { // 100 free + 80 replaced >= 50 + 120
+		t.Fatalf("replacing a file that frees enough space was refused: %v", err)
+	}
+	if err := put("other"); !errors.Is(err, ErrNoSpace) { // 100 free < 50 + 120
+		t.Fatalf("a new file that does not fit must be refused, got %v", err)
+	}
+}
+
+func TestMetricsMethodLabelIsBounded(t *testing.T) {
+	reg := &metrics{reqs: map[[3]string]uint64{}, uploads: map[string]uint64{}, started: time.Now()}
+	h := reg.instrument("public", http.NotFoundHandler())
+	for _, m := range []string{"GET", "FOO", "BAR1", "BAR2", "PROPFIND"} {
+		h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(m, "/x", nil))
+	}
+	rec := httptest.NewRecorder()
+	reg.ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
+	out := rec.Body.String()
+	if !strings.Contains(out, `method="other",code="404"} 4`) || !strings.Contains(out, `method="GET",code="404"} 1`) {
+		t.Fatalf("unexpected method labels:\n%s", out)
+	}
+	for _, bad := range []string{"FOO", "BAR1", "PROPFIND"} {
+		if strings.Contains(out, bad) {
+			t.Fatalf("client-chosen method %q became a label", bad)
+		}
 	}
 }
