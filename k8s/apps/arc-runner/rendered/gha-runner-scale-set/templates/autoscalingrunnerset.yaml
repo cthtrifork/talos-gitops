@@ -5,7 +5,7 @@ metadata:
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
-    actions.github.com/values-hash: e3e99c76174abb11f44258d909cc4f5dba33bc4f2fdb434f091916d087f6754
+    actions.github.com/values-hash: 135b593ee140a2e6e6743b9561817489155172ce7045bb8eedfefabe84e34ae
   labels:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
@@ -81,7 +81,7 @@ spec:
               name: fileserver-upload-token
               optional: true
         - name: FILESERVER_URL
-          value: http://fileserver-upload.fileserver.svc:8082
+          value: http://fileserver-upload.fileserver-system.svc:8082
         image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:v0.11.0@sha256:86d54c1c6df0e0c8ba46c423735639cb6d26bb74e3c1653e221fd1dfa5094055
         imagePullPolicy: IfNotPresent
         name: runner
