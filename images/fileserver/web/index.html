@@ -47,12 +47,12 @@
   .fill.warn { background: var(--warn); } .fill.crit { background: var(--crit); }
   .wide { grid-column: span 2; }
   @media (max-width: 40rem) { .wide { grid-column: auto; } }
-  .seg { display: flex; gap: 2px; height: 12px; margin-top: .7rem; }
-  .seg > span { border-radius: 999px; }
+  .seg { display: flex; gap: 2px; height: 28px; margin-top: .8rem; }
+  .seg > span { min-width: 0; border-radius: 4px; display: flex; align-items: center; padding-left: .5rem; color: #fff; font-size: .8rem; font-weight: 600; white-space: nowrap; }
   .seg > span:focus-visible { outline-offset: 1px; }
   .seg > .pub { background: var(--public); } .seg > .priv { background: var(--private); }
-  .seg > .oth { background: var(--muted); } .seg > .free { background: var(--meter-track); }
-  .seg > .free.warn { background: var(--warn); } .seg > .free.crit { background: var(--crit); }
+  .seg > .oth { background: var(--muted); } .seg > .free { background: var(--meter-track); color: var(--ink-2); }
+  .seg > .free.warn { background: var(--warn); color: #0b0b0b; } .seg > .free.crit { background: var(--crit); color: #fff; }
   .legend { display: flex; gap: 1.1rem; margin-top: .55rem; flex-wrap: wrap; font-size: .88rem; }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: .4rem; vertical-align: -1px; }
   .sw.pub { background: var(--public); } .sw.priv { background: var(--private); } .sw.oth { background: var(--muted); } .sw.free { background: var(--meter-track); border: 1px solid var(--axis); }
@@ -107,7 +107,26 @@
   dialog::backdrop { background: rgba(0,0,0,.45); }
   dialog .row { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1rem; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  @media (max-width: 40rem) { th.hide, td.hide { display: none; } input[type=search] { min-width: 0; flex: 1; } }
+  th[aria-sort="ascending"] button::after { content: ' \25B2'; font-size: .7em; }
+  th[aria-sort="descending"] button::after { content: ' \25BC'; font-size: .7em; }
+  .sortsel { margin-left: auto; display: flex; gap: .4rem; align-items: center; font-size: .88rem; color: var(--ink-2); }
+  select { background: var(--surface); border: 1px solid var(--axis); border-radius: 8px; padding: .3rem .5rem; min-height: 32px; }
+  @media (max-width: 40rem) {
+    main { padding: 1rem .75rem 3rem; }
+    .card { padding: .85rem .9rem; }
+    input[type=search] { min-width: 0; flex: 1 1 100%; }
+    .sortsel { margin-left: 0; flex: 1 1 100%; } .sortsel select { flex: 1; }
+    thead { display: none; }
+    table, tbody { display: block; }
+    tr { display: flex; flex-wrap: wrap; align-items: center; gap: .15rem .9rem; padding: .7rem 0; border-bottom: 1px solid var(--line); }
+    td { border: 0; padding: 0; }
+    td.name { flex: 1 1 100%; font-weight: 600; }
+    td.num { text-align: left; } td.hide { color: var(--ink-2); font-size: .88rem; }
+    td.act { flex: 1 1 100%; text-align: left; white-space: normal; margin-top: .35rem; }
+    td.act button { min-height: 36px; }
+    .drop { padding: .9rem; } .seggroup { width: 100%; } .seggroup label { flex: 1; justify-content: center; }
+    .tok button { flex: 1 1 auto; }
+  }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -165,10 +184,21 @@
         <button type="button" data-f="public" aria-pressed="false">Public</button>
         <button type="button" data-f="private" aria-pressed="false">Private</button>
       </div>
+      <label class="sortsel">Sort
+        <select id="sort" aria-label="Sort files">
+          <option value="modified:-1">Newest first</option>
+          <option value="modified:1">Oldest first</option>
+          <option value="size:-1">Largest first</option>
+          <option value="size:1">Smallest first</option>
+          <option value="name:1">Name A to Z</option>
+          <option value="name:-1">Name Z to A</option>
+          <option value="visibility:1">Visibility</option>
+        </select>
+      </label>
     </div>
     <table>
       <thead><tr>
-        <th aria-sort="ascending"><button type="button" data-s="name">Name</button></th>
+        <th><button type="button" data-s="name">Name</button></th>
         <th><button type="button" data-s="visibility">Visibility</button></th>
         <th class="num"><button type="button" data-s="size">Size</button></th>
         <th class="hide"><button type="button" data-s="modified">Modified</button></th>
@@ -192,7 +222,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const H = { 'X-Requested-With': 'fileserver' };
-const state = { files: [], info: {}, token: {}, filter: 'all', q: '', sort: 'name', dir: 1 };
+const state = { files: [], info: {}, token: {}, filter: 'all', q: '', sort: 'modified', dir: -1 };
 
 const fmtBytes = n => n >= 2 ** 30 ? (n / 2 ** 30).toFixed(n >= 10 * 2 ** 30 ? 1 : 2) + ' GiB' : n >= 2 ** 20 ? (n / 2 ** 20).toFixed(1) + ' MiB' : n >= 1024 ? (n / 1024).toFixed(0) + ' KiB' : n + ' B';
 const ago = d => { const s = (Date.now() - new Date(d)) / 1000; if (s < 90) return 'just now'; const m = s / 60; if (m < 90) return Math.round(m) + ' min ago'; const h = m / 60; if (h < 36) return Math.round(h) + ' h ago'; return Math.round(h / 24) + ' days ago'; };
@@ -217,6 +247,15 @@ function tipOn(node, lines) {
   node.addEventListener('pointerleave', () => tip.style.display = 'none'); node.addEventListener('blur', () => tip.style.display = 'none');
 }
 
+function fitLabels() {
+  for (const sp of $('dk-seg').children) {
+    sp.textContent = sp.dataset.label;
+    const rg = document.createRange(); rg.selectNodeContents(sp);
+    if (rg.getBoundingClientRect().width + 16 > sp.clientWidth) sp.textContent = '';
+  }
+}
+new ResizeObserver(fitLabels).observe($('dk-seg'));
+
 function renderStats() {
   const { capacityBytes: cap = 0, freeBytes: free = 0 } = state.info;
   const used = Math.max(0, cap - free), pct = cap ? used / cap * 100 : 0;
@@ -224,6 +263,8 @@ function renderStats() {
   const sum = v => by(v).reduce((a, f) => a + f.size, 0);
   const pub = sum('public'), priv = sum('private'), other = Math.max(0, used - pub - priv);
   const sev = pct >= 92 ? 'crit' : pct >= 80 ? 'warn' : '';
+  const freeShare = cap ? free / cap * 100 : 0;
+  const freePct = freeShare > 0 && freeShare < 1 ? '<1%' : Math.round(freeShare) + '%';
 
   $('dk-val').replaceChildren(document.createTextNode(fmtBytes(free) + ' '), el('small', { textContent: 'remaining of ' + fmtBytes(cap) }));
   const seg = $('dk-seg'); seg.replaceChildren();
@@ -231,7 +272,7 @@ function renderStats() {
     ['pub', 'Public', pub, `${by('public').length} files`],
     ['priv', 'Private', priv, `${by('private').length} files`],
     ['oth', 'Other use', other, 'filesystem overhead and other data on the volume'],
-    ['free ' + sev, 'Free', free, Math.round(100 - pct) + '% of the volume'],
+    ['free ' + sev, 'Free', free, freePct + ' of the volume'],
   ];
   for (const [cls, name, bytes, what] of parts) {
     if (!bytes) continue;
@@ -239,11 +280,14 @@ function renderStats() {
     sp.setAttribute('aria-label', `${name}: ${fmtBytes(bytes)}, ${what}`);
     tipOn(sp, [name, `${fmtBytes(bytes)} \u00B7 ${what}`]);
     seg.append(sp);
+    // the amount is printed inside the block only when it fits (fitLabels), otherwise the tooltip and legend carry it
+    sp.dataset.label = name === 'Free' ? `${fmtBytes(bytes)} \u00B7 ${freePct}` : fmtBytes(bytes);
   }
+  fitLabels();
   const lg = $('dk-legend'); lg.replaceChildren();
   for (const [cls, name, bytes, what] of parts) {
     if (cls === 'oth' && !bytes) continue;
-    lg.append(el('span', {}, el('i', { className: 'sw ' + cls.split(' ')[0] }), document.createTextNode(`${name} ${fmtBytes(bytes)}`)));
+    lg.append(el('span', {}, el('i', { className: 'sw ' + cls.split(' ')[0] }), document.createTextNode(name === 'Free' ? `${name} ${freePct}` : `${name} ${fmtBytes(bytes)}`)));
   }
   const status = sev === 'crit' ? ['crit', '\u26A0', 'Almost full. Uploads will be refused.'] : sev === 'warn' ? ['warn', '\u26A0', 'Getting full.'] : ['ok', '\u2713', 'Plenty of room.'];
   const note = $('dk-note'); note.replaceChildren(
@@ -264,7 +308,14 @@ function renderRows() {
   const rows = $('rows'); rows.replaceChildren();
   const q = state.q.toLowerCase();
   const list = state.files.filter(f => (state.filter === 'all' || f.visibility === state.filter) && f.name.toLowerCase().includes(q))
-    .sort((a, b) => (a[state.sort] > b[state.sort] ? 1 : a[state.sort] < b[state.sort] ? -1 : 0) * state.dir);
+    .sort((a, b) => {
+      const k = state.sort, x = a[k], y = b[k];
+      const c = typeof x === 'string' && k !== 'modified' ? x.localeCompare(y, undefined, { sensitivity: 'base' }) : (x > y ? 1 : x < y ? -1 : 0);
+      return (c || a.name.localeCompare(b.name)) * (c ? state.dir : 1);
+    });
+  const sel = $('sort'); const key = state.sort + ':' + state.dir;
+  if (![...sel.options].some(o => o.value === key)) sel.add(new Option('Custom', key));
+  sel.value = key;
   document.querySelectorAll('th[aria-sort]').forEach(th => th.removeAttribute('aria-sort'));
   const th = document.querySelector(`th button[data-s="${state.sort}"]`).parentElement; th.setAttribute('aria-sort', state.dir > 0 ? 'ascending' : 'descending');
   const empty = $('empty'); empty.hidden = list.length > 0;
@@ -341,7 +392,11 @@ drop.addEventListener('drop', e => enqueue([...e.dataTransfer.files]));
 /* list controls */
 $('q').oninput = e => { state.q = e.target.value; renderRows(); };
 document.querySelectorAll('.chips button').forEach(b => b.onclick = () => { state.filter = b.dataset.f; document.querySelectorAll('.chips button').forEach(x => x.setAttribute('aria-pressed', x === b)); renderRows(); });
-document.querySelectorAll('th button').forEach(b => b.onclick = () => { state.dir = state.sort === b.dataset.s ? -state.dir : 1; state.sort = b.dataset.s; renderRows(); });
+document.querySelectorAll('th button').forEach(b => b.onclick = () => {
+  const k = b.dataset.s, first = k === 'modified' || k === 'size' ? -1 : 1; // newest and largest first
+  state.dir = state.sort === k ? -state.dir : first; state.sort = k; renderRows();
+});
+$('sort').onchange = e => { const [k, d] = e.target.value.split(':'); state.sort = k; state.dir = Number(d); renderRows(); };
 
 refresh().then(showToken).catch(e => toast(e.message, true));
 setInterval(() => !$('prog').classList.contains('on') && refresh().then(showToken).catch(() => {}), 30000);
