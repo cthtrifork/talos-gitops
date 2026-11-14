@@ -57,8 +57,11 @@ rotate=0
 if [ -z "$cur" ] || [ -z "$at" ]; then
   rotate=1
 else
-  # busybox date reads "YYYY-MM-DD hh:mm:ss"
-  then_s="$(date -u -d "$(printf '%s' "$at" | sed 's/T/ /; s/Z$//')" +%s)"
+  # busybox date reads "YYYY-MM-DD hh:mm:ss": split the RFC 3339 value with parameter expansion
+  day="${at%%T*}"
+  clock="${at#*T}"
+  clock="${clock%Z}"
+  then_s="$(date -u -d "$day $clock" +%s)"
   now_s="$(date -u +%s)"
   [ $((now_s - then_s)) -ge $((DAYS * 86400)) ] && rotate=1
 fi
