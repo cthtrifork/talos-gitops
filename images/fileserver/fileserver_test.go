@@ -421,3 +421,56 @@ func TestPutChecksum(t *testing.T) {
 		t.Fatalf("temp files left: %d", len(ents))
 	}
 }
+
+func TestMetrics(t *testing.T) {
+	s := newStore(t)
+	dir := t.TempDir()
+	writeToken(t, dir, "tok", "", time.Now())
+	a := NewTokenAuth(dir, time.Hour)
+	reg := &metrics{reqs: map[[3]string]uint64{}, uploads: map[string]uint64{}, started: time.Now()}
+	reg.addCollector(storeCollector(s))
+	reg.addCollector(tokenCollector(a))
+
+	h := reg.instrument("upload", uploadHandler(s, a, 1<<20))
+	for _, c := range []struct{ auth, path string }{
+		{"Bearer tok", "/v1/files/a?visibility=private"},
+		{"Bearer tok", "/v1/files/a?visibility=public"}, // clash
+		{"", "/v1/files/b"}, // unauthorized
+	} {
+		req := httptest.NewRequest("PUT", c.path, strings.NewReader("data"))
+		if c.auth != "" {
+			req.Header.Set("Authorization", c.auth)
+		}
+		h.ServeHTTP(httptest.NewRecorder(), req)
+	}
+	reg.countUpload(nil, 4)
+	reg.countUpload(ErrClash, 0)
+
+	rec := httptest.NewRecorder()
+	reg.ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
+	out := rec.Body.String()
+	for _, want := range []string{
+		`fileserver_http_requests_total{mode="upload",method="PUT",code="201"} 1`,
+		`fileserver_http_requests_total{mode="upload",method="PUT",code="409"} 1`,
+		`fileserver_http_requests_total{mode="upload",method="PUT",code="401"} 1`,
+		`fileserver_uploads_total{result="ok"} 1`,
+		`fileserver_uploads_total{result="clash"} 1`,
+		`fileserver_upload_bytes_total 4`,
+		`fileserver_files{visibility="private"} 1`,
+		`fileserver_files{visibility="public"} 0`,
+		`fileserver_files_bytes{visibility="private"} 4`,
+		`# TYPE fileserver_disk_free_bytes gauge`,
+		`fileserver_token_rotated_timestamp_seconds `,
+		`fileserver_http_requests_in_flight 0`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("metrics output lacks %q", want)
+		}
+	}
+	if strings.Contains(out, "fileserver_token_rotated_timestamp_seconds 0\n") {
+		t.Error("rotation time should be set")
+	}
+	if strings.Contains(out, "tok") && strings.Contains(out, "Bearer") {
+		t.Error("metrics must never contain the token")
+	}
+}

@@ -105,6 +105,7 @@ func uploadHandler(s *Store, a *TokenAuth, max int64) http.Handler {
 		}
 		body := http.MaxBytesReader(w, r.Body, max)
 		n, err := s.Put(name, vis, body, max, r.ContentLength, r.Header.Get("X-Content-SHA256"))
+		m.countUpload(err, n)
 		if err != nil {
 			slog.Warn("upload failed", "name", name, "visibility", vis, "err", err)
 			httpError(w, err)
@@ -181,6 +182,7 @@ func adminHandler(s *Store, a *TokenAuth, max int64) http.Handler {
 			}
 			name := part.FileName()
 			n, err := s.Put(name, vis, part, max, 0, "")
+			m.countUpload(err, n)
 			if err != nil {
 				slog.Warn("admin upload failed", "name", name, "err", err)
 				httpError(w, err)

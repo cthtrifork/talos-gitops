@@ -139,7 +139,7 @@ func (s *Store) Put(name string, vis Visibility, r io.Reader, max, sizeHint int6
 	cleanup := func() { _ = f.Close(); _ = s.root.Remove(tmp) }
 
 	h := sha256.New()
-	n, err := io.Copy(io.MultiWriter(f, h), io.LimitReader(r, max+1))
+	n, err := io.Copy(io.MultiWriter(&syncWriter{f: f, every: syncEvery}, h), io.LimitReader(r, max+1))
 	if err != nil {
 		cleanup()
 		if errors.Is(err, syscall.ENOSPC) {
@@ -175,6 +175,26 @@ func (s *Store) Put(name string, vis Visibility, r io.Reader, max, sizeHint int6
 		return 0, err
 	}
 	return n, nil
+}
+
+// syncEvery bounds the dirty page cache of a large upload: without it an 8 GiB file piles up unflushed pages that count
+// against the container's memory limit, and the final fsync stalls the client for as long as the kernel needs.
+const syncEvery = 64 << 20
+
+type syncWriter struct {
+	f     *os.File
+	every int64
+	since int64
+}
+
+func (w *syncWriter) Write(p []byte) (int, error) {
+	n, err := w.f.Write(p)
+	w.since += int64(n)
+	if err == nil && w.since >= w.every {
+		w.since = 0
+		err = w.f.Sync()
+	}
+	return n, err
 }
 
 func max0(n int64) int64 {

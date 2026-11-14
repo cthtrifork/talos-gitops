@@ -67,11 +67,17 @@ func main() {
 	case "admin":
 		s, err := NewStore(dataDir, uint64(minFree))
 		fatal(err)
-		handler, addr = adminHandler(s, tokenAuth(), maxBytes), env("LISTEN_ADDR", ":8081")
+		a := tokenAuth()
+		m.addCollector(storeCollector(s))
+		m.addCollector(tokenCollector(a))
+		handler, addr = adminHandler(s, a, maxBytes), env("LISTEN_ADDR", ":8081")
 	case "upload":
 		s, err := NewStore(dataDir, uint64(minFree))
 		fatal(err)
-		handler, addr = uploadHandler(s, tokenAuth(), maxBytes), env("LISTEN_ADDR", ":8082")
+		a := tokenAuth()
+		m.addCollector(storeCollector(s))
+		m.addCollector(tokenCollector(a))
+		handler, addr = uploadHandler(s, a, maxBytes), env("LISTEN_ADDR", ":8082")
 	case "rotate":
 		fatal(runRotate())
 		return
@@ -80,13 +86,16 @@ func main() {
 	}
 
 	// No overall read/write timeout: images are several GiB. Header and idle timeouts still bound slow clients.
-	srv := &http.Server{Addr: addr, Handler: handler, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute}
+	srv := &http.Server{Addr: addr, Handler: m.instrument(*mode, handler), ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute}
 	health := &http.Server{Addr: healthAddr, ReadHeaderTimeout: 5 * time.Second, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/healthz" {
+		switch r.URL.Path {
+		case "/healthz":
 			_, _ = w.Write([]byte("ok\n"))
-			return
+		case "/metrics":
+			m.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
 		}
-		http.NotFound(w, r)
 	})}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)

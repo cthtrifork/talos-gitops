@@ -74,6 +74,37 @@ Upload from a workflow (the file is `$FILE`):
       "http://fileserver-upload.fileserver.svc:8082/v1/files/$(basename "$FILE")?visibility=private"
 ```
 
+## Metrics
+
+`/metrics` (Prometheus text format, no client library) and `/healthz` are served on `HEALTH_ADDR` (`:9102`) in every long-running mode. Neither Traefik nor the Omni exposer routes to that port; a PodMonitor scrapes it and the NetworkPolicy lets only Prometheus in.
+
+| Metric | Modes | Use |
+|---|---|---|
+| `fileserver_http_requests_total{mode,method,code}` | all | traffic and errors per port |
+| `fileserver_http_requests_in_flight` | all | transfers in progress |
+| `fileserver_uploads_total{result}` | admin, upload | `ok`, `clash`, `too_large`, `no_space`, `checksum`, `bad_request`, `error` |
+| `fileserver_upload_bytes_total` | admin, upload | bytes stored |
+| `fileserver_files{visibility}`, `fileserver_files_bytes{visibility}` | admin, upload | what is stored |
+| `fileserver_disk_free_bytes` | admin, upload | alert before uploads start failing with 507 |
+| `fileserver_token_rotated_timestamp_seconds` | admin, upload | alert when `time() - this > 31 * 86400`: the rotation job has stopped working |
+| `fileserver_go_goroutines`, `fileserver_go_heap_alloc_bytes`, `fileserver_start_time_seconds` | all | process health |
+
+The metrics never contain the token or file contents. The rotate CronJob exposes none; watch its Job status instead (`kube_job_status_failed`).
+
+## Memory
+
+The upload path streams: Go heap use is small and independent of file size. The real effect is the kernel page cache of the written file, which counts against the container's memory limit. The store therefore calls `fsync` every 64 MiB while writing, which caps the dirty pages and keeps the final `fsync` short. Recommended container resources for the manifests:
+
+```yaml
+resources:
+  requests: { cpu: 10m, memory: 32Mi }
+  limits: { memory: 384Mi }
+env:
+  - { name: GOMEMLIMIT, value: 300MiB }   # about 80% of the limit; Go does not read the cgroup limit itself
+```
+
+These numbers are estimates, not measurements.
+
 ## Configuration (environment)
 
 | Variable | Default | Modes |
@@ -81,7 +112,7 @@ Upload from a workflow (the file is `$FILE`):
 | `DATA_DIR` | `/data` | admin, upload |
 | `PUBLIC_DIR` | `$DATA_DIR/public` | public |
 | `LISTEN_ADDR` | `:8080` / `:8081` / `:8082` | public, admin, upload |
-| `HEALTH_ADDR` | `:9102` (`/healthz`, process only) | public, admin, upload |
+| `HEALTH_ADDR` | `:9102` (`/healthz` is process only, plus `/metrics`) | public, admin, upload |
 | `MAX_FILE_BYTES` | `8589934592` | admin, upload |
 | `MIN_FREE_BYTES` | `268435456` | admin, upload |
 | `TOKEN_DIR` | `/var/run/fileserver-token` | admin, upload |
@@ -98,6 +129,7 @@ images/fileserver/
 ├── Dockerfile        builder runs the tests, final image is scratch + CA certificates, user 65532
 ├── main.go           flags, environment, servers, shutdown
 ├── store.go          names, put/list/delete/move on public/ private/ .tmp/
+├── metrics.go        Prometheus text exposition, request and upload counters
 ├── token.go          reads the mounted token, current/previous with grace
 ├── rotate.go         the CronJob: creates and rotates the Secret through the Kubernetes API
 ├── handlers.go       public, admin and upload handlers
@@ -108,7 +140,7 @@ images/fileserver/
 ## Roadmap
 
 1. This image (`build-image.yaml` builds, signs and publishes it).
-2. `k8s/apps/fileserver/`: namespace, 20 GiB `local-path` PVC, Deployment with `subPath` mounts, Services (admin with Omni annotations), IngressRoute, NetworkPolicies, the CronJob with a Role and RoleBinding in each target namespace, a first one-off run, and an egress rule for `arc-runners-system` to the upload port. The runner scale set gets `FILESERVER_TOKEN` from the Secret.
+2. `k8s/apps/fileserver/`: namespace, a PodMonitor on port 9102, the resources above, 20 GiB `local-path` PVC, Deployment with `subPath` mounts, Services (admin with Omni annotations), IngressRoute, NetworkPolicies, the CronJob with a Role and RoleBinding in each target namespace, a first one-off run, and an egress rule for `arc-runners-system` to the upload port. The runner scale set gets `FILESERVER_TOKEN` from the Secret.
 3. `homeserver-bootc`: replace the Azure upload in `create-vmdk-image.yaml` with the upload above, and run it on `arc-ubuntu`.
 
 Run the tests with `go test -race ./...` in this directory.
