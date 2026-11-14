@@ -1,4 +1,4 @@
-# get and patch on the one Secret, no create: Git creates the Secrets (token-secret.yaml).
+# patch on the one Secret, nothing else: Git creates the Secrets (token-secret.yaml).
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -13,7 +13,6 @@ rules:
     resourceNames:
       - "fileserver-upload-token"
     verbs:
-      - "get"
       - "patch"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -43,7 +42,6 @@ rules:
     resourceNames:
       - "fileserver-upload-token"
     verbs:
-      - "get"
       - "patch"
 ---
 apiVersion: rbac.authorization.k8s.io/v1

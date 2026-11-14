@@ -6,6 +6,8 @@ kind: Deployment
 metadata:
   name: fileserver
   namespace: fileserver-system
+  annotations:
+    reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
   strategy:
@@ -171,7 +173,7 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: fileserver-data
-        # optional: uploads are refused until the first rotation. The app re-reads the files, so a rotation needs no restart.
+        # optional: uploads are refused until the first rotation. Reloader restarts the pod when the Secret changes.
         - name: token
           secret:
             secretName: fileserver-upload-token

@@ -14,9 +14,3 @@ resources:
   - networkpolicy.yaml
   - podmonitor.yaml
   - prometheusrule.yaml
-# a new ConfigMap name on every change, so the next run uses the new script
-configMapGenerator:
-  - name: fileserver-rotate-script
-    namespace: fileserver-system
-    files:
-      - rotate-token.sh

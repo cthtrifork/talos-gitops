@@ -10,10 +10,10 @@ Public downloads, an admin page and a CI upload API in one pod. The app: `images
 
 ## Upload token
 
-Git creates two empty `fileserver-upload-token` Secrets (`token-secret.yaml`: here and in `arc-runners-system`). A daily CronJob
-(`rotate-token.sh`, `curlimages/curl`) fills them and rotates the token every 30 days; its RBAC is `get` and `patch` on that Secret
-only. The runners get `FILESERVER_TOKEN` and `FILESERVER_URL`, the previous token works for 24 hours, and the admin page shows
-the token. Test: `python3 scripts/ci/test-rotate-token.py`.
+Git creates two empty `fileserver-upload-token` Secrets (`token-secret.yaml`: here and in `arc-runners-system`). On the 1st of
+each month the CronJob writes a new token into both (a few lines of `curl` in `cronjob.yaml`; its RBAC is `patch` on that Secret
+only) and Reloader restarts the fileserver. The runners read `FILESERVER_TOKEN` when they start; an upload that is running during
+a rotation fails and is retried. The admin page shows the token.
 
 ## First deploy
 

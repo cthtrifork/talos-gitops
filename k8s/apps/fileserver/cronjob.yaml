@@ -1,4 +1,4 @@
-# Rotates the upload token daily (rotate-token.sh). Run it once after the first deploy:
+# Writes a new upload token into the Secrets every month; Reloader restarts the fileserver. Run it once after the first deploy:
 #   kubectl -n fileserver-system create job --from=cronjob/fileserver-rotate rotate-first
 ---
 apiVersion: batch/v1
@@ -7,7 +7,7 @@ metadata:
   name: fileserver-rotate
   namespace: fileserver-system
 spec:
-  schedule: "17 3 * * *"
+  schedule: "17 3 1 * *"
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 3600
   successfulJobsHistoryLimit: 1
@@ -35,16 +35,20 @@ spec:
               # renovate: datasource=docker depName=mirror.gcr.io/curlimages/curl versioning=docker
               image: mirror.gcr.io/curlimages/curl:8.23.0@sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93
               command:
-                - "sh"
-                - "/scripts/rotate-token.sh"
+                - sh
+                - -ec
+                - |
+                  SA=/var/run/secrets/kubernetes.io/serviceaccount
+                  TOKEN=fs_$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+                  for ns in $NAMESPACES; do
+                    curl -sS --fail --cacert $SA/ca.crt -H "Authorization: Bearer $(cat $SA/token)" \
+                      -X PATCH -H 'Content-Type: application/merge-patch+json' \
+                      -d "{\"stringData\":{\"current\":\"$TOKEN\",\"rotated-at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}}" \
+                      -o /dev/null https://kubernetes.default.svc/api/v1/namespaces/$ns/secrets/fileserver-upload-token
+                  done
               env:
-                # the first decides when to rotate
                 - name: NAMESPACES
                   value: fileserver-system arc-runners-system
-                - name: SECRET_NAME
-                  value: fileserver-upload-token
-                - name: ROTATE_AFTER_DAYS
-                  value: "30"
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
@@ -57,17 +61,3 @@ spec:
                   memory: 16Mi
                 limits:
                   memory: 64Mi
-              volumeMounts:
-                - name: script
-                  mountPath: /scripts
-                  readOnly: true
-                - name: tmp
-                  mountPath: /tmp
-          volumes:
-            - name: script
-              configMap:
-                name: fileserver-rotate-script
-                defaultMode: 0555
-            - name: tmp
-              emptyDir:
-                sizeLimit: 16Mi
