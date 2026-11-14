@@ -1,0 +1,59 @@
+# patch on the one Secret, nothing else: Git creates the Secrets (token-secret.yaml).
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fileserver-rotate
+  namespace: fileserver-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - "secrets"
+    resourceNames:
+      - "fileserver-upload-token"
+    verbs:
+      - "patch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fileserver-rotate
+  namespace: fileserver-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fileserver-rotate
+subjects:
+  - kind: ServiceAccount
+    name: fileserver-rotate
+    namespace: fileserver-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fileserver-rotate
+  namespace: arc-runners-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - "secrets"
+    resourceNames:
+      - "fileserver-upload-token"
+    verbs:
+      - "patch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fileserver-rotate
+  namespace: arc-runners-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fileserver-rotate
+subjects:
+  - kind: ServiceAccount
+    name: fileserver-rotate
+    namespace: fileserver-system

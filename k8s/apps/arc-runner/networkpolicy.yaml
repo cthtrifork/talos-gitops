@@ -150,6 +150,15 @@ spec:
         - ports:
             - port: "80"
               protocol: TCP
+    # the fileserver upload API
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: fileserver-system
+            k8s:app: fileserver
+      toPorts:
+        - ports:
+            - port: "8082"
+              protocol: TCP
     # zot, the cluster's registry (image pushes and pulls; the zot-lb address is translated to the pod)
     - toEndpoints:
         - matchLabels:

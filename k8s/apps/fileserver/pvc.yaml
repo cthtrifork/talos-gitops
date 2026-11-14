@@ -1,0 +1,13 @@
+# The size is only a hint on the node-local class: watch fileserver_disk_free_bytes.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fileserver-data
+  namespace: fileserver-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi

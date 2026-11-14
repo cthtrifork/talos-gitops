@@ -1,0 +1,181 @@
+# The public container mounts only public/ read-only, so it cannot see private files or the token.
+# GOMEMLIMIT is ~80% of the memory limit (Go does not read the cgroup limit). The memory numbers are estimates.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fileserver
+  namespace: fileserver-system
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # one ReadWriteOnce volume: never two pods at once
+  selector:
+    matchLabels:
+      app: fileserver
+  template:
+    metadata:
+      labels:
+        app: fileserver
+        prometheus-scrape: "true"
+    spec:
+      serviceAccountName: fileserver
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: public
+          image: &image ghcr.io/cthtrifork/talos-gitops/fileserver:v0.12.0@sha256:c7cdcecf619866d5c30c8ff86d8700cefd2c01a0e99d534fec221f65ced2f7f1
+          args:
+            - "--mode=public"
+          env:
+            - name: PUBLIC_DIR
+              value: /data/public
+            - name: LISTEN_ADDR
+              value: ":8080"
+            - name: HEALTH_ADDR
+              value: ":9102"
+            - name: GOMEMLIMIT
+              value: 200MiB
+          ports:
+            - name: public
+              containerPort: 8080
+            - name: m-public
+              containerPort: 9102
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: m-public
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: m-public
+          securityContext: &sc
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - "ALL"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data/public
+              subPath: public
+              readOnly: true
+
+        - name: admin
+          image: *image
+          args:
+            - "--mode=admin"
+          env:
+            - name: DATA_DIR
+              value: /data
+            - name: TOKEN_DIR
+              value: /var/run/fileserver-token
+            - name: LISTEN_ADDR
+              value: ":8081"
+            - name: HEALTH_ADDR
+              value: ":9103"
+            - name: PUBLIC_URL
+              value: https://files.portableinfo.cloud
+            - name: UPLOAD_URL
+              value: http://fileserver-upload.fileserver-system.svc:8082
+            - name: MAX_FILE_BYTES
+              value: "8589934592" # 8 GiB
+            - name: ROTATE_AFTER
+              value: 720h # only for the "next rotation" text; the CronJob decides
+            - name: GOMEMLIMIT
+              value: 300MiB
+          ports:
+            - name: admin
+              containerPort: 8081
+            - name: m-admin
+              containerPort: 9103
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: m-admin
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: m-admin
+          securityContext: *sc
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 384Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: token
+              mountPath: /var/run/fileserver-token
+              readOnly: true
+
+        - name: upload
+          image: *image
+          args:
+            - "--mode=upload"
+          env:
+            - name: DATA_DIR
+              value: /data
+            - name: TOKEN_DIR
+              value: /var/run/fileserver-token
+            - name: LISTEN_ADDR
+              value: ":8082"
+            - name: HEALTH_ADDR
+              value: ":9104"
+            - name: MAX_FILE_BYTES
+              value: "8589934592" # 8 GiB
+            - name: GOMEMLIMIT
+              value: 300MiB
+          ports:
+            - name: upload
+              containerPort: 8082
+            - name: m-upload
+              containerPort: 9104
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: m-upload
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: m-upload
+          securityContext: *sc
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 384Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: token
+              mountPath: /var/run/fileserver-token
+              readOnly: true
+
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: fileserver-data
+        # optional: uploads are refused until the first rotation. Reloader restarts the pod when the Secret changes.
+        - name: token
+          secret:
+            secretName: fileserver-upload-token
+            optional: true
+            defaultMode: 0440

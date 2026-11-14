@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fileserver-public
+  namespace: fileserver-system
+spec:
+  type: ClusterIP
+  selector:
+    app: fileserver
+  ports:
+    - name: http
+      port: 8080
+      targetPort: public
+---
+# Reached through the Omni service exposer.
+apiVersion: v1
+kind: Service
+metadata:
+  name: fileserver-admin
+  namespace: fileserver-system
+  annotations:
+    omni-kube-service-exposer.sidero.dev/label: Fileserver
+    omni-kube-service-exposer.sidero.dev/port: "50093"
+    omni-kube-service-exposer.sidero.dev/prefix: files
+spec:
+  type: ClusterIP
+  selector:
+    app: fileserver
+  ports:
+    - name: http
+      port: 80
+      targetPort: admin
+---
+# Cluster-internal, for the runners: http://fileserver-upload.fileserver-system.svc:8082
+apiVersion: v1
+kind: Service
+metadata:
+  name: fileserver-upload
+  namespace: fileserver-system
+spec:
+  type: ClusterIP
+  selector:
+    app: fileserver
+  ports:
+    - name: http
+      port: 8082
+      targetPort: upload

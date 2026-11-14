@@ -1,0 +1,58 @@
+# Public port only. Add files.portableinfo.cloud to the Traefik tunnel (HTTP localhost:8000) in Cloudflare.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/traefik.io/middleware_v1alpha1.json
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: files-ratelimit
+  namespace: fileserver-system
+spec:
+  rateLimit:
+    average: 10
+    burst: 20
+    period: 1s
+    sourceCriterion:
+      # client address as set by Cloudflare
+      requestHeaderName: Cf-Connecting-Ip
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: files-inflight
+  namespace: fileserver-system
+spec:
+  inFlightReq:
+    amount: 4 # parallel downloads per client: the files are large and the node disk is one
+    sourceCriterion:
+      requestHeaderName: Cf-Connecting-Ip
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: files-headers
+  namespace: fileserver-system
+spec:
+  headers:
+    stsSeconds: 31536000
+    stsIncludeSubdomains: true
+    contentTypeNosniff: true
+    referrerPolicy: no-referrer
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: fileserver-public
+  namespace: fileserver-system
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`files.portableinfo.cloud`)
+      middlewares:
+        - name: files-ratelimit
+        - name: files-inflight
+        - name: files-headers
+      services:
+        - name: fileserver-public
+          port: http

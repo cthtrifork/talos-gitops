@@ -1,0 +1,21 @@
+# The release label is how the kube-prometheus-stack Prometheus selects PodMonitors.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/monitoring.coreos.com/podmonitor_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: fileserver
+  namespace: fileserver-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: fileserver
+  podMetricsEndpoints:
+    - port: m-public
+      path: /metrics
+    - port: m-admin
+      path: /metrics
+    - port: m-upload
+      path: /metrics
