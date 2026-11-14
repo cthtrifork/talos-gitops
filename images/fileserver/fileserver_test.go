@@ -1,0 +1,486 @@
+package main
+
+import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+func newStore(t *testing.T) *Store {
+	t.Helper()
+	s, err := NewStore(t.TempDir(), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+func put(t *testing.T, s *Store, name string, v Visibility, body string) error {
+	t.Helper()
+	_, err := s.Put(name, v, strings.NewReader(body), 1<<20, 0, "")
+	return err
+}
+
+func TestValidName(t *testing.T) {
+	valid := []string{"a", "image-1.0.qcow2", "_x", "A_b-c.d", "My File (1).iso", "naïve café.txt", "日本語.bin", "-lead", "a.b.c", strings.Repeat("a", 255)}
+	for _, n := range valid {
+		if !validName(n) {
+			t.Errorf("%q should be valid", n)
+		}
+	}
+	invalid := []string{"", ".", "..", ".hidden", ".tmp", "a/b", "/a", "a/", `a\b`, "../x", "a\x00b", "a\nb", "a\tb", "a\x7fb", "a\xffb", strings.Repeat("a", 256)}
+	for _, n := range invalid {
+		if validName(n) {
+			t.Errorf("%q should be invalid", n)
+		}
+	}
+}
+
+func TestOddButValidNamesWork(t *testing.T) {
+	s := newStore(t)
+	for _, n := range []string{"My File (1).iso", "日本語.bin"} {
+		if err := put(t, s, n, Public, "data"); err != nil {
+			t.Fatalf("%q: %v", n, err)
+		}
+	}
+	root, _ := os.OpenRoot(filepath.Join(s.dir, "public"))
+	h := publicHandler(root)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/My%20File%20%281%29.iso", nil)) // the way a browser asks for it
+	if rec.Code != 200 || rec.Body.String() != "data" {
+		t.Fatalf("encoded name: %d %q", rec.Code, rec.Body.String())
+	}
+	if cd := rec.Header().Get("Content-Disposition"); !strings.Contains(cd, "My File (1).iso") {
+		t.Fatalf("Content-Disposition lost the name: %q", cd)
+	}
+	for _, p := range []string{"/a%2Fb", "/%2e%2e", "/..%2Fprivate%2Fx", "/a%00b", "/%0a"} {
+		rec = httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("GET", p, nil))
+		if rec.Code == 200 {
+			t.Errorf("GET %s returned 200", p)
+		}
+	}
+}
+
+func TestPutOverwriteAndClash(t *testing.T) {
+	s := newStore(t)
+	if err := put(t, s, "a.bin", Private, "one"); err != nil {
+		t.Fatal(err)
+	}
+	if err := put(t, s, "a.bin", Private, "two"); err != nil { // same visibility: always overwrite
+		t.Fatal(err)
+	}
+	f, _, err := s.Open(Private, "a.bin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := io.ReadAll(f)
+	f.Close()
+	if string(b) != "two" {
+		t.Fatalf("got %q", b)
+	}
+	if err := put(t, s, "a.bin", Public, "x"); !errors.Is(err, ErrClash) { // other visibility: refused
+		t.Fatalf("want ErrClash, got %v", err)
+	}
+	if _, _, err := s.Open(Public, "a.bin"); err == nil {
+		t.Fatal("clash must not leave a public copy")
+	}
+}
+
+func TestPutTooLargeLeavesNothing(t *testing.T) {
+	s := newStore(t)
+	_ = put(t, s, "keep", Public, "good")
+	_, err := s.Put("keep", Public, strings.NewReader("0123456789"), 5, 0, "")
+	if !errors.Is(err, ErrTooLarge) {
+		t.Fatalf("want ErrTooLarge, got %v", err)
+	}
+	f, _, _ := s.Open(Public, "keep")
+	b, _ := io.ReadAll(f)
+	f.Close()
+	if string(b) != "good" {
+		t.Fatalf("existing file damaged: %q", b)
+	}
+	ents, _ := os.ReadDir(filepath.Join(s.dir, ".tmp"))
+	if len(ents) != 0 {
+		t.Fatalf("temp files left: %d", len(ents))
+	}
+}
+
+func TestPutNoSpace(t *testing.T) {
+	s := newStore(t)
+	s.minFree = ^uint64(0) >> 1
+	if err := put(t, s, "x", Private, "x"); !errors.Is(err, ErrNoSpace) {
+		t.Fatalf("want ErrNoSpace, got %v", err)
+	}
+}
+
+func TestMoveListDelete(t *testing.T) {
+	s := newStore(t)
+	_ = put(t, s, "p", Public, "1")
+	_ = put(t, s, "q", Private, "22")
+	if err := s.Move("q", Public); err != nil {
+		t.Fatal(err)
+	}
+	list, _ := s.List()
+	if len(list) != 2 || list[1].Name != "q" || list[1].Visibility != Public || list[1].Size != 2 {
+		t.Fatalf("unexpected list %+v", list)
+	}
+	if err := s.Move("missing", Public); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("got %v", err)
+	}
+	if err := s.Delete("p"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Delete("p"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestPublicNeverServesPrivate(t *testing.T) {
+	s := newStore(t)
+	_ = put(t, s, "open.txt", Public, "hello")
+	_ = put(t, s, "secret.txt", Private, "nope")
+	root, err := os.OpenRoot(filepath.Join(s.dir, "public"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := publicHandler(root)
+
+	get := func(method, path string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(method, path, nil))
+		return rec
+	}
+	if rec := get("GET", "/open.txt"); rec.Code != 200 || rec.Body.String() != "hello" {
+		t.Fatalf("open: %d %q", rec.Code, rec.Body.String())
+	} else if rec.Header().Get("Content-Disposition") == "" || rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatal("download headers missing")
+	}
+	for _, p := range []string{"/secret.txt", "/", "/private/secret.txt", "/../private/secret.txt", "/.tmp", "/%2e%2e/private/secret.txt"} {
+		if rec := get("GET", p); rec.Code == 200 {
+			t.Errorf("GET %s returned 200", p)
+		}
+	}
+	if rec := get("POST", "/open.txt"); rec.Code == 200 {
+		t.Error("POST must not be served")
+	}
+	if rec := get("DELETE", "/open.txt"); rec.Code == 200 {
+		t.Error("DELETE must not be served")
+	}
+}
+
+func TestAdminAPI(t *testing.T) {
+	s := newStore(t)
+	h := adminHandler(s, NewTokenAuth(t.TempDir(), time.Hour), 1<<20, adminConfig{})
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	fw, _ := mw.CreateFormFile("file", "doc.txt")
+	_, _ = fw.Write([]byte("content"))
+	_ = mw.Close()
+
+	do := func(method, url string, body io.Reader, ct string, hdr bool) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, url, body)
+		if ct != "" {
+			req.Header.Set("Content-Type", ct)
+		}
+		if hdr {
+			req.Header.Set("X-Requested-With", "fileserver")
+		}
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec
+	}
+
+	if rec := do("POST", "/api/files?visibility=public", bytes.NewReader(buf.Bytes()), mw.FormDataContentType(), false); rec.Code != 403 {
+		t.Fatalf("no CSRF header: want 403, got %d", rec.Code)
+	}
+	if rec := do("POST", "/api/files?visibility=public", bytes.NewReader(buf.Bytes()), mw.FormDataContentType(), true); rec.Code != 201 {
+		t.Fatalf("upload: %d %s", rec.Code, rec.Body)
+	}
+	rec := do("GET", "/api/files", nil, "", false)
+	var list []Entry
+	_ = json.Unmarshal(rec.Body.Bytes(), &list)
+	if len(list) != 1 || list[0].Name != "doc.txt" || list[0].Visibility != Public {
+		t.Fatalf("list: %s", rec.Body)
+	}
+	if rec := do("POST", "/api/files/doc.txt/visibility?to=private", nil, "", true); rec.Code != 204 {
+		t.Fatalf("move: %d", rec.Code)
+	}
+	if rec := do("GET", "/download/private/doc.txt", nil, "", false); rec.Code != 200 || rec.Body.String() != "content" {
+		t.Fatalf("download: %d %q", rec.Code, rec.Body)
+	}
+	if rec := do("DELETE", "/api/files/doc.txt", nil, "", true); rec.Code != 204 {
+		t.Fatalf("delete: %d", rec.Code)
+	}
+}
+
+func writeToken(t *testing.T, dir, cur, prev string, at time.Time) {
+	t.Helper()
+	for k, v := range map[string]string{"current": cur, "previous": prev, "rotated-at": at.UTC().Format(time.RFC3339)} {
+		if v == "" {
+			continue
+		}
+		if err := os.WriteFile(filepath.Join(dir, k), []byte(v+"\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestTokenAuth(t *testing.T) {
+	dir := t.TempDir()
+	now := time.Now()
+	a := NewTokenAuth(dir, 24*time.Hour)
+	if err := a.Check("Bearer anything"); err == nil {
+		t.Fatal("no Secret yet: every token must be refused")
+	}
+	writeToken(t, dir, "new-token", "old-token", now.Add(-time.Hour))
+	cases := map[string]bool{
+		"Bearer new-token": true, "Bearer old-token": true, // previous is valid inside the grace period
+		"Bearer wrong": false, "Bearer ": false, "new-token": false, "Basic new-token": false, "": false,
+	}
+	for h, ok := range cases {
+		if err := a.Check(h); (err == nil) != ok {
+			t.Errorf("Check(%q): ok=%v, want %v", h, err == nil, ok)
+		}
+	}
+	writeToken(t, dir, "new-token", "old-token", now.Add(-25*time.Hour))
+	if err := a.Check("Bearer old-token"); err == nil {
+		t.Error("previous token must expire after the grace period")
+	}
+	if err := a.Check("Bearer new-token"); err != nil {
+		t.Error("current token must stay valid")
+	}
+}
+
+func TestUploadWithToken(t *testing.T) {
+	dir := t.TempDir()
+	writeToken(t, dir, "tok", "", time.Now())
+	s := newStore(t)
+	h := uploadHandler(s, NewTokenAuth(dir, time.Hour), 1<<20)
+	send := func(auth, path string) int {
+		req := httptest.NewRequest("PUT", path, strings.NewReader("data"))
+		if auth != "" {
+			req.Header.Set("Authorization", auth)
+		}
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	if c := send("", "/v1/files/a"); c != 401 {
+		t.Errorf("no token: %d", c)
+	}
+	if c := send("Bearer nope", "/v1/files/a"); c != 401 {
+		t.Errorf("bad token: %d", c)
+	}
+	if c := send("Bearer tok", "/v1/files/a?visibility=private"); c != 201 {
+		t.Errorf("good token: %d", c)
+	}
+	if c := send("Bearer tok", "/v1/files/a?visibility=private"); c != 201 { // CI always overwrites
+		t.Errorf("overwrite: %d", c)
+	}
+	if c := send("Bearer tok", "/v1/files/a?visibility=public"); c != 409 {
+		t.Errorf("clash: %d", c)
+	}
+	if c := send("Bearer tok", "/v1/files/x?visibility=nope"); c != 400 {
+		t.Errorf("bad visibility: %d", c)
+	}
+	if c := send("Bearer tok", "/v1/files/.hidden"); c != 400 {
+		t.Errorf("bad name: %d", c)
+	}
+}
+
+func TestAdminShowsToken(t *testing.T) {
+	dir := t.TempDir()
+	writeToken(t, dir, "tok", "", time.Now())
+	h := adminHandler(newStore(t), NewTokenAuth(dir, time.Hour), 1<<20, adminConfig{})
+	req := httptest.NewRequest("GET", "/api/token", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != 403 {
+		t.Fatalf("without header: %d", rec.Code)
+	}
+	req.Header.Set("X-Requested-With", "fileserver")
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	var info TokenInfo
+	_ = json.Unmarshal(rec.Body.Bytes(), &info)
+	if rec.Code != 200 || info.Current != "tok" || info.RotatedAt == nil {
+		t.Fatalf("got %d %s", rec.Code, rec.Body)
+	}
+	// the public handler must know nothing about tokens
+	root, _ := os.OpenRoot(t.TempDir())
+	rec = httptest.NewRecorder()
+	publicHandler(root).ServeHTTP(rec, httptest.NewRequest("GET", "/api/token", nil))
+	if rec.Code == 200 {
+		t.Fatal("public handler served /api/token")
+	}
+}
+
+func TestPutChecksum(t *testing.T) {
+	s := newStore(t)
+	sum := sha256.Sum256([]byte("payload"))
+	good := hex.EncodeToString(sum[:])
+	put := func(body, want string) error {
+		_, err := s.Put("img", Private, strings.NewReader(body), 1<<20, 0, want)
+		return err
+	}
+	if err := put("payload", strings.ToUpper(good)); err != nil { // case-insensitive
+		t.Fatalf("matching sum: %v", err)
+	}
+	if err := put("truncated", good); !errors.Is(err, ErrChecksum) {
+		t.Fatalf("want ErrChecksum, got %v", err)
+	}
+	if err := put("payload", "xyz"); !errors.Is(err, ErrBadSum) {
+		t.Fatalf("want ErrBadSum, got %v", err)
+	}
+	f, _, _ := s.Open(Private, "img")
+	b, _ := io.ReadAll(f)
+	f.Close()
+	if string(b) != "payload" {
+		t.Fatalf("a refused upload replaced the good file: %q", b)
+	}
+	if ents, _ := os.ReadDir(filepath.Join(s.dir, ".tmp")); len(ents) != 0 {
+		t.Fatalf("temp files left: %d", len(ents))
+	}
+}
+
+func TestMetrics(t *testing.T) {
+	s := newStore(t)
+	dir := t.TempDir()
+	writeToken(t, dir, "tok", "", time.Now())
+	a := NewTokenAuth(dir, time.Hour)
+	reg := &metrics{reqs: map[[3]string]uint64{}, uploads: map[string]uint64{}, started: time.Now()}
+	reg.addCollector(storeCollector(s))
+	reg.addCollector(tokenCollector(a))
+
+	h := reg.instrument("upload", uploadHandler(s, a, 1<<20))
+	for _, c := range []struct{ auth, path string }{
+		{"Bearer tok", "/v1/files/a?visibility=private"},
+		{"Bearer tok", "/v1/files/a?visibility=public"}, // clash
+		{"", "/v1/files/b"}, // unauthorized
+	} {
+		req := httptest.NewRequest("PUT", c.path, strings.NewReader("data"))
+		if c.auth != "" {
+			req.Header.Set("Authorization", c.auth)
+		}
+		h.ServeHTTP(httptest.NewRecorder(), req)
+	}
+	reg.countUpload(nil, 4)
+	reg.countUpload(ErrClash, 0)
+
+	rec := httptest.NewRecorder()
+	reg.ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
+	out := rec.Body.String()
+	for _, want := range []string{
+		`fileserver_http_requests_total{mode="upload",method="PUT",code="201"} 1`,
+		`fileserver_http_requests_total{mode="upload",method="PUT",code="409"} 1`,
+		`fileserver_http_requests_total{mode="upload",method="PUT",code="401"} 1`,
+		`fileserver_uploads_total{result="ok"} 1`,
+		`fileserver_uploads_total{result="clash"} 1`,
+		`fileserver_upload_bytes_total 4`,
+		`fileserver_files{visibility="private"} 1`,
+		`fileserver_files{visibility="public"} 0`,
+		`fileserver_files_bytes{visibility="private"} 4`,
+		`# TYPE fileserver_disk_free_bytes gauge`,
+		`fileserver_token_rotated_timestamp_seconds `,
+		`fileserver_http_requests_in_flight 0`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("metrics output lacks %q", want)
+		}
+	}
+	if strings.Contains(out, "fileserver_token_rotated_timestamp_seconds 0\n") {
+		t.Error("rotation time should be set")
+	}
+	if strings.Contains(out, "tok") && strings.Contains(out, "Bearer") {
+		t.Error("metrics must never contain the token")
+	}
+}
+
+func TestAdminInfo(t *testing.T) {
+	h := adminHandler(newStore(t), NewTokenAuth(t.TempDir(), time.Hour), 1<<20, adminConfig{PublicURL: "https://files.example", RotateAfter: 720 * time.Hour})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/api/info", nil))
+	var info map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &info)
+	if rec.Code != 200 || info["publicUrl"] != "https://files.example" || info["rotateAfterHours"] != float64(720) || info["capacityBytes"].(float64) <= 0 {
+		t.Fatalf("got %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestCleanTmpKeepsLiveUploads(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := NewStore(dir, 0); err != nil {
+		t.Fatal(err)
+	}
+	tmp := filepath.Join(dir, ".tmp")
+	for _, n := range []string{"live", "stale"} {
+		if err := os.WriteFile(filepath.Join(tmp, n), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	old := time.Now().Add(-2 * time.Hour)
+	if err := os.Chtimes(filepath.Join(tmp, "stale"), old, old); err != nil {
+		t.Fatal(err)
+	}
+	// the sibling container (admin or upload) starts: it must not delete an upload that is running in the other one
+	if _, err := NewStore(dir, 0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(tmp, "live")); err != nil {
+		t.Fatal("a fresh temporary file was deleted by a second start")
+	}
+	if _, err := os.Stat(filepath.Join(tmp, "stale")); err == nil {
+		t.Fatal("a stale temporary file was kept")
+	}
+}
+
+func TestReplacingAFileCountsItsSpace(t *testing.T) {
+	s := newStore(t)
+	s.freeFn = func() (uint64, error) { return 100, nil }
+	s.minFree = 50
+	if err := os.WriteFile(filepath.Join(s.dir, "public", "img"), make([]byte, 80), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	put := func(name string) error {
+		_, err := s.Put(name, Public, strings.NewReader("x"), 1<<20, 120, "")
+		return err
+	}
+	if err := put("img"); err != nil { // 100 free + 80 replaced >= 50 + 120
+		t.Fatalf("replacing a file that frees enough space was refused: %v", err)
+	}
+	if err := put("other"); !errors.Is(err, ErrNoSpace) { // 100 free < 50 + 120
+		t.Fatalf("a new file that does not fit must be refused, got %v", err)
+	}
+}
+
+func TestMetricsMethodLabelIsBounded(t *testing.T) {
+	reg := &metrics{reqs: map[[3]string]uint64{}, uploads: map[string]uint64{}, started: time.Now()}
+	h := reg.instrument("public", http.NotFoundHandler())
+	for _, m := range []string{"GET", "FOO", "BAR1", "BAR2", "PROPFIND"} {
+		h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(m, "/x", nil))
+	}
+	rec := httptest.NewRecorder()
+	reg.ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
+	out := rec.Body.String()
+	if !strings.Contains(out, `method="other",code="404"} 4`) || !strings.Contains(out, `method="GET",code="404"} 1`) {
+		t.Fatalf("unexpected method labels:\n%s", out)
+	}
+	for _, bad := range []string{"FOO", "BAR1", "PROPFIND"} {
+		if strings.Contains(out, bad) {
+			t.Fatalf("client-chosen method %q became a label", bad)
+		}
+	}
+}
