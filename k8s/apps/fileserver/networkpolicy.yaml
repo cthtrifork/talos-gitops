@@ -30,7 +30,8 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
 ---
 # The pod, per door: 8080 public (Traefik, which carries the Cloudflare tunnel), 8081 admin (the Omni service exposer: host
 # network, so it arrives as host or remote-node), 8082 upload (the runners).
@@ -50,19 +51,22 @@ spec:
             k8s:app.kubernetes.io/name: traefik
       toPorts:
         - ports:
-            - { port: "8080", protocol: TCP }
+            - port: "8080"
+              protocol: TCP
     - fromEntities:
         - host
         - remote-node
       toPorts:
         - ports:
-            - { port: "8081", protocol: TCP }
+            - port: "8081"
+              protocol: TCP
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: arc-runners-system
       toPorts:
         - ports:
-            - { port: "8082", protocol: TCP }
+            - port: "8082"
+              protocol: TCP
 ---
 # The rotation job: only the Kubernetes API (plus DNS above).
 apiVersion: cilium.io/v2
