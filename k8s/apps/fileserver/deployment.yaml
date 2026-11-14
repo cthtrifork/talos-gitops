@@ -32,7 +32,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: public
-          image: &image ghcr.io/cthtrifork/talos-gitops/fileserver:v0.12.0@sha256:c7cdcecf619866d5c30c8ff86d8700cefd2c01a0e99d534fec221f65ced2f7f1
+          image: &image ghcr.io/cthtrifork/talos-gitops/fileserver:v0.13.0@sha256:287d6db13996853cf2e2014a5b7c4afd59108f082a3cc2862fbe3d0c62c8848b
           args:
             - "--mode=public"
           env:
@@ -94,8 +94,6 @@ spec:
               value: http://fileserver-upload.fileserver-system.svc:8082
             - name: MAX_FILE_BYTES
               value: "8589934592" # 8 GiB
-            - name: ROTATE_AFTER
-              value: 720h # only for the "next rotation" text; the CronJob decides
             - name: GOMEMLIMIT
               value: 300MiB
           ports:
