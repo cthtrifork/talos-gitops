@@ -52,7 +52,7 @@ spec:
       spec:
         containers:
           - name: runner
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:v0.11.0@sha256:86d54c1c6df0e0c8ba46c423735639cb6d26bb74e3c1653e221fd1dfa5094055
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:v0.13.0@sha256:67db95e06e5c9d21fa4328f9f15d22554702babcfbd55451df91bb2c67e24e36
             imagePullPolicy: IfNotPresent
             # Podman rejects an XDG_RUNTIME_DIR that is not owned by its user, and a fresh emptyDir is root owned, so
             # create a 0700 subdirectory of the volume as the runner user before the runner starts (steps such as
