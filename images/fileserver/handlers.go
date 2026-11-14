@@ -141,7 +141,7 @@ func adminHandler(s *Store, a *TokenAuth, max int64, cfg adminConfig) http.Handl
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		b, _ := webFS.ReadFile("web/index.html")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		_, _ = w.Write(b)
 	})

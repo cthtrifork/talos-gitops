@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Fileserver</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Admin page of the homelab fileserver: disk space, uploads, files and the upload token.">
 <style>
   /* Colour roles follow the reference palette: public = categorical slot 1 (blue), private = slot 2 (orange),
      storage meter = sequential blue with the status colours for severity. Dark values are their own steps. */
@@ -15,7 +17,7 @@
     --public: #2a78d6; --private: #eb6834;
     --meter-fill: #2a78d6; --meter-track: #cde2fb;
     --warn: #fab219; --crit: #d03b3b; --good-text: #006300; --crit-text: #a82424; --warn-text: #7a5400;
-    --accent: #1c5cab; --danger: #c0392b;
+    --accent: #1c5cab; --danger: #c0392b; --primary: #1c5cab; --danger-solid: #c0392b;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -25,7 +27,7 @@
       --public: #3987e5; --private: #d95926;
       --meter-fill: #3987e5; --meter-track: #0d366b;
       --good-text: #0ca30c; --crit-text: #f08080; --warn-text: #fab219;
-      --accent: #6da7ec; --danger: #e66767;
+      --accent: #6da7ec; --danger: #e66767; --primary: #2a78d6; --danger-solid: #d03b3b;
     }
   }
   * { box-sizing: border-box; }
@@ -46,9 +48,10 @@
   .fill { height: 100%; border-radius: 999px; background: var(--meter-fill); transition: width .3s; }
   .fill.warn { background: var(--warn); } .fill.crit { background: var(--crit); }
   .wide { grid-column: span 2; }
+  .kpis > .card { min-height: 13rem; }
   @media (max-width: 40rem) { .wide { grid-column: auto; } }
   .seg { display: flex; gap: 2px; height: 28px; margin-top: .8rem; }
-  .seg > span { min-width: 0; border-radius: 4px; display: flex; align-items: center; padding-left: .5rem; color: #fff; font-size: .8rem; font-weight: 600; white-space: nowrap; }
+  .seg > span { min-width: 0; border-radius: 4px; display: flex; align-items: center; padding-left: .5rem; color: #0b0b0b; font-size: .8rem; font-weight: 600; white-space: nowrap; }
   .seg > span:focus-visible { outline-offset: 1px; }
   .seg > .pub { background: var(--public); } .seg > .priv { background: var(--private); }
   .seg > .oth { background: var(--muted); } .seg > .free { background: var(--meter-track); color: var(--ink-2); }
@@ -60,14 +63,32 @@
   .tok { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-top: .35rem; }
   code { font: .88rem ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--wash); padding: .25rem .45rem; border-radius: 6px; overflow-wrap: anywhere; }
   /* controls */
-  button, select, input[type=search] { font: inherit; color: inherit; }
-  button { background: var(--surface); border: 1px solid var(--axis); border-radius: 8px; padding: .3rem .7rem; cursor: pointer; min-height: 32px; }
-  button:hover { background: var(--wash); }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button.primary:hover { filter: brightness(1.08); }
-  button.danger { color: var(--danger); border-color: currentColor; }
-  button.ghost { border-color: transparent; background: transparent; padding: .3rem .5rem; }
-  button.ghost:hover { background: var(--wash); }
+  select, input[type=search] { font: inherit; color: inherit; }
+  /* One button system. Secondary is the default; primary is the one main action of a block; ghost is a quiet row action;
+     danger is red text and turns solid when armed (the first click of a delete). Icons are 16px strokes in currentColor. */
+  button, a.btn { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; font: inherit; font-weight: 500; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--axis); border-radius: 8px; padding: .35rem .85rem; min-height: 36px; cursor: pointer;
+    text-decoration: none; transition: background .12s, border-color .12s, color .12s; }
+  button:hover:not(:disabled), a.btn:hover { background: var(--wash); border-color: var(--ink-2); }
+  button:active:not(:disabled), a.btn:active { background: var(--line); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button[aria-busy=true] { cursor: progress; }
+  button.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  button.primary:hover:not(:disabled) { background: var(--primary); filter: brightness(1.12); }
+  button.primary:active:not(:disabled) { filter: brightness(.92); }
+  button.danger-solid { background: var(--danger-solid); border-color: var(--danger-solid); color: #fff; }
+  button.danger-solid:hover:not(:disabled) { background: var(--danger-solid); filter: brightness(1.12); }
+  button.ghost, a.btn.ghost { border-color: transparent; background: transparent; }
+  button.ghost:hover:not(:disabled), a.btn.ghost:hover { background: var(--wash); border-color: transparent; }
+  button.ghost.danger { color: var(--danger); }
+  button.ghost.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 14%, transparent); }
+  button.icon, a.btn.icon { width: 36px; padding: 0; }
+  button.ok { color: var(--ok-text); border-color: currentColor; }
+  svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .acts { display: flex; gap: .15rem; justify-content: flex-end; }
+  .act .lbl { display: none; }
+  .act button.armed { width: auto; padding: .35rem .8rem; } .act button.armed .lbl { display: inline; }
+  @media (pointer: coarse) { button, a.btn, select, input[type=search] { min-height: 44px; } button.icon, a.btn.icon { width: 44px; } }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   /* upload */
   .drop { border: 2px dashed var(--axis); border-radius: 12px; padding: 1.1rem; display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 1.1rem; transition: background .15s, border-color .15s; }
@@ -86,7 +107,7 @@
   .bar { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin-bottom: .7rem; }
   input[type=search] { background: var(--surface); border: 1px solid var(--axis); border-radius: 8px; padding: .3rem .65rem; min-height: 32px; min-width: 14rem; }
   .chips { display: inline-flex; gap: .3rem; }
-  .chips button[aria-pressed=true] { background: var(--wash); font-weight: 600; border-color: var(--ink-2); }
+  .chips button[aria-pressed=true] { background: color-mix(in srgb, var(--accent) 14%, transparent); font-weight: 600; border-color: var(--accent); }
   table { width: 100%; border-collapse: collapse; }
   th, td { text-align: left; padding: .55rem .5rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
   th { font-weight: 600; color: var(--ink-2); font-size: .85rem; white-space: nowrap; }
@@ -103,9 +124,6 @@
   #toast div.err { background: var(--crit); color: #fff; }
   #tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--surface); padding: .35rem .6rem; border-radius: 6px; font-size: .82rem; display: none; }
   #tip b { font-weight: 600; }
-  dialog { background: var(--surface); color: var(--ink); border: 1px solid var(--ring); border-radius: 12px; padding: 1.2rem; max-width: 26rem; }
-  dialog::backdrop { background: rgba(0,0,0,.45); }
-  dialog .row { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1rem; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   th[aria-sort="ascending"] button::after { content: ' \25B2'; font-size: .7em; }
   th[aria-sort="descending"] button::after { content: ' \25BC'; font-size: .7em; }
@@ -113,7 +131,10 @@
   select { background: var(--surface); border: 1px solid var(--axis); border-radius: 8px; padding: .3rem .5rem; min-height: 32px; }
   @media (max-width: 40rem) {
     main { padding: 1rem .75rem 3rem; }
+    .kpis > #k-disk { min-height: 14.5rem; } .kpis > #k-token { min-height: 11.5rem; }
     .card { padding: .85rem .9rem; }
+    button, a.btn, select, input[type=search] { min-height: 44px; }
+    button.icon, a.btn.icon { width: 44px; }
     input[type=search] { min-width: 0; flex: 1 1 100%; }
     .sortsel { margin-left: 0; flex: 1 1 100%; } .sortsel select { flex: 1; }
     thead { display: none; }
@@ -122,8 +143,10 @@
     td { border: 0; padding: 0; }
     td.name { flex: 1 1 100%; font-weight: 600; }
     td.num { text-align: left; } td.hide { color: var(--ink-2); font-size: .88rem; }
-    td.act { flex: 1 1 100%; text-align: left; white-space: normal; margin-top: .35rem; }
-    td.act button { min-height: 36px; }
+    td.act { flex: 1 1 100%; margin-top: .35rem; white-space: normal; text-align: left; }
+    .acts { flex-wrap: wrap; justify-content: flex-start; gap: .4rem; }
+    .acts button.icon.has-label, .acts a.btn.icon.has-label { padding: .35rem .55rem; }
+    .act .lbl { display: inline; } button.icon.has-label, a.btn.icon.has-label { width: auto; padding: .35rem .8rem; }
     .drop { padding: .9rem; } .seggroup { width: 100%; } .seggroup label { flex: 1; justify-content: center; }
     .tok button { flex: 1 1 auto; }
   }
@@ -131,6 +154,20 @@
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.7C3.9 8.6 2 12 2 12s3.5 7 10 7c1.7 0 3.2-.4 4.5-1"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 21h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+</svg>
 <main>
   <h1>Fileserver</h1>
   <p class="sub">Public files are downloadable from the internet. Private files are only here.</p>
@@ -139,7 +176,7 @@
     <div class="card wide" id="k-disk">
       <div class="label">Disk space</div>
       <div class="value" id="dk-val">&nbsp;</div>
-      <div class="seg" id="dk-seg" role="img" aria-label="Disk usage by public files, private files, other use and free space"></div>
+      <div class="seg" id="dk-seg" role="group" aria-label="Disk usage by public files, private files, other use and free space"></div>
       <div class="legend" id="dk-legend"></div>
       <div class="note" id="dk-note"></div>
     </div>
@@ -147,9 +184,9 @@
       <div class="label">Upload token <span class="sr">(internal upload API only)</span></div>
       <div class="tok"><code id="tok-val">hidden</code></div>
       <div class="tok">
-        <button id="tok-show" type="button" aria-pressed="false">Show</button>
-        <button id="tok-copy" type="button">Copy</button>
-        <button id="tok-curl" type="button" title="Copy a ready-to-run curl command">Copy curl</button>
+        <button id="tok-show" type="button" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-eye"/></svg><span class="t">Show</span></button>
+        <button id="tok-copy" type="button"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg><span class="t">Copy</span></button>
+        <button id="tok-curl" type="button" title="Copy a ready-to-run curl command"><svg class="i" aria-hidden="true"><use href="#i-terminal"/></svg><span class="t">Copy curl</span></button>
       </div>
       <div class="note" id="tok-note"></div>
     </div>
@@ -157,13 +194,13 @@
 
   <div class="drop" id="drop">
     <div>
-      <p><strong>Drop files here</strong> or <button type="button" id="pick">choose files</button></p>
+      <p><strong>Drop files here</strong> or <button type="button" id="pick" class="primary"><svg class="i" aria-hidden="true"><use href="#i-upload"/></svg>Choose files</button></p>
       <p class="hint" id="limit">One file per request, streamed to disk.</p>
     </div>
     <fieldset class="seggroup" style="border:0;padding:0;margin:0" aria-label="Visibility of new uploads">
       <div class="seggroup">
-        <label><input type="radio" name="vis" value="private" checked> Private</label>
-        <label><input type="radio" name="vis" value="public"> Public</label>
+        <label><input type="radio" name="vis" value="private" checked> <svg class="i" aria-hidden="true"><use href="#i-lock"/></svg> Private</label>
+        <label><input type="radio" name="vis" value="public"> <svg class="i" aria-hidden="true"><use href="#i-globe"/></svg> Public</label>
       </div>
     </fieldset>
     <input type="file" id="file" multiple hidden>
@@ -171,7 +208,7 @@
   <div class="card prog" id="prog" aria-live="polite">
     <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center">
       <div><div id="prog-text"></div><div class="note" id="prog-sub" style="margin:0"></div></div>
-      <button type="button" id="prog-cancel">Cancel</button>
+      <button type="button" id="prog-cancel"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>Cancel</button>
     </div>
     <div class="track" role="progressbar" aria-label="Upload progress" aria-valuemin="0" aria-valuemax="100" id="prog-track"><div class="fill" id="prog-fill" style="width:0"></div></div>
   </div>
@@ -212,11 +249,6 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="tip" role="tooltip"></div>
-<dialog id="dlg" aria-labelledby="dlg-title">
-  <h2 id="dlg-title">Delete file?</h2>
-  <p id="dlg-text"></p>
-  <div class="row"><button type="button" id="dlg-no">Cancel</button><button type="button" class="danger" id="dlg-yes">Delete</button></div>
-</dialog>
 
 <script>
 'use strict';
@@ -227,6 +259,34 @@ const state = { files: [], info: {}, token: {}, filter: 'all', q: '', sort: 'mod
 const fmtBytes = n => n >= 2 ** 30 ? (n / 2 ** 30).toFixed(n >= 10 * 2 ** 30 ? 1 : 2) + ' GiB' : n >= 2 ** 20 ? (n / 2 ** 20).toFixed(1) + ' MiB' : n >= 1024 ? (n / 1024).toFixed(0) + ' KiB' : n + ' B';
 const ago = d => { const s = (Date.now() - new Date(d)) / 1000; if (s < 90) return 'just now'; const m = s / 60; if (m < 90) return Math.round(m) + ' min ago'; const h = m / 60; if (h < 36) return Math.round(h) + ' h ago'; return Math.round(h / 24) + ' days ago'; };
 const el = (tag, props, ...kids) => { const e = document.createElement(tag); Object.assign(e, props); e.append(...kids); return e; };
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+function icon(id) {
+  const s = document.createElementNS(SVGNS, 'svg'), u = document.createElementNS(SVGNS, 'use');
+  s.setAttribute('class', 'i'); s.setAttribute('aria-hidden', 'true'); u.setAttribute('href', '#i-' + id); s.append(u); return s;
+}
+// A row action: an icon button (label in title and aria-label; the text shows on phones).
+function ibtn(id, label, cls, onclick) {
+  const b = el('button', { type: 'button', className: 'icon has-label ' + cls, title: label, onclick });
+  b.setAttribute('aria-label', label); b.append(icon(id), el('span', { className: 'lbl', textContent: label })); return b;
+}
+// Brief confirmation on the button itself: its icon becomes a check and its text says what happened.
+function flash(btn, text) {
+  const t = btn.querySelector('.t, .lbl'), u = btn.querySelector('use'), old = t && t.textContent, oldIcon = u && u.getAttribute('href');
+  btn.classList.add('ok'); if (u) u.setAttribute('href', '#i-check'); if (t) t.textContent = text;
+  setTimeout(() => { btn.classList.remove('ok'); if (u) u.setAttribute('href', oldIcon); if (t) t.textContent = old; }, 1500);
+}
+// The async clipboard API needs https (the Omni exposer is); the textarea fallback covers plain http and older browsers.
+function copy(text, btn, done) {
+  const fallback = () => {
+    const t = el('textarea', { value: text }); t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;opacity:0';
+    document.body.append(t); t.select();
+    const ok = document.execCommand('copy'); t.remove(); return ok;
+  };
+  const ok = () => flash(btn, done), bad = () => toast('Copy failed', true);
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok, () => (fallback() ? ok() : bad()));
+  else fallback() ? ok() : bad();
+}
 
 function toast(text, err) {
   const t = el('div', { className: err ? 'err' : '', textContent: text });
@@ -276,7 +336,7 @@ function renderStats() {
   ];
   for (const [cls, name, bytes, what] of parts) {
     if (!bytes) continue;
-    const sp = el('span', { className: cls.trim(), tabIndex: 0 }); sp.style.flex = String(bytes);
+    const sp = el('span', { className: cls.trim(), tabIndex: 0 }); sp.setAttribute('role', 'img'); sp.style.flex = String(bytes);
     sp.setAttribute('aria-label', `${name}: ${fmtBytes(bytes)}, ${what}`);
     tipOn(sp, [name, `${fmtBytes(bytes)} \u00B7 ${what}`]);
     seg.append(sp);
@@ -329,10 +389,14 @@ function renderRows() {
     const sz = tr.insertCell(); sz.className = 'num'; sz.textContent = fmtBytes(f.size);
     const md = tr.insertCell(); md.className = 'hide'; md.textContent = ago(f.modified); md.title = new Date(f.modified).toLocaleString();
     const act = tr.insertCell(); act.className = 'act';
-    if (f.visibility === 'public' && state.info.publicUrl) act.append(el('button', { className: 'ghost', textContent: 'Copy link', onclick: () => navigator.clipboard.writeText(`${state.info.publicUrl}/${f.name}`).then(() => toast('Link copied'), () => toast('Copy failed', true)) }), ' ');
+    const box = el('div', { className: 'acts' }); act.append(box);
+    const dl = el('a', { className: 'btn icon has-label ghost', title: 'Download', href: `download/${f.visibility}/${encodeURIComponent(f.name)}` });
+    dl.setAttribute('aria-label', 'Download ' + f.name); dl.setAttribute('download', f.name); dl.append(icon('download'), el('span', { className: 'lbl', textContent: 'Download' }));
+    box.append(dl);
+    if (f.visibility === 'public' && state.info.publicUrl) box.append(ibtn('link', 'Copy link', 'ghost', e => copy(`${state.info.publicUrl}/${f.name}`, e.currentTarget, 'Copied')));
     const to = f.visibility === 'public' ? 'private' : 'public';
-    act.append(el('button', { className: 'ghost', textContent: 'Make ' + to, onclick: () => run(() => call(`api/files/${encodeURIComponent(f.name)}/visibility?to=${to}`, { method: 'POST' }), `${f.name} is now ${to}`) }), ' ',
-      el('button', { className: 'ghost danger', textContent: 'Delete', onclick: () => confirmDelete(f) }));
+    box.append(ibtn(to === 'public' ? 'globe' : 'lock', 'Make ' + to, 'ghost', e => run(() => call(`api/files/${encodeURIComponent(f.name)}/visibility?to=${to}`, { method: 'POST' }), `${f.name} is now ${to}`, e.currentTarget)),
+      deleteBtn(f));
   }
 }
 
@@ -342,32 +406,63 @@ async function refresh() {
   $('limit').textContent = `Up to ${fmtBytes(info.maxFileBytes || 0)} per file. Same name replaces the file.`;
   renderStats(); renderRows();
 }
-async function run(fn, ok) { try { await fn(); if (ok) toast(ok); await refresh(); } catch (e) { toast(e.message, true); } }
-
-/* delete confirmation */
-function confirmDelete(f) {
-  $('dlg-text').textContent = `${f.name} (${fmtBytes(f.size)}, ${f.visibility}) will be removed for good.`;
-  $('dlg').showModal();
-  $('dlg-yes').onclick = () => { $('dlg').close(); run(() => call('api/files/' + encodeURIComponent(f.name), { method: 'DELETE' }), 'Deleted ' + f.name); };
+async function run(fn, ok, btn) {
+  if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
+  try { await fn(); if (ok) toast(ok); await refresh(); }
+  catch (e) { toast(e.message, true); if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); } }
 }
-$('dlg-no').onclick = () => $('dlg').close();
+
+/* delete: two clicks. The first arms the button (red, "Confirm delete"), the second deletes. It disarms after 4 s, on Esc, or when
+   focus leaves it. */
+const armed = new Set();
+function disarm(b) {
+  if (!b.dataset.armed) return;
+  clearTimeout(b._t); delete b.dataset.armed; armed.delete(b);
+  b.classList.remove('danger-solid', 'armed'); b.classList.add('ghost');
+  b.querySelector('.lbl').textContent = 'Delete'; b.setAttribute('aria-label', b.dataset.name ? 'Delete ' + b.dataset.name : 'Delete');
+}
+function deleteBtn(f) {
+  const b = ibtn('trash', 'Delete', 'ghost danger', () => {
+    if (b.dataset.armed) { disarm(b); run(() => call('api/files/' + encodeURIComponent(f.name), { method: 'DELETE' }), 'Deleted ' + f.name, b); return; }
+    b.dataset.armed = '1'; armed.add(b);
+    b.classList.remove('ghost'); b.classList.add('danger-solid', 'armed');
+    b.querySelector('.lbl').textContent = 'Confirm delete'; b.setAttribute('aria-label', `Confirm: delete ${f.name}`);
+    b._t = setTimeout(() => disarm(b), 4000);
+  });
+  b.dataset.name = f.name; b.addEventListener('blur', () => disarm(b)); b.setAttribute('aria-label', 'Delete ' + f.name);
+  return b;
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') armed.forEach(disarm); });
 
 /* token */
 let revealed = false;
 const mask = t => t ? t.slice(0, 3) + '•'.repeat(12) + t.slice(-4) : 'none';
-function showToken() { $('tok-val').textContent = revealed ? (state.token.current || 'none') : mask(state.token.current); $('tok-show').textContent = revealed ? 'Hide' : 'Show'; $('tok-show').setAttribute('aria-pressed', revealed); }
+function showToken() {
+  $('tok-val').textContent = revealed ? (state.token.current || 'none') : mask(state.token.current);
+  const b = $('tok-show'); b.querySelector('.t').textContent = revealed ? 'Hide' : 'Show';
+  b.querySelector('use').setAttribute('href', revealed ? '#i-eye-off' : '#i-eye'); b.setAttribute('aria-pressed', revealed);
+}
 $('tok-show').onclick = () => { revealed = !revealed; showToken(); };
-$('tok-copy').onclick = () => navigator.clipboard.writeText(state.token.current || '').then(() => toast('Token copied'), () => toast('Copy failed', true));
-$('tok-curl').onclick = () => navigator.clipboard.writeText(`curl --fail -T FILE -H "Authorization: Bearer ${state.token.current}" "http://fileserver-upload.fileserver.svc:8082/v1/files/NAME?visibility=private"`).then(() => toast('curl command copied'), () => toast('Copy failed', true));
+$('tok-copy').onclick = e => copy(state.token.current || '', e.currentTarget, 'Copied');
+$('tok-curl').onclick = e => copy(`curl --fail -T FILE -H "Authorization: Bearer ${state.token.current}" "http://fileserver-upload.fileserver.svc:8082/v1/files/NAME?visibility=private"`, e.currentTarget, 'Copied');
 
 /* upload: one file at a time, with progress, speed and cancel */
+// The server accepts only letters, digits, '.', '_' and '-' (up to 128, not starting with '.' or '-'). Browser file names
+// like "My File (1).iso" are renamed here ("My-File-1.iso") instead of being refused.
+function safeName(n) {
+  let s = n.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/-+\./g, '.').replace(/-{2,}/g, '-').replace(/^[^A-Za-z0-9_]+/, '');
+  if (s.length > 128) { const ext = (s.match(/\.[A-Za-z0-9]{1,16}$/) || [''])[0]; s = s.slice(0, 128 - ext.length) + ext; }
+  return s || 'file';
+}
 let xhr = null, queue = [];
 function uploadNext() {
   const f = queue.shift();
   if (!f) { $('prog').classList.remove('on'); return refresh(); }
   const vis = document.querySelector('input[name=vis]:checked').value, total = queue.length + 1;
   $('prog').classList.add('on'); $('prog-text').textContent = `Uploading ${f.name} (${vis})`;
-  const fd = new FormData(); fd.append('file', f);
+  const safe = safeName(f.name);
+  if (safe !== f.name) toast(`Uploading ${f.name} as ${safe} (names allow letters, digits, . _ -)`);
+  const fd = new FormData(); fd.append('file', f, safe);
   xhr = new XMLHttpRequest(); const t0 = Date.now();
   xhr.open('POST', 'api/files?visibility=' + vis); xhr.setRequestHeader('X-Requested-With', 'fileserver');
   xhr.upload.onprogress = p => {
@@ -399,7 +494,6 @@ document.querySelectorAll('th button').forEach(b => b.onclick = () => {
 $('sort').onchange = e => { const [k, d] = e.target.value.split(':'); state.sort = k; state.dir = Number(d); renderRows(); };
 
 refresh().then(showToken).catch(e => toast(e.message, true));
-setInterval(() => !$('prog').classList.contains('on') && refresh().then(showToken).catch(() => {}), 30000);
 </script>
 </body>
 </html>
