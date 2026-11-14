@@ -45,12 +45,17 @@
   .track { height: 10px; border-radius: 999px; background: var(--meter-track); overflow: hidden; margin-top: .6rem; }
   .fill { height: 100%; border-radius: 999px; background: var(--meter-fill); transition: width .3s; }
   .fill.warn { background: var(--warn); } .fill.crit { background: var(--crit); }
-  .seg { display: flex; gap: 2px; height: 8px; margin-top: .7rem; }
-  .seg > span { border-radius: 999px; min-width: 4px; }
+  .wide { grid-column: span 2; }
+  @media (max-width: 40rem) { .wide { grid-column: auto; } }
+  .seg { display: flex; gap: 2px; height: 12px; margin-top: .7rem; }
+  .seg > span { border-radius: 999px; }
+  .seg > span:focus-visible { outline-offset: 1px; }
   .seg > .pub { background: var(--public); } .seg > .priv { background: var(--private); }
+  .seg > .oth { background: var(--muted); } .seg > .free { background: var(--meter-track); }
+  .seg > .free.warn { background: var(--warn); } .seg > .free.crit { background: var(--crit); }
   .legend { display: flex; gap: 1.1rem; margin-top: .55rem; flex-wrap: wrap; font-size: .88rem; }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: .4rem; vertical-align: -1px; }
-  .sw.pub { background: var(--public); } .sw.priv { background: var(--private); }
+  .sw.pub { background: var(--public); } .sw.priv { background: var(--private); } .sw.oth { background: var(--muted); } .sw.free { background: var(--meter-track); border: 1px solid var(--axis); }
   /* token */
   .tok { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-top: .35rem; }
   code { font: .88rem ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--wash); padding: .25rem .45rem; border-radius: 6px; overflow-wrap: anywhere; }
@@ -112,17 +117,12 @@
   <p class="sub">Public files are downloadable from the internet. Private files are only here.</p>
 
   <section class="kpis" aria-label="Overview">
-    <div class="card" id="k-storage">
+    <div class="card wide" id="k-disk">
       <div class="label">Disk space</div>
-      <div class="value" id="st-val">&nbsp;</div>
-      <div class="track" id="st-track" role="progressbar" aria-label="Volume used" aria-valuemin="0" aria-valuemax="100"><div class="fill" id="st-fill" style="width:0"></div></div>
-      <div class="note" id="st-note"></div>
-    </div>
-    <div class="card" id="k-files">
-      <div class="label">Files</div>
-      <div class="value" id="fl-val">&nbsp;</div>
-      <div class="seg" id="fl-seg" role="img" aria-label="Share of stored bytes"></div>
-      <div class="legend" id="fl-legend"></div>
+      <div class="value" id="dk-val">&nbsp;</div>
+      <div class="seg" id="dk-seg" role="img" aria-label="Disk usage by public files, private files, other use and free space"></div>
+      <div class="legend" id="dk-legend"></div>
+      <div class="note" id="dk-note"></div>
     </div>
     <div class="card" id="k-token">
       <div class="label">Upload token <span class="sr">(internal upload API only)</span></div>
@@ -220,30 +220,35 @@ function tipOn(node, lines) {
 function renderStats() {
   const { capacityBytes: cap = 0, freeBytes: free = 0 } = state.info;
   const used = Math.max(0, cap - free), pct = cap ? used / cap * 100 : 0;
-  $('st-val').replaceChildren(document.createTextNode(fmtBytes(free) + ' '), el('small', { textContent: 'remaining of ' + fmtBytes(cap) }));
-  const fill = $('st-fill'); fill.style.width = pct.toFixed(1) + '%';
-  fill.className = 'fill' + (pct >= 92 ? ' crit' : pct >= 80 ? ' warn' : '');
-  $('st-track').setAttribute('aria-valuenow', Math.round(pct));
-  const note = $('st-note'); note.replaceChildren();
-  const status = pct >= 92 ? ['crit', '⚠', 'Almost full. Uploads will be refused.'] : pct >= 80 ? ['warn', '⚠', 'Getting full.'] : ['ok', '✓', 'Plenty of room.'];
-  note.append(el('span', { className: 'st st-' + status[0], textContent: status[1] + ' ' + status[2] }), document.createTextNode(fmtBytes(used) + ' used · ' + Math.round(pct) + '%'));
-  tipOn($('st-track'), ['Volume', fmtBytes(used) + ' used of ' + fmtBytes(cap)]);
+  const by = v => state.files.filter(f => f.visibility === v);
+  const sum = v => by(v).reduce((a, f) => a + f.size, 0);
+  const pub = sum('public'), priv = sum('private'), other = Math.max(0, used - pub - priv);
+  const sev = pct >= 92 ? 'crit' : pct >= 80 ? 'warn' : '';
 
-  const sum = v => state.files.filter(f => f.visibility === v).reduce((a, f) => a + f.size, 0);
-  const cnt = v => state.files.filter(f => f.visibility === v).length;
-  const bytes = { public: sum('public'), private: sum('private') }, total = bytes.public + bytes.private;
-  $('fl-val').replaceChildren(document.createTextNode(String(state.files.length) + ' '), el('small', { textContent: 'files · ' + fmtBytes(total) }));
-  const seg = $('fl-seg'); seg.replaceChildren();
-  for (const [v, cls] of [['public', 'pub'], ['private', 'priv']]) {
-    if (!bytes[v]) continue;
-    const s = el('span', { className: cls, tabIndex: 0 }); s.style.flex = String(bytes[v]);
-    s.setAttribute('aria-label', v + ': ' + cnt(v) + ' files, ' + fmtBytes(bytes[v]));
-    tipOn(s, [v[0].toUpperCase() + v.slice(1), cnt(v) + ' files · ' + fmtBytes(bytes[v]) + ' · ' + Math.round(bytes[v] / total * 100) + '%']);
-    seg.append(s);
+  $('dk-val').replaceChildren(document.createTextNode(fmtBytes(free) + ' '), el('small', { textContent: 'remaining of ' + fmtBytes(cap) }));
+  const seg = $('dk-seg'); seg.replaceChildren();
+  const parts = [
+    ['pub', 'Public', pub, `${by('public').length} files`],
+    ['priv', 'Private', priv, `${by('private').length} files`],
+    ['oth', 'Other use', other, 'filesystem overhead and other data on the volume'],
+    ['free ' + sev, 'Free', free, Math.round(100 - pct) + '% of the volume'],
+  ];
+  for (const [cls, name, bytes, what] of parts) {
+    if (!bytes) continue;
+    const sp = el('span', { className: cls.trim(), tabIndex: 0 }); sp.style.flex = String(bytes);
+    sp.setAttribute('aria-label', `${name}: ${fmtBytes(bytes)}, ${what}`);
+    tipOn(sp, [name, `${fmtBytes(bytes)} \u00B7 ${what}`]);
+    seg.append(sp);
   }
-  const lg = $('fl-legend'); lg.replaceChildren();
-  for (const [v, cls] of [['public', 'pub'], ['private', 'priv']])
-    lg.append(el('span', {}, el('i', { className: 'sw ' + cls }), document.createTextNode(`${v[0].toUpperCase() + v.slice(1)} ${cnt(v)} · ${fmtBytes(bytes[v])}`)));
+  const lg = $('dk-legend'); lg.replaceChildren();
+  for (const [cls, name, bytes, what] of parts) {
+    if (cls === 'oth' && !bytes) continue;
+    lg.append(el('span', {}, el('i', { className: 'sw ' + cls.split(' ')[0] }), document.createTextNode(`${name} ${fmtBytes(bytes)}`)));
+  }
+  const status = sev === 'crit' ? ['crit', '\u26A0', 'Almost full. Uploads will be refused.'] : sev === 'warn' ? ['warn', '\u26A0', 'Getting full.'] : ['ok', '\u2713', 'Plenty of room.'];
+  const note = $('dk-note'); note.replaceChildren(
+    el('span', { className: 'st st-' + status[0], textContent: status[1] + ' ' + status[2] }),
+    document.createTextNode(`${state.files.length} files \u00B7 ${Math.round(pct)}% used`));
 
   // token
   const t = state.token, note2 = $('tok-note'); note2.replaceChildren();
