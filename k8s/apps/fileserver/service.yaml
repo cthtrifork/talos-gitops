@@ -10,7 +10,9 @@ spec:
   selector:
     app: fileserver
   ports:
-    - { name: http, port: 8080, targetPort: public }
+    - name: http
+      port: 8080
+      targetPort: public
 ---
 # Admin page, reached through the Omni service exposer (Omni is the login). Nothing else routes here.
 apiVersion: v1
@@ -27,7 +29,9 @@ spec:
   selector:
     app: fileserver
   ports:
-    - { name: http, port: 80, targetPort: admin }
+    - name: http
+      port: 80
+      targetPort: admin
 ---
 # Upload API for the runners: cluster-internal, opened by the NetworkPolicy to arc-runners-system only.
 # http://fileserver-upload.fileserver.svc:8082
@@ -41,4 +45,6 @@ spec:
   selector:
     app: fileserver
   ports:
-    - { name: http, port: 8082, targetPort: upload }
+    - name: http
+      port: 8082
+      targetPort: upload

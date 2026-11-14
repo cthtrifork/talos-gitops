@@ -41,17 +41,27 @@ spec:
           args:
             - "--mode=public"
           env:
-            - { name: PUBLIC_DIR, value: /data/public }
-            - { name: LISTEN_ADDR, value: ":8080" }
-            - { name: HEALTH_ADDR, value: ":9102" }
-            - { name: GOMEMLIMIT, value: 200MiB }
+            - name: PUBLIC_DIR
+              value: /data/public
+            - name: LISTEN_ADDR
+              value: ":8080"
+            - name: HEALTH_ADDR
+              value: ":9102"
+            - name: GOMEMLIMIT
+              value: 200MiB
           ports:
-            - { name: public, containerPort: 8080 }
-            - { name: m-public, containerPort: 9102 }
+            - name: public
+              containerPort: 8080
+            - name: m-public
+              containerPort: 9102
           livenessProbe:
-            httpGet: { path: /healthz, port: m-public }
+            httpGet:
+              path: /healthz
+              port: m-public
           readinessProbe:
-            httpGet: { path: /healthz, port: m-public }
+            httpGet:
+              path: /healthz
+              port: m-public
           securityContext: &sc
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -59,64 +69,108 @@ spec:
               drop:
                 - "ALL"
           resources:
-            requests: { cpu: 10m, memory: 32Mi }
-            limits: { memory: 256Mi }
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 256Mi
           volumeMounts:
-            - { name: data, mountPath: /data/public, subPath: public, readOnly: true }
+            - name: data
+              mountPath: /data/public
+              subPath: public
+              readOnly: true
 
         - name: admin
           image: *image
           args:
             - "--mode=admin"
           env:
-            - { name: DATA_DIR, value: /data }
-            - { name: TOKEN_DIR, value: /var/run/fileserver-token }
-            - { name: LISTEN_ADDR, value: ":8081" }
-            - { name: HEALTH_ADDR, value: ":9103" }
-            - { name: PUBLIC_URL, value: https://files.portableinfo.cloud }
-            - { name: MAX_FILE_BYTES, value: "8589934592" } # 8 GiB
-            - { name: ROTATE_AFTER, value: 720h } # only for the "next rotation" text; the CronJob decides
-            - { name: GOMEMLIMIT, value: 300MiB }
+            - name: DATA_DIR
+              value: /data
+            - name: TOKEN_DIR
+              value: /var/run/fileserver-token
+            - name: LISTEN_ADDR
+              value: ":8081"
+            - name: HEALTH_ADDR
+              value: ":9103"
+            - name: PUBLIC_URL
+              value: https://files.portableinfo.cloud
+            - name: MAX_FILE_BYTES
+              value: "8589934592" # 8 GiB
+            - name: ROTATE_AFTER
+              value: 720h # only for the "next rotation" text; the CronJob decides
+            - name: GOMEMLIMIT
+              value: 300MiB
           ports:
-            - { name: admin, containerPort: 8081 }
-            - { name: m-admin, containerPort: 9103 }
+            - name: admin
+              containerPort: 8081
+            - name: m-admin
+              containerPort: 9103
           livenessProbe:
-            httpGet: { path: /healthz, port: m-admin }
+            httpGet:
+              path: /healthz
+              port: m-admin
           readinessProbe:
-            httpGet: { path: /healthz, port: m-admin }
+            httpGet:
+              path: /healthz
+              port: m-admin
           securityContext: *sc
           resources:
-            requests: { cpu: 10m, memory: 32Mi }
-            limits: { memory: 384Mi }
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 384Mi
           volumeMounts:
-            - { name: data, mountPath: /data }
-            - { name: token, mountPath: /var/run/fileserver-token, readOnly: true }
+            - name: data
+              mountPath: /data
+            - name: token
+              mountPath: /var/run/fileserver-token
+              readOnly: true
 
         - name: upload
           image: *image
           args:
             - "--mode=upload"
           env:
-            - { name: DATA_DIR, value: /data }
-            - { name: TOKEN_DIR, value: /var/run/fileserver-token }
-            - { name: LISTEN_ADDR, value: ":8082" }
-            - { name: HEALTH_ADDR, value: ":9104" }
-            - { name: MAX_FILE_BYTES, value: "8589934592" } # 8 GiB
-            - { name: GOMEMLIMIT, value: 300MiB }
+            - name: DATA_DIR
+              value: /data
+            - name: TOKEN_DIR
+              value: /var/run/fileserver-token
+            - name: LISTEN_ADDR
+              value: ":8082"
+            - name: HEALTH_ADDR
+              value: ":9104"
+            - name: MAX_FILE_BYTES
+              value: "8589934592" # 8 GiB
+            - name: GOMEMLIMIT
+              value: 300MiB
           ports:
-            - { name: upload, containerPort: 8082 }
-            - { name: m-upload, containerPort: 9104 }
+            - name: upload
+              containerPort: 8082
+            - name: m-upload
+              containerPort: 9104
           livenessProbe:
-            httpGet: { path: /healthz, port: m-upload }
+            httpGet:
+              path: /healthz
+              port: m-upload
           readinessProbe:
-            httpGet: { path: /healthz, port: m-upload }
+            httpGet:
+              path: /healthz
+              port: m-upload
           securityContext: *sc
           resources:
-            requests: { cpu: 10m, memory: 32Mi }
-            limits: { memory: 384Mi }
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 384Mi
           volumeMounts:
-            - { name: data, mountPath: /data }
-            - { name: token, mountPath: /var/run/fileserver-token, readOnly: true }
+            - name: data
+              mountPath: /data
+            - name: token
+              mountPath: /var/run/fileserver-token
+              readOnly: true
 
       volumes:
         - name: data
