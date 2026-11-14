@@ -9,13 +9,12 @@ import (
 	"mime"
 	"net/http"
 	"os"
-	"time"
 )
 
 //go:embed web/index.html
 var webFS embed.FS
 
-// downloadHeaders makes every file a download, never a page: a hosted HTML or SVG file must not run on this origin.
+// downloadHeaders makes every file a download, so an uploaded HTML or SVG never runs on this origin.
 func downloadHeaders(w http.ResponseWriter, name string) {
 	h := w.Header()
 	h.Set("Content-Type", "application/octet-stream")
@@ -64,7 +63,7 @@ func httpError(w http.ResponseWriter, err error) {
 	http.Error(w, err.Error(), code)
 }
 
-// publicHandler serves GET/HEAD /<name> from the public directory only. No listing, no other methods.
+// publicHandler serves GET and HEAD of /<name> from the public directory only.
 func publicHandler(root *os.Root) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{name}", func(w http.ResponseWriter, r *http.Request) {
@@ -84,8 +83,7 @@ func publicHandler(root *os.Root) http.Handler {
 	return mux
 }
 
-// uploadHandler is the CI endpoint: PUT /v1/files/<name>?visibility=public|private with the rotating bearer token.
-// An existing file with the same name in the same visibility is replaced. Only this handler accepts the token.
+// uploadHandler: PUT /v1/files/<name>?visibility=public|private with the bearer token. The same name and visibility replaces the file.
 func uploadHandler(s *Store, a *TokenAuth, max int64) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("PUT /v1/files/{name}", func(w http.ResponseWriter, r *http.Request) {
@@ -118,15 +116,13 @@ func uploadHandler(s *Store, a *TokenAuth, max int64) http.Handler {
 	return mux
 }
 
-// adminConfig is what the admin page needs to know beyond the files: where the public endpoint is (to copy links)
-// and how often the token rotates (to show when the next rotation is due).
+// adminConfig: the URLs the admin page shows (links to copy).
 type adminConfig struct {
-	PublicURL   string
-	RotateAfter time.Duration
+	PublicURL string
+	UploadURL string
 }
 
-// adminHandler serves the admin page and its JSON API. It has no login of its own: only the Omni service exposer
-// reaches it. State-changing calls need a custom header so a page on another origin cannot trigger them.
+// adminHandler has no login of its own (Omni is the gate). State-changing calls need X-Requested-With so other origins cannot trigger them.
 func adminHandler(s *Store, a *TokenAuth, max int64, cfg adminConfig) http.Handler {
 	mux := http.NewServeMux()
 	guard := func(h http.HandlerFunc) http.HandlerFunc {
@@ -150,7 +146,7 @@ func adminHandler(s *Store, a *TokenAuth, max int64, cfg adminConfig) http.Handl
 		free, _ := s.freeBytes()
 		writeJSON(w, http.StatusOK, map[string]any{
 			"capacityBytes": capacity, "freeBytes": free, "maxFileBytes": max,
-			"publicUrl": cfg.PublicURL, "rotateAfterHours": int(cfg.RotateAfter.Hours()),
+			"publicUrl": cfg.PublicURL, "uploadUrl": cfg.UploadURL,
 		})
 	})
 	mux.HandleFunc("GET /api/files", func(w http.ResponseWriter, r *http.Request) {
@@ -164,7 +160,7 @@ func adminHandler(s *Store, a *TokenAuth, max int64, cfg adminConfig) http.Handl
 		}
 		writeJSON(w, http.StatusOK, list)
 	})
-	// The upload token is shown here on purpose: reaching this page already takes the Omni login.
+	// shown on purpose: reaching this page takes the Omni login
 	mux.HandleFunc("GET /api/token", guard(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		writeJSON(w, http.StatusOK, a.Info())

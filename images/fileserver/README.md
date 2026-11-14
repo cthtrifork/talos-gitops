@@ -1,144 +1,47 @@
 # fileserver
 
-A small file server for the homelab cluster. First use: `homeserver-bootc` uploads its disk images here instead of to Azure.
-One static Go binary with no third-party dependencies, three modes. State is the directory a file is in, so there is no database.
+Public downloads, an admin page and a CI upload API in one static Go binary with no dependencies. State is the directory a file is
+in, so there is no database. It runs as three containers in one pod (`k8s/apps/fileserver`).
 
 | Mode | Port | Mounts | What it does |
 |---|---|---|---|
-| `--mode=public` | 8080 | `public/` read-only | `GET /<name>` only. No listing, no other methods. Exposed through Traefik and the Cloudflare tunnel (`files.portableinfo.cloud`) |
-| `--mode=admin` | 8081 | whole volume, token Secret | List, upload, download, delete, move between public and private, and show the upload token. No login of its own: only the Omni service exposer reaches it |
-| `--mode=upload` | 8082 | whole volume, token Secret | `PUT /v1/files/<name>?visibility=public\|private` for CI with the rotating bearer token. Cluster-internal only |
-
-The public container cannot see `private/` or the token at all, so a bug there cannot leak either.
-
-```mermaid
-flowchart TB
-    NET["Internet<br/>files.portableinfo.cloud"] --> CF["Cloudflare"] --> TR["Traefik<br/>rateLimit, inFlightReq, headers"]
-    OP["Operator"] --> OMNI["Omni service exposer"]
-    RUN["ARC runner (arc-runners-system)<br/>env FILESERVER_TOKEN"]
-    CJ["CronJob (busybox shell + curl)<br/>daily, rotates after 30 days"]
-    subgraph POD["Pod fileserver"]
-        PUB["public :8080<br/>public/ read-only"]
-        ADM["admin :8081<br/>read-write, shows token"]
-        UPL["upload :8082<br/>read-write, checks token"]
-    end
-    S1[("Secret fileserver/fileserver-upload-token")]
-    S2[("Secret arc-runners-system/fileserver-upload-token")]
-    subgraph PVC["PVC 20 GiB"]
-        D1["public/"]
-        D2["private/"]
-        D3[".tmp/"]
-    end
-    TR -->|":8080"| PUB
-    OMNI -->|":8081"| ADM
-    RUN -->|":8082 ClusterIP"| UPL
-    CJ --> S1 & S2
-    S1 -.-> ADM & UPL
-    S2 -.-> RUN
-    PUB --> D1
-    ADM --> D1 & D2
-    UPL --> D1 & D2 & D3
-```
+| `--mode=public` | 8080 | `public/` read-only | `GET /<name>`, no listing. Behind Traefik and the Cloudflare tunnel |
+| `--mode=admin` | 8081 | everything | List, upload, download, delete, move between public and private, show the upload token. No login: only Omni reaches it |
+| `--mode=upload` | 8082 | everything | `PUT /v1/files/<name>?visibility=public\|private` with the bearer token. Cluster-internal |
 
 ## Rules
 
-- **Names:** one flat, plain name. `fs.ValidPath` plus: at most 255 bytes, no `/` or `\`, no control characters, valid UTF-8, not starting with `.`. Spaces and non-ASCII letters are fine (links are percent-encoded). Every access goes through `os.Root`, so a name can never leave its directory.
-- **Visibility is the directory.** A name exists in at most one of `public/` and `private/`. Uploading it with the other visibility returns 409. Uploading it again with the same visibility replaces it (CI always overwrites). Uploads default to private.
-- **Atomic writes.** A file is streamed to `.tmp/` and renamed into place after `fsync`, so a half upload is never visible and never replaces a good file. Leftovers in `.tmp/` are removed at start-up.
-- **Limits.** `MAX_FILE_BYTES` (8 GiB) per file: 413. Free space must stay above `MIN_FREE_BYTES` (256 MiB) plus the announced size: 507.
-- **Integrity.** An optional `X-Content-SHA256` header (hex) on the upload makes the server hash the body while writing and refuse a mismatch with 422 before the rename, so a truncated or corrupted image never replaces a good one. A malformed value is 400.
-- **Downloads are never pages.** `Content-Type: application/octet-stream`, `Content-Disposition: attachment`, `nosniff`, `CSP: sandbox`.
-- **Admin CSRF.** State-changing admin calls, and the token call, need the header `X-Requested-With: fileserver`.
+- **Names** are one plain name: `fs.ValidPath`, at most 255 bytes, no `/` or `\`, no control characters, not starting with `.`.
+  Every access goes through `os.Root`, so a name cannot leave its directory.
+- **Visibility is the directory.** A name lives in only one of `public/` and `private/` (409 otherwise). Uploading the same name with
+  the same visibility replaces the file. Uploads default to private.
+- **Writes are atomic**: streamed to `.tmp/`, `fsync`ed every 64 MiB, renamed into place. An optional `X-Content-SHA256` header is
+  checked before the rename (422 on a mismatch).
+- **Limits**: `MAX_FILE_BYTES` per file (413), `MIN_FREE_BYTES` must stay free (507).
+- **Downloads are never pages**: `application/octet-stream`, `attachment`, `nosniff`, `CSP: sandbox`.
 
 ## Upload token
 
-One random token (`fs_` + 64 hex characters) in the Secret `fileserver-upload-token`, with the keys `current`, `previous` and `rotated-at`.
-
-- **Created and rotated by a CronJob, not by the app.** It runs daily and rotates when `rotated-at` is older than 30 days. It writes the same data to the fileserver and runner namespaces and repairs a missing or edited copy without rotating.
-- **Readers:** the admin and upload containers mount the Secret as files and re-read them on each request, so a rotation arrives within about a minute without a restart. ARC runners get `current` as an environment variable at pod start (ARC runners are ephemeral, so each job starts with the current token).
-- **Grace period:** the previous token is also accepted for `PREVIOUS_TOKEN_GRACE` (24 h) after a rotation, so a job that started just before a rotation can still upload.
-- **Only the upload API accepts it.** The public and admin handlers ignore the header. The upload port is a ClusterIP Service that a NetworkPolicy opens only to the runner namespace.
-- **Visible in the admin panel** (Show / Copy), together with the rotation time.
-
-**Trade-off:** every job on a runner that receives the token can upload to the fileserver, not only `homeserver-bootc`. With GitHub OIDC the repository was checked. Keep the runners private and treat anything that runs on them as trusted. A job that echoes the token into its log leaks it, so workflows should add `::add-mask::`.
-
-Upload from a workflow (the file is `$FILE`):
-
-```yaml
-- run: |
-    echo "::add-mask::$FILESERVER_TOKEN"
-    SUM=$(sha256sum "$FILE" | cut -d" " -f1)
-    curl --fail --retry 3 --retry-all-errors --max-time 3600 -T "$FILE" \
-      -H "Authorization: Bearer $FILESERVER_TOKEN" -H "X-Content-SHA256: $SUM" \
-      "http://fileserver-upload.fileserver.svc:8082/v1/files/$(basename "$FILE")?visibility=private"
-```
+A CronJob writes a new token into the Secret every month (`current` and `rotated-at`); Reloader restarts the pod. The app only
+reads the mounted files. Only the upload API accepts the token, and the admin page shows it.
 
 ## Metrics
 
-`/metrics` (Prometheus text format, no client library) and `/healthz` are served on `HEALTH_ADDR` (`:9102`) in every long-running mode. Neither Traefik nor the Omni exposer routes to that port; a PodMonitor scrapes it and the NetworkPolicy lets only Prometheus in.
+`/metrics` and `/healthz` are on `HEALTH_ADDR`, which Traefik and Omni do not route to: requests, uploads by result, files, free disk
+and the last token rotation.
 
-| Metric | Modes | Use |
-|---|---|---|
-| `fileserver_http_requests_total{mode,method,code}` | all | traffic and errors per port |
-| `fileserver_http_requests_in_flight` | all | transfers in progress |
-| `fileserver_uploads_total{result}` | admin, upload | `ok`, `clash`, `too_large`, `no_space`, `checksum`, `bad_request`, `error` |
-| `fileserver_upload_bytes_total` | admin, upload | bytes stored |
-| `fileserver_files{visibility}`, `fileserver_files_bytes{visibility}` | admin, upload | what is stored |
-| `fileserver_disk_free_bytes` | admin, upload | alert before uploads start failing with 507 |
-| `fileserver_token_rotated_timestamp_seconds` | admin, upload | alert when `time() - this > 31 * 86400`: the rotation job has stopped working |
-| `fileserver_go_goroutines`, `fileserver_go_heap_alloc_bytes`, `fileserver_start_time_seconds` | all | process health |
-
-The metrics never contain the token or file contents. The rotation CronJob exposes none; watch its Job status instead (`kube_job_status_failed`).
-
-## Memory
-
-The upload path streams: Go heap use is small and independent of file size. The real effect is the kernel page cache of the written file, which counts against the container's memory limit. The store therefore calls `fsync` every 64 MiB while writing, which caps the dirty pages and keeps the final `fsync` short. Recommended container resources for the manifests:
-
-```yaml
-resources:
-  requests: { cpu: 10m, memory: 32Mi }
-  limits: { memory: 384Mi }
-env:
-  - { name: GOMEMLIMIT, value: 300MiB }   # about 80% of the limit; Go does not read the cgroup limit itself
-```
-
-These numbers are estimates, not measurements.
-
-## Configuration (environment)
+## Configuration
 
 | Variable | Default | Modes |
 |---|---|---|
 | `DATA_DIR` | `/data` | admin, upload |
 | `PUBLIC_DIR` | `$DATA_DIR/public` | public |
-| `LISTEN_ADDR` | `:8080` / `:8081` / `:8082` | public, admin, upload |
-| `HEALTH_ADDR` | `:9102` (`/healthz` is process only, plus `/metrics`) | public, admin, upload |
-| `MAX_FILE_BYTES` | `8589934592` | admin, upload |
-| `MIN_FREE_BYTES` | `268435456` | admin, upload |
+| `LISTEN_ADDR` | `:8080`, `:8081`, `:8082` | all |
+| `HEALTH_ADDR` | `:9102` | all |
+| `MAX_FILE_BYTES` | 8 GiB | admin, upload |
+| `MIN_FREE_BYTES` | 256 MiB | admin, upload |
 | `TOKEN_DIR` | `/var/run/fileserver-token` | admin, upload |
-| `PREVIOUS_TOKEN_GRACE` | `24h` | admin, upload |
-| `ROTATE_AFTER` | `720h`, only used to show the next rotation date; the CronJob has its own setting | admin |
-| `PUBLIC_URL` | none; when set the admin page offers "Copy link" for public files | admin |
+| `PUBLIC_URL` | none: "Copy link" for public files | admin |
+| `UPLOAD_URL` | none: "Copy curl" for the token | admin |
 
-The app never writes the Secret and has no Kubernetes API access (`automountServiceAccountToken: false`). Rotation is done by a CronJob in `k8s/apps/fileserver/`: a `curlimages/curl` container (busybox shell plus curl) that calls the Kubernetes API with its own ServiceAccount. Its RBAC is `get`/`update` on that one Secret name and `create` on Secrets, in the fileserver and runner namespaces only.
-
-## Layout
-
-```
-images/fileserver/
-├── Dockerfile        builder runs the tests, final image is scratch + CA certificates, user 65532
-├── main.go           flags, environment, servers, shutdown
-├── store.go          names, put/list/delete/move on public/ private/ .tmp/
-├── metrics.go        Prometheus text exposition, request and upload counters
-├── token.go          reads the mounted token, current/previous with grace
-├── handlers.go       public, admin and upload handlers
-├── web/index.html    the admin page (embedded, no framework)
-└── fileserver_test.go
-```
-
-## Roadmap
-
-1. This image (`build-image.yaml` builds, signs and publishes it).
-2. `k8s/apps/fileserver/`: namespace, a PodMonitor on port 9102, the resources above, 20 GiB `local-path` PVC, Deployment with `subPath` mounts, Services (admin with Omni annotations), IngressRoute, NetworkPolicies, the CronJob with a Role and RoleBinding in each target namespace, a first one-off run, and an egress rule for `arc-runners-system` to the upload port. The runner scale set gets `FILESERVER_TOKEN` from the Secret.
-3. `homeserver-bootc`: replace the Azure upload in `create-vmdk-image.yaml` with the upload above, and run it on `arc-ubuntu`.
-
-Run the tests with `go test -race ./...` in this directory.
+Run the tests with `go test -race ./...`.

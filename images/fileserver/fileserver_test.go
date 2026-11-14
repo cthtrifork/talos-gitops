@@ -182,7 +182,7 @@ func TestPublicNeverServesPrivate(t *testing.T) {
 
 func TestAdminAPI(t *testing.T) {
 	s := newStore(t)
-	h := adminHandler(s, NewTokenAuth(t.TempDir(), time.Hour), 1<<20, adminConfig{})
+	h := adminHandler(s, NewTokenAuth(t.TempDir()), 1<<20, adminConfig{})
 
 	var buf bytes.Buffer
 	mw := multipart.NewWriter(&buf)
@@ -226,12 +226,9 @@ func TestAdminAPI(t *testing.T) {
 	}
 }
 
-func writeToken(t *testing.T, dir, cur, prev string, at time.Time) {
+func writeToken(t *testing.T, dir, cur string, at time.Time) {
 	t.Helper()
-	for k, v := range map[string]string{"current": cur, "previous": prev, "rotated-at": at.UTC().Format(time.RFC3339)} {
-		if v == "" {
-			continue
-		}
+	for k, v := range map[string]string{"current": cur, "rotated-at": at.UTC().Format(time.RFC3339)} {
 		if err := os.WriteFile(filepath.Join(dir, k), []byte(v+"\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -240,35 +237,34 @@ func writeToken(t *testing.T, dir, cur, prev string, at time.Time) {
 
 func TestTokenAuth(t *testing.T) {
 	dir := t.TempDir()
-	now := time.Now()
-	a := NewTokenAuth(dir, 24*time.Hour)
+	a := NewTokenAuth(dir)
 	if err := a.Check("Bearer anything"); err == nil {
 		t.Fatal("no Secret yet: every token must be refused")
 	}
-	writeToken(t, dir, "new-token", "old-token", now.Add(-time.Hour))
+	writeToken(t, dir, "the-token", time.Now())
 	cases := map[string]bool{
-		"Bearer new-token": true, "Bearer old-token": true, // previous is valid inside the grace period
-		"Bearer wrong": false, "Bearer ": false, "new-token": false, "Basic new-token": false, "": false,
+		"Bearer the-token": true,
+		"Bearer wrong":     false, "Bearer ": false, "the-token": false, "Basic the-token": false, "": false,
 	}
 	for h, ok := range cases {
 		if err := a.Check(h); (err == nil) != ok {
 			t.Errorf("Check(%q): ok=%v, want %v", h, err == nil, ok)
 		}
 	}
-	writeToken(t, dir, "new-token", "old-token", now.Add(-25*time.Hour))
-	if err := a.Check("Bearer old-token"); err == nil {
-		t.Error("previous token must expire after the grace period")
+	writeToken(t, dir, "rotated", time.Now()) // a rotation: the old token stops working at once
+	if err := a.Check("Bearer the-token"); err == nil {
+		t.Error("the old token must be refused after a rotation")
 	}
-	if err := a.Check("Bearer new-token"); err != nil {
-		t.Error("current token must stay valid")
+	if err := a.Check("Bearer rotated"); err != nil {
+		t.Error("the new token must work")
 	}
 }
 
 func TestUploadWithToken(t *testing.T) {
 	dir := t.TempDir()
-	writeToken(t, dir, "tok", "", time.Now())
+	writeToken(t, dir, "tok", time.Now())
 	s := newStore(t)
-	h := uploadHandler(s, NewTokenAuth(dir, time.Hour), 1<<20)
+	h := uploadHandler(s, NewTokenAuth(dir), 1<<20)
 	send := func(auth, path string) int {
 		req := httptest.NewRequest("PUT", path, strings.NewReader("data"))
 		if auth != "" {
@@ -303,8 +299,8 @@ func TestUploadWithToken(t *testing.T) {
 
 func TestAdminShowsToken(t *testing.T) {
 	dir := t.TempDir()
-	writeToken(t, dir, "tok", "", time.Now())
-	h := adminHandler(newStore(t), NewTokenAuth(dir, time.Hour), 1<<20, adminConfig{})
+	writeToken(t, dir, "tok", time.Now())
+	h := adminHandler(newStore(t), NewTokenAuth(dir), 1<<20, adminConfig{})
 	req := httptest.NewRequest("GET", "/api/token", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -359,8 +355,8 @@ func TestPutChecksum(t *testing.T) {
 func TestMetrics(t *testing.T) {
 	s := newStore(t)
 	dir := t.TempDir()
-	writeToken(t, dir, "tok", "", time.Now())
-	a := NewTokenAuth(dir, time.Hour)
+	writeToken(t, dir, "tok", time.Now())
+	a := NewTokenAuth(dir)
 	reg := &metrics{reqs: map[[3]string]uint64{}, uploads: map[string]uint64{}, started: time.Now()}
 	reg.addCollector(storeCollector(s))
 	reg.addCollector(tokenCollector(a))
@@ -410,12 +406,12 @@ func TestMetrics(t *testing.T) {
 }
 
 func TestAdminInfo(t *testing.T) {
-	h := adminHandler(newStore(t), NewTokenAuth(t.TempDir(), time.Hour), 1<<20, adminConfig{PublicURL: "https://files.example", RotateAfter: 720 * time.Hour})
+	h := adminHandler(newStore(t), NewTokenAuth(t.TempDir()), 1<<20, adminConfig{PublicURL: "https://files.example", UploadURL: "http://upload.example:8082"})
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET", "/api/info", nil))
 	var info map[string]any
 	_ = json.Unmarshal(rec.Body.Bytes(), &info)
-	if rec.Code != 200 || info["publicUrl"] != "https://files.example" || info["rotateAfterHours"] != float64(720) || info["capacityBytes"].(float64) <= 0 {
+	if rec.Code != 200 || info["publicUrl"] != "https://files.example" || info["uploadUrl"] != "http://upload.example:8082" || info["capacityBytes"].(float64) <= 0 {
 		t.Fatalf("got %d %s", rec.Code, rec.Body)
 	}
 }

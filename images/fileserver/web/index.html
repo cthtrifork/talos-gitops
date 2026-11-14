@@ -8,8 +8,7 @@
 <link rel="icon" href="data:,">
 <meta name="description" content="Admin page of the homelab fileserver: disk space, uploads, files and the upload token.">
 <style>
-  /* Colour roles follow the reference palette: public = categorical slot 1 (blue), private = slot 2 (orange),
-     storage meter = sequential blue with the status colours for severity. Dark values are their own steps. */
+  /* public = blue, private = orange, free = pale blue; dark mode has its own steps */
   :root {
     color-scheme: light;
     --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6b6a65;
@@ -64,8 +63,7 @@
   code { font: .88rem ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--wash); padding: .25rem .45rem; border-radius: 6px; overflow-wrap: anywhere; }
   /* controls */
   select, input[type=search] { font: inherit; color: inherit; }
-  /* One button system. Secondary is the default; primary is the one main action of a block; ghost is a quiet row action;
-     danger is red text and turns solid when armed (the first click of a delete). Icons are 16px strokes in currentColor. */
+  /* secondary is the default, primary the one main action, ghost a quiet row action */
   button, a.btn { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; font: inherit; font-weight: 500; color: var(--ink);
     background: var(--surface); border: 1px solid var(--axis); border-radius: 8px; padding: .35rem .85rem; min-height: 36px; cursor: pointer;
     text-decoration: none; transition: background .12s, border-color .12s, color .12s; }
@@ -265,18 +263,18 @@ function icon(id) {
   const s = document.createElementNS(SVGNS, 'svg'), u = document.createElementNS(SVGNS, 'use');
   s.setAttribute('class', 'i'); s.setAttribute('aria-hidden', 'true'); u.setAttribute('href', '#i-' + id); s.append(u); return s;
 }
-// A row action: an icon button (label in title and aria-label; the text shows on phones).
+// a row action: an icon button; its text shows on phones
 function ibtn(id, label, cls, onclick) {
   const b = el('button', { type: 'button', className: 'icon has-label ' + cls, title: label, onclick });
   b.setAttribute('aria-label', label); b.append(icon(id), el('span', { className: 'lbl', textContent: label })); return b;
 }
-// Brief confirmation on the button itself: its icon becomes a check and its text says what happened.
+// brief confirmation on the button itself
 function flash(btn, text) {
   const t = btn.querySelector('.t, .lbl'), u = btn.querySelector('use'), old = t && t.textContent, oldIcon = u && u.getAttribute('href');
   btn.classList.add('ok'); if (u) u.setAttribute('href', '#i-check'); if (t) t.textContent = text;
   setTimeout(() => { btn.classList.remove('ok'); if (u) u.setAttribute('href', oldIcon); if (t) t.textContent = old; }, 1500);
 }
-// The async clipboard API needs https (the Omni exposer is); the textarea fallback covers plain http and older browsers.
+// the clipboard API needs https; the textarea fallback covers plain http
 function copy(text, btn, done) {
   const fallback = () => {
     const t = el('textarea', { value: text }); t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;opacity:0';
@@ -340,7 +338,7 @@ function renderStats() {
     sp.setAttribute('aria-label', `${name}: ${fmtBytes(bytes)}, ${what}`);
     tipOn(sp, [name, `${fmtBytes(bytes)} \u00B7 ${what}`]);
     seg.append(sp);
-    // the amount is printed inside the block only when it fits (fitLabels), otherwise the tooltip and legend carry it
+    // printed inside the block only when it fits (fitLabels)
     sp.dataset.label = name === 'Free' ? `${fmtBytes(bytes)} \u00B7 ${freePct}` : fmtBytes(bytes);
   }
   fitLabels();
@@ -357,11 +355,10 @@ function renderStats() {
   // token
   const t = state.token, note2 = $('tok-note'); note2.replaceChildren();
   if (!t.current) { note2.append(el('span', { className: 'st st-warn', textContent: '⚠ No token yet. The rotation job has not run.' })); return; }
-  const days = (Date.now() - new Date(t.rotatedAt)) / 864e5, every = (state.info.rotateAfterHours || 720) / 24;
-  const overdue = days > every + 1;
+  const overdue = (Date.now() - new Date(t.rotatedAt)) / 864e5 > 35; // rotated monthly
   note2.append(el('span', { className: 'st ' + (overdue ? 'st-crit' : 'st-ok'), textContent: overdue ? '⚠ Rotation overdue' : '✓ Rotating normally' }),
-    document.createTextNode(`Rotated ${ago(t.rotatedAt)}` + (overdue ? '' : ` · next in about ${Math.max(0, Math.round(every - days))} days`)));
-  if (t.previousValidUntil) note2.append(document.createTextNode('The previous token also works until ' + new Date(t.previousValidUntil).toLocaleString() + '.'));
+    document.createTextNode(`Rotated ${ago(t.rotatedAt)}`));
+  $('tok-curl').style.display = state.info.uploadUrl ? '' : 'none';
 }
 
 function renderRows() {
@@ -412,8 +409,7 @@ async function run(fn, ok, btn) {
   catch (e) { toast(e.message, true); if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); } }
 }
 
-/* delete: two clicks. The first arms the button (red, "Confirm delete"), the second deletes. It disarms after 4 s, on Esc, or when
-   focus leaves it. */
+/* delete takes two clicks: the first arms the button; it disarms after 4 s, on Esc or on blur */
 const armed = new Set();
 function disarm(b) {
   if (!b.dataset.armed) return;
@@ -444,7 +440,7 @@ function showToken() {
 }
 $('tok-show').onclick = () => { revealed = !revealed; showToken(); };
 $('tok-copy').onclick = e => copy(state.token.current || '', e.currentTarget, 'Copied');
-$('tok-curl').onclick = e => copy(`curl --fail -T FILE -H "Authorization: Bearer ${state.token.current}" "http://fileserver-upload.fileserver.svc:8082/v1/files/NAME?visibility=private"`, e.currentTarget, 'Copied');
+$('tok-curl').onclick = e => copy(`curl --fail -T FILE -H "Authorization: Bearer ${state.token.current}" "${state.info.uploadUrl}/v1/files/NAME?visibility=private"`, e.currentTarget, 'Copied');
 
 /* upload: one file at a time, with progress, speed and cancel */
 let xhr = null, queue = [];
