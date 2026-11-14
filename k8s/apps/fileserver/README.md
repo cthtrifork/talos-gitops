@@ -45,9 +45,9 @@ Secret is an error and nothing is created, no token in the output). CI runs it a
 
 ## First deploy
 
-1. **Image.** `deployment.yaml` references `ghcr.io/cthtrifork/talos-gitops/fileserver:v0.0.0`, a placeholder. Release the image
-   (`docs/releasing.md`), then put the released tag and digest there. If the package is private, the namespace also needs an image
-   pull secret (SOPS, as `claude-system/ghcr-pull`).
+1. **Image.** `deployment.yaml` pins `ghcr.io/cthtrifork/talos-gitops/fileserver:v0.12.0@sha256:c7cdcecf...` (built from the
+   release commit, signed by `build-image.yaml`). The package is public, so there is no pull secret. A new release changes the
+   tag and digest (Renovate proposes it).
 2. **Tunnel hostname.** Cloudflare Zero Trust > Networks > Tunnels > the Traefik tunnel > Public hostname: `files.portableinfo.cloud`
    with service `HTTP` `localhost:8000`.
 3. **First token.** Flux creates the Secrets empty. The pod starts without a token and refuses uploads until the job has filled it:
