@@ -1,0 +1,79 @@
+# Default deny both ways for the namespace, then per door what it needs. Reverse-direction flows are replies on allowed
+# connections and need no rule of their own. The pod needs no egress except DNS: the app reads files and a mounted Secret.
+# Prometheus reaches the pods that carry the label prometheus-scrape through the cluster-wide policy in
+# kube-prometheus-stack, not here, and the kubelet probes arrive from the host.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fileserver-default-deny
+  namespace: fileserver
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fileserver-allow-dns
+  namespace: fileserver
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - { port: "53", protocol: ANY }
+---
+# The pod, per door: 8080 public (Traefik, which carries the Cloudflare tunnel), 8081 admin (the Omni service exposer: host
+# network, so it arrives as host or remote-node), 8082 upload (the runners).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fileserver
+  namespace: fileserver
+spec:
+  endpointSelector:
+    matchLabels:
+      app: fileserver
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: traefik-system
+            k8s:app.kubernetes.io/name: traefik
+      toPorts:
+        - ports:
+            - { port: "8080", protocol: TCP }
+    - fromEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - { port: "8081", protocol: TCP }
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: arc-runners-system
+      toPorts:
+        - ports:
+            - { port: "8082", protocol: TCP }
+---
+# The rotation job: only the Kubernetes API (plus DNS above).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fileserver-rotate
+  namespace: fileserver
+spec:
+  endpointSelector:
+    matchLabels:
+      app: fileserver-rotate
+  egress:
+    - toEntities:
+        - kube-apiserver

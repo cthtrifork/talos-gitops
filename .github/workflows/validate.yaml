@@ -35,6 +35,10 @@ jobs:
           YAMLLINT_VERSION: "1.38.0" # renovate: datasource=pypi depName=yamllint
       - name: shellcheck
         run: shellcheck scripts/*.sh scripts/ci/*.sh
+      - name: shellcheck (fileserver token rotation, runs in busybox sh)
+        run: shellcheck -s sh k8s/apps/fileserver/rotate-token.sh
+      - name: Test the fileserver token rotation script
+        run: python3 scripts/ci/test-rotate-token.py
       - name: actionlint
         run: |
           bash <(curl -fsSL "https://raw.githubusercontent.com/rhysd/actionlint/v${ACTIONLINT_VERSION}/scripts/download-actionlint.bash") "${ACTIONLINT_VERSION}"

@@ -1,0 +1,76 @@
+# What the rotation CronJob may do: read and update the one Secret `fileserver-upload-token`, and create it, in the
+# fileserver namespace (read by the admin and upload containers) and in the runner namespace (read by the ARC runners).
+# `create` cannot be limited to a name in RBAC, so the job can create other Secrets in those two namespaces; it can read
+# and change none of the existing ones.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fileserver-rotate
+  namespace: fileserver
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - "secrets"
+    resourceNames:
+      - "fileserver-upload-token"
+    verbs:
+      - "get"
+      - "update"
+  - apiGroups:
+      - ""
+    resources:
+      - "secrets"
+    verbs:
+      - "create"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fileserver-rotate
+  namespace: fileserver
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fileserver-rotate
+subjects:
+  - kind: ServiceAccount
+    name: fileserver-rotate
+    namespace: fileserver
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fileserver-rotate
+  namespace: arc-runners-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - "secrets"
+    resourceNames:
+      - "fileserver-upload-token"
+    verbs:
+      - "get"
+      - "update"
+  - apiGroups:
+      - ""
+    resources:
+      - "secrets"
+    verbs:
+      - "create"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fileserver-rotate
+  namespace: arc-runners-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fileserver-rotate
+subjects:
+  - kind: ServiceAccount
+    name: fileserver-rotate
+    namespace: fileserver

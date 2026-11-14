@@ -1,0 +1,22 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - rbac.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingressroute.yaml
+  - cronjob.yaml
+  - networkpolicy.yaml
+  - podmonitor.yaml
+  - prometheusrule.yaml
+# The rotation script lives in its own file so it can be linted and tested (scripts/ci/test-rotate-token.py). The name
+# gets a hash suffix, so a changed script starts the next CronJob run with the new version.
+configMapGenerator:
+  - name: fileserver-rotate-script
+    namespace: fileserver
+    files:
+      - rotate-token.sh
