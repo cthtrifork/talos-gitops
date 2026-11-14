@@ -18,24 +18,30 @@ CronJob fileserver-rotate (busybox shell + curl) --> Kubernetes API --> Secret f
 | `deployment.yaml` | one pod, three containers (public, admin, upload) from one image, `subPath` mounts, `Recreate` |
 | `service.yaml` | one Service per port; the admin one carries the Omni exposer annotations (prefix `files`, port 50093) |
 | `ingressroute.yaml` | `files.portableinfo.cloud` to the public port only, with rate limit, in-flight limit and headers |
-| `cronjob.yaml`, `rotate-token.sh`, `rbac.yaml` | the token rotation (below) |
+| `cronjob.yaml`, `rotate-token.sh`, `rbac.yaml`, `token-secret.yaml` | the token rotation (below) |
 | `networkpolicy.yaml` | default deny; per door: Traefik to 8080, the Omni exposer to 8081, the runners to 8082; the job reaches only the API |
 | `podmonitor.yaml`, `prometheusrule.yaml` | metrics from the three health ports and five alerts |
 
 ## Token rotation
 
-The app never writes the Secret and has no Kubernetes API token. The CronJob does it with `curlimages/curl` (a busybox shell
-plus curl): `rotate-token.sh` reads the Secret through the API, rotates it when it is missing or older than 30 days, and writes
-the same data to the fileserver and runner namespaces (the second one is what the ARC runners read as `FILESERVER_TOKEN`). It
-runs daily, so a deleted or edited copy is repaired the next night. The previous token stays valid for 24 hours so a job that
-started before a rotation can still upload. The token is shown in the admin page and is never printed in the job's log.
+The app never writes the Secret and has no Kubernetes API token. Git creates the Secrets, empty (`token-secret.yaml`, one in
+the fileserver namespace and one in the runner namespace, which the ARC runners read as `FILESERVER_TOKEN`), with the Flux
+annotations `ssa: IfNotPresent` (created if missing, never updated by Flux, so Flux and the job never fight over the data) and
+`prune: disabled` (removing the file from Git does not delete a live token). They hold no data, so they need no SOPS encryption.
 
-RBAC (`rbac.yaml`): `get` and `update` on the one Secret name, and `create`, in those two namespaces. `create` cannot be limited
-to a name, so the job can create other Secrets there; it can read or change none of the existing ones.
+The CronJob fills them with `curlimages/curl` (a busybox shell plus curl): `rotate-token.sh` reads the Secret, rotates when the
+token is missing or older than 30 days, and patches the same three keys (`current`, `previous`, `rotated-at`) into both
+namespaces with a JSON merge patch, so Flux's annotations and labels stay. It runs daily, so an edited copy is repaired the next
+night. A Secret that was deleted by hand comes back empty at the next Flux reconcile (30 minutes) and the next run rotates it;
+until then the job fails with a message saying so. The previous token stays valid for 24 hours so a job that started before a
+rotation can still upload. The token is shown in the admin page and is never printed in the job's log.
 
-The script is tested without a cluster: `python3 scripts/ci/test-rotate-token.py` runs it against a fake Secrets API (first
-creation, no-op inside the period, repair of a deleted or edited copy, rotation keeping `previous`, no token in the output).
-CI runs it and shellchecks the script.
+RBAC (`rbac.yaml`): `get` and `patch` on the one Secret name, in those two namespaces, and nothing else. The job cannot create
+a Secret, and it can read or change no other one.
+
+The script is tested without a cluster: `python3 scripts/ci/test-rotate-token.py` runs it against a fake Secrets API (first fill
+of the empty Secrets, no-op inside the period, repair of an edited copy, rotation keeping `previous`, metadata kept, a missing
+Secret is an error and nothing is created, no token in the output). CI runs it and shellchecks the script.
 
 ## First deploy
 
@@ -44,7 +50,7 @@ CI runs it and shellchecks the script.
    pull secret (SOPS, as `claude-system/ghcr-pull`).
 2. **Tunnel hostname.** Cloudflare Zero Trust > Networks > Tunnels > the Traefik tunnel > Public hostname: `files.portableinfo.cloud`
    with service `HTTP` `localhost:8000`.
-3. **First token.** The pod starts without the Secret (it is optional) and refuses uploads until it exists:
+3. **First token.** Flux creates the Secrets empty. The pod starts without a token and refuses uploads until the job has filled it:
    `kubectl -n fileserver create job --from=cronjob/fileserver-rotate rotate-first`, then
    `kubectl -n fileserver logs job/rotate-first`.
 4. **Runners.** The two runner scale sets in `arc-runner/` read the token at pod start. Restart idle runners once after the first

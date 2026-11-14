@@ -1,10 +1,13 @@
 #!/bin/sh
-# Creates and rotates the fileserver upload token. Runs in the CronJob (curlimages/curl: busybox plus curl), never in the
-# app: the fileserver only reads the Secret. Idempotent: it rotates only when the token is missing or older than
-# ROTATE_AFTER_DAYS, and otherwise just repairs a missing or edited copy.
+# Rotates the fileserver upload token. Runs in the CronJob (curlimages/curl: busybox plus curl), never in the app: the
+# fileserver only reads the Secret. Idempotent: it rotates only when the token is missing or older than ROTATE_AFTER_DAYS,
+# and otherwise just repairs an edited copy.
 #
-# The Secret has the keys current, previous and rotated-at (RFC 3339). The same data goes to the Secret NAME in every
-# namespace of NAMESPACES (the first one decides when to rotate). Values are never printed.
+# The Secrets themselves are created by Git (token-secret.yaml, empty, with the Flux annotation IfNotPresent), so this job
+# only needs get and patch on those names and cannot create anything. It writes three keys with a JSON merge patch and
+# leaves the metadata alone (Flux's annotations and labels survive): current, previous (empty when there is none) and
+# rotated-at (RFC 3339). The same values go to the Secret NAME in every namespace of NAMESPACES; the first one decides when
+# to rotate. Values are never printed.
 #
 # Environment: NAMESPACES (space separated, required), SECRET_NAME, ROTATE_AFTER_DAYS (30), KUBE_API,
 # KUBE_TOKEN_FILE, KUBE_CA_FILE (the last three default to the pod's ServiceAccount).
@@ -31,27 +34,28 @@ decoded() {
   if [ -n "$v" ]; then printf '%s' "$v" | base64 -d; fi
 }
 
-# get NS: writes the Secret to $WORK/NS.json and returns its HTTP status in $CODE
-get() { CODE="$(kube -o "$WORK/$1.json" -w '%{http_code}' "$API/api/v1/namespaces/$1/secrets/$NAME")"; }
+# get NS: writes the Secret to $WORK/NS.json. It must exist: Git creates it, this job does not.
+get() {
+  code="$(kube -o "$WORK/$1.json" -w '%{http_code}' "$API/api/v1/namespaces/$1/secrets/$NAME")"
+  case "$code" in
+  200) ;;
+  404)
+    echo "$1/$NAME does not exist: Flux creates it from token-secret.yaml (this job cannot), retry after the next reconcile" >&2
+    exit 1
+    ;;
+  *)
+    echo "get $1/$NAME: HTTP $code" >&2
+    exit 1
+    ;;
+  esac
+}
 
 PRIMARY="${NAMESPACES%% *}"
 
 get "$PRIMARY"
-cur=""
-prev=""
-at=""
-case "$CODE" in
-200)
-  cur="$(decoded "$WORK/$PRIMARY.json" current)"
-  prev="$(decoded "$WORK/$PRIMARY.json" previous)"
-  at="$(decoded "$WORK/$PRIMARY.json" rotated-at)"
-  ;;
-404) ;;
-*)
-  echo "get $PRIMARY/$NAME: HTTP $CODE" >&2
-  exit 1
-  ;;
-esac
+cur="$(decoded "$WORK/$PRIMARY.json" current)"
+prev="$(decoded "$WORK/$PRIMARY.json" previous)"
+at="$(decoded "$WORK/$PRIMARY.json" rotated-at)"
 
 rotate=0
 if [ -z "$cur" ] || [ -z "$at" ]; then
@@ -78,41 +82,18 @@ fi
 
 for ns in $NAMESPACES; do
   get "$ns"
-  rv=""
-  case "$CODE" in
-  200)
-    if [ "$(decoded "$WORK/$ns.json" current)" = "$cur" ] && [ "$(decoded "$WORK/$ns.json" previous)" = "$prev" ] &&
-      [ "$(decoded "$WORK/$ns.json" rotated-at)" = "$at" ]; then
-      echo "$ns/$NAME: up to date"
-      continue
-    fi
-    rv="$(field "$WORK/$ns.json" resourceVersion)"
-    ;;
-  404) ;;
-  *)
-    echo "get $ns/$NAME: HTTP $CODE" >&2
-    exit 1
-    ;;
-  esac
-
-  meta="\"name\":\"$NAME\",\"namespace\":\"$ns\",\"labels\":{\"app.kubernetes.io/managed-by\":\"fileserver-rotate\"}"
-  [ -n "$rv" ] && meta="$meta,\"resourceVersion\":\"$rv\""
-  data="\"current\":\"$cur\",\"rotated-at\":\"$at\""
-  [ -n "$prev" ] && data="$data,\"previous\":\"$prev\""
-  printf '{"apiVersion":"v1","kind":"Secret","metadata":{%s},"type":"Opaque","stringData":{%s}}' "$meta" "$data" >"$WORK/body.json"
-
-  if [ -n "$rv" ]; then
-    method=PUT
-    url="$API/api/v1/namespaces/$ns/secrets/$NAME"
-  else
-    method=POST
-    url="$API/api/v1/namespaces/$ns/secrets"
+  if [ "$(decoded "$WORK/$ns.json" current)" = "$cur" ] && [ "$(decoded "$WORK/$ns.json" previous)" = "$prev" ] &&
+    [ "$(decoded "$WORK/$ns.json" rotated-at)" = "$at" ]; then
+    echo "$ns/$NAME: up to date"
+    continue
   fi
-  code="$(kube -X "$method" -H 'Content-Type: application/json' --data-binary "@$WORK/body.json" -o "$WORK/out.json" -w '%{http_code}' "$url")"
+
+  printf '{"stringData":{"current":"%s","previous":"%s","rotated-at":"%s"}}' "$cur" "$prev" "$at" >"$WORK/body.json"
+  code="$(kube -X PATCH -H 'Content-Type: application/merge-patch+json' --data-binary "@$WORK/body.json" -o "$WORK/out.json" -w '%{http_code}' "$API/api/v1/namespaces/$ns/secrets/$NAME")"
   case "$code" in
-  200 | 201) echo "$ns/$NAME: written ($method)" ;;
+  200) echo "$ns/$NAME: written" ;;
   *)
-    echo "$method $ns/$NAME: HTTP $code" >&2
+    echo "patch $ns/$NAME: HTTP $code" >&2
     exit 1
     ;;
   esac

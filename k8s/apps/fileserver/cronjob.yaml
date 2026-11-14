@@ -1,10 +1,10 @@
-# Creates and rotates the upload token. A busybox shell script and curl against the Kubernetes API: the app itself never
-# touches Secrets. Runs daily and rotates when the token is older than ROTATE_AFTER_DAYS, so the token changes every 30
-# days; a missing or edited copy is repaired the same day. The script is rotate-token.sh (see the header there), tested by
-# scripts/ci/test-rotate-token.py.
+# Rotates the upload token. A busybox shell script and curl against the Kubernetes API: the app itself never touches
+# Secrets. Runs daily and rotates when the token is older than ROTATE_AFTER_DAYS, so the token changes every 30 days; an
+# edited copy is repaired the same day. Git creates the (empty) Secrets, token-secret.yaml, so the job only gets and patches
+# them (rbac.yaml). The script is rotate-token.sh (see the header there), tested by scripts/ci/test-rotate-token.py.
 #
-# The first token: pods start without the Secret (it is optional), uploads are refused until it exists. After the first
-# deploy run the job once instead of waiting for 03:17:
+# The first token: Flux creates the Secrets empty, the pod starts without a token and refuses uploads until the job has run.
+# After the first deploy run the job once instead of waiting for 03:17:
 #   kubectl -n fileserver create job --from=cronjob/fileserver-rotate rotate-first
 ---
 apiVersion: batch/v1

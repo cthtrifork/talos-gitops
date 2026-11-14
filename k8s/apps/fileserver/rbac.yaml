@@ -1,7 +1,6 @@
-# What the rotation CronJob may do: read and update the one Secret `fileserver-upload-token`, and create it, in the
-# fileserver namespace (read by the admin and upload containers) and in the runner namespace (read by the ARC runners).
-# `create` cannot be limited to a name in RBAC, so the job can create other Secrets in those two namespaces; it can read
-# and change none of the existing ones.
+# What the rotation CronJob may do: read and patch the one Secret `fileserver-upload-token`, in the fileserver namespace
+# (read by the admin and upload containers) and in the runner namespace (read by the ARC runners). Git creates those Secrets
+# (token-secret.yaml), so the job has no `create` and cannot make a Secret of its own; it can touch no other Secret.
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -17,13 +16,7 @@ rules:
       - "fileserver-upload-token"
     verbs:
       - "get"
-      - "update"
-  - apiGroups:
-      - ""
-    resources:
-      - "secrets"
-    verbs:
-      - "create"
+      - "patch"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -53,13 +46,7 @@ rules:
       - "fileserver-upload-token"
     verbs:
       - "get"
-      - "update"
-  - apiGroups:
-      - ""
-    resources:
-      - "secrets"
-    verbs:
-      - "create"
+      - "patch"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
