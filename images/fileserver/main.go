@@ -4,7 +4,7 @@
 //	--mode=admin   admin page and JSON API, reached through the Omni service exposer
 //	--mode=upload  PUT /v1/files/<name> for CI, authenticated with a bearer token from a mounted Secret
 //
-// The app only reads the token Secret. A CronJob (k8s/apps/fileserver) creates and rotates it.
+// The token Secret is written by a CronJob (k8s/apps/fileserver); the app only reads it.
 package main
 
 import (
@@ -41,13 +41,8 @@ func envInt(key string, def int64) int64 {
 	return n
 }
 
-// tokenAuth reads the mounted token Secret. The directory may not exist yet (before the first rotation): uploads
-// are refused until it does, the pod itself stays up.
-func tokenAuth() *TokenAuth {
-	grace, err := time.ParseDuration(env("PREVIOUS_TOKEN_GRACE", "24h"))
-	fatal(err)
-	return NewTokenAuth(env("TOKEN_DIR", "/var/run/fileserver-token"), grace)
-}
+// The token directory may not exist before the first rotation: uploads are refused until it does.
+func tokenAuth() *TokenAuth { return NewTokenAuth(env("TOKEN_DIR", "/var/run/fileserver-token")) }
 
 func main() {
 	mode := flag.String("mode", "", "public, admin or upload")
@@ -62,7 +57,7 @@ func main() {
 	var addr string
 	switch *mode {
 	case "public":
-		// The public container mounts only public/ (read-only), at PUBLIC_DIR.
+		// the public container mounts only public/, read-only
 		root, err := os.OpenRoot(env("PUBLIC_DIR", dataDir+"/public"))
 		fatal(err)
 		handler, addr = publicHandler(root), env("LISTEN_ADDR", ":8080")
@@ -72,9 +67,7 @@ func main() {
 		a := tokenAuth()
 		m.addCollector(storeCollector(s))
 		m.addCollector(tokenCollector(a))
-		rotateAfter, err := time.ParseDuration(env("ROTATE_AFTER", "720h"))
-		fatal(err)
-		cfg := adminConfig{PublicURL: strings.TrimRight(os.Getenv("PUBLIC_URL"), "/"), RotateAfter: rotateAfter}
+		cfg := adminConfig{PublicURL: strings.TrimRight(os.Getenv("PUBLIC_URL"), "/"), UploadURL: strings.TrimRight(os.Getenv("UPLOAD_URL"), "/")}
 		handler, addr = adminHandler(s, a, maxBytes, cfg), env("LISTEN_ADDR", ":8081")
 	case "upload":
 		s, err := NewStore(dataDir, uint64(minFree))
@@ -86,7 +79,7 @@ func main() {
 	default:
 		fatal(fmt.Errorf("--mode must be public, admin or upload"))
 	}
-
+	// no read/write timeout: files are several GiB; header and idle timeouts still bound slow clients
 	// No overall read/write timeout: images are several GiB. Header and idle timeouts still bound slow clients.
 	srv := &http.Server{Addr: addr, Handler: m.instrument(*mode, handler), ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute}
 	health := &http.Server{Addr: healthAddr, ReadHeaderTimeout: 5 * time.Second, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

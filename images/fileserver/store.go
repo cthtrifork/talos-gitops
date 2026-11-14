@@ -46,12 +46,10 @@ var (
 	ErrChecksum = errors.New("body does not match X-Content-SHA256")
 )
 
-// maxName is the longest name the filesystems here take (NAME_MAX).
+// maxName is NAME_MAX.
 const maxName = 255
 
-// validName says whether n is one flat, plain file name. fs.ValidPath rules out "", "." and ".." and empty or rooted
-// elements; the other checks keep it to a single element (no / or \), no dotfile (so nothing can be .tmp or hidden),
-// valid UTF-8 and no control characters (a NUL or a newline in a name breaks the filesystem, the logs and the headers).
+// validName: one plain name (fs.ValidPath), no / or \, no leading dot, valid UTF-8, no control characters.
 func validName(n string) bool {
 	return len(n) <= maxName &&
 		fs.ValidPath(n) &&
@@ -69,8 +67,7 @@ type Entry struct {
 	Modified   time.Time  `json:"modified"`
 }
 
-// Store keeps files in <dir>/public, <dir>/private and <dir>/.tmp. Every access goes through os.Root, so a
-// name can never leave the directory, whatever the validation above lets through.
+// Store keeps files in <dir>/public, <dir>/private and <dir>/.tmp, always through os.Root.
 type Store struct {
 	dir     string
 	root    *os.Root
@@ -95,11 +92,9 @@ func NewStore(dir string, minFree uint64) (*Store, error) {
 	return s, nil
 }
 
-// staleTmp is how old a temporary file must be before it counts as the leftover of a cut-off upload. The admin and the
-// upload container share .tmp/ and both clean it at start: removing everything would delete the other one's upload in flight.
+// staleTmp: the admin and upload containers share .tmp/, so only files untouched for an hour are leftovers.
 const staleTmp = time.Hour
 
-// cleanTmp removes the leftovers of uploads that were cut off, but only files nobody has written to for an hour.
 func (s *Store) cleanTmp() {
 	d, err := s.root.Open(".tmp")
 	if err != nil {
@@ -124,7 +119,6 @@ func (s *Store) freeBytes() (uint64, error) {
 	return st.Bavail * uint64(st.Bsize), nil
 }
 
-// capacityBytes is the size of the volume, for the admin page's storage meter.
 func (s *Store) capacityBytes() (uint64, error) {
 	var st syscall.Statfs_t
 	if err := syscall.Statfs(s.dir, &st); err != nil {
@@ -138,9 +132,7 @@ func (s *Store) exists(v Visibility, name string) bool {
 	return err == nil && fi.Mode().IsRegular()
 }
 
-// Put streams r into a temporary file and renames it into place, so a half upload is never visible and an
-// existing file is replaced only by a complete one. sizeHint is the Content-Length or 0 if unknown.
-// wantSum is an optional hex SHA-256 of the whole body; when set, a body that hashes differently is refused.
+// Put streams r to .tmp/ and renames it into place, so a partial upload is never visible. wantSum is an optional hex SHA-256 of the body.
 func (s *Store) Put(name string, vis Visibility, r io.Reader, max, sizeHint int64, wantSum string) (int64, error) {
 	if !validName(name) || !vis.valid() {
 		return 0, ErrBadName
@@ -162,7 +154,7 @@ func (s *Store) Put(name string, vis Visibility, r io.Reader, max, sizeHint int6
 	if err != nil {
 		return 0, err
 	}
-	// An upload with the same name replaces the old file, so its space comes back once the new one is in place.
+	// replacing a file frees its old space
 	var replaced uint64
 	if fi, err := s.root.Stat(string(vis) + "/" + name); err == nil && fi.Mode().IsRegular() {
 		replaced = uint64(fi.Size())
@@ -221,8 +213,7 @@ func (s *Store) Put(name string, vis Visibility, r io.Reader, max, sizeHint int6
 	return n, nil
 }
 
-// syncEvery bounds the dirty page cache of a large upload: without it an 8 GiB file piles up unflushed pages that count
-// against the container's memory limit, and the final fsync stalls the client for as long as the kernel needs.
+// syncEvery bounds the dirty page cache of large uploads (it counts against the container's memory limit).
 const syncEvery = 64 << 20
 
 type syncWriter struct {
@@ -248,7 +239,6 @@ func max0(n int64) int64 {
 	return n
 }
 
-// Open returns a regular file for download.
 func (s *Store) Open(vis Visibility, name string) (*os.File, fs.FileInfo, error) {
 	if !validName(name) || !vis.valid() {
 		return nil, nil, ErrNotFound

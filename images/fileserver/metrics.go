@@ -13,8 +13,7 @@ import (
 	"time"
 )
 
-// Prometheus metrics in the text exposition format, written by hand so the module keeps zero dependencies.
-// They are served on HEALTH_ADDR (/metrics), a port that neither Traefik nor the Omni exposer routes to.
+// Hand-written Prometheus text format (no dependencies), served on HEALTH_ADDR, which is not routed outside the pod.
 
 type metrics struct {
 	mu          sync.Mutex
@@ -76,8 +75,7 @@ func (m *metrics) instrument(mode string, h http.Handler) http.Handler {
 	})
 }
 
-// methodLabel keeps the method label to a closed set: a client can send any token as its method, and every new value
-// would otherwise be a new series that stays in memory.
+// methodLabel bounds the method label: a client can send any method.
 func methodLabel(m string) string {
 	switch m {
 	case http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPost, http.MethodDelete:
@@ -173,7 +171,7 @@ func (m *metrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.WriteString(w, b.String())
 }
 
-// storeCollector reports the files and the free space of the volume, read at scrape time (there are only a few files).
+// storeCollector reports files and free space at scrape time.
 func storeCollector(s *Store) func(io.Writer) {
 	return func(w io.Writer) {
 		count := map[Visibility]int{}
@@ -199,7 +197,7 @@ func storeCollector(s *Store) func(io.Writer) {
 	}
 }
 
-// tokenCollector reports when the upload token was last rotated, to alert on a rotation job that has stopped working.
+// tokenCollector reports the last rotation, to alert when rotation stops.
 func tokenCollector(a *TokenAuth) func(io.Writer) {
 	return func(w io.Writer) {
 		head(w, "fileserver_token_rotated_timestamp_seconds", "gauge", "Unix time of the last token rotation, 0 if there is no token.")
