@@ -29,7 +29,8 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
     # Kubernetes API
     - toEntities:
         - kube-apiserver
@@ -53,7 +54,8 @@ spec:
         - kube-apiserver
       toPorts:
         - ports:
-            - { port: "5000", protocol: TCP }
+            - port: "5000"
+              protocol: TCP
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: arc-runners-system
@@ -61,7 +63,8 @@ spec:
             k8s:io.kubernetes.pod.namespace: security-system
       toPorts:
         - ports:
-            - { port: "5000", protocol: TCP }
+            - port: "5000"
+              protocol: TCP
   egress:
     # Upstream registries for the sync (ghcr.io, quay.io, registry.k8s.io, ...)
     - toEntities:
@@ -73,7 +76,8 @@ spec:
             k8s:app.kubernetes.io/name: trivy-server
       toPorts:
         - ports:
-            - { port: "4954", protocol: TCP }
+            - port: "4954"
+              protocol: TCP
 ---
 # Spegel (node-local mirror): containerd on each node reaches it through the NodePort (host or remote-node), the
 # instances find each other on 5000 and 5001 (TCP and UDP) and use the nodes and the internet as upstream.
@@ -100,7 +104,8 @@ spec:
             k8s:app.kubernetes.io/name: prometheus
       toPorts:
         - ports:
-            - { port: "9090", protocol: TCP }
+            - port: "9090"
+              protocol: TCP
   egress:
     - toEntities:
         - world

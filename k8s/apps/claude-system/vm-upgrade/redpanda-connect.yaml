@@ -86,7 +86,10 @@ processor_resources:
     branch:
       request_map: 'root = ""'
       processors:
-        - cache: { resource: state, operator: get, key: '${! @flag }' }
+        - cache:
+            resource: state
+            operator: get
+            key: '${! @flag }'
         - catch:
             - mapping: 'root = {"at": 0}'
       result_map: 'meta flag_at = this.at'
@@ -108,7 +111,10 @@ processor_resources:
     branch:
       request_map: 'root = ""'
       processors:
-        - cache: { resource: state, operator: delete, key: '${! @flag }' }
+        - cache:
+            resource: state
+            operator: delete
+            key: '${! @flag }'
         - catch:
             - mapping: 'root = ""'
 
@@ -117,7 +123,10 @@ processor_resources:
     branch:
       request_map: 'root = ""'
       processors:
-        - cache: { resource: state, operator: get, key: '${! @vm }:vm' }
+        - cache:
+            resource: state
+            operator: get
+            key: '${! @vm }:vm'
         - catch:
             - mapping: 'root = {}'
       result_map: 'meta vm_status = this'

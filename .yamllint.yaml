@@ -16,6 +16,6 @@ rules:
   brackets:
     forbid: non-empty # block sequences only; [] is fine
   braces:
-    max-spaces-inside: 1
+    forbid: non-empty # block mappings only (one key per line, no { a: b }); {} is fine
   empty-lines:
     max: 2

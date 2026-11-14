@@ -43,14 +43,17 @@ spec:
             matchLabels:
               k8s-app: kube-dns
       ports:
-        - { protocol: UDP, port: 53 }
-        - { protocol: TCP, port: 53 }
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
     - to:
         - podSelector:
             matchLabels:
               cnpg.io/cluster: harper-pad-db
       ports:
-        - { protocol: TCP, port: 5432 }
+        - protocol: TCP
+          port: 5432
 ---
 # Sync API: reachable from Traefik only (the Cloudflare tunnel runs in the Traefik pod).
 apiVersion: networking.k8s.io/v1
@@ -73,7 +76,8 @@ spec:
             matchLabels:
               app.kubernetes.io/name: traefik
       ports:
-        - { protocol: TCP, port: 9000 }
+        - protocol: TCP
+          port: 9000
 ---
 # Admin pod: no ingress at all. Out to Cloudflare for the tunnel only (7844 tunnel, 443 api).
 apiVersion: networking.k8s.io/v1
@@ -96,9 +100,12 @@ spec:
               - 172.16.0.0/12
               - 192.168.0.0/16
       ports:
-        - { protocol: TCP, port: 7844 }
-        - { protocol: UDP, port: 7844 }
-        - { protocol: TCP, port: 443 }
+        - protocol: TCP
+          port: 7844
+        - protocol: UDP
+          port: 7844
+        - protocol: TCP
+          port: 443
 ---
 # PostgreSQL: only the sync and admin pods, plus the CNPG operator (Prometheus reaches the pods through the
 # prometheus-scrape label, see kube-prometheus-stack).
@@ -123,7 +130,8 @@ spec:
                   - harper-pad-sync
                   - harper-pad-admin
       ports:
-        - { protocol: TCP, port: 5432 }
+        - protocol: TCP
+          port: 5432
     - from:
         - podSelector:
             matchLabels:
@@ -133,5 +141,7 @@ spec:
             matchLabels:
               kubernetes.io/metadata.name: storage-system # CNPG operator: status 8000, 5432
       ports:
-        - { protocol: TCP, port: 8000 }
-        - { protocol: TCP, port: 5432 }
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 5432

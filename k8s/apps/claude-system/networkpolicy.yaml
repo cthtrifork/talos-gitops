@@ -32,7 +32,8 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
           rules:
             dns:
               - matchPattern: "*"
@@ -43,7 +44,8 @@ spec:
             k8s:app.kubernetes.io/name: prometheus
       toPorts:
         - ports:
-            - { port: "9090", protocol: TCP }
+            - port: "9090"
+              protocol: TCP
     # Polaris dashboard (read-only fetch of /results.json); the service's port 80 maps to 8080 on the pod
     - toEndpoints:
         - matchLabels:
@@ -52,7 +54,8 @@ spec:
             k8s:component: dashboard
       toPorts:
         - ports:
-            - { port: "8080", protocol: TCP }
+            - port: "8080"
+              protocol: TCP
     # Redpanda Connect hook (a read-only GET of /metrics to check it); the service's port 80 maps to 4195 on the pod
     - toEndpoints:
         - matchExpressions:
@@ -66,14 +69,16 @@ spec:
                 - sbom-hook
       toPorts:
         - ports:
-            - { port: "4195", protocol: TCP }
+            - port: "4195"
+              protocol: TCP
     # Usage API (the page and /api/v1)
     - toEndpoints:
         - matchLabels:
             k8s:app: claude-usage
       toPorts:
         - ports:
-            - { port: "8080", protocol: TCP }
+            - port: "8080"
+              protocol: TCP
     # Kubernetes API (read-only through the ServiceAccount's RBAC)
     - toEntities:
         - kube-apiserver
@@ -133,7 +138,8 @@ spec:
         - matchName: registry.npmjs.org
       toPorts:
         - ports:
-            - { port: "443", protocol: TCP }
+            - port: "443"
+              protocol: TCP
 ---
 # The token refresher only needs DNS, the Kubernetes API (to write one Secret) and api.github.com.
 apiVersion: cilium.io/v2
@@ -152,7 +158,8 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
           rules:
             dns:
               - matchPattern: "*"
@@ -162,7 +169,8 @@ spec:
         - matchName: api.github.com
       toPorts:
         - ports:
-            - { port: "443", protocol: TCP }
+            - port: "443"
+              protocol: TCP
 ---
 # The Omni service exposer runs on the host network: it arrives as host or remote-node.
 apiVersion: cilium.io/v2
@@ -180,13 +188,15 @@ spec:
         - remote-node
       toPorts:
         - ports:
-            - { port: "8080", protocol: TCP }
+            - port: "8080"
+              protocol: TCP
     - fromEndpoints:
         - matchLabels:
             k8s:app: claude-rc
       toPorts:
         - ports:
-            - { port: "8080", protocol: TCP }
+            - port: "8080"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:
@@ -194,14 +204,16 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
             k8s:app.kubernetes.io/name: prometheus
       toPorts:
         - ports:
-            - { port: "9090", protocol: TCP }
+            - port: "9090"
+              protocol: TCP
 ---
 # Update-VMs buttons. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node).
 # The VMs (192.168.1.138 claude-vm, 192.168.1.173 homeserver) poll 8081 through claude-vm-upgrade-lb; their addresses are the only
@@ -221,13 +233,15 @@ spec:
         - remote-node
       toPorts:
         - ports:
-            - { port: "8080", protocol: TCP }
+            - port: "8080"
+              protocol: TCP
     - fromCIDR:
         - 192.168.1.138/32 # claude-vm
         - 192.168.1.173/32 # homeserver
       toPorts:
         - ports:
-            - { port: "8081", protocol: TCP }
+            - port: "8081"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:
@@ -235,4 +249,5 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY

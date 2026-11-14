@@ -29,7 +29,8 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
           rules:
             dns:
               - matchPattern: "*"
@@ -43,4 +44,5 @@ spec:
         - matchPattern: "*.actions.githubusercontent.com"
       toPorts:
         - ports:
-            - { port: "443", protocol: TCP }
+            - port: "443"
+              protocol: TCP

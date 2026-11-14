@@ -207,11 +207,17 @@ spec:
                 - name: DT_URL
                   value: http://dependency-track-api-server.security-system.svc.cluster.local:8080
               volumeMounts:
-                - { name: work, mountPath: /work }
-                - { name: config, mountPath: /config, readOnly: true }
+                - name: work
+                  mountPath: /work
+                - name: config
+                  mountPath: /config
+                  readOnly: true
               resources:
-                requests: { cpu: 20m, memory: 64Mi }
-                limits: { memory: 256Mi }
+                requests:
+                  cpu: 20m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true

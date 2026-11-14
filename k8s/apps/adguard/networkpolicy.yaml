@@ -29,7 +29,8 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
     # Kubernetes API
     - toEntities:
         - kube-apiserver
@@ -50,22 +51,27 @@ spec:
         - cluster
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
-            - { port: "853", protocol: TCP }
-            - { port: "443", protocol: TCP }
+            - port: "53"
+              protocol: ANY
+            - port: "853"
+              protocol: TCP
+            - port: "443"
+              protocol: TCP
     # Web UI (adguard-web, 80 to 3000): the Omni service exposer on the host network, and the exporter
     - fromEntities:
         - host
         - remote-node
       toPorts:
         - ports:
-            - { port: "3000", protocol: TCP }
+            - port: "3000"
+              protocol: TCP
     - fromEndpoints:
         - matchLabels:
             app: adguard-exporter
       toPorts:
         - ports:
-            - { port: "3000", protocol: TCP }
+            - port: "3000"
+              protocol: TCP
   egress:
     # Upstream resolvers, blocklists, and the LAN (reverse lookups)
     - toEntities:
@@ -88,11 +94,13 @@ spec:
             k8s:app.kubernetes.io/name: prometheus
       toPorts:
         - ports:
-            - { port: "9617", protocol: TCP }
+            - port: "9617"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:
             app: adguard-home
       toPorts:
         - ports:
-            - { port: "3000", protocol: TCP }
+            - port: "3000"
+              protocol: TCP

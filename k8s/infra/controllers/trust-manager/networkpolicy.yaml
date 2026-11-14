@@ -18,4 +18,5 @@ spec:
         - remote-node
       toPorts:
         - ports:
-            - { port: "6443", protocol: TCP }
+            - port: "6443"
+              protocol: TCP

@@ -30,7 +30,8 @@ spec:
             k8s:k8s-app: kube-dns
       toPorts:
         - ports:
-            - { port: "53", protocol: ANY }
+            - port: "53"
+              protocol: ANY
     # Kubernetes API
     - toEntities:
         - kube-apiserver
@@ -49,8 +50,10 @@ spec:
         - world
       toPorts:
         - ports:
-            - { port: "443", protocol: TCP }
-            - { port: "53", protocol: ANY }
+            - port: "443"
+              protocol: TCP
+            - port: "53"
+              protocol: ANY
 ---
 # Admission webhook: called by the API server (host network) on the pod port 10250.
 apiVersion: cilium.io/v2
@@ -69,4 +72,5 @@ spec:
         - remote-node
       toPorts:
         - ports:
-            - { port: "10250", protocol: TCP }
+            - port: "10250"
+              protocol: TCP

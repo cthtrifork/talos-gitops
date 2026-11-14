@@ -31,11 +31,16 @@ spec:
             - /etc/connect/redpanda-connect.yaml
             - --disable-telemetry
           ports:
-            - { name: http, containerPort: 8080 }
-            - { name: poll, containerPort: 8081 }
-            - { name: metrics, containerPort: 4195 }
+            - name: http
+              containerPort: 8080
+            - name: poll
+              containerPort: 8081
+            - name: metrics
+              containerPort: 4195
           readinessProbe:
-            httpGet: { path: /ready, port: metrics }
+            httpGet:
+              path: /ready
+              port: metrics
           resources:
             requests:
               cpu: 10m
