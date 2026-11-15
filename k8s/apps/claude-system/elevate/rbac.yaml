@@ -16,10 +16,15 @@ rules:
   - apiGroups:
       - ""
     resources:
+      - namespaces
       - serviceaccounts
     verbs:
-      - get
       - list
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+    verbs:
       - create
   - apiGroups:
       - ""
@@ -40,7 +45,6 @@ rules:
       - claude-elevate-ops
       - claude-elevate-debug
       - claude-elevate-storage
-      - claude-elevate-ui
     verbs:
       - create
   - apiGroups:
@@ -48,8 +52,6 @@ rules:
     resources:
       - rolebindings
     verbs:
-      - get
-      - list
       - create
   - apiGroups:
       - rbac.authorization.k8s.io
@@ -110,8 +112,15 @@ rules:
     resourceNames:
       - claude-elevated-kubeconfigs
     verbs:
-      - get
       - patch
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    resourceNames:
+      - claude-elevate-limits
+    verbs:
+      - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

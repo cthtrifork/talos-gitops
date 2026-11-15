@@ -1,7 +1,6 @@
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
-# A token for a tier's ServiceAccount may not outlive the tier's limit in claude-elevate-limits (a tier without a key is denied); the page's
-# read-only account gets an hour.
+# A token for a tier's ServiceAccount may not outlive the tier's limit in claude-elevate-limits (a tier without a key is denied).
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -26,8 +25,7 @@ spec:
       expression: request.userInfo.username == "system:serviceaccount:claude-system:claude-elevator"
   validations:
     - expression: >-
-        object.spec.expirationSeconds <=
-        (request.name == "claude-elevate-ui" ? 3600 : int(params.data[request.name.replace("claude-elevate-", "")]) * 60)
+        object.spec.expirationSeconds <= int(params.data[request.name.replace("claude-elevate-", "")]) * 60
       message: the token is longer than the tier's limit in the ConfigMap claude-elevate-limits
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicybinding_v1.json

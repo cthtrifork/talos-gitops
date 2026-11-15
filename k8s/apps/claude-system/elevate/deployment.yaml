@@ -17,7 +17,6 @@ spec:
         app: claude-elevate
     spec:
       serviceAccountName: claude-elevator
-      # only the sidecar mounts a token (projected below)
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
@@ -56,41 +55,8 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-            - name: spool
-              mountPath: /spool
-            - name: kube-ca
-              mountPath: /etc/kube-ca
-              readOnly: true
             - name: config
               mountPath: /etc/connect
-              readOnly: true
-        - name: reconcile
-          image: mirror.gcr.io/library/python:3.15-alpine@sha256:0f9552bb28711333da16915ec146f5e6bb44a7fdac9ced15dc17c2e0206346dd # renovate: datasource=docker depName=docker.io/library/python versioning=docker
-          command:
-            - python3
-            - /scripts/reconcile.py
-          env:
-            - name: PYTHONDONTWRITEBYTECODE
-              value: "1"
-          resources:
-            requests:
-              cpu: 10m
-              memory: 64Mi
-            limits:
-              memory: 256Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-          volumeMounts:
-            - name: reconcile-tmp
-              mountPath: /tmp
-            - name: spool
-              mountPath: /spool
-            - name: scripts
-              mountPath: /scripts
               readOnly: true
             - name: kube-api-access
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
@@ -98,22 +64,9 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
-        - name: reconcile-tmp
-          emptyDir: {}
-        - name: spool
-          emptyDir: {}
-        - name: kube-ca
-          configMap:
-            name: kube-root-ca.crt
-            items:
-              - key: ca.crt
-                path: ca.crt
         - name: config
           configMap:
             name: claude-elevate-connect-config
-        - name: scripts
-          configMap:
-            name: claude-elevate-scripts
         - name: kube-api-access
           projected:
             sources:
@@ -125,8 +78,3 @@ spec:
                   items:
                     - key: ca.crt
                       path: ca.crt
-              - downwardAPI:
-                  items:
-                    - path: namespace
-                      fieldRef:
-                        fieldPath: metadata.namespace

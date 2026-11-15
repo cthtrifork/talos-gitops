@@ -53,14 +53,6 @@ configMapGenerator:
     files:
       - elevate/redpanda-connect.yaml
       - elevate/index.html
-  - name: claude-elevate-scripts
-    namespace: claude-system
-    options:
-      annotations:
-        # A script, not a Flux template: skip postBuild envsubst
-        kustomize.toolkit.fluxcd.io/substitute: disabled
-    files:
-      - elevate/reconcile.py
   - name: claude-md
     namespace: claude-system
     options:

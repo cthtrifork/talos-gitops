@@ -1,21 +1,24 @@
 ---
-# The elevate page: takes requests and shows the cluster state (read-only token). The sidecar (reconcile.py) does the work via the shared /spool.
+# The elevate page and its API. The grant and revoke calls go straight to the Kubernetes API with the pod's own token; the API server decides
+# what is allowed (RBAC, the admission policies, the token limits), so there is no other validation here than the shape of the names, which
+# end up in URL paths. Nothing is cleaned up afterwards, not even after a failed grant: a token expires on its own, and the ServiceAccount and
+# RoleBinding left behind (one pair per tier and namespace) are replaced by the next grant.
 #
 # GET  /                  the page
 # GET  /api/v1/status     allowed namespaces and max minutes per tier, and the active grants, all read from the API server
-# POST /api/v1/grants     {"tier": "<tier>", "minutes": <n>, "namespaces": ["adguard-system", ...]}
-# POST /api/v1/revoke     {"all": true} or {"tier": "<tier>", "namespace": "<namespace>"}
+# POST /api/v1/grants     {"tier": "<tier>", "minutes": <n>, "namespace": "<namespace>"}
+# POST /api/v1/revoke     {"tier": "<tier>", "namespace": "<namespace>"}
+# POSTs need the header X-Requested-With: claude-elevate, so a form on another site cannot post them. An error answers 502 with the API's message.
 http:
   enabled: true
   address: 0.0.0.0:4195
   debug_endpoints: false
 
-# keys are file names in /spool: req-<nanoseconds>-<uuid> is a request (names sort by arrival); ui-token is a short-lived token of the
-# read-only ServiceAccount claude-elevate-ui, which the sidecar renews
+# the pod's token rotates, so it is read from the file on every request
 cache_resources:
-  - label: spool
+  - label: serviceaccount
     file:
-      directory: /spool
+      directory: /var/run/secrets/kubernetes.io/serviceaccount
 
 input:
   http_server:
@@ -48,10 +51,6 @@ pipeline:
         - check: '@http_server_verb == "GET" && @http_server_request_path == "/api/v1/status"'
           processors:
             - resource: status
-            - catch:
-                - mapping: |
-                    meta status = "502"
-                    root = {"error": "cannot read the cluster state"}
 
         # a cross-site form cannot set this header (no CORS preflight is ever answered)
         - check: '@http_server_verb == "POST" && metadata("X-Requested-With").or("") != "claude-elevate"'
@@ -64,145 +63,262 @@ pipeline:
           processors:
             - mapping: |
                 let b = content().parse_json().catch({})
-                let ok = (
+                meta valid = (
                   $b.tier.type() == "string" && $b.tier.re_match("^[a-z]{1,16}$") &&
-                  $b.minutes.type() == "number" && $b.minutes >= 1 &&
-                  $b.namespaces.type() == "array" && $b.namespaces.length() >= 1 && $b.namespaces.length() <= 10 &&
-                  $b.namespaces.all(n -> n.type() == "string" && n.re_match("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"))
+                  $b.namespace.type() == "string" && $b.namespace.re_match("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$") &&
+                  $b.minutes.type() == "number" && $b.minutes == $b.minutes.floor() && $b.minutes >= 1 && $b.minutes <= 9999
                 ).catch(false)
-                meta valid = $ok
-                meta req_key = "req-" + timestamp_unix_nano().string() + "-" + uuid_v4()
-                root = if $ok {
-                  {"action": "grant", "tier": $b.tier, "minutes": $b.minutes.floor(), "namespaces": $b.namespaces}
-                } else {
-                  {"error": "bad request"}
-                }
+                root = {"tier": $b.tier, "namespace": $b.namespace, "minutes": $b.minutes}
             - switch:
-                - check: '@valid'
+                - check: '!@valid'
                   processors:
-                    - cache:
-                        resource: spool
-                        operator: set
-                        key: '${! @req_key }'
-                        value: '${! content() }'
-                    - switch:
-                        - check: errored()
-                          processors:
-                            - mapping: |
-                                meta status = "500"
-                                root = {"error": "not queued"}
-                        - processors:
-                            - metric:
-                                type: counter
-                                name: elevate_requests
-                                labels:
-                                  action: '${! this.action }'
-                                  tier: '${! this.tier.or("none") }'
-                            - mapping: 'root = {"queued": true}'
+                    - resource: bad_request
                 - processors:
-                    - mapping: 'meta status = "400"'
+                    - resource: grant
 
         - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/revoke"'
           processors:
             - mapping: |
                 let b = content().parse_json().catch({})
-                let all = $b.all.or(false) == true
-                let one = (
+                meta valid = (
                   $b.tier.type() == "string" && $b.tier.re_match("^[a-z]{1,16}$") &&
                   $b.namespace.type() == "string" && $b.namespace.re_match("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$")
                 ).catch(false)
-                meta valid = $all || $one
-                meta req_key = "req-" + timestamp_unix_nano().string() + "-" + uuid_v4()
-                root = if $all {
-                  {"action": "revokeall"}
-                } else if $one {
-                  {"action": "revoke", "tier": $b.tier, "namespace": $b.namespace}
-                } else {
-                  {"error": "bad request"}
-                }
+                root = {"tier": $b.tier, "namespace": $b.namespace}
             - switch:
-                - check: '@valid'
+                - check: '!@valid'
                   processors:
-                    - cache:
-                        resource: spool
-                        operator: set
-                        key: '${! @req_key }'
-                        value: '${! content() }'
-                    - switch:
-                        - check: errored()
-                          processors:
-                            - mapping: |
-                                meta status = "500"
-                                root = {"error": "not queued"}
-                        - processors:
-                            - metric:
-                                type: counter
-                                name: elevate_requests
-                                labels:
-                                  action: '${! this.action }'
-                                  tier: '${! this.tier.or("none") }'
-                            - mapping: 'root = {"queued": true}'
+                    - resource: bad_request
                 - processors:
-                    - mapping: 'meta status = "400"'
+                    - resource: revoke
 
         - processors:
             - mapping: |
                 meta status = "404"
                 root = {"error": "not found"}
 
+    - catch:
+        - log:
+            level: WARN
+            message: request failed
+            fields_mapping: 'root.error = error()'
+        - mapping: |
+            meta status = "502"
+            root = {"error": error().re_find_object("Error: (?P<json>\\{.*\\})").json.parse_json().message.catch(error())}
+
 output:
   sync_response: {}
 
-# GET /api/v1/status: the state comes from the API server (the limits ConfigMap, the namespaces and the grants' ServiceAccounts), read with
-# the token the sidecar leaves in /spool.
 processor_resources:
+  - label: bad_request
+    mapping: |
+      meta status = "400"
+      root = {"error": "bad request"}
+
+  # puts the pod's token in the metadata field `token`; the other resources send it
+  - label: login
+    branch:
+      request_map: 'root = ""'
+      processors:
+        - cache:
+            resource: serviceaccount
+            operator: get
+            key: token
+      result_map: 'meta token = content().string().trim()'
+
+  # The five calls to the API server. The caller sets the metadata field `path`; the body is the message.
+  - label: get
+    http:
+      url: 'https://kubernetes.default.svc${! @path }'
+      verb: GET
+      headers:
+        Authorization: 'Bearer ${! @token }'
+      tls:
+        root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  - label: apply
+    http:
+      url: 'https://kubernetes.default.svc${! @path }'
+      verb: PATCH
+      headers:
+        Authorization: 'Bearer ${! @token }'
+        Content-Type: application/apply-patch+yaml
+      tls:
+        root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  - label: merge
+    http:
+      url: 'https://kubernetes.default.svc${! @path }'
+      verb: PATCH
+      headers:
+        Authorization: 'Bearer ${! @token }'
+        Content-Type: application/merge-patch+json
+      tls:
+        root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  - label: post
+    http:
+      url: 'https://kubernetes.default.svc${! @path }'
+      verb: POST
+      headers:
+        Authorization: 'Bearer ${! @token }'
+      tls:
+        root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  # a missing object counts as deleted
+  - label: delete
+    http:
+      url: 'https://kubernetes.default.svc${! @path }'
+      verb: DELETE
+      headers:
+        Authorization: 'Bearer ${! @token }'
+      successful_on: [404]
+      tls:
+        root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  # GET /api/v1/status
   - label: status
     try:
-      - cache:
-          resource: spool
-          operator: get
-          key: ui-token
-      - mapping: |
-          meta token = content().string().trim()
-          root = ""
+      - resource: login
       - branch:
-          request_map: 'root = ""'
+          request_map: |
+            meta path = "/api/v1/namespaces/claude-system/configmaps/claude-elevate-limits"
+            root = ""
           processors:
-            - http:
-                url: https://kubernetes.default.svc/api/v1/namespaces/claude-system/configmaps/claude-elevate-limits
-                verb: GET
-                headers:
-                  Authorization: 'Bearer ${! @token }'
-                tls:
-                  root_cas_file: /etc/kube-ca/ca.crt
+            - resource: get
           result_map: 'meta limits = this.data'
       - branch:
-          request_map: 'root = ""'
+          request_map: |
+            meta path = "/api/v1/namespaces"
+            root = ""
           processors:
-            - http:
-                url: https://kubernetes.default.svc/api/v1/namespaces
-                verb: GET
-                headers:
-                  Authorization: 'Bearer ${! @token }'
-                tls:
-                  root_cas_file: /etc/kube-ca/ca.crt
+            - resource: get
           result_map: 'meta namespaces = this.items'
       - branch:
-          request_map: 'root = ""'
+          request_map: |
+            meta path = "/api/v1/serviceaccounts?labelSelector=app.kubernetes.io/managed-by%3Dclaude-elevate"
+            root = ""
           processors:
-            - http:
-                url: 'https://kubernetes.default.svc/api/v1/serviceaccounts?labelSelector=app.kubernetes.io/managed-by%3Dclaude-elevate'
-                verb: GET
-                headers:
-                  Authorization: 'Bearer ${! @token }'
-                tls:
-                  root_cas_file: /etc/kube-ca/ca.crt
+            - resource: get
           result_map: 'meta serviceaccounts = this.items'
       - mapping: |
           root.max_minutes = @limits.map_each(kv -> kv.value.number())
           root.allowed_namespaces = @limits.map_each(kv -> @namespaces.filter(n -> n.metadata.labels.or({}).get("claude-elevate/" + kv.key) == "true").map_each(n -> n.metadata.name))
-          root.grants = @serviceaccounts.map_each(s -> {
+          root.grants = @serviceaccounts.filter(s -> s.metadata.annotations.or({}).get("claude-elevate/expires-at").type() == "string").map_each(s -> {
             "namespace": s.metadata.namespace,
             "tier": s.metadata.name.trim_prefix("claude-elevate-"),
-            "expires_at": s.metadata.annotations.or({}).get("claude-elevate/expires-at")
+            "expires_at": s.metadata.annotations.get("claude-elevate/expires-at")
           })
+
+  # Deletes the kubeconfig key, the ServiceAccount and the RoleBinding of the tier and namespace in the message. Deleting the ServiceAccount
+  # invalidates its tokens at once.
+  - label: remove
+    try:
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/claude-system/secrets/claude-elevated-kubeconfigs"
+            let key = this.tier + "-" + this.namespace + ".kubeconfig"
+            root = {"data": {$key: null}}
+          processors:
+            - resource: merge
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/" + this.namespace + "/serviceaccounts/claude-elevate-" + this.tier
+            root = ""
+          processors:
+            - resource: delete
+      - branch:
+          request_map: |
+            meta path = "/apis/rbac.authorization.k8s.io/v1/namespaces/" + this.namespace + "/rolebindings/claude-elevate-" + this.tier
+            root = ""
+          processors:
+            - resource: delete
+
+  # POST /api/v1/grants: the message is {tier, namespace, minutes}
+  - label: grant
+    try:
+      - resource: login
+      - mapping: |
+          let expires = (now().ts_unix() + this.minutes * 60).ts_format("2006-01-02T15:04:05Z", "UTC")
+          meta expires = $expires
+          meta object_meta = {
+            "name": "claude-elevate-" + this.tier,
+            "namespace": this.namespace,
+            "labels": {"app.kubernetes.io/managed-by": "claude-elevate"}
+          }
+          root = this
+      # a new ServiceAccount invalidates the tokens of an earlier grant
+      - resource: remove
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/" + this.namespace + "/serviceaccounts/claude-elevate-" + this.tier + "?fieldManager=claude-elevate&force=true"
+            root = {"apiVersion": "v1", "kind": "ServiceAccount", "metadata": metadata("object_meta")}
+          processors:
+            - resource: apply
+      - branch:
+          request_map: |
+            meta path = "/apis/rbac.authorization.k8s.io/v1/namespaces/" + this.namespace + "/rolebindings/claude-elevate-" + this.tier + "?fieldManager=claude-elevate&force=true"
+            root = {
+              "apiVersion": "rbac.authorization.k8s.io/v1",
+              "kind": "RoleBinding",
+              "metadata": metadata("object_meta"),
+              "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": "claude-" + this.tier},
+              "subjects": [{"kind": "ServiceAccount", "name": "claude-elevate-" + this.tier, "namespace": this.namespace}]
+            }
+          processors:
+            - resource: apply
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/" + this.namespace + "/serviceaccounts/claude-elevate-" + this.tier + "/token"
+            root = {"apiVersion": "authentication.k8s.io/v1", "kind": "TokenRequest", "spec": {"expirationSeconds": this.minutes * 60}}
+          processors:
+            - resource: post
+          result_map: 'meta kube_token = this.status.token'
+      # a ServiceAccount counts as a grant once it carries the expiry, so a grant that failed before this is never listed
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/" + this.namespace + "/serviceaccounts/claude-elevate-" + this.tier
+            root = {"metadata": {"annotations": {"claude-elevate/expires-at": metadata("expires")}}}
+          processors:
+            - resource: merge
+      - branch:
+          request_map: |
+            let name = this.tier + "-" + this.namespace
+            let kubeconfig = {
+              "apiVersion": "v1",
+              "kind": "Config",
+              "current-context": $name,
+              "clusters": [{"name": "cluster", "cluster": {"server": "https://kubernetes.default.svc", "certificate-authority": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"}}],
+              "users": [{"name": $name, "user": {"token": metadata("kube_token")}}],
+              "contexts": [{"name": $name, "context": {"cluster": "cluster", "user": $name, "namespace": this.namespace}}]
+            }
+            meta path = "/api/v1/namespaces/claude-system/secrets/claude-elevated-kubeconfigs"
+            root = {"stringData": {$name + ".kubeconfig": $kubeconfig.format_json().string()}}
+          processors:
+            - resource: merge
+      - log:
+          message: granted
+          fields_mapping: 'root = {"tier": this.tier, "namespace": this.namespace, "until": metadata("expires")}'
+      - metric:
+          type: counter
+          name: elevate_requests
+          labels:
+            action: grant
+            tier: '${! this.tier }'
+      - mapping: 'root = {"granted": true, "until": metadata("expires")}'
+
+  # POST /api/v1/revoke: the message is {tier, namespace}
+  - label: revoke
+    try:
+      - resource: login
+      - resource: remove
+      - log:
+          message: revoked
+          fields_mapping: 'root = {"tier": this.tier, "namespace": this.namespace}'
+      - metric:
+          type: counter
+          name: elevate_requests
+          labels:
+            action: revoke
+            tier: '${! this.tier }'
+      - mapping: 'root = {"revoked": true}'

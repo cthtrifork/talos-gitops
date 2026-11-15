@@ -71,7 +71,7 @@
   button.small { width: auto; min-height: 44px; padding: 8px 16px; font-weight: 500; }
   button:focus-visible, .tiny:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   button:disabled { opacity: .5; cursor: default; }
-  .hint { margin: 8px 0 0; font-size: 13px; color: var(--ink-2); min-height: 1.4em; }
+  .hint { margin: 8px 0 0; font-size: 13px; color: var(--ink-2); min-height: 1.4em; white-space: pre-line; }
   .hint.warn { color: var(--warn); }
 
   ul { list-style: none; margin: 0; padding: 0; }
@@ -266,7 +266,7 @@
         var b = el("button", "Revoke", "small ghost");
         b.type = "button";
         b.setAttribute("aria-label", "Revoke " + g.tier + " in " + g.namespace);
-        b.addEventListener("click", function () { post("/api/v1/revoke", { tier: g.tier, namespace: g.namespace }); });
+        b.addEventListener("click", function () { send("/api/v1/revoke", [{ tier: g.tier, namespace: g.namespace }]); });
         li.appendChild(b);
         list.appendChild(li);
       });
@@ -292,22 +292,17 @@
       .catch(function (e) { $("error").textContent = "Cannot read status: " + e.message; });
   }
 
-  function post(path, body) {
+  // one request per namespace; each answers by itself, and an error carries the API's reason
+  function send(path, bodies) {
     $("error").textContent = "";
-    return fetch(path.replace(/^\//, ""), { method: "POST", headers: HEADERS, body: JSON.stringify(body) })
-      .then(function (r) { if (!r.ok) throw new Error("rejected (" + r.status + ")"); })
-      .then(function () { body.namespaces ? waitFor(body, 0) : setTimeout(load, 4000); })
-      .catch(function (e) { $("error").textContent = "Request failed: " + e.message; });
-  }
-
-  // the sidecar keeps no state: a grant that never shows up in the list was refused (its reason is in the elevate pod's log)
-  function waitFor(want, tries) {
-    load().then(function () {
-      var listed = (status.grants || []).map(function (g) { return g.tier + "/" + g.namespace; });
-      var done = want.namespaces.every(function (n) { return listed.indexOf(want.tier + "/" + n) >= 0; });
-      if (done) return;
-      if (tries < 8) setTimeout(function () { waitFor(want, tries + 1); }, 2500);
-      else $("error").textContent = "Not granted: the request was refused or is not processed yet. The reason is in the elevate pod's log.";
+    return Promise.all(bodies.map(function (body) {
+      return fetch(path.replace(/^\//, ""), { method: "POST", headers: HEADERS, body: JSON.stringify(body) })
+        .then(function (r) { return r.ok ? "" : r.json().then(function (j) { return j.error; }); })
+        .catch(function (e) { return e.message; })
+        .then(function (error) { return error ? body.namespace + ": " + error : ""; });
+    })).then(function (errors) {
+      $("error").textContent = errors.filter(Boolean).join("\n");
+      return load();
     });
   }
 
@@ -337,12 +332,14 @@
     if (ns.length === 0) { $("error").textContent = "Pick at least one namespace."; return; }
     $("error").textContent = "";
     if (!confirming) { setConfirming(true); return; }
-    var body = { tier: selectedTier(), minutes: selectedMinutes(), namespaces: ns };
+    var tier = selectedTier(), minutes = selectedMinutes();
     setConfirming(false);
-    post("/api/v1/grants", body);
+    send("/api/v1/grants", ns.map(function (n) { return { tier: tier, minutes: minutes, namespace: n }; }));
   });
 
-  $("revokeAll").addEventListener("click", function () { post("/api/v1/revoke", { all: true }); });
+  $("revokeAll").addEventListener("click", function () {
+    send("/api/v1/revoke", (status.grants || []).map(function (g) { return { tier: g.tier, namespace: g.namespace }; }));
+  });
 
   load();
   setInterval(load, 5000);
