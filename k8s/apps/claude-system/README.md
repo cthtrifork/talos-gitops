@@ -7,7 +7,7 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | File | What |
 |---|---|
 | `rbac.yaml` | ServiceAccount `claude`; built-in `view` (no Secrets) plus read-only access to nodes, storage, CRDs and the CRD groups in use (including MetalLB, the ARC runner resources and the trivy-operator reports). No write verbs, no `pods/exec` |
-| `rbac-elevated.yaml` | The break-glass ClusterRoles `claude-ops` (delete pods), `claude-debug` (`pods/exec`, port-forward, ephemeral containers) and `claude-storage` (delete PVCs). Nothing binds them by default |
+| `rbac-elevated.yaml` | The break-glass ClusterRoles `claude-ops` (delete or evict pods), `claude-debug` (`pods/exec`, port-forward, ephemeral containers) and `claude-storage` (delete PVCs). Nothing binds them by default |
 | `elevate/` | The "Elevate Claude" page (below): a pod, its ServiceAccount, RBAC and admission policy |
 | `networkpolicy.yaml` | Cilium default deny, then DNS, the Kubernetes API and TCP 443 to the hosts Claude Code needs |
 | `github-app.yaml` | CronJob that mints a one-hour GitHub App installation token into `claude-github-token` (scripts in `github-app/`) |
@@ -248,7 +248,7 @@ counts as expired.
 
 | Tier | Role | Max | Grants |
 |---|---|---|---|
-| `ops` | `claude-ops` | 60 min | delete pods (a restart). No `patch` on workloads or Flux objects: it is a full write of the pod spec or Flux spec, enough to read any Secret in the namespace or widen what Flux applies |
+| `ops` | `claude-ops` | 60 min | delete or evict pods (a restart; an eviction honours PodDisruptionBudgets). No `patch` on workloads or Flux objects: it is a full write of the pod spec or Flux spec, enough to read any Secret in the namespace or widen what Flux applies |
 | `debug` | `claude-debug` | 15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
 | `storage` | `claude-storage` | 15 min | delete PersistentVolumeClaims. Both storage classes reclaim with `Delete`, so a bound claim loses its data on the node (a claim a pod still uses waits for the pod). Its own tier so a routine restart never carries it |
 

@@ -7,7 +7,7 @@
 # the namespace can (its mounted Secrets and ServiceAccount token), so grant it only where that is acceptable.
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
-# Restart things Flux cannot: delete a pod and its controller recreates it. Nothing else, and no PVC deletes (local-path volumes hold the data).
+# Restart things Flux cannot: delete or evict a pod and its controller recreates it. Nothing else, and no PVC deletes (local-path volumes hold the data).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -19,6 +19,13 @@ rules:
       - pods
     verbs:
       - delete
+  # An eviction is a delete that honours PodDisruptionBudgets
+  - apiGroups:
+      - ""
+    resources:
+      - pods/eviction
+    verbs:
+      - create
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
 # Look inside a running pod. Kept apart from claude-ops because exec can reach whatever the pod can.
