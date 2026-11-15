@@ -94,6 +94,13 @@ pipeline:
                         operator: set
                         key: '${! @req_key }'
                         value: '${! content() }'
+                    # Requests the page accepted; what the sidecar then did is in its JSON log lines.
+                    - metric:
+                        type: counter
+                        name: elevate_requests
+                        labels:
+                          action: '${! this.action }'
+                          tier: '${! this.tier.or("none") }'
                     - mapping: 'root = {"queued": true}'
                 - processors:
                     - mapping: 'meta status = "400"'
@@ -124,6 +131,13 @@ pipeline:
                         operator: set
                         key: '${! @req_key }'
                         value: '${! content() }'
+                    # Requests the page accepted; what the sidecar then did is in its JSON log lines.
+                    - metric:
+                        type: counter
+                        name: elevate_requests
+                        labels:
+                          action: '${! this.action }'
+                          tier: '${! this.tier.or("none") }'
                     - mapping: 'root = {"queued": true}'
                 - processors:
                     - mapping: 'meta status = "400"'

@@ -12,8 +12,13 @@ declare -A max_minutes=([ops]=60 [debug]=15) # exec reaches whatever the pod can
 selector=app.kubernetes.io/managed-by=claude-elevate
 log=()
 
+# One JSON line per action on stdout is the audit trail (the page's "Recent" list is only the last 10, in memory).
+audit() { # event [tier] [namespace] [detail]
+  jq -nc --arg event "$1" --arg tier "${2:-}" --arg namespace "${3:-}" --arg detail "${4:-}" \
+    '{ts: (now | todate), event: $event, tier: $tier, namespace: $namespace, detail: $detail}'
+}
+
 note() {
-  echo "$*"
   log+=("$(date -u +%H:%M:%S) $*")
   if ((${#log[@]} > 10)); then log=("${log[@]:1}"); fi
 }
@@ -47,47 +52,50 @@ grant() { # tier namespace minutes
                  annotations: {"claude-elevate/expires-at": $exp}},
       roleRef: {apiGroup: "rbac.authorization.k8s.io", kind: "ClusterRole", name: ("claude-" + $tier)},
       subjects: [{kind: "ServiceAccount", name: "claude", namespace: "claude-system"}]}' |
-    kubectl apply -f - >/dev/null 2>&1 && note "granted ${tier} in ${ns} until ${expires}" || note "FAILED to grant ${tier} in ${ns}"
+    kubectl apply -f - >/dev/null 2>&1 && { audit granted "$tier" "$ns" "until ${expires}"; note "granted ${tier} in ${ns} until ${expires}"; } ||
+    { audit grant_failed "$tier" "$ns"; note "FAILED to grant ${tier} in ${ns}"; }
 }
 
-revoke() { # tier namespace
-  kubectl delete rolebinding "claude-elevate-$1" -n "$2" --ignore-not-found >/dev/null 2>&1 && note "revoked $1 in $2" || note "FAILED to revoke $1 in $2"
+revoke() { # tier namespace [reason]
+  kubectl delete rolebinding "claude-elevate-$1" -n "$2" --ignore-not-found >/dev/null 2>&1 && { audit revoked "$1" "$2" "$3"; note "revoked $1 in $2"; } ||
+    { audit revoke_failed "$1" "$2"; note "FAILED to revoke $1 in $2"; }
 }
 
 handle() { # request file
   local body tier minutes action ns
   body="$(cat "$1")"
   rm -f "$1"
-  action="$(jq -r '.action // ""' <<<"$body" 2>/dev/null)" || { note "dropped an unreadable request"; return; }
+  action="$(jq -r '.action // ""' <<<"$body" 2>/dev/null)" || { audit rejected "" "" "unreadable request"; note "dropped an unreadable request"; return; }
   case "$action" in
     revokeall)
-      while read -r name ns; do revoke "${name#claude-elevate-}" "$ns"; done < <(
+      while read -r name ns; do revoke "${name#claude-elevate-}" "$ns" requested; done < <(
         kubectl get rolebindings -A -l "$selector" -o json | jq -r '.items[] | "\(.metadata.name) \(.metadata.namespace)"')
       ;;
     revoke)
       tier="$(jq -r '.tier // ""' <<<"$body")"
       ns="$(jq -r '.namespace // ""' <<<"$body")"
       # A revoke always works, also for a namespace that has left the allowlist since; the admission policy lets it delete only its own bindings
-      if [[ -n "${max_minutes[$tier]:-}" && "$ns" =~ ^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$ ]]; then revoke "$tier" "$ns"; else note "rejected a revoke request"; fi
+      if [[ -n "${max_minutes[$tier]:-}" && "$ns" =~ ^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$ ]]; then revoke "$tier" "$ns" requested; else audit rejected "" "" "revoke request"; note "rejected a revoke request"; fi
       ;;
     grant)
       tier="$(jq -r '.tier // ""' <<<"$body")"
       minutes="$(jq -r '.minutes // ""' <<<"$body")"
       if [[ -z "${max_minutes[$tier]:-}" || ! "$minutes" =~ ^[0-9]+$ ]] || ((minutes < 1 || minutes > max_minutes[$tier])); then
+        audit rejected "" "" "grant request: tier or minutes"
         note "rejected a grant request (tier or minutes)"
         return
       fi
       while read -r ns; do
-        if is_allowed "$tier" "$ns"; then grant "$tier" "$ns" "$minutes"; else note "rejected namespace ${ns:0:63}"; fi
+        if is_allowed "$tier" "$ns"; then grant "$tier" "$ns" "$minutes"; else audit rejected "$tier" "${ns:0:63}" "namespace not opted in"; note "rejected namespace ${ns:0:63}"; fi
       done < <(jq -r '(.namespaces // [])[] | strings' <<<"$body")
       ;;
-    *) note "dropped a request with an unknown action" ;;
+    *) audit rejected "" "" "unknown action"; note "dropped a request with an unknown action" ;;
   esac
 }
 
 # A grant with no readable expiry counts as expired, so a mangled annotation fails closed.
 sweep() {
-  while read -r name ns; do revoke "${name#claude-elevate-}" "$ns"; done < <(
+  while read -r name ns; do revoke "${name#claude-elevate-}" "$ns" expired; done < <(
     kubectl get rolebindings -A -l "$selector" -o json | jq -r --argjson now "$(date +%s)" '
       .items[] | select((try (.metadata.annotations["claude-elevate/expires-at"] | fromdateiso8601) catch 0) <= $now)
       | "\(.metadata.name) \(.metadata.namespace)"')

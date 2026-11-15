@@ -263,4 +263,8 @@ Guards, outermost first:
 - **Dead controller.** The page shows "Controller not answering" when the status is older than 30 s, and the sidecar's liveness probe
   restarts it when its loop stalls for a minute. A grant can still outlive its time while the sidecar is down; revoke by deleting the
   RoleBinding (`kubectl delete rolebinding claude-elevate-<tier> -n <ns>`) from an admin machine.
+- **State and audit.** The grants are the RoleBindings in the cluster, so a page reload, a pod restart or a second device all show the same list. The
+  "Recent" box is only the last 10 actions, in the sidecar's memory. The audit trail is one JSON line per action on the `reconcile` container's stdout
+  (`granted`, `revoked` with `requested` or `expired`, `rejected`, `*_failed`); the cluster has no log shipper, so read it with `kubectl logs` before the pod is replaced.
+  The page counts accepted requests as `elevate_requests{action,tier}` (PodMonitor, port 4195). Who clicked is not recorded: Omni authenticates, the pod does not see the identity.
 
