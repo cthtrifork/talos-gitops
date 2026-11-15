@@ -50,7 +50,7 @@ spec:
                 - -c
                 - |
                   if [ -z "${API_KEY:-}" ]; then
-                    echo "DRY RUN: Secret dependency-track-vex-api-key is missing (config-job creates it once dependency-track-admin is seeded); nothing to export"
+                    echo "DRY RUN: Secret dependency-track-vex-api-key is missing (config-job creates it); nothing to export"
                     exit 0
                   fi
                   cd /work
