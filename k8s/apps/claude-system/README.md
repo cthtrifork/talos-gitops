@@ -256,9 +256,10 @@ Guards, outermost first:
 
 - **Who can reach the page.** Only the Omni exposer (host network) may connect; the NetworkPolicy has no rule for `claude-rc`, so
   the pod that receives the rights cannot ask for them. POSTs need `X-Requested-With: claude-elevate`.
-- **What the broker may do.** `ClusterRole/claude-elevator` can `bind` only `claude-ops`, `claude-debug` and `claude-storage`. The
-  `ValidatingAdmissionPolicy/claude-elevator-rolebindings` lets that account touch only RoleBindings carrying its label, bind only
-  `claude` to those three roles, and only in namespaces labelled for that tier.
+- **What the broker may do.** `ClusterRole/claude-elevator` can `bind` only `claude-ops`, `claude-debug` and `claude-storage`, and can patch or
+  delete only RoleBindings named `claude-elevate-<tier>`. RBAC cannot say who is bound or where, so a two-rule
+  `ValidatingAdmissionPolicy/claude-elevator-rolebindings` does: only `claude-system/claude` may be the subject, and only in a namespace labelled for that
+  tier. Without it a bug in the sidecar could bind any subject to those roles in any namespace, `kube-system` included.
 - **Where.** One list, in Git: a namespace opts in per tier with the label `claude-elevate/<tier>: "true"` (`ops`, `debug`, `storage`) in its own manifest (today `adguard-system` all three, `external-dns-system` only `ops`, because exec there could read the DNS API token). Remove `claude-elevate/storage` from a namespace once its PVCs hold data you care about. The sidecar reads the labels each loop and the admission policy reads the same labels (`namespaceObject`), so nothing is kept in two places; a failed lookup allows nothing. A revoke always works, also for a namespace that has since lost its label.
   Neither tier has a Secrets, RBAC or node rule. `debug` can still read whatever a pod in the namespace can (mounted Secrets, its ServiceAccount token), so grant it only where that is acceptable. A forced Flux reconcile or a rollout restart is not offered: RBAC cannot limit a `patch` to one annotation.
 - **Dead controller.** The page shows "Controller not answering" when the status is older than 30 s, and the sidecar's liveness probe
