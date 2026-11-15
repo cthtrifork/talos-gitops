@@ -36,7 +36,6 @@
   .mono { font-family: var(--mono); font-size: 14px; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-  /* health pill */
   .pill { display: inline-flex; align-items: center; gap: 8px; flex: none; padding: 6px 12px; border-radius: 999px;
           border: 1px solid var(--line); background: var(--card); font-size: 13px; white-space: nowrap; }
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-2); flex: none; }
@@ -45,14 +44,12 @@
   .pill.stale .dot { background: var(--bad); }
   .alert { margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg); font-size: 14px; }
 
-  /* form groups */
   fieldset { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
   legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
   .row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
   .lbl { font-weight: 600; }
   .tiny { background: none; border: 0; padding: 6px 4px; min-height: 36px; width: auto; color: var(--accent); font-size: 14px; font-weight: 500; cursor: pointer; }
 
-  /* choice cards (tier) and chips (namespaces, time): the real input is hidden, the label is the target */
   .choices { display: grid; gap: 8px; }
   .tiers { grid-template-columns: 1fr; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -68,7 +65,6 @@
   .choice input:focus-visible + .face { outline: 3px solid var(--accent); outline-offset: 2px; }
   .empty { margin: 0; color: var(--ink-2); font-size: 14px; }
 
-  /* actions: pinned to the bottom of the screen on a phone so the button is always in reach */
   .actions { position: sticky; bottom: 0; z-index: 2; margin: 0 -16px -16px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
              background: var(--card); border-top: 1px solid var(--line); border-radius: 0 0 14px 14px; }
   .summary { margin: 0 0 10px; font-size: 14px; color: var(--ink-2); min-height: 1.4em; overflow-wrap: anywhere; }
@@ -85,7 +81,6 @@
   .hint { margin: 8px 0 0; font-size: 13px; color: var(--ink-2); min-height: 1.4em; }
   .hint.warn { color: var(--warn); }
 
-  /* active grants */
   ul { list-style: none; margin: 0; padding: 0; }
   li.grant { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
   li.grant:first-child { border-top: 0; padding-top: 0; }
@@ -101,7 +96,6 @@
   pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2); font: 13px/1.5 var(--mono); }
   [hidden] { display: none !important; }
 
-  /* wider than a phone: tiers side by side; wider than a tablet: form left, state right */
   @media (min-width: 560px) { .tiers { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
   @media (min-width: 880px) {
     body { padding-top: 32px; }
@@ -197,7 +191,6 @@
     if (cls) e.className = cls;
     return e;
   }
-  // A choice is a real radio or checkbox under a styled face, so keyboard and screen readers work as usual.
   function choice(type, name, value, label, checked, extra) {
     var l = el("label", undefined, "choice");
     var i = document.createElement("input");
@@ -304,7 +297,7 @@
     $("log").textContent = log || "Nothing yet.";
   }
 
-  // Only the countdown text changes each second; the list itself is left alone.
+  // updates the countdown text of the listed grants
   function tick() {
     Array.prototype.forEach.call(document.querySelectorAll("#grants .left"), function (n) {
       var r = remaining(n.getAttribute("data-expires"));

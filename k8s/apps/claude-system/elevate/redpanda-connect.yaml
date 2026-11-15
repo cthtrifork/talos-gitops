@@ -1,21 +1,16 @@
 ---
-# The elevate page. This container only takes requests and shows status; it holds no Kubernetes credentials. The sidecar
-# (reconcile.sh) re-validates every request file and does the RoleBinding work. Both share the emptyDir /spool.
-#
-#   :8080  ui   Omni service exposer (Omni login). The pod's NetworkPolicy lets in nothing else, so claude-rc cannot reach it.
+# The elevate page: takes requests and shows status, no Kubernetes credentials. The sidecar (reconcile.sh) does the work via the shared /spool.
 #
 # GET  /                  the page
 # GET  /api/v1/status     allowed namespaces, max minutes per tier, active grants, the last log lines (written by the sidecar)
 # POST /api/v1/grants     {"tier": "ops"|"debug"|"storage", "minutes": 1-60, "namespaces": ["adguard-system", ...]}
 # POST /api/v1/revoke     {"all": true} or {"tier": "ops", "namespace": "adguard-system"}
-# POSTs need the header X-Requested-With: claude-elevate, so a form on another site cannot post them.
-# Not a Flux template (configMapGenerator disables postBuild envsubst).
 http:
   enabled: true
   address: 0.0.0.0:4195
   debug_endpoints: false
 
-# A key is a file name in /spool: `req-<uuid>` is a request for the sidecar, `status` is the sidecar's answer.
+# keys are file names in /spool: req-<uuid> is a request, status is the sidecar's answer
 cache_resources:
   - label: spool
     file:
@@ -62,7 +57,7 @@ pipeline:
                       - mapping: 'root = {"now": 0, "allowed_namespaces": [], "max_minutes": {}, "grants": [], "log": []}'
                 result_map: 'root = this'
 
-        # A form on another site cannot add a custom header without a CORS preflight, which this server never answers.
+        # a cross-site form cannot set this header (no CORS preflight is ever answered)
         - check: '@http_server_verb == "POST" && metadata("X-Requested-With").or("") != "claude-elevate"'
           processors:
             - mapping: |
@@ -94,7 +89,6 @@ pipeline:
                         operator: set
                         key: '${! @req_key }'
                         value: '${! content() }'
-                    # Requests the page accepted; what the sidecar then did is in its JSON log lines.
                     - metric:
                         type: counter
                         name: elevate_requests
@@ -131,7 +125,6 @@ pipeline:
                         operator: set
                         key: '${! @req_key }'
                         value: '${! content() }'
-                    # Requests the page accepted; what the sidecar then did is in its JSON log lines.
                     - metric:
                         type: counter
                         name: elevate_requests

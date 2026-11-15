@@ -1,13 +1,7 @@
-# Break-glass roles for the Claude Code pod. Nothing binds them by default: the elevate page (elevate/elevate.yaml) adds a
-# RoleBinding for ServiceAccount `claude` in the namespaces you pick, and removes it when the time is up. They are
-# ClusterRoles only so one definition serves every namespace; a RoleBinding limits them to its own namespace.
-# None of the roles has a Secrets, RBAC or node rule, and none can edit a workload or a Flux object: a `patch` there is a full
-# write of the pod spec or of the Flux spec (env from any Secret, another ServiceAccount, postRenderers that widen a
-# ClusterRole), and RBAC cannot narrow it to one annotation. A restart is a pod delete. `debug` still reaches whatever a pod in
-# the namespace can (its mounted Secrets and ServiceAccount token), so grant it only where that is acceptable.
+# Break-glass roles, bound by the elevate page (elevate/elevate.yaml) to ServiceAccount claude for a limited time.
+# No role can patch workloads or Flux objects: a patch is a full write of the pod or Flux spec, which RBAC cannot narrow.
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
-# Restart things Flux cannot: delete or evict a pod and its controller recreates it. Nothing else, and no PVC deletes (local-path volumes hold the data).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -19,7 +13,6 @@ rules:
       - pods
     verbs:
       - delete
-  # An eviction is a delete that honours PodDisruptionBudgets
   - apiGroups:
       - ""
     resources:
@@ -28,7 +21,7 @@ rules:
       - create
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
-# Look inside a running pod. Kept apart from claude-ops because exec can reach whatever the pod can.
+# Exec reaches whatever the pod can, including its mounted Secrets and ServiceAccount token
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -49,8 +42,7 @@ rules:
       - patch
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
-# Delete a PersistentVolumeClaim. Its own tier because the storage classes here (local-path, openebs-hostpath-xfs) reclaim with Delete: deleting a
-# bound claim deletes the data on the node. A claim still used by a pod is held by the pvc-protection finalizer until the pod is gone.
+# Both storage classes reclaim with Delete: deleting a bound claim deletes its data
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:

@@ -248,20 +248,22 @@ counts as expired.
 
 | Tier | Role | Max | Grants |
 |---|---|---|---|
-| `ops` | `claude-ops` | 60 min | delete or evict pods (a restart; an eviction honours PodDisruptionBudgets). No `patch` on workloads or Flux objects: it is a full write of the pod spec or Flux spec, enough to read any Secret in the namespace or widen what Flux applies |
+| `ops` | `claude-ops` | 60 min | delete or evict pods (an eviction honours PodDisruptionBudgets) |
 | `debug` | `claude-debug` | 15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
-| `storage` | `claude-storage` | 15 min | delete PersistentVolumeClaims. Both storage classes reclaim with `Delete`, so a bound claim loses its data on the node (a claim a pod still uses waits for the pod). Its own tier so a routine restart never carries it |
+| `storage` | `claude-storage` | 15 min | delete PersistentVolumeClaims. Both storage classes reclaim with `Delete`, so a bound claim loses its data on the node (a claim a pod still uses waits for the pod) |
 
 Guards, outermost first:
 
 - **Who can reach the page.** Only the Omni exposer (host network) may connect; the NetworkPolicy has no rule for `claude-rc`, so
   the pod that receives the rights cannot ask for them. POSTs need `X-Requested-With: claude-elevate`.
 - **What the broker may do.** `ClusterRole/claude-elevator` can `bind` only `claude-ops`, `claude-debug` and `claude-storage`, and can patch or
-  delete only RoleBindings named `claude-elevate-<tier>`. RBAC cannot say who is bound or where, so a two-rule
-  `ValidatingAdmissionPolicy/claude-elevator-rolebindings` does: only `claude-system/claude` may be the subject, and only in a namespace labelled for that
-  tier. Without it a bug in the sidecar could bind any subject to those roles in any namespace, `kube-system` included.
-- **Where.** One list, in Git: a namespace opts in per tier with the label `claude-elevate/<tier>: "true"` (`ops`, `debug`, `storage`) in its own manifest (today `adguard-system` all three, `external-dns-system` only `ops`, because exec there could read the DNS API token). Remove `claude-elevate/storage` from a namespace once its PVCs hold data you care about. The sidecar reads the labels each loop and the admission policy reads the same labels (`namespaceObject`), so nothing is kept in two places; a failed lookup allows nothing. A revoke always works, also for a namespace that has since lost its label.
-  Neither tier has a Secrets, RBAC or node rule. `debug` can still read whatever a pod in the namespace can (mounted Secrets, its ServiceAccount token), so grant it only where that is acceptable. A forced Flux reconcile or a rollout restart is not offered: RBAC cannot limit a `patch` to one annotation.
+  delete only RoleBindings named `claude-elevate-<tier>`. `ValidatingAdmissionPolicy/claude-elevator-rolebindings` allows only `claude-system/claude`
+  as the subject, and only in a namespace labelled for that tier.
+- **Where.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` (`ops`, `debug`, `storage`) in its own manifest:
+  `adguard-system` has all three, `external-dns-system` has `ops` (exec there can read the DNS API token). The sidecar and the admission policy
+  read the same labels; a failed lookup allows nothing. A revoke works for any namespace.
+- **Scope of the tiers.** No tier has a Secrets, RBAC or node rule or can patch workloads or Flux objects. `debug` reads whatever a pod in the
+  namespace can (mounted Secrets, its ServiceAccount token). Rollout restarts and forced Flux reconciles are not part of any tier.
 - **Dead controller.** The page shows "Controller not answering" when the status is older than 30 s, and the sidecar's liveness probe
   restarts it when its loop stalls for a minute. A grant can still outlive its time while the sidecar is down; revoke by deleting the
   RoleBinding (`kubectl delete rolebinding claude-elevate-<tier> -n <ns>`) from an admin machine.

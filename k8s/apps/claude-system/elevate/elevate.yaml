@@ -1,6 +1,5 @@
 ---
-# Break-glass page (see elevate/redpanda-connect.yaml, elevate/reconcile.sh and the README). It adds a RoleBinding of the claude-ops, claude-debug or
-# claude-storage ClusterRole for ServiceAccount claude-system/claude in the namespaces you pick, and removes it when the time is up.
+# Break-glass page: grants claude-system/claude a tier's ClusterRole in chosen namespaces until a deadline (see the README).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -8,8 +7,7 @@ metadata:
   namespace: claude-system
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
-# `bind` is limited to the three break-glass roles by name, so this account cannot hand out anything else, and patch and delete to the three
-# binding names it creates. What RBAC cannot say (who is bound, and in which namespaces) the admission policy below does.
+# bind, patch and delete are pinned by name; who is bound and where is the admission policy below
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -30,7 +28,6 @@ rules:
       - get
       - list
       - create
-  # RBAC can pin patch and delete to names, so the elevator can only change or remove its own bindings
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
@@ -67,10 +64,7 @@ subjects:
     namespace: claude-system
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
-# The second lock, for what RBAC cannot express: whatever the page or the script does, claude-elevator can bind only ServiceAccount
-# claude-system/claude, and only in a namespace labelled for that tier (claude-elevate/<tier>: "true" in the namespace's own manifest; the
-# sidecar reads the same labels). Without it a bug or a compromise of the sidecar could bind any subject to the break-glass roles in any
-# namespace, kube-system included. Which roles, and which bindings it may change or delete, are RBAC rules above.
+# Only claude-system/claude may be bound, and only in a namespace labelled claude-elevate/<tier>.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -130,7 +124,7 @@ spec:
         prometheus-scrape: "true"
     spec:
       serviceAccountName: claude-elevator
-      # Only the sidecar gets the token (projected below); the page container has no Kubernetes credentials.
+      # only the sidecar mounts a token (projected below)
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
@@ -241,7 +235,7 @@ spec:
                       fieldRef:
                         fieldPath: metadata.namespace
 ---
-# The page, through the Omni service exposer (Omni login). The NetworkPolicy lets in nothing else, claude-rc included.
+# Omni exposer (Omni login). The NetworkPolicy lets in nothing else, claude-rc included.
 apiVersion: v1
 kind: Service
 metadata:

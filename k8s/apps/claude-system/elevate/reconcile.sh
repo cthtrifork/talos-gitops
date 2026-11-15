@@ -1,20 +1,16 @@
 #!/usr/bin/env bash
-# The elevate pod's hands (see elevate.yaml). The page (Redpanda Connect) only drops request files into /spool; this loop
-# validates each one again, adds or removes a RoleBinding for ServiceAccount claude-system/claude, deletes every grant
-# that has expired and writes /spool/status for the page. It trusts nothing in a request except what it re-checks here:
-# the tier, the minutes and the namespaces. The admission policy claude-elevator-rolebindings is the second lock.
-# Not a Flux template (configMapGenerator disables postBuild envsubst).
+# Turns the request files the page drops into /spool into RoleBindings for claude-system/claude, re-validating each one,
+# and deletes grants that have expired. The page is not trusted: tier, minutes and namespaces are checked here again.
 set -uo pipefail
 
 spool=/spool
 selector=app.kubernetes.io/managed-by=claude-elevate
 dns_label='^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$'
-# exec reaches whatever the pod can, and a PVC delete can destroy data: both get a shorter leash
 declare -A max_minutes=([ops]=60 [debug]=15 [storage]=15)
 declare -A allowed=()
 log=()
 
-# Every action: one JSON line on stdout (the audit trail) and one line for the page's "Recent" box (the last 10, in memory).
+# One JSON line on stdout (audit trail) and one line for the page's "Recent" box (last 10, in memory)
 event() { # event [tier] [namespace] [detail]
   jq -nc --arg event "$1" --arg tier "${2:-}" --arg namespace "${3:-}" --arg detail "${4:-}" \
     '{ts: (now | todate), event: $event, tier: $tier, namespace: $namespace, detail: $detail}'
@@ -22,8 +18,7 @@ event() { # event [tier] [namespace] [detail]
   if ((${#log[@]} > 10)); then log=("${log[@]:1}"); fi
 }
 
-# The allowlist is the label claude-elevate/<tier>=true on a Namespace (set in Git next to the namespace; the admission policy reads the
-# same label). Each tier is opted in separately. If the lookup fails nothing is allowed.
+# A namespace opts in per tier with the label claude-elevate/<tier>=true (the admission policy reads the same label)
 refresh_allowed() {
   local t out
   for t in "${!max_minutes[@]}"; do
@@ -65,8 +60,7 @@ revoke() { # tier namespace reason
   fi
 }
 
-# Reason "expired" revokes the overdue grants, anything else all of them. A grant with no readable expiry counts as overdue, so a
-# mangled annotation fails closed.
+# reason "expired": only overdue grants (an unreadable expiry counts as overdue); anything else: all of them
 revoke_bindings() { # reason
   local name ns
   while read -r name ns; do revoke "${name#claude-elevate-}" "$ns" "$1"; done < <(
@@ -87,7 +81,7 @@ handle() { # request file
   case "$(field action "$body")" in
     revokeall) revoke_bindings requested ;;
     revoke)
-      # A revoke always works, also for a namespace that has left the allowlist since: it can only delete claude-elevate-<tier>
+      # not limited to opted-in namespaces
       ns="$(field namespace "$body")"
       if [[ -n "${max_minutes[$tier]:-}" && "$ns" =~ $dns_label ]]; then revoke "$tier" "$ns" requested; else event rejected "" "" "revoke request"; fi
       ;;
@@ -120,11 +114,11 @@ write_status() {
 }
 
 while true; do
-  touch "${spool}/.alive" # the liveness probe: a stuck loop leaves grants past their time
+  touch "${spool}/.alive" # liveness probe
   refresh_allowed
   for f in "${spool}"/req-*; do
     [[ -e "$f" ]] || continue
-    # Connect writes the file in place: give it a second to finish
+    # skip files younger than a second (Connect writes in place)
     (($(date +%s) - $(stat -c %Y "$f") >= 1)) || continue
     handle "$f"
   done

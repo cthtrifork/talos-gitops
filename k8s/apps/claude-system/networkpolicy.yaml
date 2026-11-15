@@ -253,8 +253,7 @@ spec:
               protocol: ANY
 ---
 # Elevate Claude. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node).
-# There is deliberately no rule for claude-rc: the page can grant it rights, so it must not be able to post to it. The sidecar
-# talks to the API server only.
+# claude-rc has no ingress rule here: it receives the rights the page grants, so it cannot reach the page. The sidecar talks to the API server only.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
