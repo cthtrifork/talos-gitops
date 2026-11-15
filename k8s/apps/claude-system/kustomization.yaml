@@ -11,7 +11,7 @@ resources:
   - github-app.yaml
   - usage/usage.yaml
   - vm-upgrade/vm-upgrade.yaml
-  - elevate/elevator.yaml
+  - elevate/rbac.yaml
   - elevate/state.yaml
   - elevate/admission.yaml
   - elevate/deployment.yaml
