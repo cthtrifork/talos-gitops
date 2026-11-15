@@ -193,6 +193,15 @@
       "automerge": false
     },
     {
+      "description": "The runner images built from images/ are tagged <tool version>-YYYYMMDD.<run>, a semver prerelease (docs/releasing.md): a newer build is a newer prerelease, so unstable versions must be allowed.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": [
+        "ghcr.io/cthtrifork/talos-gitops/github-actions-runner",
+        "ghcr.io/cthtrifork/talos-gitops/claude-runner"
+      ],
+      "ignoreUnstable": false
+    },
+    {
       "description": "Renovate itself (the renovate_version pin and the renovatebot/github-action) automerges for every update type. Last, so it wins over the rules above.",
       "matchPackageNames": ["renovate", "renovatebot/github-action"],
       "automerge": true,
