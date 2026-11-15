@@ -256,7 +256,9 @@ Kubernetes API with the pod's own token; the steps and the API are in `elevate/r
 - **Limits.** The API server validates. RBAC pins the pod to the three roles and to `claude-elevate-<tier>` objects;
   `claude-elevator-rolebindings` allows only that ServiceAccount, only in an opted-in namespace; `claude-elevator-tokens` caps a token at the tier's
   minutes in `ConfigMap/claude-elevate-limits` (the page reads it too). The page container holds a credential that can grant, bounded by these.
-- **Reach.** Only the Omni exposer and Prometheus (metrics port) reach the pod, never `claude-rc`; POSTs need `X-Requested-With: claude-elevate`.
+- **Reach.** Only the Omni exposer and Prometheus (metrics port) reach the pod, never `claude-rc`. A POST must carry the `csrf` value from the status
+  (a hash of the pod's token, which a page on another site cannot read; a header would not do, Connect copies query parameters into the same metadata),
+  and requests are handled one at a time.
 - **Not offered.** Patching workloads or Flux objects (rollout restarts, forced reconciles). `debug` reads whatever a pod in the namespace can
   (mounted Secrets, its ServiceAccount token).
 - **Token storage and audit.** The token is plain text in the Secret (readable with `get secrets` in `claude-system`) and in the mount. Grants and

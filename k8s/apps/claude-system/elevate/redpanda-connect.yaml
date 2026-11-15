@@ -6,9 +6,10 @@
 #
 # GET  /                  the page
 # GET  /api/v1/status     allowed namespaces and max minutes per tier, and the active grants, all read from the API server
-# POST /api/v1/grants     {"tier": "<tier>", "minutes": <n>, "namespace": "<namespace>"}
-# POST /api/v1/revoke     {"tier": "<tier>", "namespace": "<namespace>"}
-# POSTs need the header X-Requested-With: claude-elevate, so a form on another site cannot post them. An error answers 502 with the API's message.
+# POST /api/v1/grants     {"tier": "<tier>", "minutes": <n>, "namespace": "<namespace>", "csrf": "<csrf>"}
+# POST /api/v1/revoke     {"tier": "<tier>", "namespace": "<namespace>", "csrf": "<csrf>"}
+# The status carries `csrf`, a hash of the pod's token that only a page reading the status can know, so a form on another site cannot post.
+# (A header cannot do that here: Connect also copies query parameters into the same metadata.) An error answers 502 with the API's message.
 http:
   enabled: true
   address: 0.0.0.0:4195
@@ -34,6 +35,7 @@ input:
         Cache-Control: no-store
 
 pipeline:
+  threads: 1 # the steps of one grant must not interleave with another request
   processors:
     - switch:
         - check: '@http_server_verb == "GET" && (@http_server_request_path == "/" || @http_server_request_path == "/index.html")'
@@ -52,25 +54,18 @@ pipeline:
           processors:
             - resource: status
 
-        # a cross-site form cannot set this header (no CORS preflight is ever answered)
-        - check: '@http_server_verb == "POST" && metadata("X-Requested-With").or("") != "claude-elevate"'
-          processors:
-            - mapping: |
-                meta status = "403"
-                root = {"error": "missing X-Requested-With header"}
-
         - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/grants"'
           processors:
             - mapping: |
                 let b = content().parse_json()
-                root = {"tier": $b.tier.escape_url_path(), "namespace": $b.namespace.escape_url_path(), "minutes": $b.minutes}
+                root = {"tier": $b.tier.escape_url_path(), "namespace": $b.namespace.escape_url_path(), "minutes": $b.minutes, "csrf": $b.csrf}
             - resource: grant
 
         - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/revoke"'
           processors:
             - mapping: |
                 let b = content().parse_json()
-                root = {"tier": $b.tier.escape_url_path(), "namespace": $b.namespace.escape_url_path()}
+                root = {"tier": $b.tier.escape_url_path(), "namespace": $b.namespace.escape_url_path(), "csrf": $b.csrf}
             - resource: revoke
 
         - processors:
@@ -84,13 +79,18 @@ pipeline:
             message: request failed
             fields_mapping: 'root.error = error()'
         - mapping: |
-            meta status = "502"
+            meta status = if error().contains("bad csrf token") { "403" } else { "502" }
             root = {"error": error().re_find_object("Error: (?P<json>\\{.*\\})").json.parse_json().message.catch(error())}
 
 output:
   sync_response: {}
 
 processor_resources:
+  # fails unless the message's csrf is the hash the status hands out (needs the metadata field `token`), and drops it from the message
+  - label: check_csrf
+    mapping: |
+      root = if this.csrf != metadata("token").hash("sha256").encode("hex") { throw("bad csrf token") } else { this.without("csrf") }
+
   # puts the pod's token in the metadata field `token`; the other resources send it
   - label: login
     branch:
@@ -138,6 +138,7 @@ processor_resources:
       verb: POST
       headers:
         Authorization: 'Bearer ${! @token }'
+        Content-Type: application/json
       tls:
         root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
@@ -148,6 +149,7 @@ processor_resources:
       verb: DELETE
       headers:
         Authorization: 'Bearer ${! @token }'
+        Content-Type: application/json
       successful_on:
         - 404
       tls:
@@ -179,6 +181,7 @@ processor_resources:
             - resource: get
           result_map: 'meta serviceaccounts = this.items'
       - mapping: |
+          root.csrf = @token.hash("sha256").encode("hex")
           root.max_minutes = @limits.map_each(kv -> kv.value.number())
           root.allowed_namespaces = @limits.map_each(kv -> @namespaces.filter(n -> n.metadata.labels.or({}).get("claude-elevate/" + kv.key) == "true").map_each(n -> n.metadata.name))
           root.grants = @serviceaccounts.filter(s -> s.metadata.annotations.or({}).get("claude-elevate/expires-at").type() == "string").map_each(s -> {
@@ -187,17 +190,10 @@ processor_resources:
             "expires_at": s.metadata.annotations.get("claude-elevate/expires-at")
           })
 
-  # Deletes the kubeconfig key, the ServiceAccount and the RoleBinding of the tier and namespace in the message. Deleting the ServiceAccount
-  # invalidates its tokens at once.
+  # Deletes the ServiceAccount, the RoleBinding and the kubeconfig key of the tier and namespace in the message. The ServiceAccount goes first:
+  # deleting it invalidates its tokens at once.
   - label: remove
     try:
-      - branch:
-          request_map: |
-            meta path = "/api/v1/namespaces/claude-system/secrets/claude-elevated-kubeconfigs"
-            let key = this.tier + "-" + this.namespace + ".kubeconfig"
-            root = {"data": {$key: null}}
-          processors:
-            - resource: merge
       - branch:
           request_map: |
             meta path = "/api/v1/namespaces/" + this.namespace + "/serviceaccounts/claude-elevate-" + this.tier
@@ -210,14 +206,20 @@ processor_resources:
             root = ""
           processors:
             - resource: delete
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/claude-system/secrets/claude-elevated-kubeconfigs"
+            let key = this.tier + "-" + this.namespace + ".kubeconfig"
+            root = {"data": {$key: null}}
+          processors:
+            - resource: merge
 
   # POST /api/v1/grants: the message is {tier, namespace, minutes}
   - label: grant
     try:
       - resource: login
+      - resource: check_csrf
       - mapping: |
-          let expires = (now().ts_unix() + this.minutes * 60).ts_format("2006-01-02T15:04:05Z", "UTC")
-          meta expires = $expires
           meta object_meta = {
             "name": "claude-elevate-" + this.tier,
             "namespace": this.namespace,
@@ -250,14 +252,9 @@ processor_resources:
             root = {"apiVersion": "authentication.k8s.io/v1", "kind": "TokenRequest", "spec": {"expirationSeconds": this.minutes * 60}}
           processors:
             - resource: post
-          result_map: 'meta kube_token = this.status.token'
-      # a ServiceAccount counts as a grant once it carries the expiry, so a grant that failed before this is never listed
-      - branch:
-          request_map: |
-            meta path = "/api/v1/namespaces/" + this.namespace + "/serviceaccounts/claude-elevate-" + this.tier
-            root = {"metadata": {"annotations": {"claude-elevate/expires-at": metadata("expires")}}}
-          processors:
-            - resource: merge
+          result_map: |
+            meta kube_token = this.status.token
+            meta expires = this.status.expirationTimestamp
       - branch:
           request_map: |
             let name = this.tier + "-" + this.namespace
@@ -271,6 +268,13 @@ processor_resources:
             }
             meta path = "/api/v1/namespaces/claude-system/secrets/claude-elevated-kubeconfigs"
             root = {"stringData": {$name + ".kubeconfig": $kubeconfig.format_json().string()}}
+          processors:
+            - resource: merge
+      # a ServiceAccount counts as a grant once it carries the expiry, so a grant that failed before this is never listed
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/" + this.namespace + "/serviceaccounts/claude-elevate-" + this.tier
+            root = {"metadata": {"annotations": {"claude-elevate/expires-at": metadata("expires")}}}
           processors:
             - resource: merge
       - log:
@@ -288,6 +292,7 @@ processor_resources:
   - label: revoke
     try:
       - resource: login
+      - resource: check_csrf
       - resource: remove
       - log:
           message: revoked

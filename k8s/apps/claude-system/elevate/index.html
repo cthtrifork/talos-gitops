@@ -162,7 +162,7 @@
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-  var HEADERS = { "Content-Type": "application/json", "X-Requested-With": "claude-elevate" };
+  var HEADERS = { "Content-Type": "application/json" };
   var DURATIONS = [10, 15, 30, 60];
   var status = null;
   var confirming = false;
@@ -285,10 +285,15 @@
     });
   }
 
+  // a refusal stays until the next action; only a failed status read is cleared when the reads recover
+  function clearStatusError() {
+    if ($("error").textContent.indexOf("Cannot read status") === 0) $("error").textContent = "";
+  }
+
   function load() {
     return fetch("api/v1/status", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
-      .then(function (s) { s.grants = (s.grants || []).filter(function (g) { return Date.parse(g.expires_at) > Date.now(); }); status = s; $("error").textContent = ""; buildMinutes(); render(); updateForm(); })
+      .then(function (s) { s.grants = (s.grants || []).filter(function (g) { return Date.parse(g.expires_at) > Date.now(); }); status = s; clearStatusError(); buildMinutes(); render(); updateForm(); })
       .catch(function (e) { $("error").textContent = "Cannot read status: " + e.message; });
   }
 
@@ -296,7 +301,7 @@
   function send(path, bodies) {
     $("error").textContent = "";
     return Promise.all(bodies.map(function (body) {
-      return fetch(path.replace(/^\//, ""), { method: "POST", headers: HEADERS, body: JSON.stringify(body) })
+      return fetch(path.replace(/^\//, ""), { method: "POST", headers: HEADERS, body: JSON.stringify(Object.assign({ csrf: status.csrf }, body)) })
         .then(function (r) { return r.ok ? "" : r.json().then(function (j) { return j.error; }); })
         .catch(function (e) { return e.message; })
         .then(function (error) { return error ? body.namespace + ": " + error : ""; });
