@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Turns the request files the page drops into /spool into a ServiceAccount, a RoleBinding and a short-lived token for a tier, written as a
-# kubeconfig to /elevated. The page is not trusted: tier, minutes and namespaces are checked here again. The token expires on its own;
-# deleting expired ServiceAccounts, bindings and files is housekeeping.
+# Turns the request files the page drops into /spool into a ServiceAccount, a RoleBinding and a short-lived token for a tier, stored as a
+# kubeconfig in a Secret that claude-rc mounts. The page is not trusted: tier, minutes and namespaces are checked here again. The token
+# expires on its own; deleting expired ServiceAccounts, bindings and kubeconfigs is housekeeping.
 set -uo pipefail
 
 spool=/spool
-elevated=/elevated
+secret=claude-elevated-kubeconfigs
+secret_ns=claude-system
 ca_file=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 selector=app.kubernetes.io/managed-by=claude-elevate
 dns_label='^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$'
@@ -39,6 +40,8 @@ is_allowed() { # tier namespace
 
 list_grants() { kubectl get serviceaccounts -A -l "$selector" -o json; }
 
+patch_secret() { kubectl patch secret "$secret" -n "$secret_ns" --type merge --patch-file=/dev/stdin >/dev/null 2>&1; }
+
 apply_grant() { # tier namespace expires
   jq -n --arg ns "$2" --arg tier "$1" --arg exp "$3" '
     def meta: {name: ("claude-elevate-" + $tier), namespace: $ns,
@@ -53,23 +56,21 @@ apply_grant() { # tier namespace expires
 }
 
 write_kubeconfig() { # tier namespace token
-  local name="$1-$2" file="${elevated}/$1-$2.kubeconfig"
-  (
-    umask 022
-    TOKEN="$3" jq -n --arg name "$name" --arg ns "$2" --arg ca "$(base64 <"$ca_file" | tr -d '\n')" '{
+  local name="$1-$2"
+  TOKEN="$3" jq -n --arg name "$name" --arg ns "$2" --arg ca "$(base64 <"$ca_file" | tr -d '\n')" '{
+    stringData: {($name + ".kubeconfig"): ({
       apiVersion: "v1", kind: "Config", "current-context": $name,
       clusters: [{name: "cluster", cluster: {server: "https://kubernetes.default.svc", "certificate-authority-data": $ca}}],
       users: [{name: $name, user: {token: env.TOKEN}}],
-      contexts: [{name: $name, context: {cluster: "cluster", user: $name, namespace: $ns}}]}' >"${file}.tmp"
-  ) && mv "${file}.tmp" "$file"
+      contexts: [{name: $name, context: {cluster: "cluster", user: $name, namespace: $ns}}]} | tojson)}}' | patch_secret
 }
 
 # deleting the ServiceAccount invalidates its tokens at once
 remove() { # tier namespace
   local rc=0
   kubectl delete serviceaccount,rolebinding "claude-elevate-$1" -n "$2" --ignore-not-found >/dev/null 2>&1 || rc=1
-  rm -f "${elevated}/$1-$2.kubeconfig"
-  return $rc
+  jq -n --arg key "$1-$2.kubeconfig" '{data: {($key): null}}' | patch_secret || rc=1
+  return "$rc"
 }
 
 grant() { # tier namespace minutes
@@ -99,13 +100,13 @@ revoke_grants() { # reason
       | "\(.metadata.name) \(.metadata.namespace)"')
 }
 
+# removes the kubeconfigs of grants that no longer exist
 prune_kubeconfigs() {
-  local keep f
-  keep="$(list_grants | jq -r '.items[] | "\(.metadata.name | ltrimstr("claude-elevate-"))-\(.metadata.namespace).kubeconfig"')" || return
-  for f in "${elevated}"/*.kubeconfig; do
-    [[ -e "$f" ]] || continue
-    grep -qxF "${f##*/}" <<<"$keep" || rm -f "$f"
-  done
+  local keep patch
+  keep="$(list_grants | jq -c '[.items[] | "\(.metadata.name | ltrimstr("claude-elevate-"))-\(.metadata.namespace).kubeconfig"]')" || return
+  patch="$(kubectl get secret "$secret" -n "$secret_ns" -o json 2>/dev/null |
+    jq -c --argjson keep "$keep" '{data: ((.data // {}) | with_entries(select(.key | IN($keep[]) | not)) | map_values(null))}')" || return
+  if jq -e '.data | length > 0' <<<"$patch" >/dev/null 2>&1; then patch_secret <<<"$patch"; fi
 }
 
 field() { jq -r --arg k "$1" '.[$k] // "" | tostring' <<<"$2"; } # field name, JSON

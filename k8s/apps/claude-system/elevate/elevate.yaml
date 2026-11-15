@@ -92,6 +92,47 @@ subjects:
     name: claude-elevator
     namespace: claude-system
 ---
+# The kubeconfigs of the active grants, one key per <tier>-<namespace>.kubeconfig, mounted by claude-rc at /etc/elevated. Created empty; the
+# elevator fills it, so Flux only creates it. Not annotated for Reloader: a restart of claude-rc would end the session.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: claude-elevated-kubeconfigs
+  namespace: claude-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+type: Opaque
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: claude-elevator
+  namespace: claude-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - claude-elevated-kubeconfigs
+    verbs:
+      - get
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: claude-elevator
+  namespace: claude-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: claude-elevator
+subjects:
+  - kind: ServiceAccount
+    name: claude-elevator
+    namespace: claude-system
+---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
 # Only the ServiceAccount claude-elevate-<tier> of the same namespace may be bound, and only in a namespace labelled claude-elevate/<tier>.
 apiVersion: admissionregistration.k8s.io/v1
@@ -164,28 +205,6 @@ spec:
         runAsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
-      initContainers:
-        - name: elevated-dir
-          image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
-          command:
-            - mkdir
-            - -p
-            - /workspace/.elevated
-          resources:
-            requests:
-              cpu: 10m
-              memory: 16Mi
-            limits:
-              memory: 64Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-          volumeMounts:
-            - name: workspace
-              mountPath: /workspace
       containers:
         - name: connect
           image: mirror.gcr.io/redpandadata/connect:4.117.0@sha256:b6df7ca0c506578c8cc8b0cd223c117366bbeac84365f95944d339f0165b551c # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
@@ -258,9 +277,6 @@ spec:
             - name: scripts
               mountPath: /scripts
               readOnly: true
-            - name: workspace
-              mountPath: /elevated
-              subPath: .elevated
             - name: kube-api-access
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
               readOnly: true
@@ -269,9 +285,6 @@ spec:
           emptyDir: {}
         - name: spool
           emptyDir: {}
-        - name: workspace
-          persistentVolumeClaim:
-            claimName: claude-workspace
         - name: config
           configMap:
             name: claude-elevate-connect-config

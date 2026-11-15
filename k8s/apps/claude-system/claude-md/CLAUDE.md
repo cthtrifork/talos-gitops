@@ -16,7 +16,7 @@ mounted through a generated ConfigMap: edit it there, not in the pod (pod change
 - Read-only: get, list and watch pods (with logs), workloads, services, events, configmaps, nodes, PVCs, ClusterRoles and ClusterRoleBindings, and the CRDs
   this cluster uses. No Secrets, no write verbs, no `pods/exec`. Do not try to work around this.
 - Elevated access is a short-lived token a person grants on the "Elevate Claude" page (Omni), as one kubeconfig per tier and namespace:
-  `/workspace/.elevated/<tier>-<namespace>.kubeconfig`. `ops` deletes or evicts pods, `debug` execs and port-forwards, `storage` deletes PVCs
+  `/etc/elevated/<tier>-<namespace>.kubeconfig` (a new file can take about a minute to appear). `ops` deletes or evicts pods, `debug` execs and port-forwards, `storage` deletes PVCs
   (which loses data). If a file exists, use it for that task only with `kubectl --kubeconfig <file>`, say each write command before running it
   and what it changed afterwards, and never for `kubectl apply` or editing manifests (those go through a PR). Never print or copy the token.
   An expired token stops working: go back to read-only and ask. Do not look for another way in, and never try to reach the page.

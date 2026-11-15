@@ -244,11 +244,12 @@ sharing an emptyDir: Redpanda Connect serves the page and turns a POST into a re
 `reconcile` sidecar (`elevate/reconcile.sh`, the only container with a Kubernetes token) re-validates each file. For each namespace it applies
 a ServiceAccount and a RoleBinding named `claude-elevate-<tier>` (label `app.kubernetes.io/managed-by=claude-elevate`, annotation
 `claude-elevate/expires-at`), requests a token for the ServiceAccount (`TokenRequest`, at least 10 minutes) and writes
-`/workspace/.elevated/<tier>-<namespace>.kubeconfig` (mode 0644) on the `claude-workspace` volume (the pod mounts only that subfolder; the volume
-is local to one node, so the pod runs beside `claude-rc`). Claude uses it with `kubectl --kubeconfig`; its own ServiceAccount is bound to nothing.
+the key `<tier>-<namespace>.kubeconfig` in `Secret/claude-elevated-kubeconfigs`, which `claude-rc` mounts at `/etc/elevated` (the kubelet refreshes
+the files within about a minute, so no restart is needed; the Secret must not carry a Reloader annotation). Claude uses a file with
+`kubectl --kubeconfig`; its own ServiceAccount is bound to nothing.
 
 The token expires on the API server whether or not the sidecar runs. The sidecar's sweep deletes expired ServiceAccounts, bindings and
-kubeconfig files; a leftover ServiceAccount has no valid token. A revoke deletes the ServiceAccount, which invalidates its tokens at once.
+kubeconfig keys; a leftover ServiceAccount has no valid token. A revoke deletes the ServiceAccount, which invalidates its tokens at once.
 
 | Tier | Role | Max | Grants |
 |---|---|---|---|
@@ -271,8 +272,8 @@ Guards, outermost first:
   namespace can (mounted Secrets, its ServiceAccount token). Rollout restarts and forced Flux reconciles are not part of any tier.
 - **Dead controller.** The page shows "Controller not answering" when the status is older than 30 s, and the sidecar's liveness probe
   restarts it when its loop stalls for a minute. The tokens expire regardless; the leftover ServiceAccounts, bindings and files wait for the sweep.
-- **Token on disk.** The kubeconfig holds the token in plain text for up to the grant's lifetime (at most 60 minutes) and is readable by anything
-  that mounts `claude-workspace`.
+- **Token storage.** The kubeconfig holds the token in plain text for up to the grant's lifetime (at most 60 minutes), in a Secret readable by anyone
+  with `get secrets` in `claude-system`, and as a world-readable file in `claude-rc`. `claude-elevator` can only `get` and `patch` that one Secret.
 - **State and audit.** The grants are the ServiceAccounts in the cluster, so a page reload, a pod restart or a second device all show the same list. The
   "Recent" box is only the last 10 actions, in the sidecar's memory. The audit trail is one JSON line per action on the `reconcile` container's stdout
   (`granted`, `revoked` with `requested` or `expired`, `rejected`, `*_failed`); the cluster has no log shipper, so read it with `kubectl logs` before the pod is replaced.
