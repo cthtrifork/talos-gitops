@@ -258,7 +258,7 @@ Guards, outermost first:
 - **What the broker may do.** `ClusterRole/claude-elevator` can `bind` only `claude-ops` and `claude-debug`. The
   `ValidatingAdmissionPolicy/claude-elevator-rolebindings` lets that account touch only RoleBindings carrying its label, bind only
   `claude` to those two roles, and only in the namespaces on its list.
-- **Where.** The namespace list lives in two places that must match: `ALLOWED_NAMESPACES` in the Deployment and the policy (the policy wins).
+- **Where.** One list, in Git: a namespace opts in per tier with the label `claude-elevate/ops: "true"` or `claude-elevate/debug: "true"` in its own manifest (today `adguard-system` both, `external-dns-system` only `ops`, because exec there could read the DNS API token). The sidecar reads the labels each loop and the admission policy reads the same labels (`namespaceObject`), so nothing is kept in two places; a failed lookup allows nothing. A revoke always works, also for a namespace that has since lost its label.
   Neither tier has a Secrets, RBAC or node rule. `debug` can still read whatever a pod in the namespace can (mounted Secrets, its ServiceAccount token), so grant it only where that is acceptable. A forced Flux reconcile or a rollout restart is not offered: RBAC cannot limit a `patch` to one annotation.
 - **Dead controller.** The page shows "Controller not answering" when the status is older than 30 s, and the sidecar's liveness probe
   restarts it when its loop stalls for a minute. A grant can still outlive its time while the sidecar is down; revoke by deleting the

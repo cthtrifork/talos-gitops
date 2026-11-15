@@ -220,13 +220,14 @@
   function maxFor(tier) { return (status && status.max_minutes && status.max_minutes[tier]) || 15; }
 
   function buildNamespaces() {
-    var names = (status && status.allowed_namespaces) || [];
-    var key = names.join(",");
+    var perTier = (status && status.allowed_namespaces) || {};
+    var names = perTier[selectedTier()] || [];
+    var key = selectedTier() + ":" + names.join(",");
     if (key === builtFor) return;
     builtFor = key;
     var box = $("namespaces");
     clear(box);
-    if (names.length === 0) { box.appendChild(el("p", "No namespaces are allowed.", "empty")); }
+    if (names.length === 0) { box.appendChild(el("p", "No namespaces are allowed for this tier.", "empty")); }
     names.forEach(function (n) { box.appendChild(choice("checkbox", "ns", n, n, false, "mono")); });
     $("toggleAll").hidden = names.length < 2;
   }
@@ -331,7 +332,7 @@
   }
 
   $("form").addEventListener("change", function (ev) {
-    if (ev.target.name === "tier") buildMinutes();
+    if (ev.target.name === "tier") { buildMinutes(); buildNamespaces(); }
     setConfirming(false);
   });
   $("cancel").addEventListener("click", function () { setConfirming(false); });

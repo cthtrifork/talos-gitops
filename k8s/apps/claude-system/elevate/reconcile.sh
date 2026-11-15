@@ -7,7 +7,7 @@
 set -uo pipefail
 
 spool=/spool
-read -r -a allowed <<<"${ALLOWED_NAMESPACES:?}"
+declare -A allowed=([ops]="" [debug]="")
 declare -A max_minutes=([ops]=60 [debug]=15) # exec reaches whatever the pod can, so a shorter leash
 selector=app.kubernetes.io/managed-by=claude-elevate
 log=()
@@ -18,9 +18,22 @@ note() {
   if ((${#log[@]} > 10)); then log=("${log[@]:1}"); fi
 }
 
-is_allowed() {
+# The allowlist is the label claude-elevate/<tier>=true on a Namespace (set in Git next to the namespace; the admission policy reads the
+# same label). debug and ops are opted in separately, since exec reaches the Secrets a pod mounts. If the lookup fails nothing is allowed.
+refresh_allowed() {
+  local t out
+  for t in "${!max_minutes[@]}"; do
+    if out="$(kubectl get namespaces -l "claude-elevate/${t}=true" -o json 2>/dev/null)"; then
+      allowed[$t]="$(jq -r '[.items[].metadata.name] | join(" ")' <<<"$out")"
+    else
+      allowed[$t]=""
+    fi
+  done
+}
+
+is_allowed() { # tier namespace
   local ns
-  for ns in "${allowed[@]}"; do [[ "$ns" == "$1" ]] && return 0; done
+  for ns in ${allowed[$1]}; do [[ "$ns" == "$2" ]] && return 0; done
   return 1
 }
 
@@ -54,7 +67,8 @@ handle() { # request file
     revoke)
       tier="$(jq -r '.tier // ""' <<<"$body")"
       ns="$(jq -r '.namespace // ""' <<<"$body")"
-      if [[ -n "${max_minutes[$tier]:-}" ]] && is_allowed "$ns"; then revoke "$tier" "$ns"; else note "rejected a revoke request"; fi
+      # A revoke always works, also for a namespace that has left the allowlist since; the admission policy lets it delete only its own bindings
+      if [[ -n "${max_minutes[$tier]:-}" && "$ns" =~ ^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$ ]]; then revoke "$tier" "$ns"; else note "rejected a revoke request"; fi
       ;;
     grant)
       tier="$(jq -r '.tier // ""' <<<"$body")"
@@ -64,7 +78,7 @@ handle() { # request file
         return
       fi
       while read -r ns; do
-        if is_allowed "$ns"; then grant "$tier" "$ns" "$minutes"; else note "rejected namespace ${ns:0:63}"; fi
+        if is_allowed "$tier" "$ns"; then grant "$tier" "$ns" "$minutes"; else note "rejected namespace ${ns:0:63}"; fi
       done < <(jq -r '(.namespaces // [])[] | strings' <<<"$body")
       ;;
     *) note "dropped a request with an unknown action" ;;
@@ -83,9 +97,9 @@ write_status() {
   local bindings
   bindings="$(kubectl get rolebindings -A -l "$selector" -o json)" || return
   printf '%s\n' "${log[@]:-}" | jq -R . | jq -s . | jq --argjson b "$bindings" --argjson now "$(date +%s)" \
-    --arg allowed "${allowed[*]}" --argjson ops "${max_minutes[ops]}" --argjson debug "${max_minutes[debug]}" '{
+    --arg aops "${allowed[ops]}" --arg adebug "${allowed[debug]}" --argjson ops "${max_minutes[ops]}" --argjson debug "${max_minutes[debug]}" '{
       now: $now,
-      allowed_namespaces: ($allowed | split(" ")),
+      allowed_namespaces: {ops: ($aops | split(" ")), debug: ($adebug | split(" "))},
       max_minutes: {ops: $ops, debug: $debug},
       grants: [$b.items[] | {namespace: .metadata.namespace, tier: (.metadata.name | ltrimstr("claude-elevate-")),
                             expires_at: .metadata.annotations["claude-elevate/expires-at"]}],
@@ -94,6 +108,7 @@ write_status() {
 
 while true; do
   touch "${spool}/.alive" # the liveness probe: a stuck loop leaves grants past their time
+  refresh_allowed
   for f in "${spool}"/req-*; do
     [[ -e "$f" ]] || continue
     # Connect writes the file in place: give it a second to finish
