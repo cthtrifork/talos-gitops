@@ -4,5 +4,4 @@ kind: Kustomization
 resources:
   - cloudflare-api-token-secret.enc.yaml
   - certificate-cluster-issuer.yaml
-  - cloudflare-api-token-secret.enc.yaml
   - cloudflare-cluster-issuer.yaml
