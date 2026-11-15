@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elevate Claude</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --page: #f4f4f1; --card: #ffffff; --ink: #141413; --ink-2: #55534e; --line: #e3e2da;
+    --accent: #2a78d6; --on-accent: #ffffff; --ok: #1a7f4b; --warn: #b4690e; --bad: #c0392b;
+    --warn-bg: #fff4d6; --danger: #c0392b;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --card: #1a1a19; --ink: #f0efec; --ink-2: #b4b2a9; --line: #2c2c2a;
+      --accent: #3987e5; --ok: #3cc58a; --warn: #e0a040; --bad: #ef6a5b; --warn-bg: #3a2f10; --danger: #ef6a5b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 var(--font);
+         padding: 24px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); display: flex; justify-content: center; }
+  main { width: 100%; max-width: 480px; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  .sub { margin: 0 0 16px; color: var(--ink-2); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  fieldset { border: 0; padding: 0; margin: 0 0 14px; }
+  legend { font-weight: 600; padding: 0; margin-bottom: 6px; }
+  label.opt { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; min-height: 44px; }
+  label.opt input { margin-top: 4px; width: 18px; height: 18px; flex: none; }
+  label.opt small { display: block; color: var(--ink-2); }
+  select { font: inherit; width: 100%; min-height: 44px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line);
+           background: var(--card); color: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 13px; }
+  button { font: inherit; font-weight: 600; width: 100%; min-height: 48px; padding: 12px 20px; border: 0; border-radius: 10px;
+           background: var(--accent); color: var(--on-accent); cursor: pointer; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: .55; cursor: default; }
+  button.danger { background: var(--danger); }
+  button.small { width: auto; min-height: 36px; padding: 6px 12px; font-weight: 400; }
+  .link { background: none; color: var(--ink-2); font-weight: 400; min-height: 40px; margin-top: 4px; text-decoration: underline; }
+  .confirm { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg); font-size: 14px; }
+  .hint { margin: 10px 0 0; font-size: 13px; color: var(--ink-2); min-height: 1.5em; }
+  .hint.warn { color: var(--warn); }
+  .health { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-2); flex: none; }
+  .health.ok .dot { background: var(--ok); }
+  .health.stale .dot { background: var(--bad); }
+  .health small { font-weight: 400; color: var(--ink-2); margin-left: auto; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li.grant { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+  li.grant:first-child { border-top: 0; }
+  li.grant .what { flex: 1; overflow-wrap: anywhere; }
+  li.grant .left { color: var(--ink-2); font-variant-numeric: tabular-nums; font-size: 13px; }
+  pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Elevate Claude</h1>
+  <p class="sub">Temporary extra rights for the <code>claude</code> ServiceAccount, in the namespaces you pick. They end by themselves.</p>
+
+  <div class="card">
+    <div id="health" class="health"><span class="dot"></span><span id="healthText">Loading…</span><small id="healthAge"></small></div>
+  </div>
+
+  <form id="form" class="card" autocomplete="off">
+    <fieldset>
+      <legend>Tier</legend>
+      <label class="opt"><input type="radio" name="tier" value="ops" checked>
+        <span>ops<small>Delete pods, restart Deployments, StatefulSets and DaemonSets, force a Flux reconcile. Up to <span id="maxOps">60</span> min.</small></span></label>
+      <label class="opt"><input type="radio" name="tier" value="debug">
+        <span>debug<small>Exec into pods, port-forward, ephemeral containers. Up to <span id="maxDebug">15</span> min.</small></span></label>
+    </fieldset>
+    <fieldset>
+      <legend>Namespaces</legend>
+      <div id="namespaces"></div>
+    </fieldset>
+    <fieldset>
+      <legend><label for="minutes">Time</label></legend>
+      <select id="minutes"></select>
+    </fieldset>
+    <p id="confirm" class="confirm" hidden></p>
+    <button id="go" type="submit">Elevate</button>
+    <button id="cancel" type="button" class="link" hidden>Cancel</button>
+    <p id="error" class="hint warn" role="status"></p>
+  </form>
+
+  <div class="card">
+    <h2>Active</h2>
+    <ul id="grants"></ul>
+    <p id="none" class="hint">Nothing is elevated.</p>
+    <button id="revokeAll" type="button" class="danger" hidden>Revoke everything</button>
+  </div>
+
+  <div class="card">
+    <h2>Recent</h2>
+    <pre id="log" class="mono"></pre>
+  </div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var HEADERS = { "Content-Type": "application/json", "X-Requested-With": "claude-elevate" };
+  var status = null;
+  var confirming = false;
+  var builtFor = "";
+
+  function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+  function el(tag, text, cls) {
+    var e = document.createElement(tag);
+    if (text !== undefined) e.textContent = text;
+    if (cls) e.className = cls;
+    return e;
+  }
+  function left(expiresAt) {
+    var s = Math.max(0, Math.round((Date.parse(expiresAt) - Date.now()) / 1000));
+    if (isNaN(s)) return "unknown";
+    return Math.floor(s / 60) + "m " + String(s % 60).padStart(2, "0") + "s left";
+  }
+  function selectedTier() { return document.querySelector("input[name=tier]:checked").value; }
+  function selectedNamespaces() {
+    return Array.prototype.map.call(document.querySelectorAll("#namespaces input:checked"), function (i) { return i.value; });
+  }
+  function maxFor(tier) { return (status && status.max_minutes && status.max_minutes[tier]) || 15; }
+
+  function buildNamespaces() {
+    var names = (status && status.allowed_namespaces) || [];
+    var key = names.join(",");
+    if (key === builtFor) return;
+    builtFor = key;
+    var box = $("namespaces");
+    clear(box);
+    names.forEach(function (n) {
+      var l = el("label", undefined, "opt");
+      var i = document.createElement("input");
+      i.type = "checkbox"; i.value = n;
+      l.appendChild(i);
+      l.appendChild(el("span", n, "mono"));
+      box.appendChild(l);
+    });
+  }
+
+  function buildMinutes() {
+    var tier = selectedTier(), max = maxFor(tier), sel = $("minutes"), keep = sel.value;
+    clear(sel);
+    [5, 15, 30, 60].filter(function (m) { return m <= max; }).forEach(function (m) {
+      var o = el("option", m < 60 ? m + " minutes" : "1 hour");
+      o.value = String(m);
+      sel.appendChild(o);
+    });
+    if (Array.prototype.some.call(sel.options, function (o) { return o.value === keep; })) sel.value = keep;
+    else sel.value = String(Math.min(15, max));
+    $("maxOps").textContent = maxFor("ops");
+    $("maxDebug").textContent = maxFor("debug");
+  }
+
+  function render() {
+    if (!status) return;
+    buildNamespaces();
+    var age = Math.round(Date.now() / 1000) - (status.now || 0);
+    var live = status.now > 0 && age < 30;
+    $("health").className = "health " + (live ? "ok" : "stale");
+    $("healthText").textContent = live ? "Controller running" : "Controller not answering: grants may outlive their time";
+    $("healthAge").textContent = status.now ? age + "s ago" : "";
+    var list = $("grants");
+    clear(list);
+    var grants = status.grants || [];
+    grants.forEach(function (g) {
+      var li = el("li", undefined, "grant");
+      var what = el("div", undefined, "what");
+      what.appendChild(el("strong", g.tier));
+      what.appendChild(document.createTextNode(" in "));
+      what.appendChild(el("span", g.namespace, "mono"));
+      what.appendChild(el("div", left(g.expires_at), "left"));
+      li.appendChild(what);
+      var b = el("button", "Revoke", "small danger");
+      b.type = "button";
+      b.addEventListener("click", function () { post("/api/v1/revoke", { tier: g.tier, namespace: g.namespace }); });
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+    $("none").hidden = grants.length > 0;
+    $("revokeAll").hidden = grants.length === 0;
+    $("log").textContent = (status.log || []).slice().reverse().join("\n");
+  }
+
+  function load() {
+    return fetch("api/v1/status", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
+      .then(function (s) { status = s; $("error").textContent = ""; buildMinutes(); render(); })
+      .catch(function (e) { $("error").textContent = "Cannot read status: " + e.message; });
+  }
+
+  function post(path, body) {
+    $("error").textContent = "";
+    return fetch(path.replace(/^\//, ""), { method: "POST", headers: HEADERS, body: JSON.stringify(body) })
+      .then(function (r) { if (!r.ok) throw new Error("rejected (" + r.status + ")"); })
+      .then(function () { setTimeout(load, 4000); })
+      .catch(function (e) { $("error").textContent = "Request failed: " + e.message; });
+  }
+
+  function reset() {
+    confirming = false;
+    $("confirm").hidden = true; $("cancel").hidden = true;
+    $("go").textContent = "Elevate"; $("go").className = "";
+  }
+
+  $("form").addEventListener("change", function (ev) { if (ev.target.name === "tier") buildMinutes(); reset(); });
+  $("cancel").addEventListener("click", reset);
+
+  $("form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var tier = selectedTier(), ns = selectedNamespaces(), minutes = parseInt($("minutes").value, 10);
+    if (ns.length === 0) { $("error").textContent = "Pick at least one namespace."; return; }
+    $("error").textContent = "";
+    if (!confirming) {
+      confirming = true;
+      $("confirm").textContent = "Give Claude " + tier + " rights in " + ns.join(", ") + " for " + minutes + " minutes?";
+      $("confirm").hidden = false; $("cancel").hidden = false;
+      $("go").textContent = "Confirm"; $("go").className = "danger";
+      return;
+    }
+    reset();
+    post("/api/v1/grants", { tier: tier, minutes: minutes, namespaces: ns });
+  });
+
+  $("revokeAll").addEventListener("click", function () { post("/api/v1/revoke", { all: true }); });
+
+  load();
+  setInterval(load, 5000);
+  setInterval(render, 1000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+---
+# Break-glass page (see elevate/redpanda-connect.yaml, elevate/reconcile.sh and the README). It adds a RoleBinding of the claude-ops or
+# claude-debug ClusterRole for ServiceAccount claude-system/claude in the namespaces you pick, and removes it when the time is up.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: claude-elevator
+  namespace: claude-system
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
+# `bind` is limited to the two break-glass roles by name, so this account cannot hand out anything else. The admission policy
+# below narrows the rest (who is bound, in which namespaces, and that only its own bindings are touched).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: claude-elevator
+rules:
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+    verbs:
+      - get
+      - list
+      - create
+      - patch
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+    resourceNames:
+      - claude-ops
+      - claude-debug
+    verbs:
+      - bind
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: claude-elevator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: claude-elevator
+subjects:
+  - kind: ServiceAccount
+    name: claude-elevator
+    namespace: claude-system
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
+# The second lock: whatever the page or the script does, claude-elevator can only create, change or delete RoleBindings that
+# carry its label, bind the claude ServiceAccount to the two break-glass roles, and only in the namespaces listed here
+# (keep the list equal to ALLOWED_NAMESPACES in the Deployment below; this one wins). Deleting is allowed in any namespace,
+# so an expired grant can still be cleaned up after a namespace leaves the list.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: claude-elevator-rolebindings
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - rbac.authorization.k8s.io
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - rolebindings
+  matchConditions:
+    - name: from-the-elevator
+      expression: request.userInfo.username == "system:serviceaccount:claude-system:claude-elevator"
+  variables:
+    - name: current
+      expression: 'request.operation == "DELETE" ? oldObject : object'
+    - name: label
+      expression: 'variables.current.metadata.?labels["app.kubernetes.io/managed-by"].orValue("")'
+  validations:
+    - expression: variables.label == "claude-elevate"
+      message: only RoleBindings labelled app.kubernetes.io/managed-by=claude-elevate may be touched
+    - expression: 'request.operation != "UPDATE" || oldObject.metadata.?labels["app.kubernetes.io/managed-by"].orValue("") == "claude-elevate"'
+      message: an existing RoleBinding that is not the elevator's must not be taken over
+    - expression: 'request.operation == "DELETE" || variables.current.metadata.namespace in ["adguard-system", "external-dns-system"]'
+      message: namespace is not on the elevate allowlist
+    - expression: 'request.operation == "DELETE" || variables.current.metadata.?annotations["claude-elevate/expires-at"].hasValue()'
+      message: a grant needs the claude-elevate/expires-at annotation
+    - expression: >-
+        request.operation == "DELETE" || (
+        variables.current.roleRef.apiGroup == "rbac.authorization.k8s.io" &&
+        variables.current.roleRef.kind == "ClusterRole" &&
+        variables.current.roleRef.name in ["claude-ops", "claude-debug"])
+      message: only the claude-ops and claude-debug ClusterRoles may be bound
+    - expression: >-
+        request.operation == "DELETE" || (
+        variables.current.subjects.size() == 1 &&
+        variables.current.subjects[0].kind == "ServiceAccount" &&
+        variables.current.subjects[0].name == "claude" &&
+        variables.current.subjects[0].namespace == "claude-system")
+      message: only ServiceAccount claude-system/claude may be bound
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicybinding_v1.json
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: claude-elevator-rolebindings
+spec:
+  policyName: claude-elevator-rolebindings
+  validationActions:
+    - Deny
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-elevate
+  namespace: claude-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: claude-elevate
+  template:
+    metadata:
+      labels:
+        app: claude-elevate
+        prometheus-scrape: "true"
+    spec:
+      serviceAccountName: claude-elevator
+      # Only the sidecar gets the token (projected below); the page container has no Kubernetes credentials.
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: connect
+          image: mirror.gcr.io/redpandadata/connect:4.117.0@sha256:b6df7ca0c506578c8cc8b0cd223c117366bbeac84365f95944d339f0165b551c # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
+          args:
+            - -c
+            - /etc/connect/redpanda-connect.yaml
+            - --disable-telemetry
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: metrics
+              containerPort: 4195
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+          resources:
+            requests:
+              cpu: 10m
+              memory: 48Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: spool
+              mountPath: /spool
+            - name: config
+              mountPath: /etc/connect
+              readOnly: true
+        - name: reconcile
+          image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
+          command:
+            - bash
+            - /scripts/reconcile.sh
+          env:
+            - name: ALLOWED_NAMESPACES # keep equal to the list in the ValidatingAdmissionPolicy above
+              value: adguard-system external-dns-system
+            - name: HOME
+              value: /tmp
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test $(( $(date +%s) - $(stat -c %Y /spool/.alive) )) -lt 60
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: spool
+              mountPath: /spool
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: kube-api-access
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: spool
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: claude-elevate-connect-config
+        - name: scripts
+          configMap:
+            name: claude-elevate-scripts
+        - name: kube-api-access
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3600
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+              - downwardAPI:
+                  items:
+                    - path: namespace
+                      fieldRef:
+                        fieldPath: metadata.namespace
+---
+# The page, through the Omni service exposer (Omni login). The NetworkPolicy lets in nothing else, claude-rc included.
+apiVersion: v1
+kind: Service
+metadata:
+  name: claude-elevate
+  namespace: claude-system
+  annotations:
+    omni-kube-service-exposer.sidero.dev/label: "Elevate Claude"
+    omni-kube-service-exposer.sidero.dev/port: "50094"
+    omni-kube-service-exposer.sidero.dev/prefix: claudeelevate
+spec:
+  type: ClusterIP
+  selector:
+    app: claude-elevate
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: metrics
+      port: 4195
+      targetPort: metrics
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/monitoring.coreos.com/podmonitor_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: claude-elevate
+  namespace: claude-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: claude-elevate
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics

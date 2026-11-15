@@ -1,0 +1,137 @@
+---
+# The elevate page. This container only takes requests and shows status; it holds no Kubernetes credentials. The sidecar
+# (reconcile.sh) re-validates every request file and does the RoleBinding work. Both share the emptyDir /spool.
+#
+#   :8080  ui   Omni service exposer (Omni login). The pod's NetworkPolicy lets in nothing else, so claude-rc cannot reach it.
+#
+# GET  /                  the page
+# GET  /api/v1/status     allowed namespaces, max minutes per tier, active grants, the last log lines (written by the sidecar)
+# POST /api/v1/grants     {"tier": "ops"|"debug", "minutes": 1-60, "namespaces": ["adguard-system", ...]}
+# POST /api/v1/revoke     {"all": true} or {"tier": "ops", "namespace": "adguard-system"}
+# POSTs need the header X-Requested-With: claude-elevate, so a form on another site cannot post them.
+# Not a Flux template (configMapGenerator disables postBuild envsubst).
+http:
+  enabled: true
+  address: 0.0.0.0:4195
+  debug_endpoints: false
+
+# A key is a file name in /spool: `req-<uuid>` is a request for the sidecar, `status` is the sidecar's answer.
+cache_resources:
+  - label: spool
+    file:
+      directory: /spool
+
+input:
+  http_server:
+    address: 0.0.0.0:8080
+    path: /
+    allowed_verbs:
+      - GET
+      - POST
+    sync_response:
+      status: '${! @status.or("200") }'
+      headers:
+        Content-Type: '${! @content_type.or("application/json") }'
+        Cache-Control: no-store
+
+pipeline:
+  processors:
+    - switch:
+        - check: '@http_server_verb == "GET" && (@http_server_request_path == "/" || @http_server_request_path == "/index.html")'
+          processors:
+            - mapping: |
+                meta content_type = "text/html; charset=utf-8"
+                root = file("/etc/connect/index.html")
+
+        - check: '@http_server_request_path == "/healthz"'
+          processors:
+            - mapping: |
+                meta content_type = "text/plain"
+                root = "ok"
+
+        - check: '@http_server_verb == "GET" && @http_server_request_path == "/api/v1/status"'
+          processors:
+            - branch:
+                request_map: 'root = ""'
+                processors:
+                  - cache:
+                      resource: spool
+                      operator: get
+                      key: status
+                  - catch:
+                      - mapping: 'root = {"now": 0, "allowed_namespaces": [], "max_minutes": {}, "grants": [], "log": []}'
+                result_map: 'root = this'
+
+        # A form on another site cannot add a custom header without a CORS preflight, which this server never answers.
+        - check: '@http_server_verb == "POST" && metadata("X-Requested-With").or("") != "claude-elevate"'
+          processors:
+            - mapping: |
+                meta status = "403"
+                root = {"error": "missing X-Requested-With header"}
+
+        - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/grants"'
+          processors:
+            - mapping: |
+                let b = content().parse_json().catch({})
+                let ok = (
+                  ["ops", "debug"].contains($b.tier.or("")) &&
+                  $b.minutes.type() == "number" && $b.minutes >= 1 && $b.minutes <= 60 &&
+                  $b.namespaces.type() == "array" && $b.namespaces.length() >= 1 && $b.namespaces.length() <= 10 &&
+                  $b.namespaces.all(n -> n.type() == "string" && n.re_match("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"))
+                ).catch(false)
+                meta valid = $ok
+                meta req_key = "req-" + uuid_v4()
+                root = if $ok {
+                  {"action": "grant", "tier": $b.tier, "minutes": $b.minutes.floor(), "namespaces": $b.namespaces}
+                } else {
+                  {"error": "bad request"}
+                }
+            - switch:
+                - check: '@valid'
+                  processors:
+                    - cache:
+                        resource: spool
+                        operator: set
+                        key: '${! @req_key }'
+                        value: '${! content() }'
+                    - mapping: 'root = {"queued": true}'
+                - processors:
+                    - mapping: 'meta status = "400"'
+
+        - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/revoke"'
+          processors:
+            - mapping: |
+                let b = content().parse_json().catch({})
+                let all = $b.all.or(false) == true
+                let one = (
+                  ["ops", "debug"].contains($b.tier.or("")) &&
+                  $b.namespace.type() == "string" && $b.namespace.re_match("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$")
+                ).catch(false)
+                meta valid = $all || $one
+                meta req_key = "req-" + uuid_v4()
+                root = if $all {
+                  {"action": "revokeall"}
+                } else if $one {
+                  {"action": "revoke", "tier": $b.tier, "namespace": $b.namespace}
+                } else {
+                  {"error": "bad request"}
+                }
+            - switch:
+                - check: '@valid'
+                  processors:
+                    - cache:
+                        resource: spool
+                        operator: set
+                        key: '${! @req_key }'
+                        value: '${! content() }'
+                    - mapping: 'root = {"queued": true}'
+                - processors:
+                    - mapping: 'meta status = "400"'
+
+        - processors:
+            - mapping: |
+                meta status = "404"
+                root = {"error": "not found"}
+
+output:
+  sync_response: {}

@@ -251,3 +251,35 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
+---
+# Elevate Claude. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node).
+# There is deliberately no rule for claude-rc: the page can grant it rights, so it must not be able to post to it. The sidecar
+# talks to the API server only.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-elevate
+  namespace: claude-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: claude-elevate
+  ingress:
+    - fromEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - kube-apiserver

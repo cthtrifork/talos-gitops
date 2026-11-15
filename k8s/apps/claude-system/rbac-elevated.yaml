@@ -1,0 +1,56 @@
+# Break-glass roles for the Claude Code pod. Nothing binds them by default: the elevate page (elevate/elevate.yaml) adds a
+# RoleBinding for ServiceAccount `claude` in the namespaces you pick, and removes it when the time is up. They are
+# ClusterRoles only so one definition serves every namespace; a RoleBinding limits them to its own namespace.
+# No tier gets Secrets, RBAC objects or nodes.
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
+# Unstick things Flux cannot: restart a pod or workload, force a reconcile. Never create or edit manifests
+# (changes still go through a PR), and no PVC deletes (local-path volumes hold the data).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: claude-ops
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - delete
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+    verbs:
+      - patch
+  - apiGroups:
+      - helm.toolkit.fluxcd.io
+      - kustomize.toolkit.fluxcd.io
+    resources:
+      - helmreleases
+      - kustomizations
+    verbs:
+      - patch
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
+# Look inside a running pod. Kept apart from claude-ops because exec can reach whatever the pod can.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: claude-debug
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods/exec
+      - pods/portforward
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - pods/ephemeralcontainers
+    verbs:
+      - patch

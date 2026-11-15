@@ -7,6 +7,8 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | File | What |
 |---|---|
 | `rbac.yaml` | ServiceAccount `claude`; built-in `view` (no Secrets) plus read-only access to nodes, storage, CRDs and the CRD groups in use (including MetalLB, the ARC runner resources and the trivy-operator reports). No write verbs, no `pods/exec` |
+| `rbac-elevated.yaml` | The break-glass ClusterRoles `claude-ops` (delete pods, restart workloads, patch Flux objects) and `claude-debug` (`pods/exec`, port-forward, ephemeral containers). Nothing binds them by default |
+| `elevate/` | The "Elevate Claude" page (below): a pod, its ServiceAccount, RBAC and admission policy |
 | `networkpolicy.yaml` | Cilium default deny, then DNS, the Kubernetes API and TCP 443 to the hosts Claude Code needs |
 | `github-app.yaml` | CronJob that mints a one-hour GitHub App installation token into `claude-github-token` (scripts in `github-app/`) |
 | `deployment.yaml` | `claude-rc`: idles until a login exists, then runs `claude remote-control`; non-root, read-only root filesystem |
@@ -233,3 +235,32 @@ visible and you can tell whether an update is waiting for a reboot.
 The report is deliberately dumb: the VM reads `rpm-ostree status --json` (local ostree data, no registry call) and sends three strings. Connect keeps
 only those fields, with plain characters and at most 64 of them, and the page shows them as text. It does not say whether a newer image exists: that
 needs a registry request, which the VM does not make for the page. A spoofed report could only change what the page displays.
+
+### Elevate Claude (break-glass page)
+
+`elevate/elevate.yaml`: pick a tier, one or more namespaces and a time on a page, and for that long `claude` has the extra rights there.
+It is exposed through the Omni service exposer (`Service/claude-elevate`, port 50094, behind Omni login). The pod has two containers
+sharing an emptyDir: Redpanda Connect serves the page and turns a POST into a request file (it has no Kubernetes credentials), and the
+`reconcile` sidecar (`elevate/reconcile.sh`, the only container with a token) re-validates each file, applies a `RoleBinding` named
+`claude-elevate-<tier>` (label `app.kubernetes.io/managed-by=claude-elevate`, annotation `claude-elevate/expires-at`) for
+ServiceAccount `claude-system/claude`, and deletes every binding past its time, also after a restart. A binding with no readable expiry
+counts as expired.
+
+| Tier | Role | Max | Grants |
+|---|---|---|---|
+| `ops` | `claude-ops` | 60 min | delete pods; patch Deployments, StatefulSets, DaemonSets, HelmReleases, Kustomizations |
+| `debug` | `claude-debug` | 15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
+
+Guards, outermost first:
+
+- **Who can reach the page.** Only the Omni exposer (host network) may connect; the NetworkPolicy has no rule for `claude-rc`, so
+  the pod that receives the rights cannot ask for them. POSTs need `X-Requested-With: claude-elevate`.
+- **What the broker may do.** `ClusterRole/claude-elevator` can `bind` only `claude-ops` and `claude-debug`. The
+  `ValidatingAdmissionPolicy/claude-elevator-rolebindings` lets that account touch only RoleBindings carrying its label, bind only
+  `claude` to those two roles, and only in the namespaces on its list.
+- **Where.** The namespace list lives in two places that must match: `ALLOWED_NAMESPACES` in the Deployment and the policy (the policy wins).
+  Neither tier covers Secrets, RBAC objects or nodes.
+- **Dead controller.** The page shows "Controller not answering" when the status is older than 30 s, and the sidecar's liveness probe
+  restarts it when its loop stalls for a minute. A grant can still outlive its time while the sidecar is down; revoke by deleting the
+  RoleBinding (`kubectl delete rolebinding claude-elevate-<tier> -n <ns>`) from an admin machine.
+

@@ -4,12 +4,14 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - rbac.yaml
+  - rbac-elevated.yaml
   - networkpolicy.yaml
   - pvc.yaml
   - deployment.yaml
   - github-app.yaml
   - usage/usage.yaml
   - vm-upgrade/vm-upgrade.yaml
+  - elevate/elevate.yaml
 configMapGenerator:
   - name: claude-token-scripts
     namespace: claude-system
@@ -38,6 +40,23 @@ configMapGenerator:
     files:
       - vm-upgrade/redpanda-connect.yaml
       - vm-upgrade/index.html
+  - name: claude-elevate-connect-config
+    namespace: claude-system
+    options:
+      annotations:
+        # Redpanda Connect interpolations and a web page, not Flux variables: skip postBuild envsubst
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+    files:
+      - elevate/redpanda-connect.yaml
+      - elevate/index.html
+  - name: claude-elevate-scripts
+    namespace: claude-system
+    options:
+      annotations:
+        # Shell, not a Flux template: skip postBuild envsubst
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+    files:
+      - elevate/reconcile.sh
   - name: claude-md
     namespace: claude-system
     options:
