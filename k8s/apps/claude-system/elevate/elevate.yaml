@@ -1,6 +1,6 @@
 ---
-# Break-glass page (see elevate/redpanda-connect.yaml, elevate/reconcile.sh and the README). It adds a RoleBinding of the claude-ops or
-# claude-debug ClusterRole for ServiceAccount claude-system/claude in the namespaces you pick, and removes it when the time is up.
+# Break-glass page (see elevate/redpanda-connect.yaml, elevate/reconcile.sh and the README). It adds a RoleBinding of the claude-ops, claude-debug or
+# claude-storage ClusterRole for ServiceAccount claude-system/claude in the namespaces you pick, and removes it when the time is up.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -8,7 +8,7 @@ metadata:
   namespace: claude-system
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
-# `bind` is limited to the two break-glass roles by name, so this account cannot hand out anything else. The admission policy
+# `bind` is limited to the three break-glass roles by name, so this account cannot hand out anything else. The admission policy
 # below narrows the rest (who is bound, in which namespaces, and that only its own bindings are touched).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -39,6 +39,7 @@ rules:
     resourceNames:
       - claude-ops
       - claude-debug
+      - claude-storage
     verbs:
       - bind
 ---
@@ -57,8 +58,8 @@ subjects:
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
 # The second lock: whatever the page or the script does, claude-elevator can only create, change or delete RoleBindings that
-# carry its label, bind the claude ServiceAccount to the two break-glass roles, and only in namespaces labelled for that tier
-# (a namespace opts in per tier with the label claude-elevate/ops or claude-elevate/debug set to "true" in its own manifest; the sidecar reads the same labels). Deleting is allowed in any namespace,
+# carry its label, bind the claude ServiceAccount to the three break-glass roles, and only in namespaces labelled for that tier
+# (a namespace opts in per tier with the label claude-elevate/<tier> set to "true" in its own manifest; the sidecar reads the same labels). Deleting is allowed in any namespace,
 # so an expired grant can still be cleaned up after a namespace leaves the list.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
@@ -91,16 +92,16 @@ spec:
       message: only RoleBindings labelled app.kubernetes.io/managed-by=claude-elevate may be touched
     - expression: 'request.operation != "UPDATE" || oldObject.metadata.?labels["app.kubernetes.io/managed-by"].orValue("") == "claude-elevate"'
       message: an existing RoleBinding that is not the elevator's must not be taken over
-    - expression: 'request.operation == "DELETE" || namespaceObject.metadata.?labels["claude-elevate/" + (variables.current.roleRef.name == "claude-debug" ? "debug" : "ops")].orValue("") == "true"'
-      message: the namespace has not opted in to this tier (label claude-elevate/ops or claude-elevate/debug)
+    - expression: 'request.operation == "DELETE" || namespaceObject.metadata.?labels["claude-elevate/" + variables.current.roleRef.name.replace("claude-", "")].orValue("") == "true"'
+      message: the namespace has not opted in to this tier (label claude-elevate/<tier>)
     - expression: 'request.operation == "DELETE" || variables.current.metadata.?annotations["claude-elevate/expires-at"].hasValue()'
       message: a grant needs the claude-elevate/expires-at annotation
     - expression: >-
         request.operation == "DELETE" || (
         variables.current.roleRef.apiGroup == "rbac.authorization.k8s.io" &&
         variables.current.roleRef.kind == "ClusterRole" &&
-        variables.current.roleRef.name in ["claude-ops", "claude-debug"])
-      message: only the claude-ops and claude-debug ClusterRoles may be bound
+        variables.current.roleRef.name in ["claude-ops", "claude-debug", "claude-storage"])
+      message: only the claude-ops, claude-debug and claude-storage ClusterRoles may be bound
     - expression: >-
         request.operation == "DELETE" || (
         variables.current.subjects.size() == 1 &&

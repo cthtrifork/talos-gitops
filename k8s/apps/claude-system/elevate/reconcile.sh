@@ -7,8 +7,9 @@
 set -uo pipefail
 
 spool=/spool
-declare -A allowed=([ops]="" [debug]="")
-declare -A max_minutes=([ops]=60 [debug]=15) # exec reaches whatever the pod can, so a shorter leash
+declare -A allowed=([ops]="" [debug]="" [storage]="")
+# exec reaches whatever the pod can, and a PVC delete can destroy data: both get a shorter leash
+declare -A max_minutes=([ops]=60 [debug]=15 [storage]=15)
 selector=app.kubernetes.io/managed-by=claude-elevate
 log=()
 
@@ -102,13 +103,16 @@ sweep() {
 }
 
 write_status() {
-  local bindings
+  local bindings tiers t
   bindings="$(kubectl get rolebindings -A -l "$selector" -o json)" || return
-  printf '%s\n' "${log[@]:-}" | jq -R . | jq -s . | jq --argjson b "$bindings" --argjson now "$(date +%s)" \
-    --arg aops "${allowed[ops]}" --arg adebug "${allowed[debug]}" --argjson ops "${max_minutes[ops]}" --argjson debug "${max_minutes[debug]}" '{
+  tiers="$(for t in "${!max_minutes[@]}"; do
+    jq -nc --arg t "$t" --argjson m "${max_minutes[$t]}" --arg a "${allowed[$t]}" \
+      '{($t): {max: $m, namespaces: ($a | split(" ") | map(select(. != "")))}}'
+  done | jq -s add)"
+  printf '%s\n' "${log[@]:-}" | jq -R . | jq -s . | jq --argjson b "$bindings" --argjson now "$(date +%s)" --argjson tiers "$tiers" '{
       now: $now,
-      allowed_namespaces: {ops: ($aops | split(" ")), debug: ($adebug | split(" "))},
-      max_minutes: {ops: $ops, debug: $debug},
+      allowed_namespaces: ($tiers | map_values(.namespaces)),
+      max_minutes: ($tiers | map_values(.max)),
       grants: [$b.items[] | {namespace: .metadata.namespace, tier: (.metadata.name | ltrimstr("claude-elevate-")),
                             expires_at: .metadata.annotations["claude-elevate/expires-at"]}],
       log: (. | map(select(. != "")))}' >"${spool}/.status.tmp" && mv "${spool}/.status.tmp" "${spool}/status"
