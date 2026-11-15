@@ -3,21 +3,21 @@ kind: Secret
 metadata:
   name: github-auth
   namespace: harper-pad
-type: Opaque
+type: kubernetes.io/dockerconfigjson
 data:
-  github_token: ENC[AES256_GCM,data:rK7OecB9epL09o6fEcREYCev9+3Tpdav2j/3qhC0qqjq8Z2FB7SvLzLMoDCLY9pGNOgwNofm+U4=,iv:W+8tyVtin0suvRVmkmcuE/v1ybu06YFxhc8FEibXOIQ=,tag:LqLJuSLmGDSImxc7IK6kXg==,type:str]
+  .dockerconfigjson: ENC[AES256_GCM,data:MrUdEkyxkJGBZKtLFnipRFA1un3DkEgmqjabCc3c7+K8iqEYEsX55sKetUekBLKX+31lHyd6O8QZ9Fbbvcf/m/9CRSFQ29K8DRNVi/f2Y4L/Uaez2O+N8UR+rfvOOcYlPPmJLZsEDWQ+2Va842OUOfxvrMXm4tKEYeZ8uy52mF83Vtmd6Bvqma4ch5rbIroDyZNN4Tt/9MDGC5/w1SvDkE5B7TKxzGsBvm3lvP45z7EjIiyivuoXwHvzsHMLSmwqZR+y8NXmCo/NjW1FgbzksGvXdKLy1aGx8nTeCWbOhpkIsG939SM4vybIjKvLegwE,iv:y0dNf1qre0VrKDO6oKWYZ193mfJwe6H+5B3vqXF1TZ0=,tag:BYHc04QdHACJTKm/njH/2Q==,type:str]
 sops:
   age:
     - enc: |
         -----BEGIN AGE ENCRYPTED FILE-----
-        YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBqVmNGSEZ0VWw5WXdYOXBQ
-        Nlp6VnBVWVpRdmg4a05iZ29mT05VemtZQWw0CjQ2TnlIUG9KOHFWN3Y2NUdCOTBu
-        VnlUeEtVRlM3RnozZlE1bXcwVFJ3OVUKLS0tIEJEdDQ1U1YxUlEvWm9kZVJOT1Br
-        eXlDVSt4WWZnemNBSlQvR2thdGZDakUKEPjvCurxSnQa6ygJEd0x+Aqtm3gsyWBE
-        661vnVdzlmE/YUaguwODKmNXdBrSA/+2NSVhfAe7TtO3xshiqlr6Bw==
+        YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBvU0tQSldwcXhpazltaVJB
+        dldvNHEyNEtUcFovUzlROEVqekpzUjZOZ1dRCkgrUFppTWdyaFZ3L0JrMWFsaWdk
+        TlBaSXRDeW43b2hTMG9ZTlVKQ1FsczQKLS0tIEJJZjdVK3hKL0ZoRWc5bWpHbUNh
+        aERxSzBCNUVBRGp4SHA4NU53OGhIT0EKpO4Ec++Wlp4uWU2FDTucJBihz3fnMoY1
+        ipCQOYB/H2VxSmmcp/i7pKJBzF9ZIGpzTPIvDOuMHvtNaM9BxYO8Ug==
         -----END AGE ENCRYPTED FILE-----
       recipient: age1qth3nzg27zdmlzpjl2gedzmt0e5nly84q82knja3fcq365kw6u9qeecy6j
   encrypted_regex: ^(data|stringData)$
-  lastmodified: "2026-11-15T18:35:36Z"
-  mac: ENC[AES256_GCM,data:y/62hNQxh7okGI+pkliGeU9KIZJWh3dmHzrNDMnH/zld6safKO1sljFont3MtwmwkvpQU5HG3Ib5XQGGOIR1774cNHf+plDL4beQ98+9u7HBrSDHVYyYDgDwi0zRwN8wSJ9lrk2w6ikokRiHcir5z6eH8GgHh+SRuX5ColruHa8=,iv:okwqDodUNFryQ7ZKP/GnDnnfhdeJyqkucCb3c1gnAyg=,tag:WE7yplTh6/Jc+8md3oj78w==,type:str]
+  lastmodified: "2026-11-15T22:02:24Z"
+  mac: ENC[AES256_GCM,data:X4Mq7K6nIqS/fOQQ5rKufsR3ws1UrGpXBgdkZEbGes6wnXuBGG6F7Mg3hXW0ajyoNLJ6k/diLmh18+g7on4IWPGi6anT4JoZVQXaZlU+FOEnH7wcoW+STn1STTGTZhFJC45baBj93uM+OzfqLkng9/vi3ZJOsRZ+KGBW6O45y4Q=,iv:qaFW7/kPMwgRiGX+n7qA9aG7SkUDcGXnVdUAGksxA1w=,tag:3GVq/b3rFv0myXjyF8HQ5Q==,type:str]
   version: 3.13.3
