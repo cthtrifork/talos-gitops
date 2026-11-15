@@ -54,10 +54,11 @@ Note: a tag created with the default `GITHUB_TOKEN` does not trigger workflows, 
 
 | Image                   | Tag prefix                       | Example                          |
 | ----------------------- | -------------------------------- | -------------------------------- |
-| `github-actions-runner` | `runner`                         | `runner-20261114-58`             |
+| `github-actions-runner` | `runner-<actions/runner version>` | `runner-2.338.2-20261114-58`     |
 | `claude-runner`         | `claude-<Claude Code version>`   | `claude-2.1.311-20261114-58`     |
 
-The Claude Code version is read from `ARG CLAUDE_CODE_VERSION` in the Dockerfile, which Renovate bumps, so a bump
-produces a new tagged image and release on merge. Images are signed (cosign) and have a provenance attestation. The
+The runner version is the base image's (`RUNNER_VERSION` in the workflow, which Renovate bumps) and the Claude Code
+version is read from `ARG CLAUDE_CODE_VERSION` in the Dockerfile, which Renovate bumps too, so a bump produces a new
+tagged image and release on merge. Images are signed (cosign) and have a provenance attestation. The
 release notes list the commits that touched the image since the previous release of the same image, and a release is never
 marked as the repository's latest one: that stays the `vX.Y.Z` release. Deployments pin the tag plus digest, never `latest`.
