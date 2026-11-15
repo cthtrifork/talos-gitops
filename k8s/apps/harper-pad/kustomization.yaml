@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - admin-tunnel.enc.yaml
   - github-auth.enc.yaml
-  - github-auth.enc.yaml
   - namespace.yaml
   - serviceaccount.yaml
   - postgres-certificates.yaml
