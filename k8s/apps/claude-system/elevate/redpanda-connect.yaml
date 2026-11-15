@@ -1,5 +1,5 @@
 ---
-# The elevate page: takes requests and shows the cluster state (read-only token). The sidecar (reconcile.sh) does the work via the shared /spool.
+# The elevate page: takes requests and shows the cluster state (read-only token). The sidecar (reconcile.py) does the work via the shared /spool.
 #
 # GET  /                  the page
 # GET  /api/v1/status     allowed namespaces and max minutes per tier, and the active grants, all read from the API server

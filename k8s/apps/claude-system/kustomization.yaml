@@ -57,10 +57,10 @@ configMapGenerator:
     namespace: claude-system
     options:
       annotations:
-        # Shell, not a Flux template: skip postBuild envsubst
+        # A script, not a Flux template: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
-      - elevate/reconcile.sh
+      - elevate/reconcile.py
   - name: claude-md
     namespace: claude-system
     options:

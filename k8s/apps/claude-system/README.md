@@ -242,7 +242,7 @@ needs a registry request, which the VM does not make for the page. A spoofed rep
 It is exposed through the Omni service exposer (`Service/claude-elevate`, port 50094, behind Omni login). The pod has two containers
 sharing an emptyDir: Redpanda Connect serves the page, turns a POST into a request file and answers the status from the API server itself (the limits
 ConfigMap, the namespaces' labels and the grants' ServiceAccounts) with a read-only token, and the `reconcile` sidecar
-(`elevate/reconcile.sh`, the only container that can change anything) works through the request files. For each namespace it applies
+(`elevate/reconcile.py`, the only container that can change anything) works through the request files. For each namespace it applies
 a ServiceAccount and a RoleBinding named `claude-elevate-<tier>` (label `app.kubernetes.io/managed-by=claude-elevate`, annotation
 `claude-elevate/expires-at`), requests a token for the ServiceAccount (`TokenRequest`, at least 10 minutes) and writes
 the key `<tier>-<namespace>.kubeconfig` in `Secret/claude-elevated-kubeconfigs`, which `claude-rc` mounts at `/etc/elevated` (the kubelet refreshes

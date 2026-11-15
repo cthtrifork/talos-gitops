@@ -65,10 +65,13 @@ spec:
               mountPath: /etc/connect
               readOnly: true
         - name: reconcile
-          image: registry.gitlab.com/gitlab-ci-utils/curl-jq:5.0.3 # renovate: datasource=docker depName=registry.gitlab.com/gitlab-ci-utils/curl-jq versioning=docker
+          image: mirror.gcr.io/library/python:3.15-alpine@sha256:0f9552bb28711333da16915ec146f5e6bb44a7fdac9ced15dc17c2e0206346dd # renovate: datasource=docker depName=docker.io/library/python versioning=docker
           command:
-            - bash
-            - /scripts/reconcile.sh
+            - python3
+            - /scripts/reconcile.py
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
           resources:
             requests:
               cpu: 10m
