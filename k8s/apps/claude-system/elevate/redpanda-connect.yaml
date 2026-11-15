@@ -89,13 +89,20 @@ pipeline:
                         operator: set
                         key: '${! @req_key }'
                         value: '${! content() }'
-                    - metric:
-                        type: counter
-                        name: elevate_requests
-                        labels:
-                          action: '${! this.action }'
-                          tier: '${! this.tier.or("none") }'
-                    - mapping: 'root = {"queued": true}'
+                    - switch:
+                        - check: errored()
+                          processors:
+                            - mapping: |
+                                meta status = "500"
+                                root = {"error": "not queued"}
+                        - processors:
+                            - metric:
+                                type: counter
+                                name: elevate_requests
+                                labels:
+                                  action: '${! this.action }'
+                                  tier: '${! this.tier.or("none") }'
+                            - mapping: 'root = {"queued": true}'
                 - processors:
                     - mapping: 'meta status = "400"'
 
@@ -125,13 +132,20 @@ pipeline:
                         operator: set
                         key: '${! @req_key }'
                         value: '${! content() }'
-                    - metric:
-                        type: counter
-                        name: elevate_requests
-                        labels:
-                          action: '${! this.action }'
-                          tier: '${! this.tier.or("none") }'
-                    - mapping: 'root = {"queued": true}'
+                    - switch:
+                        - check: errored()
+                          processors:
+                            - mapping: |
+                                meta status = "500"
+                                root = {"error": "not queued"}
+                        - processors:
+                            - metric:
+                                type: counter
+                                name: elevate_requests
+                                labels:
+                                  action: '${! this.action }'
+                                  tier: '${! this.tier.or("none") }'
+                            - mapping: 'root = {"queued": true}'
                 - processors:
                     - mapping: 'meta status = "400"'
 

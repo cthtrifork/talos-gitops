@@ -108,12 +108,20 @@ remove() { # tier namespace
   return "$rc"
 }
 
+# the token's own exp claim must not be later than the grant's deadline (a minute of slack)
+token_within() { # token minutes
+  local exp
+  exp="$(jq -rR 'split(".")[1] | gsub("-"; "+") | gsub("_"; "/") | . + ("=" * ((4 - length % 4) % 4)) | @base64d | fromjson | .exp' <<<"$1")" &&
+    ((exp <= $(date +%s) + $2 * 60 + 60))
+}
+
 grant() { # tier namespace minutes
   local tier=$1 ns=$2 expires token
   expires="$(jq -rn --argjson t "$(($(date +%s) + $3 * 60))" '$t | todate')"
   # a new ServiceAccount invalidates the tokens of an earlier grant
   if remove "$tier" "$ns" && apply_grant "$tier" "$ns" "$expires" &&
     token="$(request_token "$tier" "$ns" "$(($3 * 60))")" &&
+    token_within "$token" "$3" &&
     write_kubeconfig "$tier" "$ns" "$token"; then
     event granted "$tier" "$ns" "until ${expires}"
   else
@@ -162,7 +170,7 @@ handle() { # request file
       ;;
     grant)
       minutes="$(field minutes "$body")"
-      if [[ -z "${max_minutes[$tier]:-}" || ! "$minutes" =~ ^[0-9]+$ ]] || ((minutes < min_minutes || minutes > max_minutes[$tier])); then
+      if [[ -z "${max_minutes[$tier]:-}" || ! "$minutes" =~ ^[1-9][0-9]{0,3}$ ]] || ((minutes < min_minutes || minutes > max_minutes[$tier])); then
         event rejected "" "" "grant request: tier or minutes"
         return
       fi
