@@ -1,0 +1,12 @@
+---
+# The longest token per tier in minutes. The admission policy claude-elevator-tokens enforces it and the page reads it for its time choices,
+# so adding a tier is a key here, a role and the elevator's pinned names.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: claude-elevate-limits
+  namespace: claude-system
+data:
+  ops: "60"
+  debug: "15"
+  storage: "15"

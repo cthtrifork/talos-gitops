@@ -251,3 +251,43 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
+---
+# Elevate Claude. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node).
+# claude-rc has no ingress rule here: it receives the rights the page grants, so it cannot reach the page. Prometheus reaches only the metrics port
+# (the pod does not carry the prometheus-scrape label, whose cluster-wide rule also opens 8080). The sidecar talks to the API server only.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-elevate
+  namespace: claude-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: claude-elevate
+  ingress:
+    - fromEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            k8s:app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "4195"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - kube-apiserver

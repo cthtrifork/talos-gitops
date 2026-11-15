@@ -7,6 +7,8 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | File | What |
 |---|---|
 | `rbac.yaml` | ServiceAccount `claude`; built-in `view` (no Secrets) plus read-only access to nodes, storage, CRDs and the CRD groups in use (including MetalLB, the ARC runner resources and the trivy-operator reports). No write verbs, no `pods/exec` |
+| `rbac-elevated.yaml` | The break-glass ClusterRoles `claude-ops`, `claude-debug` and `claude-storage`; nothing binds them by default |
+| `elevate/` | The "Elevate Claude" page (below): a Redpanda Connect pod, its RBAC, limits and admission policies |
 | `networkpolicy.yaml` | Cilium default deny, then DNS, the Kubernetes API and TCP 443 to the hosts Claude Code needs |
 | `github-app.yaml` | CronJob that mints a one-hour GitHub App installation token into `claude-github-token` (scripts in `github-app/`) |
 | `deployment.yaml` | `claude-rc`: idles until a login exists, then runs `claude remote-control`; non-root, read-only root filesystem |
@@ -233,3 +235,31 @@ visible and you can tell whether an update is waiting for a reboot.
 The report is deliberately dumb: the VM reads `rpm-ostree status --json` (local ostree data, no registry call) and sends three strings. Connect keeps
 only those fields, with plain characters and at most 64 of them, and the page shows them as text. It does not say whether a newer image exists: that
 needs a registry request, which the VM does not make for the page. A spoofed report could only change what the page displays.
+
+### Elevate Claude (break-glass page)
+
+A page behind the Omni exposer (`Service/claude-elevate`, port 50094): pick a tier, namespaces and a time, and Claude gets a short-lived token for
+that tier there, as `/etc/elevated/<tier>-<namespace>.kubeconfig` (a Secret mount the kubelet refreshes within about a minute, so no restart: the
+Secret has no Reloader annotation, a restart would end the session; use it with `kubectl --kubeconfig`). One Redpanda Connect container calls the
+Kubernetes API with the pod's own token; the steps and the API are in `elevate/redpanda-connect.yaml`.
+
+| Tier | Role | Max | Grants |
+|---|---|---|---|
+| `ops` | `claude-ops` | 10-60 min | delete or evict pods |
+| `debug` | `claude-debug` | 10-15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
+| `storage` | `claude-storage` | 10-15 min | delete PersistentVolumeClaims (both storage classes reclaim with `Delete`: a bound claim loses its data) |
+
+- **Opt-in.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` in its own manifest (`adguard-system`: all three,
+  `external-dns-system`: `ops` only, since exec there could read the DNS API token).
+- **Expiry.** The token expires on the API server by itself and nothing cleans up afterwards: the ServiceAccount, RoleBinding and kubeconfig key left
+  behind hold no valid token, and the next grant replaces them. A revoke deletes the ServiceAccount, which kills its tokens at once.
+- **Limits.** The API server validates. RBAC pins the pod to the three roles and to `claude-elevate-<tier>` objects;
+  `claude-elevator-rolebindings` allows only that ServiceAccount, only in an opted-in namespace; `claude-elevator-tokens` caps a token at the tier's
+  minutes in `ConfigMap/claude-elevate-limits` (the page reads it too). The page container holds a credential that can grant, bounded by these.
+- **Reach.** Only the Omni exposer and Prometheus (metrics port) reach the pod, never `claude-rc`. A POST must carry the `csrf` value from the status
+  (a hash of the pod's token, which a page on another site cannot read; a header would not do, Connect copies query parameters into the same metadata),
+  and requests are handled one at a time.
+- **Not offered.** Patching workloads or Flux objects (rollout restarts, forced reconciles). `debug` reads whatever a pod in the namespace can
+  (mounted Secrets, its ServiceAccount token).
+- **Token storage and audit.** The token is plain text in the Secret (readable with `get secrets` in `claude-system`) and in the mount. Grants and
+  revokes are log lines on the container (no log shipper: `kubectl logs`) and count in `elevate_requests{action,tier}`; who clicked is not recorded.

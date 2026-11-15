@@ -1,0 +1,306 @@
+---
+# The elevate page and its API. The grant and revoke calls go straight to the Kubernetes API with the pod's own token; the API server decides
+# what is allowed (RBAC, the admission policies, the token limits), so there is no validation here: a missing or malformed field fails in a
+# mapping or at the API server and answers 502 with the reason. The tier and the namespace go into URL paths, so they are escaped once, on the way in. Nothing is cleaned up afterwards, not even after a failed grant: a token expires on its own, and the ServiceAccount and
+# RoleBinding left behind (one pair per tier and namespace) are replaced by the next grant.
+#
+# GET  /                  the page
+# GET  /api/v1/status     allowed namespaces and max minutes per tier, and the active grants, all read from the API server
+# POST /api/v1/grants     {"tier": "<tier>", "minutes": <n>, "namespace": "<namespace>", "csrf": "<csrf>"}
+# POST /api/v1/revoke     {"tier": "<tier>", "namespace": "<namespace>", "csrf": "<csrf>"}
+# The status carries `csrf`, a hash of the pod's token that only a page reading the status can know, so a form on another site cannot post.
+# (A header cannot do that here: Connect also copies query parameters into the same metadata.) An error answers 502 with the API's message.
+http:
+  enabled: true
+  address: 0.0.0.0:4195
+  debug_endpoints: false
+
+# the pod's token rotates, so it is read from the file on every request
+cache_resources:
+  - label: serviceaccount
+    file:
+      directory: /var/run/secrets/kubernetes.io/serviceaccount
+
+input:
+  http_server:
+    address: 0.0.0.0:8080
+    path: /
+    allowed_verbs:
+      - GET
+      - POST
+    sync_response:
+      status: '${! @status.or("200") }'
+      headers:
+        Content-Type: '${! @content_type.or("application/json") }'
+        Cache-Control: no-store
+
+pipeline:
+  threads: 1 # the steps of one grant must not interleave with another request
+  processors:
+    - switch:
+        - check: '@http_server_verb == "GET" && (@http_server_request_path == "/" || @http_server_request_path == "/index.html")'
+          processors:
+            - mapping: |
+                meta content_type = "text/html; charset=utf-8"
+                root = file("/etc/connect/index.html")
+
+        - check: '@http_server_request_path == "/healthz"'
+          processors:
+            - mapping: |
+                meta content_type = "text/plain"
+                root = "ok"
+
+        - check: '@http_server_verb == "GET" && @http_server_request_path == "/api/v1/status"'
+          processors:
+            - resource: status
+
+        - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/grants"'
+          processors:
+            - mapping: |
+                let b = content().parse_json()
+                root = {"tier": $b.tier.escape_url_path(), "namespace": $b.namespace.escape_url_path(), "minutes": $b.minutes, "csrf": $b.csrf}
+            - resource: grant
+
+        - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/revoke"'
+          processors:
+            - mapping: |
+                let b = content().parse_json()
+                root = {"tier": $b.tier.escape_url_path(), "namespace": $b.namespace.escape_url_path(), "csrf": $b.csrf}
+            - resource: revoke
+
+        - processors:
+            - mapping: |
+                meta status = "404"
+                root = {"error": "not found"}
+
+    - catch:
+        - log:
+            level: WARN
+            message: request failed
+            fields_mapping: 'root.error = error()'
+        - mapping: |
+            meta status = if error().contains("bad csrf token") { "403" } else { "502" }
+            root = {"error": error().re_find_object("Error: (?P<json>\\{.*\\})").json.parse_json().message.catch(error())}
+
+output:
+  sync_response: {}
+
+processor_resources:
+  # fails unless the message's csrf is the hash the status hands out (needs the metadata field `token`), and drops it from the message
+  - label: check_csrf
+    mapping: |
+      root = if this.csrf != metadata("token").hash("sha256").encode("hex") { throw("bad csrf token") } else { this.without("csrf") }
+
+  # puts the pod's token in the metadata field `token`; the other resources send it
+  - label: login
+    branch:
+      request_map: 'root = ""'
+      processors:
+        - cache:
+            resource: serviceaccount
+            operator: get
+            key: token
+      result_map: 'meta token = content().string().trim()'
+
+  # The five calls to the API server. The caller sets the metadata field `path`; the body is the message.
+  - label: get
+    http:
+      url: 'https://kubernetes.default.svc${! @path }'
+      verb: GET
+      headers:
+        Authorization: 'Bearer ${! @token }'
+      tls:
+        root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  - label: apply
+    http:
+      url: 'https://kubernetes.default.svc${! @path }'
+      verb: PATCH
+      headers:
+        Authorization: 'Bearer ${! @token }'
+        Content-Type: application/apply-patch+yaml
+      tls:
+        root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  - label: merge
+    http:
+      url: 'https://kubernetes.default.svc${! @path }'
+      verb: PATCH
+      headers:
+        Authorization: 'Bearer ${! @token }'
+        Content-Type: application/merge-patch+json
+      tls:
+        root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  - label: post
+    http:
+      url: 'https://kubernetes.default.svc${! @path }'
+      verb: POST
+      headers:
+        Authorization: 'Bearer ${! @token }'
+        Content-Type: application/json
+      tls:
+        root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  # a missing object counts as deleted
+  - label: delete
+    http:
+      url: 'https://kubernetes.default.svc${! @path }'
+      verb: DELETE
+      headers:
+        Authorization: 'Bearer ${! @token }'
+        Content-Type: application/json
+      successful_on:
+        - 404
+      tls:
+        root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  # GET /api/v1/status
+  - label: status
+    try:
+      - resource: login
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/claude-system/configmaps/claude-elevate-limits"
+            root = ""
+          processors:
+            - resource: get
+          result_map: 'meta limits = this.data'
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces"
+            root = ""
+          processors:
+            - resource: get
+          result_map: 'meta namespaces = this.items'
+      - branch:
+          request_map: |
+            meta path = "/api/v1/serviceaccounts?labelSelector=app.kubernetes.io/managed-by%3Dclaude-elevate"
+            root = ""
+          processors:
+            - resource: get
+          result_map: 'meta serviceaccounts = this.items'
+      - mapping: |
+          root.csrf = @token.hash("sha256").encode("hex")
+          root.max_minutes = @limits.map_each(kv -> kv.value.number())
+          root.allowed_namespaces = @limits.map_each(kv -> @namespaces.filter(n -> n.metadata.labels.or({}).get("claude-elevate/" + kv.key) == "true").map_each(n -> n.metadata.name))
+          root.grants = @serviceaccounts.filter(s -> s.metadata.annotations.or({}).get("claude-elevate/expires-at").type() == "string").map_each(s -> {
+            "namespace": s.metadata.namespace,
+            "tier": s.metadata.name.trim_prefix("claude-elevate-"),
+            "expires_at": s.metadata.annotations.get("claude-elevate/expires-at")
+          })
+
+  # Deletes the ServiceAccount, the RoleBinding and the kubeconfig key of the tier and namespace in the message. The ServiceAccount goes first:
+  # deleting it invalidates its tokens at once.
+  - label: remove
+    try:
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/" + this.namespace + "/serviceaccounts/claude-elevate-" + this.tier
+            root = ""
+          processors:
+            - resource: delete
+      - branch:
+          request_map: |
+            meta path = "/apis/rbac.authorization.k8s.io/v1/namespaces/" + this.namespace + "/rolebindings/claude-elevate-" + this.tier
+            root = ""
+          processors:
+            - resource: delete
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/claude-system/secrets/claude-elevated-kubeconfigs"
+            let key = this.tier + "-" + this.namespace + ".kubeconfig"
+            root = {"data": {$key: null}}
+          processors:
+            - resource: merge
+
+  # POST /api/v1/grants: the message is {tier, namespace, minutes}
+  - label: grant
+    try:
+      - resource: login
+      - resource: check_csrf
+      - mapping: |
+          meta object_meta = {
+            "name": "claude-elevate-" + this.tier,
+            "namespace": this.namespace,
+            "labels": {"app.kubernetes.io/managed-by": "claude-elevate"}
+          }
+          root = this
+      # a new ServiceAccount invalidates the tokens of an earlier grant
+      - resource: remove
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/" + this.namespace + "/serviceaccounts/claude-elevate-" + this.tier + "?fieldManager=claude-elevate&force=true"
+            root = {"apiVersion": "v1", "kind": "ServiceAccount", "metadata": metadata("object_meta")}
+          processors:
+            - resource: apply
+      - branch:
+          request_map: |
+            meta path = "/apis/rbac.authorization.k8s.io/v1/namespaces/" + this.namespace + "/rolebindings/claude-elevate-" + this.tier + "?fieldManager=claude-elevate&force=true"
+            root = {
+              "apiVersion": "rbac.authorization.k8s.io/v1",
+              "kind": "RoleBinding",
+              "metadata": metadata("object_meta"),
+              "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": "claude-" + this.tier},
+              "subjects": [{"kind": "ServiceAccount", "name": "claude-elevate-" + this.tier, "namespace": this.namespace}]
+            }
+          processors:
+            - resource: apply
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/" + this.namespace + "/serviceaccounts/claude-elevate-" + this.tier + "/token"
+            root = {"apiVersion": "authentication.k8s.io/v1", "kind": "TokenRequest", "spec": {"expirationSeconds": this.minutes * 60}}
+          processors:
+            - resource: post
+          result_map: |
+            meta kube_token = this.status.token
+            meta expires = this.status.expirationTimestamp
+      - branch:
+          request_map: |
+            let name = this.tier + "-" + this.namespace
+            let kubeconfig = {
+              "apiVersion": "v1",
+              "kind": "Config",
+              "current-context": $name,
+              "clusters": [{"name": "cluster", "cluster": {"server": "https://kubernetes.default.svc", "certificate-authority": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"}}],
+              "users": [{"name": $name, "user": {"token": metadata("kube_token")}}],
+              "contexts": [{"name": $name, "context": {"cluster": "cluster", "user": $name, "namespace": this.namespace}}]
+            }
+            meta path = "/api/v1/namespaces/claude-system/secrets/claude-elevated-kubeconfigs"
+            root = {"stringData": {$name + ".kubeconfig": $kubeconfig.format_json().string()}}
+          processors:
+            - resource: merge
+      # a ServiceAccount counts as a grant once it carries the expiry, so a grant that failed before this is never listed
+      - branch:
+          request_map: |
+            meta path = "/api/v1/namespaces/" + this.namespace + "/serviceaccounts/claude-elevate-" + this.tier
+            root = {"metadata": {"annotations": {"claude-elevate/expires-at": metadata("expires")}}}
+          processors:
+            - resource: merge
+      - log:
+          message: granted
+          fields_mapping: 'root = {"tier": this.tier, "namespace": this.namespace, "until": metadata("expires")}'
+      - metric:
+          type: counter
+          name: elevate_requests
+          labels:
+            action: grant
+            tier: '${! this.tier }'
+      - mapping: 'root = {"granted": true, "until": metadata("expires")}'
+
+  # POST /api/v1/revoke: the message is {tier, namespace}
+  - label: revoke
+    try:
+      - resource: login
+      - resource: check_csrf
+      - resource: remove
+      - log:
+          message: revoked
+          fields_mapping: 'root = {"tier": this.tier, "namespace": this.namespace}'
+      - metric:
+          type: counter
+          name: elevate_requests
+          labels:
+            action: revoke
+            tier: '${! this.tier }'
+      - mapping: 'root = {"revoked": true}'

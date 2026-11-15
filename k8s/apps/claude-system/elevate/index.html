@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Elevate Claude</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --page: #f4f4f1; --card: #ffffff; --ink: #141413; --ink-2: #55534e; --line: #e3e2da; --chip: #f4f4f1;
+    --accent: #2a78d6; --on-accent: #ffffff; --accent-bg: #e6f0fb;
+    --ok: #1a7f4b; --warn: #b4690e; --warn-bg: #fff4d6; --bad: #c0392b; --danger: #c0392b; --on-danger: #ffffff;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --card: #1a1a19; --ink: #f0efec; --ink-2: #b4b2a9; --line: #2c2c2a; --chip: #232321;
+      --accent: #3987e5; --accent-bg: #16263a;
+      --ok: #3cc58a; --warn: #e0a040; --warn-bg: #3a2f10; --bad: #ef6a5b; --danger: #ef6a5b; --on-danger: #1a0a07;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 16px/1.5 var(--font);
+         padding: 20px max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left)); }
+  main { width: 100%; max-width: 960px; margin: 0 auto; }
+  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  h1 { font-size: 22px; line-height: 1.25; margin: 0 0 2px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  .sub { margin: 0; color: var(--ink-2); font-size: 14px; }
+  .layout { display: grid; gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .stack { display: grid; gap: 14px; align-content: start; }
+  .mono { font-family: var(--mono); font-size: 14px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+
+  fieldset { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
+  legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
+  .row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .lbl { font-weight: 600; }
+  .tiny { background: none; border: 0; padding: 6px 4px; min-height: 36px; width: auto; color: var(--accent); font-size: 14px; font-weight: 500; cursor: pointer; }
+
+  .choices { display: grid; gap: 8px; }
+  .tiers { grid-template-columns: 1fr; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .choice { position: relative; display: block; cursor: pointer; }
+  .choice input { position: absolute; opacity: 0; inset: 0; margin: 0; width: 100%; height: 100%; cursor: pointer; }
+  .choice .face { display: block; border: 1.5px solid var(--line); border-radius: 12px; background: var(--chip); padding: 12px 14px; min-height: 48px; }
+  .choice .face small { display: block; margin-top: 2px; color: var(--ink-2); font-size: 13px; line-height: 1.35; }
+  .choice .face strong { display: block; }
+  .chips .choice .face { padding: 10px 16px; border-radius: 999px; display: flex; align-items: center; min-height: 44px; }
+  .choice input:checked + .face { border-color: var(--accent); background: var(--accent-bg); }
+  .choice.risky input:checked + .face { border-color: var(--warn); background: var(--warn-bg); }
+  .choice.destructive input:checked + .face { border-color: var(--danger); background: var(--warn-bg); }
+  .choice input:focus-visible + .face { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .empty { margin: 0; color: var(--ink-2); font-size: 14px; }
+
+  .actions { position: sticky; bottom: 0; z-index: 2; margin: 0 -16px -16px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+             background: var(--card); border-top: 1px solid var(--line); border-radius: 0 0 14px 14px; }
+  .summary { margin: 0 0 10px; font-size: 14px; color: var(--ink-2); min-height: 1.4em; overflow-wrap: anywhere; }
+  .summary.confirm { color: var(--ink); background: var(--warn-bg); padding: 10px 12px; border-radius: 10px; }
+  .buttons { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .buttons.two { grid-template-columns: 1fr 1fr; }
+  button { font: inherit; font-weight: 600; width: 100%; min-height: 48px; padding: 12px 20px; border: 0; border-radius: 12px;
+           background: var(--accent); color: var(--on-accent); cursor: pointer; }
+  button.ghost { background: var(--chip); color: var(--ink); border: 1px solid var(--line); }
+  button.danger { background: var(--danger); color: var(--on-danger); }
+  button.small { width: auto; min-height: 44px; padding: 8px 16px; font-weight: 500; }
+  button:focus-visible, .tiny:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .hint { margin: 8px 0 0; font-size: 13px; color: var(--ink-2); min-height: 1.4em; white-space: pre-line; }
+  .hint.warn { color: var(--warn); }
+
+  ul { list-style: none; margin: 0; padding: 0; }
+  li.grant { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  li.grant:first-child { border-top: 0; padding-top: 0; }
+  li.grant .what { flex: 1; min-width: 0; }
+  li.grant .ns { overflow-wrap: anywhere; }
+  .badge { display: inline-block; padding: 1px 8px; margin-right: 6px; border-radius: 999px; font-size: 12px; font-weight: 600;
+           background: var(--accent-bg); color: var(--accent); }
+  .badge.debug { background: var(--warn-bg); color: var(--warn); }
+  .badge.storage { background: var(--warn-bg); color: var(--danger); }
+  .left { color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .left.soon { color: var(--warn); font-weight: 600; }
+  .none { margin: 0; color: var(--ink-2); font-size: 14px; }
+  [hidden] { display: none !important; }
+
+  @media (min-width: 560px) { .tiers { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
+  @media (min-width: 880px) {
+    body { padding-top: 32px; }
+    .layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; gap: 18px; }
+    .card { padding: 20px; }
+    .actions { position: static; margin: 4px 0 0; padding: 0; border: 0; background: none; }
+    .buttons { grid-template-columns: auto; justify-content: start; }
+    .buttons.two { grid-template-columns: auto auto; }
+    button { width: auto; min-width: 140px; }
+    button.small { min-width: 0; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .choice .face { transition: border-color .12s, background-color .12s; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Elevate Claude</h1>
+      <p class="sub">Gives Claude a short-lived token for a tier. The token expires by itself.</p>
+    </div>
+  </header>
+
+  <div class="layout">
+    <form id="form" class="card" autocomplete="off" novalidate>
+      <fieldset>
+        <legend>Tier</legend>
+        <div class="choices tiers">
+          <label class="choice"><input type="radio" name="tier" value="ops" checked>
+            <span class="face"><strong>ops</strong><small>Delete or evict pods, so their workloads restart. Up to <span id="maxOps">60</span> min.</small></span></label>
+          <label class="choice risky"><input type="radio" name="tier" value="debug">
+            <span class="face"><strong>debug</strong><small>Exec into pods, port-forward, ephemeral containers. Up to <span id="maxDebug">15</span> min.</small></span></label>
+          <label class="choice destructive"><input type="radio" name="tier" value="storage">
+            <span class="face"><strong>storage</strong><small>Delete PersistentVolumeClaims. A bound claim loses its data. Up to <span id="maxStorage">15</span> min.</small></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset aria-labelledby="nsLabel">
+        <div class="row"><span id="nsLabel" class="lbl">Namespaces</span><button id="toggleAll" type="button" class="tiny" hidden>Select all</button></div>
+        <div id="namespaces" class="chips"><p class="empty">Loading…</p></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>For how long</legend>
+        <div id="minutes" class="chips"></div>
+      </fieldset>
+
+      <div class="actions">
+        <p id="summary" class="summary" aria-live="polite"></p>
+        <div id="normal" class="buttons"><button id="go" type="submit" disabled>Elevate</button></div>
+        <div id="confirming" class="buttons two" hidden>
+          <button id="cancel" type="button" class="ghost">Cancel</button>
+          <button id="confirm" type="submit" class="danger">Confirm</button>
+        </div>
+        <p id="error" class="hint warn" role="status"></p>
+      </div>
+    </form>
+
+    <div class="stack">
+      <section class="card">
+        <h2>Active</h2>
+        <ul id="grants"></ul>
+        <p id="none" class="none">Nothing is elevated.</p>
+        <button id="revokeAll" type="button" class="danger" style="margin-top:12px" hidden>Revoke everything</button>
+      </section>
+    </div>
+  </div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var HEADERS = { "Content-Type": "application/json" };
+  var DURATIONS = [10, 15, 30, 60];
+  var status = null;
+  var confirming = false;
+  var builtFor = "";
+  var grantsKey = "";
+  var minutesKey = "";
+
+  function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+  function el(tag, text, cls) {
+    var e = document.createElement(tag);
+    if (text !== undefined) e.textContent = text;
+    if (cls) e.className = cls;
+    return e;
+  }
+  function choice(type, name, value, label, checked, extra) {
+    var l = el("label", undefined, "choice");
+    var i = document.createElement("input");
+    i.type = type; i.name = name; i.value = value; i.checked = !!checked;
+    l.appendChild(i);
+    l.appendChild(el("span", label, "face" + (extra ? " " + extra : "")));
+    return l;
+  }
+  function human(m) { return m < 60 ? m + " min" : m / 60 + " h"; }
+  function remaining(expiresAt) {
+    var s = Math.round((Date.parse(expiresAt) - Date.now()) / 1000);
+    if (isNaN(s)) return { text: "expiry unknown", soon: true };
+    if (s <= 0) return { text: "ending…", soon: true };
+    return { text: Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0") + " left", soon: s < 120 };
+  }
+  function selectedTier() { return document.querySelector("input[name=tier]:checked").value; }
+  function selectedNamespaces() {
+    return Array.prototype.map.call(document.querySelectorAll("#namespaces input:checked"), function (i) { return i.value; });
+  }
+  function selectedMinutes() {
+    var c = document.querySelector("#minutes input:checked");
+    return c ? parseInt(c.value, 10) : 0;
+  }
+  function maxFor(tier) { return (status && status.max_minutes && status.max_minutes[tier]) || 15; }
+
+  function buildNamespaces() {
+    var perTier = (status && status.allowed_namespaces) || {};
+    var names = perTier[selectedTier()] || [];
+    var key = selectedTier() + ":" + names.join(",");
+    if (key === builtFor) return;
+    builtFor = key;
+    var box = $("namespaces");
+    clear(box);
+    if (names.length === 0) { box.appendChild(el("p", "No namespaces are allowed for this tier.", "empty")); }
+    names.forEach(function (n) { box.appendChild(choice("checkbox", "ns", n, n, false, "mono")); });
+    $("toggleAll").hidden = names.length < 2;
+  }
+
+  function buildMinutes() {
+    var tier = selectedTier(), max = maxFor(tier), keep = selectedMinutes(), box = $("minutes");
+    if (minutesKey === tier + max) return; // a rebuild every poll would eat a tap
+    minutesKey = tier + max;
+    var options = DURATIONS.filter(function (m) { return m <= max; });
+    var pick = options.indexOf(keep) >= 0 ? keep : Math.min(15, max);
+    clear(box);
+    options.forEach(function (m) { box.appendChild(choice("radio", "minutes", String(m), human(m), m === pick)); });
+    $("maxOps").textContent = maxFor("ops");
+    $("maxDebug").textContent = maxFor("debug");
+    $("maxStorage").textContent = maxFor("storage");
+  }
+
+  function summaryText() {
+    var ns = selectedNamespaces();
+    if (ns.length === 0) return "Pick at least one namespace.";
+    return "Give Claude " + selectedTier() + " rights in " + ns.join(", ") + " for " + human(selectedMinutes()) + ".";
+  }
+  function updateForm() {
+    var ns = selectedNamespaces();
+    $("go").disabled = ns.length === 0;
+    var all = ns.length === document.querySelectorAll("#namespaces input").length;
+    $("toggleAll").textContent = all ? "Clear" : "Select all";
+    var s = $("summary");
+    s.textContent = confirming ? "Are you sure? " + summaryText() : (ns.length ? summaryText() : "");
+    s.className = "summary" + (confirming ? " confirm" : "");
+  }
+
+  function render() {
+    if (!status) return;
+    buildNamespaces();
+    var list = $("grants");
+    var grants = status.grants || [];
+    var key = grants.map(function (g) { return g.tier + "|" + g.namespace + "|" + g.expires_at; }).join(",");
+    if (key !== grantsKey) {
+      grantsKey = key;
+      clear(list);
+      grants.forEach(function (g) {
+        var li = el("li", undefined, "grant");
+        var what = el("div", undefined, "what");
+        var top = el("div");
+        top.appendChild(el("span", g.tier, "badge " + g.tier));
+        top.appendChild(el("span", g.namespace, "mono ns"));
+        what.appendChild(top);
+        var left = el("div", "", "left");
+        left.setAttribute("data-expires", g.expires_at);
+        what.appendChild(left);
+        li.appendChild(what);
+        var b = el("button", "Revoke", "small ghost");
+        b.type = "button";
+        b.setAttribute("aria-label", "Revoke " + g.tier + " in " + g.namespace);
+        b.addEventListener("click", function () { send("/api/v1/revoke", [{ tier: g.tier, namespace: g.namespace }]); });
+        li.appendChild(b);
+        list.appendChild(li);
+      });
+    }
+    tick();
+    $("none").hidden = grants.length > 0;
+    $("revokeAll").hidden = grants.length === 0;
+  }
+
+  // updates the countdown text of the listed grants
+  function tick() {
+    Array.prototype.forEach.call(document.querySelectorAll("#grants .left"), function (n) {
+      var r = remaining(n.getAttribute("data-expires"));
+      n.textContent = r.text;
+      n.className = "left" + (r.soon ? " soon" : "");
+    });
+  }
+
+  // a refusal stays until the next action; only a failed status read is cleared when the reads recover
+  function clearStatusError() {
+    if ($("error").textContent.indexOf("Cannot read status") === 0) $("error").textContent = "";
+  }
+
+  function load() {
+    return fetch("api/v1/status", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
+      .then(function (s) { s.grants = (s.grants || []).filter(function (g) { return Date.parse(g.expires_at) > Date.now(); }); status = s; clearStatusError(); buildMinutes(); render(); updateForm(); })
+      .catch(function (e) { $("error").textContent = "Cannot read status: " + e.message; });
+  }
+
+  // one request per namespace; each answers by itself, and an error carries the API's reason
+  function send(path, bodies) {
+    $("error").textContent = "";
+    return Promise.all(bodies.map(function (body) {
+      return fetch(path.replace(/^\//, ""), { method: "POST", headers: HEADERS, body: JSON.stringify(Object.assign({ csrf: status.csrf }, body)) })
+        .then(function (r) { return r.ok ? "" : r.json().then(function (j) { return j.error; }); })
+        .catch(function (e) { return e.message; })
+        .then(function (error) { return error ? body.namespace + ": " + error : ""; });
+    })).then(function (errors) {
+      $("error").textContent = errors.filter(Boolean).join("\n");
+      return load();
+    });
+  }
+
+  function setConfirming(on) {
+    confirming = on;
+    $("normal").hidden = on;
+    $("confirming").hidden = !on;
+    updateForm();
+    if (on) $("confirm").focus();
+  }
+
+  $("form").addEventListener("change", function (ev) {
+    if (ev.target.name === "tier") { buildMinutes(); buildNamespaces(); }
+    setConfirming(false);
+  });
+  $("cancel").addEventListener("click", function () { setConfirming(false); });
+  $("toggleAll").addEventListener("click", function () {
+    var boxes = document.querySelectorAll("#namespaces input");
+    var all = selectedNamespaces().length === boxes.length;
+    Array.prototype.forEach.call(boxes, function (b) { b.checked = !all; });
+    setConfirming(false);
+  });
+
+  $("form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var ns = selectedNamespaces();
+    if (ns.length === 0) { $("error").textContent = "Pick at least one namespace."; return; }
+    $("error").textContent = "";
+    if (!confirming) { setConfirming(true); return; }
+    var tier = selectedTier(), minutes = selectedMinutes();
+    setConfirming(false);
+    send("/api/v1/grants", ns.map(function (n) { return { tier: tier, minutes: minutes, namespace: n }; }));
+  });
+
+  $("revokeAll").addEventListener("click", function () {
+    send("/api/v1/revoke", (status.grants || []).map(function (g) { return { tier: g.tier, namespace: g.namespace }; }));
+  });
+
+  load();
+  setInterval(load, 5000);
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
