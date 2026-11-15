@@ -1,22 +1,24 @@
-name: Build and release the runner image
+name: Build and release the runner images
 
-# The GitHub Actions runner image has its own release stream (see docs/releasing.md). Every build of main (a merge to
-# images/github-actions-runner, the weekly rebuild that picks up new packages and the Trivy DB, a manual run) publishes
-# runner-YYYYMMDD-<run number> and a release of that name, with the commits that touched the image as notes.
-# A pull request builds the image to check it and does not push.
+# The GitHub Actions runner and the Claude runner each have their own release stream (see docs/releasing.md). Every build
+# of main (a merge to the image's directory, the weekly rebuild that picks up new packages, a manual run) publishes
+# runner-YYYYMMDD-<run number> or claude-<Claude Code version>-YYYYMMDD-<run number>, and a release of that name with the
+# commits that touched the image as notes. A pull request builds the images to check them and does not push.
 on:
   push:
     branches:
       - main
     paths:
       - images/github-actions-runner/**
-      - .github/workflows/build-runner-image.yaml
+      - images/claude-runner/**
+      - .github/workflows/build-runner-images.yaml
   pull_request:
     branches:
       - main
     paths:
       - images/github-actions-runner/**
-      - .github/workflows/build-runner-image.yaml
+      - images/claude-runner/**
+      - .github/workflows/build-runner-images.yaml
   schedule:
     - cron: "23 3 * * 0"
   workflow_dispatch:
@@ -30,28 +32,49 @@ permissions:
   contents: read
 
 env:
-  IMAGE: ghcr.io/${{ github.repository }}/github-actions-runner
   RUNNER_VERSION: "2.338.2" # renovate: datasource=github-releases depName=actions/runner
   PUBLISH: ${{ github.event_name != 'pull_request' }}
 
 jobs:
   build:
-    name: Build and publish
+    name: Build and publish (${{ matrix.image.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: github-actions-runner
+            tag-prefix: runner
+          - name: claude-runner
+            tag-prefix: claude
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}/${{ matrix.image.name }}
     permissions:
-      contents: read
+      contents: write # create the release and its tag
       id-token: write # sign the image and its provenance attestation (OIDC)
       packages: write # push the image to ghcr.io
       attestations: write # store the provenance attestation
-    outputs:
-      tag: ${{ steps.meta.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the commits since the previous release
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # The Claude runner's tag carries the Claude Code version, which Renovate bumps in its Dockerfile.
+      - name: Tag prefix
+        id: prefix
+        env:
+          NAME: ${{ matrix.image.name }}
+          PREFIX: ${{ matrix.image.tag-prefix }}
+        run: |
+          if [[ "$NAME" == claude-runner ]]; then
+            PREFIX="$PREFIX-$(sed -n 's/^ARG CLAUDE_CODE_VERSION=//p' images/claude-runner/Dockerfile)"
+          fi
+          echo "value=$PREFIX" >> "$GITHUB_OUTPUT"
 
       - name: Tags and labels
         id: meta
@@ -59,7 +82,7 @@ jobs:
         with:
           images: ${{ env.IMAGE }}
           tags: |
-            type=raw,value=runner-{{date 'YYYYMMDD'}}-${{ github.run_number }},enable={{is_default_branch}}
+            type=raw,value=${{ steps.prefix.outputs.value }}-{{date 'YYYYMMDD'}}-${{ github.run_number }},enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=pr
 
@@ -75,14 +98,14 @@ jobs:
         id: build-push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          context: ./images/github-actions-runner
-          file: ./images/github-actions-runner/Dockerfile
+          context: ./images/${{ matrix.image.name }}
+          file: ./images/${{ matrix.image.name }}/Dockerfile
           platforms: linux/amd64
           push: ${{ env.PUBLISH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=github-actions-runner
-          cache-to: type=gha,mode=max,scope=github-actions-runner
+          cache-from: type=gha,scope=${{ matrix.image.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}
           sbom: ${{ env.PUBLISH == 'true' }}
           provenance: ${{ env.PUBLISH == 'true' && 'mode=max' || 'false' }}
           build-args: |
@@ -114,39 +137,26 @@ jobs:
           DIGEST: ${{ steps.build-push.outputs.digest }}
         run: |
           {
-            echo "### github-actions-runner"
+            echo "### ${{ matrix.image.name }}"
             echo "- Reference: \`${IMAGE}:${TAG}\`"
             echo "- Digest: \`${DIGEST:-n/a}\`"
             echo "- Published: ${PUBLISH}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # Notes are the commits that touched the image since the previous runner release (squash merges, so the subject is
-  # the PR title).
-  release:
-    name: Release
-    needs: build
-    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    permissions:
-      contents: write # create the release and its tag
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0 # the commits since the previous release
-          persist-credentials: false
-
+      # Notes are the commits that touched the image since the previous release of this image (squash merges, so the
+      # subject is the PR title).
       - name: Publish the release
+        if: ${{ github.ref == 'refs/heads/main' && env.PUBLISH == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.build.outputs.tag }}
-          IMAGE: ghcr.io/${{ github.repository }}/github-actions-runner
+          TAG: ${{ steps.meta.outputs.version }}
+          NAME: ${{ matrix.image.name }}
+          PREFIX: ${{ matrix.image.tag-prefix }}
         run: | #sh
-          previous="$(gh release list --exclude-drafts --limit 50 --json tagName --jq '[.[] | select(.tagName | startswith("runner-"))][0].tagName // empty')"
+          previous="$(gh release list --exclude-drafts --limit 50 --json tagName --jq "[.[] | select(.tagName | startswith(\"$PREFIX-\"))][0].tagName // empty")"
           : > changes.txt
           if [[ -n "$previous" ]]; then
-            git log --format='- %s' "$previous..$GITHUB_SHA" -- images/github-actions-runner > changes.txt
+            git log --format='- %s' "$previous..$GITHUB_SHA" -- "images/$NAME" > changes.txt
           fi
           [[ -s changes.txt ]] || echo "- No changes, rebuilt with the latest packages" > changes.txt
           # shellcheck disable=SC2016 # the backticks are markdown

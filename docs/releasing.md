@@ -2,9 +2,10 @@
 
 There are two release streams:
 
-- `claude-runner` and `fileserver` (in `images/`) are versioned together with [Semantic Versioning](https://semver.org).
-  The version comes from the pull request titles (steps 1 to 3 below).
-- `github-actions-runner` has its own stream, published automatically (see the end of this page).
+- `fileserver` (in `images/`) is versioned with [Semantic Versioning](https://semver.org). The version comes from the
+  pull request titles (steps 1 to 3 below).
+- `github-actions-runner` and `claude-runner` each have their own stream, published automatically (see the end of this
+  page).
 
 ## 1. Write Conventional Commit PR titles
 
@@ -26,7 +27,7 @@ grouped notes and the next version (`vX.Y.Z`).
 ## 3. Publish it
 
 Publish the draft (tick *pre-release* for `vX.Y.Z-rc.1` style versions). GitHub creates the tag, and the tag triggers
-`.github/workflows/build-image.yaml`, which builds, signs (cosign) and attests (SLSA) the two images.
+`.github/workflows/build-image.yaml`, which builds, signs (cosign) and attests (SLSA) the image.
 
 | Trigger                    | Image tags                         |
 | -------------------------- | ---------------------------------- |
@@ -40,17 +41,23 @@ Deployments should pin an exact tag plus digest, never `latest` or a floating ta
 Note: a tag created with the default `GITHUB_TOKEN` does not trigger workflows, so publish the draft as a person
 (UI or `gh release edit vX.Y.Z --draft=false`).
 
-## The GitHub Actions runner image
+## The runner images
 
-`.github/workflows/build-runner-image.yaml` publishes `ghcr.io/cthtrifork/talos-gitops/github-actions-runner` on its own,
-with no draft to publish:
+`.github/workflows/build-runner-images.yaml` publishes `github-actions-runner` and `claude-runner`
+(`ghcr.io/cthtrifork/talos-gitops/<image>`) on their own, with no draft to publish:
 
-| Trigger                                                | Result                                                          |
-| ------------------------------------------------------ | --------------------------------------------------------------- |
-| merge that changes `images/github-actions-runner/**`   | image `runner-YYYYMMDD-<run number>` and `latest`, and a release of that name |
-| weekly run (Sunday), or a manual run                   | the same: it picks up new packages and the Trivy database baked into the image |
-| pull request                                           | built, not pushed                                               |
+| Trigger                                      | Result                                                                      |
+| -------------------------------------------- | --------------------------------------------------------------------------- |
+| merge that changes `images/<image>/**`       | image tags `<prefix>-YYYYMMDD-<run number>` and `latest`, and a release of that name |
+| weekly run (Sunday), or a manual run         | the same: it picks up new packages (and the Trivy database in the runner)   |
+| pull request                                 | built, not pushed                                                           |
 
-The image is signed (cosign) and has a provenance attestation. The release notes list the commits that touched the image
-since the previous `runner-` release, and the release is never marked as the repository's latest one: that stays the
-`vX.Y.Z` release. Deployments pin the tag plus digest, never `latest`.
+| Image                   | Tag prefix                       | Example                          |
+| ----------------------- | -------------------------------- | -------------------------------- |
+| `github-actions-runner` | `runner`                         | `runner-20261114-58`             |
+| `claude-runner`         | `claude-<Claude Code version>`   | `claude-2.1.311-20261114-58`     |
+
+The Claude Code version is read from `ARG CLAUDE_CODE_VERSION` in the Dockerfile, which Renovate bumps, so a bump
+produces a new tagged image and release on merge. Images are signed (cosign) and have a provenance attestation. The
+release notes list the commits that touched the image since the previous release of the same image, and a release is never
+marked as the repository's latest one: that stays the `vX.Y.Z` release. Deployments pin the tag plus digest, never `latest`.

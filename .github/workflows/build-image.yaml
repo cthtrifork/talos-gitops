@@ -1,7 +1,7 @@
 name: Build and publish container images
 
-# Versioning of claude-runner and fileserver (see docs/releasing.md; the runner image has its own workflow,
-# build-runner-image.yaml):
+# Versioning of the fileserver image (see docs/releasing.md; the runner images have their own workflow,
+# build-runner-images.yaml):
 #   - Tag push vX.Y.Z (made by publishing the draft release): images get vX.Y.Z, vX.Y, vX and latest.
 #     A pre-release tag (vX.Y.Z-rc.1) gets only its own tag, so the floating tags and latest stay on stable.
 #   - Manual run: <tag prefix>-<short sha>, for example rc-1a2b3c4d. Never a release tag.
@@ -12,7 +12,6 @@ on:
     branches:
       - main
     paths:
-      - images/claude-runner/**
       - images/fileserver/**
       - .github/workflows/build-image.yaml
   push:
@@ -40,8 +39,6 @@ jobs:
     timeout-minutes: 30
     # One output per image: matrix legs cannot share a single output name.
     outputs:
-      image_url_claude-runner: ${{ steps.slsa.outputs.image_url_claude-runner }}
-      image_digest_claude-runner: ${{ steps.slsa.outputs.image_digest_claude-runner }}
       image_url_fileserver: ${{ steps.slsa.outputs.image_url_fileserver }}
       image_digest_fileserver: ${{ steps.slsa.outputs.image_digest_fileserver }}
     permissions:
@@ -52,10 +49,6 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - name: claude-runner
-            containerfile: images/claude-runner/Dockerfile
-            context: images/claude-runner
-            registryurl: ghcr.io/${{ github.repository }}/claude-runner
           - name: fileserver
             containerfile: images/fileserver/Dockerfile
             context: images/fileserver
@@ -162,7 +155,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [claude-runner, fileserver]
+        image: [fileserver]
     permissions:
       actions: read # for detecting the Github Actions environment.
       id-token: write # for creating OIDC tokens for signing.
