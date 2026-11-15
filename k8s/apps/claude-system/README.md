@@ -272,8 +272,9 @@ Guards, outermost first:
   and patch only the one Secret. The page container therefore holds a credential that can grant; the API server bounds it:
   `ValidatingAdmissionPolicy/claude-elevator-rolebindings` allows only the ServiceAccount `claude-elevate-<tier>` of the same namespace as the subject,
   and only in a namespace labelled for that tier; `claude-elevator-tokens` limits a token to the tier's minutes in `ConfigMap/claude-elevate-limits`
-  (a tier without a key is denied; the page reads the same ConfigMap); the API itself refuses a token shorter than 10 minutes. The pod only checks
-  that names are safe to put in a URL.
+  (a tier without a key is denied; the page reads the same ConfigMap); the API itself refuses a token shorter than 10 minutes. The pod does no
+  validation of its own: a missing or malformed field answers 502 with the reason, and the tier and namespace are URL-escaped once so they stay
+  one path segment.
 - **Where.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` (`ops`, `debug`, `storage`) in its own manifest:
   `adguard-system` has all three, `external-dns-system` has `ops` (exec there can read the DNS API token). The page and the admission policy
   read the same labels. A revoke works for any namespace.

@@ -1,7 +1,7 @@
 ---
 # The elevate page and its API. The grant and revoke calls go straight to the Kubernetes API with the pod's own token; the API server decides
-# what is allowed (RBAC, the admission policies, the token limits), so there is no other validation here than the shape of the names, which
-# end up in URL paths. Nothing is cleaned up afterwards, not even after a failed grant: a token expires on its own, and the ServiceAccount and
+# what is allowed (RBAC, the admission policies, the token limits), so there is no validation here: a missing or malformed field fails in a
+# mapping or at the API server and answers 502 with the reason. The tier and the namespace go into URL paths, so they are escaped once, on the way in. Nothing is cleaned up afterwards, not even after a failed grant: a token expires on its own, and the ServiceAccount and
 # RoleBinding left behind (one pair per tier and namespace) are replaced by the next grant.
 #
 # GET  /                  the page
@@ -62,35 +62,16 @@ pipeline:
         - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/grants"'
           processors:
             - mapping: |
-                let b = content().parse_json().catch({})
-                meta valid = (
-                  $b.tier.type() == "string" && $b.tier.re_match("^[a-z]{1,16}$") &&
-                  $b.namespace.type() == "string" && $b.namespace.re_match("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$") &&
-                  $b.minutes.type() == "number" && $b.minutes == $b.minutes.floor() && $b.minutes >= 1 && $b.minutes <= 9999
-                ).catch(false)
-                root = {"tier": $b.tier, "namespace": $b.namespace, "minutes": $b.minutes}
-            - switch:
-                - check: '!@valid'
-                  processors:
-                    - resource: bad_request
-                - processors:
-                    - resource: grant
+                let b = content().parse_json()
+                root = {"tier": $b.tier.escape_url_path(), "namespace": $b.namespace.escape_url_path(), "minutes": $b.minutes}
+            - resource: grant
 
         - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/revoke"'
           processors:
             - mapping: |
-                let b = content().parse_json().catch({})
-                meta valid = (
-                  $b.tier.type() == "string" && $b.tier.re_match("^[a-z]{1,16}$") &&
-                  $b.namespace.type() == "string" && $b.namespace.re_match("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$")
-                ).catch(false)
-                root = {"tier": $b.tier, "namespace": $b.namespace}
-            - switch:
-                - check: '!@valid'
-                  processors:
-                    - resource: bad_request
-                - processors:
-                    - resource: revoke
+                let b = content().parse_json()
+                root = {"tier": $b.tier.escape_url_path(), "namespace": $b.namespace.escape_url_path()}
+            - resource: revoke
 
         - processors:
             - mapping: |
@@ -110,11 +91,6 @@ output:
   sync_response: {}
 
 processor_resources:
-  - label: bad_request
-    mapping: |
-      meta status = "400"
-      root = {"error": "bad request"}
-
   # puts the pod's token in the metadata field `token`; the other resources send it
   - label: login
     branch:
