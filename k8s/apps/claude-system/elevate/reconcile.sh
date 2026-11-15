@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Turns the request files the page drops into /spool into a ServiceAccount, a RoleBinding and a short-lived token for a tier, stored as a
 # kubeconfig in a Secret that claude-rc mounts. The API server decides what is allowed (RBAC, the admission policies, the TokenRequest
-# limits) and the token expires on its own; this only checks that names are safe to put in a URL. Deleting expired ServiceAccounts,
-# bindings and kubeconfigs is housekeeping. The page reads the state from the API itself; it gets from here a read-only token,
-# a heartbeat and the last lines of what happened.
+# limits) and the token expires on its own; this only checks that names are safe to put in a URL. It keeps no state: every pass starts from
+# the cluster, the page reads the cluster itself with the read-only token left in /spool, and each action is one JSON line on stdout.
 set -uo pipefail
+umask 077
 
 spool=/spool
 server=${API_SERVER:-https://kubernetes.default.svc}
@@ -14,7 +14,6 @@ secret=/api/v1/namespaces/claude-system/secrets/claude-elevated-kubeconfigs
 grants_path='/api/v1/serviceaccounts?labelSelector=app.kubernetes.io/managed-by%3Dclaude-elevate'
 tier_label='^[a-z]{1,16}$'
 dns_label='^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$'
-log=()
 # shellcheck disable=SC2016
 meta_def='def meta: {name: $name, namespace: $ns, labels: {"app.kubernetes.io/managed-by": "claude-elevate"}, annotations: {"claude-elevate/expires-at": $exp}};'
 
@@ -22,7 +21,7 @@ meta_def='def meta: {name: $name, namespace: $ns, labels: {"app.kubernetes.io/ma
 api() { # method path [content-type]
   local body=()
   [[ -n "${3:-}" ]] && body=(-H "Content-Type: $3" --data-binary @-)
-  curl -q -sS --fail-with-body --cacert "${sa_dir}/ca.crt" -H "@${auth_header}" -X "$1" "${body[@]}" "${server}$2" | tee /tmp/last-response
+  curl -q -sS --max-time 30 --fail-with-body --cacert "${sa_dir}/ca.crt" -H "@${auth_header}" -X "$1" "${body[@]}" "${server}$2" | tee /tmp/last-response
 }
 
 # a missing object counts as deleted
@@ -31,15 +30,10 @@ delete() { # path
   err="$(api DELETE "$1" 2>&1 >/dev/null)" || [[ "$err" == *"error: 404"* ]]
 }
 
-# One JSON line on stdout (audit trail) and one line for the page's "Recent" box (last 10)
 event() { # event [tier] [namespace] [detail]
   jq -nc --arg event "$1" --arg tier "${2:-}" --arg namespace "${3:-}" --arg detail "${4:-}" \
     '{ts: (now | todate), event: $event, tier: $tier, namespace: $namespace, detail: $detail}'
-  log+=("$(date -u +%H:%M:%S) $1${2:+ $2}${3:+ in $3}${4:+ $4}")
-  if ((${#log[@]} > 10)); then log=("${log[@]:1}"); fi
 }
-
-list_grants() { api GET "$grants_path"; }
 
 patch_secret() { api PATCH "$secret" application/merge-patch+json >/dev/null 2>&1; }
 
@@ -58,13 +52,6 @@ apply_grant() { # tier namespace expires
 request_token() { # tier namespace seconds
   jq -n --argjson s "$3" '{apiVersion: "authentication.k8s.io/v1", kind: "TokenRequest", spec: {expirationSeconds: $s}}' |
     api POST "/api/v1/namespaces/$2/serviceaccounts/claude-elevate-$1/token" application/json 2>/dev/null | jq -er .status.token
-}
-
-# the token's own exp claim must not be later than the grant's deadline (a minute of slack)
-token_within() { # token minutes
-  local exp
-  exp="$(jq -rR 'split(".")[1] | gsub("-"; "+") | gsub("_"; "/") | . + ("=" * ((4 - length % 4) % 4)) | @base64d | fromjson | .exp' <<<"$1")" &&
-    ((exp <= $(date +%s) + $2 * 60 + 60))
 }
 
 write_kubeconfig() { # tier namespace token
@@ -89,8 +76,7 @@ grant() { # tier namespace minutes
   local expires token why
   expires="$(jq -rn --argjson t "$(($(date +%s) + $3 * 60))" '$t | todate')"
   # a new ServiceAccount invalidates the tokens of an earlier grant
-  if remove "$1" "$2" && apply_grant "$1" "$2" "$expires" &&
-    token="$(request_token "$1" "$2" "$(($3 * 60))")" && token_within "$token" "$3" && write_kubeconfig "$1" "$2" "$token"; then
+  if remove "$1" "$2" && apply_grant "$1" "$2" "$expires" && token="$(request_token "$1" "$2" "$(($3 * 60))")" && write_kubeconfig "$1" "$2" "$token"; then
     event granted "$1" "$2" "until ${expires}"
   else
     why="$(jq -r '.message // empty' /tmp/last-response 2>/dev/null)"
@@ -107,17 +93,10 @@ revoke() { # tier namespace reason
 revoke_grants() { # reason
   local name ns
   while read -r name ns; do revoke "${name#claude-elevate-}" "$ns" "$1"; done < <(
-    list_grants | jq -r --arg reason "$1" --argjson now "$(date +%s)" '
+    api GET "$grants_path" | jq -r --arg reason "$1" --argjson now "$(date +%s)" '
       .items[]
       | select($reason != "expired" or (try (.metadata.annotations["claude-elevate/expires-at"] | fromdateiso8601) catch 0) <= $now)
       | "\(.metadata.name) \(.metadata.namespace)"')
-}
-
-# a short-lived token of the read-only ServiceAccount claude-elevate-ui, refreshed at half its life
-ui_token() {
-  (($(date +%s) - $(stat -c %Y "${spool}/ui-token" 2>/dev/null || echo 0) < 1800)) && return
-  local token
-  token="$(request_token ui claude-system 3600)" && (umask 077 && printf '%s' "$token" >"${spool}/.ui-token.tmp") && mv "${spool}/.ui-token.tmp" "${spool}/ui-token"
 }
 
 handle() { # request file
@@ -142,10 +121,9 @@ handle() { # request file
 }
 
 while true; do
-  date +%s >"${spool}/heartbeat" # the page and the liveness probe read it
-  # the projected token rotates, so the header file is rewritten every pass
-  (umask 077 && printf 'Authorization: Bearer %s\n' "$(cat "${sa_dir}/token")" >"$auth_header")
-  ui_token
+  # the projected token rotates, so the header file is rewritten every pass; the page gets a fresh read-only token every pass too
+  printf 'Authorization: Bearer %s\n' "$(cat "${sa_dir}/token")" >"$auth_header"
+  request_token ui claude-system 3600 >"${spool}/.ui-token" && mv "${spool}/.ui-token" "${spool}/ui-token"
   for f in "${spool}"/req-*; do
     [[ -e "$f" ]] || continue
     # names sort by arrival; stop at a file younger than a second (Connect writes in place) so a later request never runs first
@@ -153,6 +131,5 @@ while true; do
     handle "$f"
   done
   revoke_grants expired
-  jq -nc '$ARGS.positional' --args "${log[@]}" >"${spool}/.recent.tmp" && mv "${spool}/.recent.tmp" "${spool}/recent"
   sleep 3
 done

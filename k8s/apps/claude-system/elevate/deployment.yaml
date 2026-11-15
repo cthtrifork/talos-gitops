@@ -69,14 +69,6 @@ spec:
           command:
             - bash
             - /scripts/reconcile.sh
-          livenessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - test $(( $(date +%s) - $(cat /spool/heartbeat) )) -lt 60
-            initialDelaySeconds: 30
-            periodSeconds: 30
           resources:
             requests:
               cpu: 10m

@@ -36,13 +36,6 @@
   .mono { font-family: var(--mono); font-size: 14px; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-  .pill { display: inline-flex; align-items: center; gap: 8px; flex: none; padding: 6px 12px; border-radius: 999px;
-          border: 1px solid var(--line); background: var(--card); font-size: 13px; white-space: nowrap; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-2); flex: none; }
-  .pill.ok .dot { background: var(--ok); }
-  .pill.stale { border-color: var(--bad); }
-  .pill.stale .dot { background: var(--bad); }
-  .alert { margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg); font-size: 14px; }
 
   fieldset { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
   legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
@@ -93,7 +86,6 @@
   .left { color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
   .left.soon { color: var(--warn); font-weight: 600; }
   .none { margin: 0; color: var(--ink-2); font-size: 14px; }
-  pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2); font: 13px/1.5 var(--mono); }
   [hidden] { display: none !important; }
 
   @media (min-width: 560px) { .tiers { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
@@ -119,9 +111,7 @@
       <h1>Elevate Claude</h1>
       <p class="sub">Gives Claude a short-lived token for a tier. The token expires by itself.</p>
     </div>
-    <div id="health" class="pill"><span class="dot"></span><span id="healthText">Loading…</span></div>
   </header>
-  <p id="stale" class="alert" role="alert" hidden>The controller is not answering, so a grant may last longer than its time. Revoke by hand if it matters.</p>
 
   <div class="layout">
     <form id="form" class="card" autocomplete="off" novalidate>
@@ -164,10 +154,6 @@
         <ul id="grants"></ul>
         <p id="none" class="none">Nothing is elevated.</p>
         <button id="revokeAll" type="button" class="danger" style="margin-top:12px" hidden>Revoke everything</button>
-      </section>
-      <section class="card">
-        <h2>Recent</h2>
-        <pre id="log">Nothing yet.</pre>
       </section>
     </div>
   </div>
@@ -257,19 +243,9 @@
     s.className = "summary" + (confirming ? " confirm" : "");
   }
 
-  function health() {
-    if (!status) return;
-    var age = Math.round(Date.now() / 1000) - (status.now || 0);
-    var live = status.now > 0 && age < 30;
-    $("health").className = "pill " + (live ? "ok" : "stale");
-    $("healthText").textContent = live ? "Controller running" : "Controller not answering";
-    $("stale").hidden = live;
-  }
-
   function render() {
     if (!status) return;
     buildNamespaces();
-    health();
     var list = $("grants");
     var grants = status.grants || [];
     var key = grants.map(function (g) { return g.tier + "|" + g.namespace + "|" + g.expires_at; }).join(",");
@@ -298,13 +274,10 @@
     tick();
     $("none").hidden = grants.length > 0;
     $("revokeAll").hidden = grants.length === 0;
-    var log = (status.log || []).slice().reverse().join("\n");
-    $("log").textContent = log || "Nothing yet.";
   }
 
   // updates the countdown text of the listed grants
   function tick() {
-    health();
     Array.prototype.forEach.call(document.querySelectorAll("#grants .left"), function (n) {
       var r = remaining(n.getAttribute("data-expires"));
       n.textContent = r.text;
@@ -323,8 +296,19 @@
     $("error").textContent = "";
     return fetch(path.replace(/^\//, ""), { method: "POST", headers: HEADERS, body: JSON.stringify(body) })
       .then(function (r) { if (!r.ok) throw new Error("rejected (" + r.status + ")"); })
-      .then(function () { setTimeout(load, 4000); })
+      .then(function () { body.namespaces ? waitFor(body, 0) : setTimeout(load, 4000); })
       .catch(function (e) { $("error").textContent = "Request failed: " + e.message; });
+  }
+
+  // the sidecar keeps no state: a grant that never shows up in the list was refused (its reason is in the elevate pod's log)
+  function waitFor(want, tries) {
+    load().then(function () {
+      var listed = (status.grants || []).map(function (g) { return g.tier + "/" + g.namespace; });
+      var done = want.namespaces.every(function (n) { return listed.indexOf(want.tier + "/" + n) >= 0; });
+      if (done) return;
+      if (tries < 8) setTimeout(function () { waitFor(want, tries + 1); }, 2500);
+      else $("error").textContent = "Not granted: the request was refused or is not processed yet. The reason is in the elevate pod's log.";
+    });
   }
 
   function setConfirming(on) {
