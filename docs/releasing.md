@@ -48,17 +48,18 @@ Note: a tag created with the default `GITHUB_TOKEN` does not trigger workflows, 
 
 | Trigger                                      | Result                                                                      |
 | -------------------------------------------- | --------------------------------------------------------------------------- |
-| merge that changes `images/<image>/**`       | image tags `<prefix>-YYYYMMDD-<run number>` and `latest`, and a release of that name |
+| merge that changes `images/<image>/**`       | image tags `<tool version>-YYYYMMDD.<run number>` and `latest`, and a release `<prefix>-<tag>` |
 | weekly run (Sunday), or a manual run         | the same: it picks up new packages (and the Trivy database in the runner)   |
 | pull request                                 | built, not pushed                                                           |
 
-| Image                   | Tag prefix                       | Example                          |
-| ----------------------- | -------------------------------- | -------------------------------- |
-| `github-actions-runner` | `runner-<actions/runner version>` | `runner-2.338.2-20261114-58`     |
-| `claude-runner`         | `claude-<Claude Code version>`   | `claude-2.1.311-20261114-58`     |
+| Image                   | Tool version                                   | Image tag example           | Release tag example                |
+| ----------------------- | ---------------------------------------------- | --------------------------- | ---------------------------------- |
+| `github-actions-runner` | actions/runner of the base image (`RUNNER_VERSION` in the workflow) | `2.338.2-20261114.58`       | `runner-2.338.2-20261114.58`       |
+| `claude-runner`         | Claude Code (`ARG CLAUDE_CODE_VERSION` in the Dockerfile)           | `2.1.311-20261114.58`       | `claude-2.1.311-20261114.58`       |
 
-The runner version is the base image's (`RUNNER_VERSION` in the workflow, which Renovate bumps) and the Claude Code
-version is read from `ARG CLAUDE_CODE_VERSION` in the Dockerfile, which Renovate bumps too, so a bump produces a new
-tagged image and release on merge. Images are signed (cosign) and have a provenance attestation. The
-release notes list the commits that touched the image since the previous release of the same image, and a release is never
-marked as the repository's latest one: that stays the `vX.Y.Z` release. Deployments pin the tag plus digest, never `latest`.
+The image tag is valid [semver](https://semver.org): the tool's version, then the build date and run number as the
+prerelease, which compare numerically, so newer builds and newer tool versions sort higher. Renovate bumps both tool
+versions, so a bump produces a new tagged image and release on merge. The release tag has a prefix to keep it apart from
+the `fileserver` `vX.Y.Z` releases. Images are signed (cosign) and have a provenance attestation. The release notes list
+the commits that touched the image since the previous release of the same image, and a release is never marked as the
+repository's latest one: that stays the `vX.Y.Z` release. Deployments pin the tag plus digest, never `latest`.

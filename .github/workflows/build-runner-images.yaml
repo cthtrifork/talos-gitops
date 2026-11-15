@@ -2,8 +2,10 @@ name: Build and release the runner images
 
 # The GitHub Actions runner and the Claude runner each have their own release stream (see docs/releasing.md). Every build
 # of main (a merge to the image's directory, the weekly rebuild that picks up new packages, a manual run) publishes
-# runner-<actions/runner version>-YYYYMMDD-<run number> or claude-<Claude Code version>-YYYYMMDD-<run number>, and a release of that name with the
-# commits that touched the image as notes. A pull request builds the images to check them and does not push.
+# <tool version>-YYYYMMDD.<run number> (semver: the wrapped tool's version, then the build as the prerelease; the actions/runner
+# version for the runner, the Claude Code version for the Claude image) and a release named <prefix>-<that tag> (the
+# prefix keeps it apart from the fileserver vX.Y.Z releases) with the commits that touched the image as notes.
+# A pull request builds the images to check them and does not push.
 on:
   push:
     branches:
@@ -66,18 +68,17 @@ jobs:
 
       # The tags carry the version of what the image wraps: the actions/runner version of the base image (RUNNER_VERSION
       # above, passed to the build) and the Claude Code version, which Renovate bumps in its Dockerfile.
-      - name: Tag prefix
-        id: prefix
+      - name: Tool version
+        id: tool
         env:
           NAME: ${{ matrix.image.name }}
-          PREFIX: ${{ matrix.image.tag-prefix }}
         run: |
           if [[ "$NAME" == claude-runner ]]; then
-            PREFIX="$PREFIX-$(sed -n 's/^ARG CLAUDE_CODE_VERSION=//p' images/claude-runner/Dockerfile)"
+            version="$(sed -n 's/^ARG CLAUDE_CODE_VERSION=//p' images/claude-runner/Dockerfile)"
           else
-            PREFIX="$PREFIX-$RUNNER_VERSION"
+            version="$RUNNER_VERSION"
           fi
-          echo "value=$PREFIX" >> "$GITHUB_OUTPUT"
+          echo "value=$version" >> "$GITHUB_OUTPUT"
 
       - name: Tags and labels
         id: meta
@@ -85,7 +86,7 @@ jobs:
         with:
           images: ${{ env.IMAGE }}
           tags: |
-            type=raw,value=${{ steps.prefix.outputs.value }}-{{date 'YYYYMMDD'}}-${{ github.run_number }},enable={{is_default_branch}}
+            type=raw,value=${{ steps.tool.outputs.value }}-{{date 'YYYYMMDD'}}.${{ github.run_number }},enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=pr
 
@@ -169,4 +170,4 @@ jobs:
             printf '\n[Provenance attestation](%s/%s/attestations)\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY"
           } > notes.md
           # not the repository's latest release: that stays the vX.Y.Z one
-          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md --latest=false
+          gh release create "$PREFIX-$TAG" --target "$GITHUB_SHA" --title "$PREFIX-$TAG" --notes-file notes.md --latest=false
