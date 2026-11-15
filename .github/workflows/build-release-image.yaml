@@ -96,6 +96,8 @@ jobs:
           push: ${{ env.PUBLISH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # the weekly run exists to pick up new packages: a warm layer cache would reuse the old install layers
+          no-cache: ${{ github.event_name == 'schedule' }}
           cache-from: type=gha,scope=${{ inputs.name }}
           cache-to: type=gha,mode=max,scope=${{ inputs.name }}
           sbom: ${{ env.PUBLISH == 'true' }}
@@ -144,7 +146,7 @@ jobs:
           NAME: ${{ inputs.name }}
           PREFIX: ${{ inputs.tag-prefix }}
         run: | #sh
-          previous="$(gh release list --exclude-drafts --limit 50 --json tagName --jq "[.[] | select(.tagName | startswith(\"$PREFIX-\"))][0].tagName // empty")"
+          previous="$(gh release list --exclude-drafts --limit 1000 --json tagName --jq "[.[] | select(.tagName | startswith(\"$PREFIX-\"))][0].tagName // empty")"
           : > changes.txt
           if [[ -z "$previous" ]]; then
             echo "- First release" > changes.txt
