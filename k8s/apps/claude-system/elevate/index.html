@@ -117,7 +117,7 @@
   <header>
     <div>
       <h1>Elevate Claude</h1>
-      <p class="sub">Temporary extra rights for the <code>claude</code> ServiceAccount. They end by themselves.</p>
+      <p class="sub">Gives Claude a short-lived token for a tier. The token expires by itself.</p>
     </div>
     <div id="health" class="pill"><span class="dot"></span><span id="healthText">Loading…</span></div>
   </header>
@@ -177,7 +177,7 @@
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   var HEADERS = { "Content-Type": "application/json", "X-Requested-With": "claude-elevate" };
-  var DURATIONS = [5, 15, 30, 60];
+  var DURATIONS = [10, 15, 30, 60];
   var status = null;
   var confirming = false;
   var builtFor = "";

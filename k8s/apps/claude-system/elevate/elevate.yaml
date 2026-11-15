@@ -1,5 +1,5 @@
 ---
-# Break-glass page: grants claude-system/claude a tier's ClusterRole in chosen namespaces until a deadline (see the README).
+# Break-glass page: gives Claude a short-lived token for a tier's ClusterRole in chosen namespaces (see the README).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -7,7 +7,7 @@ metadata:
   namespace: claude-system
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
-# bind, patch and delete are pinned by name; who is bound and where is the admission policy below
+# bind, patch, delete and token are pinned by name; who is bound and where is the admission policy below
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -20,6 +20,35 @@ rules:
     verbs:
       - get
       - list
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+    verbs:
+      - get
+      - list
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+    resourceNames:
+      - claude-elevate-ops
+      - claude-elevate-debug
+      - claude-elevate-storage
+    verbs:
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts/token
+    resourceNames:
+      - claude-elevate-ops
+      - claude-elevate-debug
+      - claude-elevate-storage
+    verbs:
+      - create
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
@@ -64,7 +93,7 @@ subjects:
     namespace: claude-system
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
-# Only claude-system/claude may be bound, and only in a namespace labelled claude-elevate/<tier>.
+# Only the ServiceAccount claude-elevate-<tier> of the same namespace may be bound, and only in a namespace labelled claude-elevate/<tier>.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -85,14 +114,17 @@ spec:
   matchConditions:
     - name: from-the-elevator
       expression: request.userInfo.username == "system:serviceaccount:claude-system:claude-elevator"
+  variables:
+    - name: tier
+      expression: 'object.roleRef.name.replace("claude-", "")'
   validations:
     - expression: >-
         has(object.subjects) && object.subjects.size() == 1 &&
         object.subjects[0].kind == "ServiceAccount" &&
-        object.subjects[0].name == "claude" &&
-        object.subjects[0].namespace == "claude-system"
-      message: only ServiceAccount claude-system/claude may be bound
-    - expression: 'namespaceObject.metadata.?labels["claude-elevate/" + object.roleRef.name.replace("claude-", "")].orValue("") == "true"'
+        object.subjects[0].name == "claude-elevate-" + variables.tier &&
+        object.subjects[0].namespace == object.metadata.namespace
+      message: only the ServiceAccount claude-elevate-<tier> of the same namespace may be bound
+    - expression: 'namespaceObject.metadata.?labels["claude-elevate/" + variables.tier].orValue("") == "true"'
       message: the namespace has not opted in to this tier (label claude-elevate/<tier>)
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicybinding_v1.json
@@ -132,6 +164,28 @@ spec:
         runAsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: elevated-dir
+          image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
+          command:
+            - mkdir
+            - -p
+            - /workspace/.elevated
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
       containers:
         - name: connect
           image: mirror.gcr.io/redpandadata/connect:4.117.0@sha256:b6df7ca0c506578c8cc8b0cd223c117366bbeac84365f95944d339f0165b551c # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
@@ -204,6 +258,9 @@ spec:
             - name: scripts
               mountPath: /scripts
               readOnly: true
+            - name: workspace
+              mountPath: /elevated
+              subPath: .elevated
             - name: kube-api-access
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
               readOnly: true
@@ -212,6 +269,9 @@ spec:
           emptyDir: {}
         - name: spool
           emptyDir: {}
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: claude-workspace
         - name: config
           configMap:
             name: claude-elevate-connect-config

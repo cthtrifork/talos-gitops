@@ -1,4 +1,4 @@
-# Break-glass roles, bound by the elevate page (elevate/elevate.yaml) to ServiceAccount claude for a limited time.
+# Break-glass roles, bound by the elevate page (elevate/elevate.yaml) to a per-grant ServiceAccount whose token is short-lived.
 # No role can patch workloads or Flux objects: a patch is a full write of the pod or Flux spec, which RBAC cannot narrow.
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json

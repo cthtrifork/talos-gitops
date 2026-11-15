@@ -238,36 +238,42 @@ needs a registry request, which the VM does not make for the page. A spoofed rep
 
 ### Elevate Claude (break-glass page)
 
-`elevate/elevate.yaml`: pick a tier, one or more namespaces and a time on a page, and for that long `claude` has the extra rights there.
+`elevate/elevate.yaml`: pick a tier, one or more namespaces and a time on a page, and Claude gets a token for that tier there, valid for that long.
 It is exposed through the Omni service exposer (`Service/claude-elevate`, port 50094, behind Omni login). The pod has two containers
 sharing an emptyDir: Redpanda Connect serves the page and turns a POST into a request file (it has no Kubernetes credentials), and the
-`reconcile` sidecar (`elevate/reconcile.sh`, the only container with a token) re-validates each file, applies a `RoleBinding` named
-`claude-elevate-<tier>` (label `app.kubernetes.io/managed-by=claude-elevate`, annotation `claude-elevate/expires-at`) for
-ServiceAccount `claude-system/claude`, and deletes every binding past its time, also after a restart. A binding with no readable expiry
-counts as expired.
+`reconcile` sidecar (`elevate/reconcile.sh`, the only container with a Kubernetes token) re-validates each file. For each namespace it applies
+a ServiceAccount and a RoleBinding named `claude-elevate-<tier>` (label `app.kubernetes.io/managed-by=claude-elevate`, annotation
+`claude-elevate/expires-at`), requests a token for the ServiceAccount (`TokenRequest`, at least 10 minutes) and writes
+`/workspace/.elevated/<tier>-<namespace>.kubeconfig` (mode 0644) on the `claude-workspace` volume (the pod mounts only that subfolder; the volume
+is local to one node, so the pod runs beside `claude-rc`). Claude uses it with `kubectl --kubeconfig`; its own ServiceAccount is bound to nothing.
+
+The token expires on the API server whether or not the sidecar runs. The sidecar's sweep deletes expired ServiceAccounts, bindings and
+kubeconfig files; a leftover ServiceAccount has no valid token. A revoke deletes the ServiceAccount, which invalidates its tokens at once.
 
 | Tier | Role | Max | Grants |
 |---|---|---|---|
-| `ops` | `claude-ops` | 60 min | delete or evict pods (an eviction honours PodDisruptionBudgets) |
-| `debug` | `claude-debug` | 15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
-| `storage` | `claude-storage` | 15 min | delete PersistentVolumeClaims. Both storage classes reclaim with `Delete`, so a bound claim loses its data on the node (a claim a pod still uses waits for the pod) |
+| `ops` | `claude-ops` | 10-60 min | delete or evict pods (an eviction honours PodDisruptionBudgets) |
+| `debug` | `claude-debug` | 10-15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
+| `storage` | `claude-storage` | 10-15 min | delete PersistentVolumeClaims. Both storage classes reclaim with `Delete`, so a bound claim loses its data on the node (a claim a pod still uses waits for the pod) |
 
 Guards, outermost first:
 
 - **Who can reach the page.** Only the Omni exposer (host network) may connect; the NetworkPolicy has no rule for `claude-rc`, so
   the pod that receives the rights cannot ask for them. POSTs need `X-Requested-With: claude-elevate`.
-- **What the broker may do.** `ClusterRole/claude-elevator` can `bind` only `claude-ops`, `claude-debug` and `claude-storage`, and can patch or
-  delete only RoleBindings named `claude-elevate-<tier>`. `ValidatingAdmissionPolicy/claude-elevator-rolebindings` allows only `claude-system/claude`
-  as the subject, and only in a namespace labelled for that tier.
+- **What the broker may do.** `ClusterRole/claude-elevator` can `bind` only `claude-ops`, `claude-debug` and `claude-storage`, patch or delete only
+  ServiceAccounts and RoleBindings named `claude-elevate-<tier>`, and create tokens only for those ServiceAccounts.
+  `ValidatingAdmissionPolicy/claude-elevator-rolebindings` allows only the ServiceAccount `claude-elevate-<tier>` of the same namespace as the
+  subject, and only in a namespace labelled for that tier.
 - **Where.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` (`ops`, `debug`, `storage`) in its own manifest:
   `adguard-system` has all three, `external-dns-system` has `ops` (exec there can read the DNS API token). The sidecar and the admission policy
   read the same labels; a failed lookup allows nothing. A revoke works for any namespace.
 - **Scope of the tiers.** No tier has a Secrets, RBAC or node rule or can patch workloads or Flux objects. `debug` reads whatever a pod in the
   namespace can (mounted Secrets, its ServiceAccount token). Rollout restarts and forced Flux reconciles are not part of any tier.
 - **Dead controller.** The page shows "Controller not answering" when the status is older than 30 s, and the sidecar's liveness probe
-  restarts it when its loop stalls for a minute. A grant can still outlive its time while the sidecar is down; revoke by deleting the
-  RoleBinding (`kubectl delete rolebinding claude-elevate-<tier> -n <ns>`) from an admin machine.
-- **State and audit.** The grants are the RoleBindings in the cluster, so a page reload, a pod restart or a second device all show the same list. The
+  restarts it when its loop stalls for a minute. The tokens expire regardless; the leftover ServiceAccounts, bindings and files wait for the sweep.
+- **Token on disk.** The kubeconfig holds the token in plain text for up to the grant's lifetime (at most 60 minutes) and is readable by anything
+  that mounts `claude-workspace`.
+- **State and audit.** The grants are the ServiceAccounts in the cluster, so a page reload, a pod restart or a second device all show the same list. The
   "Recent" box is only the last 10 actions, in the sidecar's memory. The audit trail is one JSON line per action on the `reconcile` container's stdout
   (`granted`, `revoked` with `requested` or `expired`, `rejected`, `*_failed`); the cluster has no log shipper, so read it with `kubectl logs` before the pod is replaced.
   The page counts accepted requests as `elevate_requests{action,tier}` (PodMonitor, port 4195). Who clicked is not recorded: Omni authenticates, the pod does not see the identity.
