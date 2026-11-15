@@ -1,0 +1,13 @@
+---
+spec:
+  decryption: null
+  patches:
+    - target:
+        kind: Secret
+        name: cloudflared-tunnel-token
+      patch: |
+        $patch: delete
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: cloudflared-tunnel-token

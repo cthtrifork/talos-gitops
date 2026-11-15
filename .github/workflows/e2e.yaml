@@ -146,7 +146,7 @@ jobs:
 
       - name: Patch infra Kustomizations for kind
         run: |
-          for ks in gitops-infra gitops-infra-post; do
+          for ks in gitops-infra-controllers gitops-infra gitops-infra-post; do
             kubectl patch kustomization "${ks}" -n flux-system --type merge --patch-file "scripts/ci/e2e/${ks}.yaml"
           done
       - name: Reconcile infra
