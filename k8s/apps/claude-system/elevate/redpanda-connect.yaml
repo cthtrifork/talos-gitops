@@ -172,7 +172,8 @@ processor_resources:
       verb: DELETE
       headers:
         Authorization: 'Bearer ${! @token }'
-      successful_on: [404]
+      successful_on:
+        - 404
       tls:
         root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
