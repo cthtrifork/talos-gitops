@@ -7,8 +7,8 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | File | What |
 |---|---|
 | `rbac.yaml` | ServiceAccount `claude`; built-in `view` (no Secrets) plus read-only access to nodes, storage, CRDs and the CRD groups in use (including MetalLB, the ARC runner resources and the trivy-operator reports). No write verbs, no `pods/exec` |
-| `rbac-elevated.yaml` | The break-glass ClusterRoles `claude-ops` (delete or evict pods), `claude-debug` (`pods/exec`, port-forward, ephemeral containers) and `claude-storage` (delete PVCs). Nothing binds them by default |
-| `elevate/` | The "Elevate Claude" page (below): a pod, its ServiceAccount, RBAC and admission policy |
+| `rbac-elevated.yaml` | The break-glass ClusterRoles `claude-ops`, `claude-debug` and `claude-storage`; nothing binds them by default |
+| `elevate/` | The "Elevate Claude" page (below): a Redpanda Connect pod, its RBAC, limits and admission policies |
 | `networkpolicy.yaml` | Cilium default deny, then DNS, the Kubernetes API and TCP 443 to the hosts Claude Code needs |
 | `github-app.yaml` | CronJob that mints a one-hour GitHub App installation token into `claude-github-token` (scripts in `github-app/`) |
 | `deployment.yaml` | `claude-rc`: idles until a login exists, then runs `claude remote-control`; non-root, read-only root filesystem |
@@ -238,50 +238,26 @@ needs a registry request, which the VM does not make for the page. A spoofed rep
 
 ### Elevate Claude (break-glass page)
 
-`elevate/`: pick a tier, one or more namespaces and a time on a page, and Claude gets a token for that tier there, valid for that long.
-It is exposed through the Omni service exposer (`Service/claude-elevate`, port 50094, behind Omni login). One Redpanda Connect container
-(`elevate/redpanda-connect.yaml`) serves the page and answers its API with calls to the Kubernetes API server, using the pod's own token. The page
-sends one request per namespace; for each, the API server does the work in these steps, and the first refusal is the answer (its message goes back to the page):
-
-1. delete the previous ServiceAccount, RoleBinding and kubeconfig key of the tier and namespace (a new ServiceAccount invalidates earlier tokens),
-2. apply the ServiceAccount and the RoleBinding `claude-elevate-<tier>` (label `app.kubernetes.io/managed-by=claude-elevate`),
-3. request a token for the ServiceAccount (`TokenRequest`, at least 10 minutes),
-4. put the expiry on the ServiceAccount (`claude-elevate/expires-at`; the page lists a ServiceAccount as a grant from here on),
-5. store the kubeconfig as the key `<tier>-<namespace>.kubeconfig` of `Secret/claude-elevated-kubeconfigs`, which `claude-rc` mounts at
-   `/etc/elevated` (the kubelet refreshes the files within about a minute, so no restart is needed; the Secret must not carry a Reloader annotation).
-
-Claude uses a file with `kubectl --kubeconfig`; its own ServiceAccount is bound to nothing. The status is read from the API server too: the limits
-ConfigMap, the namespaces' labels and the grants' ServiceAccounts, so a page reload, a pod restart or a second device all show the same list.
-
-Nothing cleans up afterwards, not even after a failed grant: the token expires on the API server by itself, and the ServiceAccount, RoleBinding and
-kubeconfig key left behind hold no valid token. There is at most one set per tier and namespace and the next grant replaces it. The page lists only
-grants that carry the expiry and have not expired. A revoke deletes the ServiceAccount, which invalidates its tokens at once.
+A page behind the Omni exposer (`Service/claude-elevate`, port 50094): pick a tier, namespaces and a time, and Claude gets a short-lived token for
+that tier there, as `/etc/elevated/<tier>-<namespace>.kubeconfig` (a Secret mount the kubelet refreshes within about a minute, so no restart: the
+Secret has no Reloader annotation, a restart would end the session; use it with `kubectl --kubeconfig`). One Redpanda Connect container calls the
+Kubernetes API with the pod's own token; the steps and the API are in `elevate/redpanda-connect.yaml`.
 
 | Tier | Role | Max | Grants |
 |---|---|---|---|
-| `ops` | `claude-ops` | 10-60 min | delete or evict pods (an eviction honours PodDisruptionBudgets) |
+| `ops` | `claude-ops` | 10-60 min | delete or evict pods |
 | `debug` | `claude-debug` | 10-15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
-| `storage` | `claude-storage` | 10-15 min | delete PersistentVolumeClaims. Both storage classes reclaim with `Delete`, so a bound claim loses its data on the node (a claim a pod still uses waits for the pod) |
+| `storage` | `claude-storage` | 10-15 min | delete PersistentVolumeClaims (both storage classes reclaim with `Delete`: a bound claim loses its data) |
 
-Guards, outermost first:
-
-- **Who can reach the page.** Only the Omni exposer (host network) may connect; Prometheus reaches only the metrics port; the NetworkPolicy has no
-  rule for `claude-rc`, so the pod that receives the rights cannot ask for them. POSTs need `X-Requested-With: claude-elevate`.
-- **What the pod may do.** `ClusterRole/claude-elevator` can list namespaces and ServiceAccounts, `bind` only `claude-ops`, `claude-debug` and
-  `claude-storage`, patch or delete only ServiceAccounts and RoleBindings named `claude-elevate-<tier>`, create tokens only for those ServiceAccounts,
-  and patch only the one Secret. The page container therefore holds a credential that can grant; the API server bounds it:
-  `ValidatingAdmissionPolicy/claude-elevator-rolebindings` allows only the ServiceAccount `claude-elevate-<tier>` of the same namespace as the subject,
-  and only in a namespace labelled for that tier; `claude-elevator-tokens` limits a token to the tier's minutes in `ConfigMap/claude-elevate-limits`
-  (a tier without a key is denied; the page reads the same ConfigMap); the API itself refuses a token shorter than 10 minutes. The pod does no
-  validation of its own: a missing or malformed field answers 502 with the reason, and the tier and namespace are URL-escaped once so they stay
-  one path segment.
-- **Where.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` (`ops`, `debug`, `storage`) in its own manifest:
-  `adguard-system` has all three, `external-dns-system` has `ops` (exec there can read the DNS API token). The page and the admission policy
-  read the same labels. A revoke works for any namespace.
-- **Scope of the tiers.** No tier has a Secrets, RBAC or node rule or can patch workloads or Flux objects. `debug` reads whatever a pod in the
-  namespace can (mounted Secrets, its ServiceAccount token). Rollout restarts and forced Flux reconciles are not part of any tier.
-- **Token storage.** The kubeconfig holds the token in plain text for up to the grant's lifetime (at most 60 minutes), in a Secret readable by anyone
-  with `get secrets` in `claude-system`, and as a world-readable file in `claude-rc`.
-- **Audit.** Each grant and revoke is one structured log line on the container's stdout (`granted` with the expiry, `revoked`, `request failed` with
-  the API's message); the cluster has no log shipper, so read it with `kubectl logs` before the pod is replaced. The page counts requests as
-  `elevate_requests{action,tier}` (PodMonitor, port 4195). Who clicked is not recorded: Omni authenticates, the pod does not see the identity.
+- **Opt-in.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` in its own manifest (`adguard-system`: all three,
+  `external-dns-system`: `ops` only, since exec there could read the DNS API token).
+- **Expiry.** The token expires on the API server by itself and nothing cleans up afterwards: the ServiceAccount, RoleBinding and kubeconfig key left
+  behind hold no valid token, and the next grant replaces them. A revoke deletes the ServiceAccount, which kills its tokens at once.
+- **Limits.** The API server validates. RBAC pins the pod to the three roles and to `claude-elevate-<tier>` objects;
+  `claude-elevator-rolebindings` allows only that ServiceAccount, only in an opted-in namespace; `claude-elevator-tokens` caps a token at the tier's
+  minutes in `ConfigMap/claude-elevate-limits` (the page reads it too). The page container holds a credential that can grant, bounded by these.
+- **Reach.** Only the Omni exposer and Prometheus (metrics port) reach the pod, never `claude-rc`; POSTs need `X-Requested-With: claude-elevate`.
+- **Not offered.** Patching workloads or Flux objects (rollout restarts, forced reconciles). `debug` reads whatever a pod in the namespace can
+  (mounted Secrets, its ServiceAccount token).
+- **Token storage and audit.** The token is plain text in the Secret (readable with `get secrets` in `claude-system`) and in the mount. Grants and
+  revokes are log lines on the container (no log shipper: `kubectl logs`) and count in `elevate_requests{action,tier}`; who clicked is not recorded.
