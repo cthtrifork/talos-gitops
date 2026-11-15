@@ -1,0 +1,126 @@
+# What helm-controller may do when it installs the external-dns release (spec.serviceAccountName on the HelmRelease). Without it Flux
+# applies the chart as the controller itself, which is cluster-admin: anyone who can patch this HelmRelease (postRenderers, values) could
+# have Flux write any cluster object. With it the release can only touch what the chart renders. Derived from `rendered/` for chart 1.23.0:
+# re-check this file when the chart version changes (a missing rule shows up as a forbidden error on the HelmRelease).
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-dns-helm
+  namespace: external-dns-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: external-dns-helm
+  namespace: external-dns-system
+rules:
+  # Helm keeps the release in Secrets (sh.helm.release.v1.*) in the release namespace
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+      - serviceaccounts
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  # the readiness wait follows the Deployment down to its pods
+  - apiGroups:
+      - apps
+    resources:
+      - replicasets
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: external-dns-helm
+  namespace: external-dns-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: external-dns-helm
+subjects:
+  - kind: ServiceAccount
+    name: external-dns-helm
+    namespace: external-dns-system
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
+# The chart renders a ClusterRole and a ClusterRoleBinding. Kubernetes only lets an account create a role whose rules it holds itself, so the
+# second block repeats the chart's rules (rendered/clusterrole.yaml): this account can then never grant more than external-dns already reads.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: external-dns-helm
+rules:
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+      - clusterrolebindings
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: external-dns-helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-dns-helm
+subjects:
+  - kind: ServiceAccount
+    name: external-dns-helm
+    namespace: external-dns-system

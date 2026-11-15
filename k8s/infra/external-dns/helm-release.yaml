@@ -11,6 +11,8 @@ metadata:
 spec:
   interval: 30m
   timeout: 10m
+  # Not the controller's own (cluster-admin) identity: see helm-rbac.yaml
+  serviceAccountName: external-dns-helm
   chart:
     spec:
       chart: external-dns
