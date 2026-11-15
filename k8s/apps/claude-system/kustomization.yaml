@@ -11,7 +11,11 @@ resources:
   - github-app.yaml
   - usage/usage.yaml
   - vm-upgrade/vm-upgrade.yaml
-  - elevate/elevate.yaml
+  - elevate/elevator.yaml
+  - elevate/state.yaml
+  - elevate/admission.yaml
+  - elevate/deployment.yaml
+  - elevate/service.yaml
 configMapGenerator:
   - name: claude-token-scripts
     namespace: claude-system

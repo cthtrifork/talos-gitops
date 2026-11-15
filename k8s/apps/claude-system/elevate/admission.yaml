@@ -1,0 +1,90 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
+# A token for a tier's ServiceAccount may not outlive the tier's limit in claude-elevate-limits (a tier without a key is denied); the page's
+# read-only account gets an hour.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: claude-elevator-tokens
+spec:
+  failurePolicy: Fail
+  paramKind:
+    apiVersion: v1
+    kind: ConfigMap
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+        resources:
+          - serviceaccounts/token
+  matchConditions:
+    - name: from-the-elevator
+      expression: request.userInfo.username == "system:serviceaccount:claude-system:claude-elevator"
+  validations:
+    - expression: >-
+        object.spec.expirationSeconds <=
+        (request.name == "claude-elevate-ui" ? 3600 : int(params.data[request.name.replace("claude-elevate-", "")]) * 60)
+      message: the token is longer than the tier's limit in the ConfigMap claude-elevate-limits
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicybinding_v1.json
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: claude-elevator-tokens
+spec:
+  policyName: claude-elevator-tokens
+  paramRef:
+    name: claude-elevate-limits
+    namespace: claude-system
+    parameterNotFoundAction: Deny
+  validationActions:
+    - Deny
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
+# Only the ServiceAccount claude-elevate-<tier> of the same namespace may be bound, and only in a namespace labelled claude-elevate/<tier>.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: claude-elevator-rolebindings
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - rbac.authorization.k8s.io
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - rolebindings
+  matchConditions:
+    - name: from-the-elevator
+      expression: request.userInfo.username == "system:serviceaccount:claude-system:claude-elevator"
+  variables:
+    - name: tier
+      expression: 'object.roleRef.name.replace("claude-", "")'
+  validations:
+    - expression: >-
+        has(object.subjects) && object.subjects.size() == 1 &&
+        object.subjects[0].kind == "ServiceAccount" &&
+        object.subjects[0].name == "claude-elevate-" + variables.tier &&
+        object.subjects[0].namespace == object.metadata.namespace
+      message: only the ServiceAccount claude-elevate-<tier> of the same namespace may be bound
+    - expression: 'namespaceObject.metadata.?labels["claude-elevate/" + variables.tier].orValue("") == "true"'
+      message: the namespace has not opted in to this tier (label claude-elevate/<tier>)
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicybinding_v1.json
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: claude-elevator-rolebindings
+spec:
+  policyName: claude-elevator-rolebindings
+  validationActions:
+    - Deny

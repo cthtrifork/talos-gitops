@@ -238,7 +238,7 @@ needs a registry request, which the VM does not make for the page. A spoofed rep
 
 ### Elevate Claude (break-glass page)
 
-`elevate/elevate.yaml`: pick a tier, one or more namespaces and a time on a page, and Claude gets a token for that tier there, valid for that long.
+`elevate/`: pick a tier, one or more namespaces and a time on a page, and Claude gets a token for that tier there, valid for that long.
 It is exposed through the Omni service exposer (`Service/claude-elevate`, port 50094, behind Omni login). The pod has two containers
 sharing an emptyDir: Redpanda Connect serves the page, turns a POST into a request file and answers the status from the API server itself (the limits
 ConfigMap, the namespaces' labels and the grants' ServiceAccounts) with a read-only token, and the `reconcile` sidecar

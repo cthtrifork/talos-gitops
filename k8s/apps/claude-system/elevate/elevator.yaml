@@ -1,0 +1,128 @@
+---
+# Break-glass page: gives Claude a short-lived token for a tier's ClusterRole in chosen namespaces (see the README).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: claude-elevator
+  namespace: claude-system
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
+# bind, patch, delete and token are pinned by name; who is bound and where is the admission policy below
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: claude-elevator
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+    verbs:
+      - get
+      - list
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+    resourceNames:
+      - claude-elevate-ops
+      - claude-elevate-debug
+      - claude-elevate-storage
+    verbs:
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts/token
+    resourceNames:
+      - claude-elevate-ops
+      - claude-elevate-debug
+      - claude-elevate-storage
+      - claude-elevate-ui
+    verbs:
+      - create
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+    verbs:
+      - get
+      - list
+      - create
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+    resourceNames:
+      - claude-elevate-ops
+      - claude-elevate-debug
+      - claude-elevate-storage
+    verbs:
+      - patch
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+    resourceNames:
+      - claude-ops
+      - claude-debug
+      - claude-storage
+    verbs:
+      - bind
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: claude-elevator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: claude-elevator
+subjects:
+  - kind: ServiceAccount
+    name: claude-elevator
+    namespace: claude-system
+---
+# The kubeconfigs of the active grants, one key per <tier>-<namespace>.kubeconfig, mounted by claude-rc at /etc/elevated. Created empty; the
+# elevator fills it, so Flux only creates it. Not annotated for Reloader: a restart of claude-rc would end the session.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: claude-elevated-kubeconfigs
+  namespace: claude-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+type: Opaque
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: claude-elevator
+  namespace: claude-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - claude-elevated-kubeconfigs
+    verbs:
+      - get
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: claude-elevator
+  namespace: claude-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: claude-elevator
+subjects:
+  - kind: ServiceAccount
+    name: claude-elevator
+    namespace: claude-system

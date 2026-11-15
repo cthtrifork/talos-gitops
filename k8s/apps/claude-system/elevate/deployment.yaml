@@ -1,0 +1,137 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-elevate
+  namespace: claude-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: claude-elevate
+  template:
+    metadata:
+      labels:
+        app: claude-elevate
+    spec:
+      serviceAccountName: claude-elevator
+      # only the sidecar mounts a token (projected below)
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: connect
+          image: mirror.gcr.io/redpandadata/connect:4.117.0@sha256:b6df7ca0c506578c8cc8b0cd223c117366bbeac84365f95944d339f0165b551c # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
+          args:
+            - -c
+            - /etc/connect/redpanda-connect.yaml
+            - --disable-telemetry
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: metrics
+              containerPort: 4195
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+          resources:
+            requests:
+              cpu: 10m
+              memory: 48Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: spool
+              mountPath: /spool
+            - name: kube-ca
+              mountPath: /etc/kube-ca
+              readOnly: true
+            - name: config
+              mountPath: /etc/connect
+              readOnly: true
+        - name: reconcile
+          image: registry.gitlab.com/gitlab-ci-utils/curl-jq:5.0.3 # renovate: datasource=docker depName=registry.gitlab.com/gitlab-ci-utils/curl-jq versioning=docker
+          command:
+            - bash
+            - /scripts/reconcile.sh
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test $(( $(date +%s) - $(cat /spool/heartbeat) )) -lt 60
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: reconcile-tmp
+              mountPath: /tmp
+            - name: spool
+              mountPath: /spool
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: kube-api-access
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: reconcile-tmp
+          emptyDir: {}
+        - name: spool
+          emptyDir: {}
+        - name: kube-ca
+          configMap:
+            name: kube-root-ca.crt
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - name: config
+          configMap:
+            name: claude-elevate-connect-config
+        - name: scripts
+          configMap:
+            name: claude-elevate-scripts
+        - name: kube-api-access
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3600
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+              - downwardAPI:
+                  items:
+                    - path: namespace
+                      fieldRef:
+                        fieldPath: metadata.namespace
