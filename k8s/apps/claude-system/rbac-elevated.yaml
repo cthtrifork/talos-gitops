@@ -1,11 +1,13 @@
 # Break-glass roles for the Claude Code pod. Nothing binds them by default: the elevate page (elevate/elevate.yaml) adds a
 # RoleBinding for ServiceAccount `claude` in the namespaces you pick, and removes it when the time is up. They are
 # ClusterRoles only so one definition serves every namespace; a RoleBinding limits them to its own namespace.
-# No tier gets Secrets, RBAC objects or nodes.
+# Neither role has a Secrets, RBAC or node rule, and neither can edit a workload or a Flux object: a `patch` there is a full
+# write of the pod spec or of the Flux spec (env from any Secret, another ServiceAccount, postRenderers that widen a
+# ClusterRole), and RBAC cannot narrow it to one annotation. A restart is a pod delete. `debug` still reaches whatever a pod in
+# the namespace can (its mounted Secrets and ServiceAccount token), so grant it only where that is acceptable.
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
-# Unstick things Flux cannot: restart a pod or workload, force a reconcile. Never create or edit manifests
-# (changes still go through a PR), and no PVC deletes (local-path volumes hold the data).
+# Restart things Flux cannot: delete a pod and its controller recreates it. Nothing else, and no PVC deletes (local-path volumes hold the data).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -17,22 +19,6 @@ rules:
       - pods
     verbs:
       - delete
-  - apiGroups:
-      - apps
-    resources:
-      - deployments
-      - statefulsets
-      - daemonsets
-    verbs:
-      - patch
-  - apiGroups:
-      - helm.toolkit.fluxcd.io
-      - kustomize.toolkit.fluxcd.io
-    resources:
-      - helmreleases
-      - kustomizations
-    verbs:
-      - patch
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
 # Look inside a running pod. Kept apart from claude-ops because exec can reach whatever the pod can.

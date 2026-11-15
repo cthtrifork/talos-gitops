@@ -7,7 +7,7 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | File | What |
 |---|---|
 | `rbac.yaml` | ServiceAccount `claude`; built-in `view` (no Secrets) plus read-only access to nodes, storage, CRDs and the CRD groups in use (including MetalLB, the ARC runner resources and the trivy-operator reports). No write verbs, no `pods/exec` |
-| `rbac-elevated.yaml` | The break-glass ClusterRoles `claude-ops` (delete pods, restart workloads, patch Flux objects) and `claude-debug` (`pods/exec`, port-forward, ephemeral containers). Nothing binds them by default |
+| `rbac-elevated.yaml` | The break-glass ClusterRoles `claude-ops` (delete pods) and `claude-debug` (`pods/exec`, port-forward, ephemeral containers). Nothing binds them by default |
 | `elevate/` | The "Elevate Claude" page (below): a pod, its ServiceAccount, RBAC and admission policy |
 | `networkpolicy.yaml` | Cilium default deny, then DNS, the Kubernetes API and TCP 443 to the hosts Claude Code needs |
 | `github-app.yaml` | CronJob that mints a one-hour GitHub App installation token into `claude-github-token` (scripts in `github-app/`) |
@@ -248,7 +248,7 @@ counts as expired.
 
 | Tier | Role | Max | Grants |
 |---|---|---|---|
-| `ops` | `claude-ops` | 60 min | delete pods; patch Deployments, StatefulSets, DaemonSets, HelmReleases, Kustomizations |
+| `ops` | `claude-ops` | 60 min | delete pods (a restart). No `patch` on workloads or Flux objects: it is a full write of the pod spec or Flux spec, enough to read any Secret in the namespace or widen what Flux applies |
 | `debug` | `claude-debug` | 15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
 
 Guards, outermost first:
@@ -259,7 +259,7 @@ Guards, outermost first:
   `ValidatingAdmissionPolicy/claude-elevator-rolebindings` lets that account touch only RoleBindings carrying its label, bind only
   `claude` to those two roles, and only in the namespaces on its list.
 - **Where.** The namespace list lives in two places that must match: `ALLOWED_NAMESPACES` in the Deployment and the policy (the policy wins).
-  Neither tier covers Secrets, RBAC objects or nodes.
+  Neither tier has a Secrets, RBAC or node rule. `debug` can still read whatever a pod in the namespace can (mounted Secrets, its ServiceAccount token), so grant it only where that is acceptable. A forced Flux reconcile or a rollout restart is not offered: RBAC cannot limit a `patch` to one annotation.
 - **Dead controller.** The page shows "Controller not answering" when the status is older than 30 s, and the sidecar's liveness probe
   restarts it when its loop stalls for a minute. A grant can still outlive its time while the sidecar is down; revoke by deleting the
   RoleBinding (`kubectl delete rolebinding claude-elevate-<tier> -n <ns>`) from an admin machine.
