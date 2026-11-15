@@ -288,7 +288,7 @@
   function load() {
     return fetch("api/v1/status", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
-      .then(function (s) { status = s; $("error").textContent = ""; buildMinutes(); render(); updateForm(); })
+      .then(function (s) { s.grants = (s.grants || []).filter(function (g) { return Date.parse(g.expires_at) > Date.now(); }); status = s; $("error").textContent = ""; buildMinutes(); render(); updateForm(); })
       .catch(function (e) { $("error").textContent = "Cannot read status: " + e.message; });
   }
 

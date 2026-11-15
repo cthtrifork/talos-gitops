@@ -3,7 +3,8 @@
 as a kubeconfig in a Secret that claude-rc mounts.
 
 The API server decides what is allowed (RBAC, the admission policies, the TokenRequest limits) and the token expires on its own, so this
-only checks that names are safe to put in a URL. It keeps no state: every pass starts from the cluster. The page reads the cluster itself
+only checks that names are safe to put in a URL, and nothing cleans up after an expired grant: its ServiceAccount and RoleBinding (one
+pair per tier and namespace, replaced by the next grant) hold no valid token. It keeps no state: every pass starts from the cluster. The page reads the cluster itself
 with the read-only token left in the spool, and each action is one JSON line on stdout.
 """
 import json
@@ -142,28 +143,18 @@ def grant(tier, namespace, minutes):
     log("granted", tier, namespace, "until " + expires)
 
 
-def revoke(tier, namespace, reason):
+def revoke(tier, namespace):
     try:
         remove(tier, namespace)
     except ApiError:
         return log("revoke_failed", tier, namespace)
-    log("revoked", tier, namespace, reason)
+    log("revoked", tier, namespace)
 
 
-def overdue(expires):
-    try:
-        return datetime.strptime(expires, TIME).replace(tzinfo=timezone.utc) <= now()
-    except (TypeError, ValueError):
-        return True  # an unreadable expiry counts as overdue
-
-
-def revoke_grants(reason):
-    """reason "expired" revokes the overdue grants, anything else all of them."""
+def revoke_all():
     for item in call("GET", "/api/v1/serviceaccounts?labelSelector=app.kubernetes.io/managed-by%3Dclaude-elevate")["items"]:
         metadata = item["metadata"]
-        if reason == "expired" and not overdue(metadata.get("annotations", {}).get(EXPIRES)):
-            continue
-        revoke(metadata["name"].removeprefix("claude-elevate-"), metadata["namespace"], reason)
+        revoke(metadata["name"].removeprefix("claude-elevate-"), metadata["namespace"])
 
 
 def handle(path):
@@ -177,11 +168,11 @@ def handle(path):
 
     action, tier = request.get("action"), str(request.get("tier", ""))
     if action == "revokeall":
-        revoke_grants("requested")
+        revoke_all()
     elif action == "revoke":
         namespace = str(request.get("namespace", ""))
         if TIER.fullmatch(tier) and NAMESPACE.fullmatch(namespace):  # allowed in any namespace, so a revoke works after an opt-in is removed
-            revoke(tier, namespace, "requested")
+            revoke(tier, namespace)
         else:
             log("rejected", detail="revoke request")
     elif action == "grant":
@@ -211,7 +202,6 @@ def main():
                 if time.time() - path.stat().st_mtime < 1:  # Connect writes in place: stop here so a later request never runs first
                     break
                 handle(path)
-            revoke_grants("expired")
         except (ApiError, OSError) as error:
             log("error", detail=str(error)[:160])
         time.sleep(3)

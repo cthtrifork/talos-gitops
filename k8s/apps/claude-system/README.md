@@ -249,8 +249,10 @@ the key `<tier>-<namespace>.kubeconfig` in `Secret/claude-elevated-kubeconfigs`,
 the files within about a minute, so no restart is needed; the Secret must not carry a Reloader annotation). Claude uses a file with
 `kubectl --kubeconfig`; its own ServiceAccount is bound to nothing.
 
-The token expires on the API server whether or not the sidecar runs. The sidecar's sweep deletes expired ServiceAccounts, bindings and
-kubeconfig keys; a leftover ServiceAccount has no valid token. A revoke deletes the ServiceAccount, which invalidates its tokens at once.
+The token expires on the API server whether or not the sidecar runs, and nothing cleans up afterwards: an expired grant leaves a ServiceAccount,
+a RoleBinding and a kubeconfig key with no valid token behind. There is at most one set per tier and namespace, the next grant replaces it, and
+the page lists only grants that have not expired. A revoke deletes the ServiceAccount, which invalidates its tokens at once, and "Revoke
+everything" also removes the leftovers.
 
 | Tier | Role | Max | Grants |
 |---|---|---|---|
@@ -276,12 +278,12 @@ Guards, outermost first:
   read the same labels. A revoke works for any namespace.
 - **Scope of the tiers.** No tier has a Secrets, RBAC or node rule or can patch workloads or Flux objects. `debug` reads whatever a pod in the
   namespace can (mounted Secrets, its ServiceAccount token). Rollout restarts and forced Flux reconciles are not part of any tier.
-- **No state in the sidecar.** Every pass starts from the cluster (the labelled ServiceAccounts), so a restart loses nothing; the tokens expire
-  whether or not it runs, and the leftover ServiceAccounts, bindings and kubeconfigs wait for its next sweep. The page shows no controller
+- **No state in the sidecar.** Every pass starts from the cluster (the labelled ServiceAccounts), so a restart loses nothing, and the tokens expire
+  whether or not it runs. The page shows no controller
   indicator: after a grant it watches the list for about 20 seconds and, if the grant has not appeared, says it was refused or not processed.
 - **Token storage.** The kubeconfig holds the token in plain text for up to the grant's lifetime (at most 60 minutes), in a Secret readable by anyone
   with `get secrets` in `claude-system`, and as a world-readable file in `claude-rc`. `claude-elevator` can only `get` and `patch` that one Secret.
 - **State and audit.** The grants are the ServiceAccounts in the cluster, so a page reload, a pod restart or a second device all show the same list.
-  The audit trail is one JSON line per action on the `reconcile` container's stdout (`granted`, `revoked` with `requested` or `expired`, `rejected`,
+  The audit trail is one JSON line per action on the `reconcile` container's stdout (`granted`, `revoked`, `rejected`,
   `grant_failed` with the API's reason); the cluster has no log shipper, so read it with `kubectl logs` before the pod is replaced.
   The page counts accepted requests as `elevate_requests{action,tier}` (PodMonitor, port 4195). Who clicked is not recorded: Omni authenticates, the pod does not see the identity.
