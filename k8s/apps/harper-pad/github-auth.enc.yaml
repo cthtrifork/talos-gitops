@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-auth
+  namespace: harper-pad
+type: Opaque
+data:
+  github_token: ENC[AES256_GCM,data:rK7OecB9epL09o6fEcREYCev9+3Tpdav2j/3qhC0qqjq8Z2FB7SvLzLMoDCLY9pGNOgwNofm+U4=,iv:W+8tyVtin0suvRVmkmcuE/v1ybu06YFxhc8FEibXOIQ=,tag:LqLJuSLmGDSImxc7IK6kXg==,type:str]
+sops:
+  age:
+    - enc: |
+        -----BEGIN AGE ENCRYPTED FILE-----
+        YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBqVmNGSEZ0VWw5WXdYOXBQ
+        Nlp6VnBVWVpRdmg4a05iZ29mT05VemtZQWw0CjQ2TnlIUG9KOHFWN3Y2NUdCOTBu
+        VnlUeEtVRlM3RnozZlE1bXcwVFJ3OVUKLS0tIEJEdDQ1U1YxUlEvWm9kZVJOT1Br
+        eXlDVSt4WWZnemNBSlQvR2thdGZDakUKEPjvCurxSnQa6ygJEd0x+Aqtm3gsyWBE
+        661vnVdzlmE/YUaguwODKmNXdBrSA/+2NSVhfAe7TtO3xshiqlr6Bw==
+        -----END AGE ENCRYPTED FILE-----
+      recipient: age1qth3nzg27zdmlzpjl2gedzmt0e5nly84q82knja3fcq365kw6u9qeecy6j
+  encrypted_regex: ^(data|stringData)$
+  lastmodified: "2026-11-15T18:35:36Z"
+  mac: ENC[AES256_GCM,data:y/62hNQxh7okGI+pkliGeU9KIZJWh3dmHzrNDMnH/zld6safKO1sljFont3MtwmwkvpQU5HG3Ib5XQGGOIR1774cNHf+plDL4beQ98+9u7HBrSDHVYyYDgDwi0zRwN8wSJ9lrk2w6ikokRiHcir5z6eH8GgHh+SRuX5ColruHa8=,iv:okwqDodUNFryQ7ZKP/GnDnnfhdeJyqkucCb3c1gnAyg=,tag:WE7yplTh6/Jc+8md3oj78w==,type:str]
+  version: 3.13.3
