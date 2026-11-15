@@ -166,7 +166,8 @@ spec:
                   curl -sf -o /dev/null "$DT_URL/api/version" || { echo "api-server not reachable yet" >&2; exit 1; }
 
                   # 0. fresh install: keep a generated admin password before it is set in Dependency-Track
-                  if ! kubectl get secret dependency-track-admin >/dev/null 2>&1; then
+                  admin_secret=$(kubectl get secret dependency-track-admin --ignore-not-found -o name)
+                  if [ -z "$admin_secret" ]; then
                     kubectl create secret generic dependency-track-admin \
                       --from-literal=username=admin \
                       --from-literal=password="$(head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)"
