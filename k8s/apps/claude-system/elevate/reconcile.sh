@@ -1,40 +1,34 @@
 #!/usr/bin/env bash
 # Turns the request files the page drops into /spool into a ServiceAccount, a RoleBinding and a short-lived token for a tier, stored as a
 # kubeconfig in a Secret that claude-rc mounts. The page is not trusted: tier, minutes and namespaces are checked here again. The token
-# expires on its own; deleting expired ServiceAccounts, bindings and kubeconfigs is housekeeping. Talks to the API server with curl.
+# expires on its own; deleting expired ServiceAccounts, bindings and kubeconfigs is housekeeping.
 set -uo pipefail
 
 spool=/spool
-api=${API_SERVER:-https://kubernetes.default.svc}
+server=${API_SERVER:-https://kubernetes.default.svc}
 sa_dir=/var/run/secrets/kubernetes.io/serviceaccount
 auth_header=/tmp/auth-header
-secret=claude-elevated-kubeconfigs
-secret_ns=claude-system
-selector=app.kubernetes.io/managed-by=claude-elevate
+secret=/api/v1/namespaces/claude-system/secrets/claude-elevated-kubeconfigs
+grants_path='/api/v1/serviceaccounts?labelSelector=app.kubernetes.io/managed-by%3Dclaude-elevate'
 dns_label='^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$'
 min_minutes=10 # the API server's shortest token
-declare -A max_minutes=([ops]=60 [debug]=15 [storage]=15)
-declare -A allowed=()
+max_minutes='{"ops":60,"debug":15,"storage":15}'
+allowed='{}'
 log=()
+# shellcheck disable=SC2016
+meta_def='def meta: {name: $name, namespace: $ns, labels: {"app.kubernetes.io/managed-by": "claude-elevate"}, annotations: {"claude-elevate/expires-at": $exp}};'
 
-# The projected token is rotated, so the header file is rewritten every pass
-refresh_auth() { (umask 077 && printf 'Authorization: Bearer %s\n' "$(cat "${sa_dir}/token")" >"$auth_header"); }
-
-curl_api() { curl -q -sS --fail-with-body --cacert "${sa_dir}/ca.crt" -H "@${auth_header}" "$@"; }
-
-get() { # path [label selector]
-  if [[ -n "${2:-}" ]]; then curl_api -G --data-urlencode "labelSelector=$2" "${api}$1"; else curl_api "${api}$1"; fi
-}
-
-send() { # method path content-type: the body is read from stdin
-  curl_api -X "$1" -H "Content-Type: $3" --data-binary @- "${api}$2"
+# curl against the API server; a content type means the body is read from stdin
+api() { # method path [content-type]
+  local body=()
+  [[ -n "${3:-}" ]] && body=(-H "Content-Type: $3" --data-binary @-)
+  curl -q -sS --fail-with-body --cacert "${sa_dir}/ca.crt" -H "@${auth_header}" -X "$1" "${body[@]}" "${server}$2"
 }
 
 # a missing object counts as deleted
 delete() { # path
-  local code
-  code="$(curl -q -sS -o /dev/null -w '%{http_code}' --cacert "${sa_dir}/ca.crt" -H "@${auth_header}" -X DELETE "${api}$1")"
-  [[ "$code" == 2* || "$code" == 404 ]]
+  local err
+  err="$(api DELETE "$1" 2>&1 >/dev/null)" || [[ "$err" == *"error: 404"* ]]
 }
 
 # One JSON line on stdout (audit trail) and one line for the page's "Recent" box (last 10, in memory)
@@ -48,64 +42,33 @@ event() { # event [tier] [namespace] [detail]
 # A namespace opts in per tier with the label claude-elevate/<tier>=true (the admission policy reads the same label)
 refresh_allowed() {
   local t out
-  for t in "${!max_minutes[@]}"; do
-    out="$(get /api/v1/namespaces "claude-elevate/${t}=true" 2>/dev/null)" || out='{"items":[]}'
-    allowed[$t]="$(jq -r '[.items[].metadata.name] | join(" ")' <<<"$out")"
-  done
+  allowed="$(for t in $(jq -r 'keys[]' <<<"$max_minutes"); do
+    out="$(api GET "/api/v1/namespaces?labelSelector=claude-elevate/${t}%3Dtrue" 2>/dev/null)" || out='{"items":[]}'
+    jq -c --arg t "$t" '{($t): [.items[].metadata.name]}' <<<"$out"
+  done | jq -sc add)"
 }
 
-is_allowed() { # tier namespace
-  local ns
-  for ns in ${allowed[$1]}; do [[ "$ns" == "$2" ]] && return 0; done
-  return 1
-}
+is_allowed() { jq -e --arg t "$1" --arg ns "$2" '.[$t] | index($ns)' <<<"$allowed" >/dev/null; } # tier namespace
 
-list_grants() { get /api/v1/serviceaccounts "$selector"; }
+list_grants() { api GET "$grants_path"; }
 
-patch_secret() { send PATCH "/api/v1/namespaces/${secret_ns}/secrets/${secret}" application/merge-patch+json >/dev/null 2>&1; }
-
-# server-side apply, one object per call
-apply() { # path
-  send PATCH "$1?fieldManager=claude-elevate&force=true" application/apply-patch+yaml >/dev/null 2>&1
-}
+patch_secret() { api PATCH "$secret" application/merge-patch+json >/dev/null 2>&1; }
 
 apply_grant() { # tier namespace expires
-  local name="claude-elevate-$1"
-  jq -n --arg ns "$2" --arg name "$name" --arg exp "$3" '{
-    apiVersion: "v1", kind: "ServiceAccount",
-    metadata: {name: $name, namespace: $ns, labels: {"app.kubernetes.io/managed-by": "claude-elevate"},
-               annotations: {"claude-elevate/expires-at": $exp}}}' | apply "/api/v1/namespaces/$2/serviceaccounts/${name}" &&
-    jq -n --arg ns "$2" --arg tier "$1" --arg name "$name" --arg exp "$3" '{
-      apiVersion: "rbac.authorization.k8s.io/v1", kind: "RoleBinding",
-      metadata: {name: $name, namespace: $ns, labels: {"app.kubernetes.io/managed-by": "claude-elevate"},
-                 annotations: {"claude-elevate/expires-at": $exp}},
-      roleRef: {apiGroup: "rbac.authorization.k8s.io", kind: "ClusterRole", name: ("claude-" + $tier)},
-      subjects: [{kind: "ServiceAccount", name: $name, namespace: $ns}]}' |
-    apply "/apis/rbac.authorization.k8s.io/v1/namespaces/$2/rolebindings/${name}"
+  local name="claude-elevate-$1" ns=$2 meta="$meta_def" apply="?fieldManager=claude-elevate&force=true"
+  jq -n --arg ns "$ns" --arg name "$name" --arg exp "$3" "$meta"'
+    {apiVersion: "v1", kind: "ServiceAccount", metadata: meta}' |
+    api PATCH "/api/v1/namespaces/${ns}/serviceaccounts/${name}${apply}" application/apply-patch+yaml >/dev/null 2>&1 &&
+    jq -n --arg ns "$ns" --arg name "$name" --arg exp "$3" --arg role "claude-$1" "$meta"'
+      {apiVersion: "rbac.authorization.k8s.io/v1", kind: "RoleBinding", metadata: meta,
+       roleRef: {apiGroup: "rbac.authorization.k8s.io", kind: "ClusterRole", name: $role},
+       subjects: [{kind: "ServiceAccount", name: $name, namespace: $ns}]}' |
+    api PATCH "/apis/rbac.authorization.k8s.io/v1/namespaces/${ns}/rolebindings/${name}${apply}" application/apply-patch+yaml >/dev/null 2>&1
 }
 
 request_token() { # tier namespace seconds
   jq -n --argjson s "$3" '{apiVersion: "authentication.k8s.io/v1", kind: "TokenRequest", spec: {expirationSeconds: $s}}' |
-    send POST "/api/v1/namespaces/$2/serviceaccounts/claude-elevate-$1/token" application/json 2>/dev/null | jq -er .status.token
-}
-
-write_kubeconfig() { # tier namespace token
-  local name="$1-$2"
-  TOKEN="$3" jq -n --arg name "$name" --arg ns "$2" --arg ca "$(base64 <"${sa_dir}/ca.crt" | tr -d '\n')" '{
-    stringData: {($name + ".kubeconfig"): ({
-      apiVersion: "v1", kind: "Config", "current-context": $name,
-      clusters: [{name: "cluster", cluster: {server: "https://kubernetes.default.svc", "certificate-authority-data": $ca}}],
-      users: [{name: $name, user: {token: env.TOKEN}}],
-      contexts: [{name: $name, context: {cluster: "cluster", user: $name, namespace: $ns}}]} | tojson)}}' | patch_secret
-}
-
-# deleting the ServiceAccount invalidates its tokens at once
-remove() { # tier namespace
-  local rc=0 name="claude-elevate-$1"
-  delete "/api/v1/namespaces/$2/serviceaccounts/${name}" || rc=1
-  delete "/apis/rbac.authorization.k8s.io/v1/namespaces/$2/rolebindings/${name}" || rc=1
-  jq -n --arg key "$1-$2.kubeconfig" '{data: {($key): null}}' | patch_secret || rc=1
-  return "$rc"
+    api POST "/api/v1/namespaces/$2/serviceaccounts/claude-elevate-$1/token" application/json 2>/dev/null | jq -er .status.token
 }
 
 # the token's own exp claim must not be later than the grant's deadline (a minute of slack)
@@ -115,18 +78,34 @@ token_within() { # token minutes
     ((exp <= $(date +%s) + $2 * 60 + 60))
 }
 
+write_kubeconfig() { # tier namespace token
+  local name="$1-$2"
+  TOKEN="$3" jq -n --arg name "$name" --arg ns "$2" --arg ca "${sa_dir}/ca.crt" '{
+    stringData: {($name + ".kubeconfig"): ({
+      apiVersion: "v1", kind: "Config", "current-context": $name,
+      clusters: [{name: "cluster", cluster: {server: "https://kubernetes.default.svc", "certificate-authority": $ca}}],
+      users: [{name: $name, user: {token: env.TOKEN}}],
+      contexts: [{name: $name, context: {cluster: "cluster", user: $name, namespace: $ns}}]} | tojson)}}' | patch_secret
+}
+
+# deleting the ServiceAccount invalidates its tokens at once; the kubeconfig goes first, so a failure leaves a grant that is still listed and retried
+remove() { # tier namespace
+  local name="claude-elevate-$1"
+  jq -n --arg key "$1-$2.kubeconfig" '{data: {($key): null}}' | patch_secret &&
+    delete "/api/v1/namespaces/$2/serviceaccounts/${name}" &&
+    delete "/apis/rbac.authorization.k8s.io/v1/namespaces/$2/rolebindings/${name}"
+}
+
 grant() { # tier namespace minutes
-  local tier=$1 ns=$2 expires token
+  local expires token
   expires="$(jq -rn --argjson t "$(($(date +%s) + $3 * 60))" '$t | todate')"
   # a new ServiceAccount invalidates the tokens of an earlier grant
-  if remove "$tier" "$ns" && apply_grant "$tier" "$ns" "$expires" &&
-    token="$(request_token "$tier" "$ns" "$(($3 * 60))")" &&
-    token_within "$token" "$3" &&
-    write_kubeconfig "$tier" "$ns" "$token"; then
-    event granted "$tier" "$ns" "until ${expires}"
+  if remove "$1" "$2" && apply_grant "$1" "$2" "$expires" &&
+    token="$(request_token "$1" "$2" "$(($3 * 60))")" && token_within "$token" "$3" && write_kubeconfig "$1" "$2" "$token"; then
+    event granted "$1" "$2" "until ${expires}"
   else
-    remove "$tier" "$ns"
-    event grant_failed "$tier" "$ns"
+    remove "$1" "$2"
+    event grant_failed "$1" "$2"
   fi
 }
 
@@ -144,33 +123,21 @@ revoke_grants() { # reason
       | "\(.metadata.name) \(.metadata.namespace)"')
 }
 
-# removes the kubeconfigs of grants that no longer exist
-prune_kubeconfigs() {
-  local keep patch
-  keep="$(list_grants | jq -c '[.items[] | "\(.metadata.name | ltrimstr("claude-elevate-"))-\(.metadata.namespace).kubeconfig"]')" || return
-  patch="$(get "/api/v1/namespaces/${secret_ns}/secrets/${secret}" 2>/dev/null |
-    jq -c --argjson keep "$keep" '{data: ((.data // {}) | with_entries(select(.key | IN($keep[]) | not)) | map_values(null))}')" || return
-  if jq -e '.data | length > 0' <<<"$patch" >/dev/null 2>&1; then patch_secret <<<"$patch"; fi
-}
-
-field() { jq -r --arg k "$1" '.[$k] // "" | tostring' <<<"$2"; } # field name, JSON
-
 handle() { # request file
-  local body tier minutes ns
+  local body action tier minutes ns max
   body="$(cat "$1")"
   rm -f "$1"
-  jq -e 'type == "object"' <<<"$body" >/dev/null 2>&1 || { event rejected "" "" "unreadable request"; return; }
-  tier="$(field tier "$body")"
-  case "$(field action "$body")" in
+  IFS=$'\x1f' read -r action tier minutes ns < <(jq -r '[.action, .tier, .minutes, .namespace] | map(. // "" | tostring) | join("\u001f")' <<<"$body" 2>/dev/null) ||
+    { event rejected "" "" "unreadable request"; return; }
+  max="$(jq -r --arg t "$tier" '.[$t] // empty' <<<"$max_minutes")"
+  case "$action" in
     revokeall) revoke_grants requested ;;
     revoke)
       # not limited to opted-in namespaces
-      ns="$(field namespace "$body")"
-      if [[ -n "${max_minutes[$tier]:-}" && "$ns" =~ $dns_label ]]; then revoke "$tier" "$ns" requested; else event rejected "" "" "revoke request"; fi
+      if [[ -n "$max" && "$ns" =~ $dns_label ]]; then revoke "$tier" "$ns" requested; else event rejected "" "" "revoke request"; fi
       ;;
     grant)
-      minutes="$(field minutes "$body")"
-      if [[ -z "${max_minutes[$tier]:-}" || ! "$minutes" =~ ^[1-9][0-9]{0,3}$ ]] || ((minutes < min_minutes || minutes > max_minutes[$tier])); then
+      if [[ -z "$max" || ! "$minutes" =~ ^[1-9][0-9]{0,3}$ ]] || ((minutes < min_minutes || minutes > max)); then
         event rejected "" "" "grant request: tier or minutes"
         return
       fi
@@ -183,15 +150,10 @@ handle() { # request file
 }
 
 write_status() {
-  local grants tiers t
+  local grants
   grants="$(list_grants)" || return
-  tiers="$(for t in "${!max_minutes[@]}"; do printf '%s\t%s\t%s\n' "$t" "${max_minutes[$t]}" "${allowed[$t]}"; done |
-    jq -Rn '[inputs | split("\t")] | {
-      max_minutes: (map({(.[0]): (.[1] | tonumber)}) | add),
-      allowed_namespaces: (map({(.[0]): (.[2] | split(" ") | map(select(. != "")))}) | add)}')"
-  jq -n --argjson g "$grants" --argjson tiers "$tiers" --argjson now "$(date +%s)" --argjson min "$min_minutes" '$tiers + {
-      now: $now,
-      min_minutes: $min,
+  jq -n --argjson g "$grants" --argjson allowed "$allowed" --argjson max "$max_minutes" --argjson now "$(date +%s)" '{
+      now: $now, max_minutes: $max, allowed_namespaces: $allowed,
       grants: [$g.items[] | {namespace: .metadata.namespace, tier: (.metadata.name | ltrimstr("claude-elevate-")),
                             expires_at: .metadata.annotations["claude-elevate/expires-at"]}],
       log: $ARGS.positional}' --args "${log[@]}" >"${spool}/.status.tmp" && mv "${spool}/.status.tmp" "${spool}/status"
@@ -199,7 +161,8 @@ write_status() {
 
 while true; do
   touch "${spool}/.alive" # liveness probe
-  refresh_auth
+  # the projected token rotates, so the header file is rewritten every pass
+  (umask 077 && printf 'Authorization: Bearer %s\n' "$(cat "${sa_dir}/token")" >"$auth_header")
   refresh_allowed
   for f in "${spool}"/req-*; do
     [[ -e "$f" ]] || continue
@@ -208,7 +171,6 @@ while true; do
     handle "$f"
   done
   revoke_grants expired
-  prune_kubeconfigs
   write_status
   sleep 3
 done
