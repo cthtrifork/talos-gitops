@@ -146,7 +146,8 @@ jobs:
           NAME: ${{ inputs.name }}
           PREFIX: ${{ inputs.tag-prefix }}
         run: | #sh
-          previous="$(gh release list --exclude-drafts --limit 1000 --json tagName --jq "[.[] | select(.tagName | startswith(\"$PREFIX-\"))][0].tagName // empty")"
+          # the nearest earlier release of this image: its tag is reachable from this commit
+          previous="$(git describe --tags --abbrev=0 --match "$PREFIX-*" "$GITHUB_SHA" 2>/dev/null || true)"
           : > changes.txt
           if [[ -z "$previous" ]]; then
             echo "- First release" > changes.txt
