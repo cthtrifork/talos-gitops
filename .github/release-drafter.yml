@@ -3,6 +3,9 @@
 
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
+# Only the vX.Y.Z releases are this stream's previous releases: the runner-/claude- releases of the runner images
+# (build-release-image.yaml) must not become the baseline of the notes or the next version.
+tag-prefix: 'v'
 change-template: '- $TITLE (#$NUMBER) $AUTHORS'
 # Keep a PR title from being read as Markdown. @ and # are made harmless by Release Drafter itself.
 change-title-escapes: '\<*_&'

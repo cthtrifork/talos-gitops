@@ -1,57 +1,40 @@
-name: Build and release the runner images
+name: Build and release an image
 
-# The GitHub Actions runner and the Claude runner each have their own release stream (see docs/releasing.md). Every build
-# of main (a merge to the image's directory, the weekly rebuild that picks up new packages, a manual run) publishes
-# <tool version>-YYYYMMDD.<run number> (semver: the wrapped tool's version, then the build as the prerelease; the actions/runner
-# version for the runner, the Claude Code version for the Claude image) and a release named <prefix>-<that tag> (the
-# prefix keeps it apart from the fileserver vX.Y.Z releases) with the commits that touched the image as notes.
-# A pull request builds the images to check them and does not push.
+# Reusable: builds one image from images/<name>, and from main publishes and releases it (see docs/releasing.md). The
+# callers (build-github-actions-runner.yaml, build-claude-runner.yaml) decide when it runs.
+#
+# Tag: <tool version>-YYYYMMDD.<run number>, valid semver (the wrapped tool's version, then the build as the prerelease).
+# The tool version is read from the Dockerfile ARG named by `version-arg`. The release is named <tag-prefix>-<tag>; the
+# prefix keeps it apart from the fileserver vX.Y.Z releases. A pull request or a run on another branch builds the image
+# to check it and does not push.
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - images/github-actions-runner/**
-      - images/claude-runner/**
-      - .github/workflows/build-runner-images.yaml
-  pull_request:
-    branches:
-      - main
-    paths:
-      - images/github-actions-runner/**
-      - images/claude-runner/**
-      - .github/workflows/build-runner-images.yaml
-  schedule:
-    - cron: "23 3 * * 0"
-  workflow_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  # a push to main is never cancelled: its build is what publishes the image and the release
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  workflow_call:
+    inputs:
+      name:
+        description: "Image directory under images/ and image name"
+        required: true
+        type: string
+      tag-prefix:
+        description: "Prefix of the release name, for example runner"
+        required: true
+        type: string
+      version-arg:
+        description: "Dockerfile ARG that holds the version of the tool the image wraps"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 env:
-  RUNNER_VERSION: "2.338.2" # renovate: datasource=github-releases depName=actions/runner
-  PUBLISH: ${{ github.event_name != 'pull_request' }}
+  PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+  IMAGE: ghcr.io/${{ github.repository }}/${{ inputs.name }}
 
 jobs:
   build:
-    name: Build and publish (${{ matrix.image.name }})
+    name: Build and publish (${{ inputs.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        image:
-          - name: github-actions-runner
-            tag-prefix: runner
-          - name: claude-runner
-            tag-prefix: claude
-    env:
-      IMAGE: ghcr.io/${{ github.repository }}/${{ matrix.image.name }}
     permissions:
       contents: write # create the release and its tag
       id-token: write # sign the image and its provenance attestation (OIDC)
@@ -66,17 +49,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      # The tags carry the version of what the image wraps: the actions/runner version of the base image (RUNNER_VERSION
-      # above, passed to the build) and the Claude Code version, which Renovate bumps in its Dockerfile.
+      # The version of what the image wraps (a digest after @ is dropped), from the Dockerfile that Renovate bumps.
       - name: Tool version
         id: tool
         env:
-          NAME: ${{ matrix.image.name }}
+          NAME: ${{ inputs.name }}
+          VERSION_ARG: ${{ inputs.version-arg }}
         run: |
-          if [[ "$NAME" == claude-runner ]]; then
-            version="$(sed -n 's/^ARG CLAUDE_CODE_VERSION=//p' images/claude-runner/Dockerfile)"
-          else
-            version="$RUNNER_VERSION"
+          version="$(sed -n "s/^ARG ${VERSION_ARG}=\([^@ ]*\).*/\1/p" "images/${NAME}/Dockerfile" | head -n 1)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::no x.y.z version in ARG ${VERSION_ARG} of images/${NAME}/Dockerfile (got '${version}')"
+            exit 1
           fi
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
@@ -98,22 +81,21 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build image${{ env.PUBLISH == 'true' && ' and push to GHCR' || ' (no push on pull requests)' }}
+      - name: Build image${{ env.PUBLISH == 'true' && ' and push to GHCR' || ' (not pushed)' }}
         id: build-push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          context: ./images/${{ matrix.image.name }}
-          file: ./images/${{ matrix.image.name }}/Dockerfile
+          context: ./images/${{ inputs.name }}
+          file: ./images/${{ inputs.name }}/Dockerfile
           platforms: linux/amd64
           push: ${{ env.PUBLISH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.image.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}
+          cache-from: type=gha,scope=${{ inputs.name }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.name }}
           sbom: ${{ env.PUBLISH == 'true' }}
           provenance: ${{ env.PUBLISH == 'true' && 'mode=max' || 'false' }}
           build-args: |
-            RUNNER_VERSION=${{ env.RUNNER_VERSION }}
             VERSION=${{ steps.meta.outputs.version }}
 
       - name: Install cosign
@@ -141,7 +123,7 @@ jobs:
           DIGEST: ${{ steps.build-push.outputs.digest }}
         run: |
           {
-            echo "### ${{ matrix.image.name }}"
+            echo "### ${{ inputs.name }}"
             echo "- Reference: \`${IMAGE}:${TAG}\`"
             echo "- Digest: \`${DIGEST:-n/a}\`"
             echo "- Published: ${PUBLISH}"
@@ -150,24 +132,30 @@ jobs:
       # Notes are the commits that touched the image since the previous release of this image (squash merges, so the
       # subject is the PR title).
       - name: Publish the release
-        if: ${{ github.ref == 'refs/heads/main' && env.PUBLISH == 'true' }}
+        if: ${{ env.PUBLISH == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.meta.outputs.version }}
-          NAME: ${{ matrix.image.name }}
-          PREFIX: ${{ matrix.image.tag-prefix }}
+          NAME: ${{ inputs.name }}
+          PREFIX: ${{ inputs.tag-prefix }}
         run: | #sh
           previous="$(gh release list --exclude-drafts --limit 50 --json tagName --jq "[.[] | select(.tagName | startswith(\"$PREFIX-\"))][0].tagName // empty")"
           : > changes.txt
-          if [[ -n "$previous" ]]; then
+          if [[ -z "$previous" ]]; then
+            echo "- First release" > changes.txt
+          else
             git log --format='- %s' "$previous..$GITHUB_SHA" -- "images/$NAME" > changes.txt
+            [[ -s changes.txt ]] || echo "- No changes, rebuilt with the latest packages" > changes.txt
           fi
-          [[ -s changes.txt ]] || echo "- No changes, rebuilt with the latest packages" > changes.txt
           # shellcheck disable=SC2016 # the backticks are markdown
           {
             printf '## Image\n\n- `%s:%s`\n\n## Changes\n\n' "$IMAGE" "$TAG"
             cat changes.txt
             printf '\n[Provenance attestation](%s/%s/attestations)\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY"
           } > notes.md
+          # a re-run of this job finds the release of the first attempt
+          if gh release view "$PREFIX-$TAG" > /dev/null 2>&1; then
+            exit 0
+          fi
           # not the repository's latest release: that stays the vX.Y.Z one
           gh release create "$PREFIX-$TAG" --target "$GITHUB_SHA" --title "$PREFIX-$TAG" --notes-file notes.md --latest=false

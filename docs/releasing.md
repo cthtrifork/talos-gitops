@@ -43,18 +43,18 @@ Note: a tag created with the default `GITHUB_TOKEN` does not trigger workflows, 
 
 ## The runner images
 
-`.github/workflows/build-runner-images.yaml` publishes `github-actions-runner` and `claude-runner`
+`.github/workflows/build-github-actions-runner.yaml` and `build-claude-runner.yaml` (both call `build-release-image.yaml`) publish `github-actions-runner` and `claude-runner`
 (`ghcr.io/cthtrifork/talos-gitops/<image>`) on their own, with no draft to publish:
 
 | Trigger                                      | Result                                                                      |
 | -------------------------------------------- | --------------------------------------------------------------------------- |
 | merge that changes `images/<image>/**`       | image tags `<tool version>-YYYYMMDD.<run number>` and `latest`, and a release `<prefix>-<tag>` |
 | weekly run (Sunday), or a manual run         | the same: it picks up new packages (and the Trivy database in the runner)   |
-| pull request                                 | built, not pushed                                                           |
+| pull request, or a manual run on another branch | built, not pushed                                                        |
 
 | Image                   | Tool version                                   | Image tag example           | Release tag example                |
 | ----------------------- | ---------------------------------------------- | --------------------------- | ---------------------------------- |
-| `github-actions-runner` | actions/runner of the base image (`RUNNER_VERSION` in the workflow) | `2.338.2-20261114.58`       | `runner-2.338.2-20261114.58`       |
+| `github-actions-runner` | actions/runner of the base image (`ARG RUNNER_VERSION` in the Dockerfile) | `2.338.2-20261114.58`       | `runner-2.338.2-20261114.58`       |
 | `claude-runner`         | Claude Code (`ARG CLAUDE_CODE_VERSION` in the Dockerfile)           | `2.1.311-20261114.58`       | `claude-2.1.311-20261114.58`       |
 
 The image tag is valid [semver](https://semver.org): the tool's version, then the build date and run number as the
