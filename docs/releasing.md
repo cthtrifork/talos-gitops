@@ -1,65 +1,35 @@
 # Releasing
 
-There are two release streams:
+The three images in `images/` (`github-actions-runner`, `claude-runner`, `fileserver`) are built, signed and released
+automatically. There is no draft to publish and no repo-wide version.
 
-- `fileserver` (in `images/`) is versioned with [Semantic Versioning](https://semver.org). The version comes from the
-  pull request titles (steps 1 to 3 below).
-- `github-actions-runner` and `claude-runner` each have their own stream, published automatically (see the end of this
-  page).
+## Write Conventional Commit PR titles
 
-## 1. Write Conventional Commit PR titles
+`type(scope)!: summary`, enforced by `.github/workflows/pr-title.yaml`. Squash merge, so the title is the commit subject,
+and the release notes list those subjects.
 
-`type(scope)!: summary`, enforced by `.github/workflows/pr-title.yaml`. Squash merge, so the title is the commit.
+## How an image is released
 
-| Type                                                 | Release notes section  | Version bump |
-| ---------------------------------------------------- | ---------------------- | ------------ |
-| `!` after the type, e.g. `feat!:`                    | Breaking changes       | major        |
-| `feat`                                               | New features           | minor        |
-| `fix`, `security`, `perf`, `docs`, `deps`, `ci`, `build`, `refactor`, `test`, `chore`, `revert` | own sections | patch |
+Each image has a small workflow that calls `.github/workflows/build-release-image.yaml`:
 
-Renovate titles its PRs `deps: ...` (see `renovate.json5`). Add the `skip-changelog` label to keep a PR out of the notes.
+| Image                   | Workflow                           | Runs on                                              |
+| ----------------------- | ---------------------------------- | ---------------------------------------------------- |
+| `github-actions-runner` | `build-github-actions-runner.yaml` | merge to `images/github-actions-runner/**`, weekly, manual |
+| `claude-runner`         | `build-claude-runner.yaml`         | merge to `images/claude-runner/**`, weekly, manual   |
+| `fileserver`            | `build-fileserver.yaml`            | merge to `images/fileserver/**`, manual              |
 
-## 2. Review the draft release
+A build of `main` pushes `ghcr.io/cthtrifork/talos-gitops/<image>:<tag>` and `latest`, signs it (cosign), attests its
+provenance and creates a release. A pull request, or a manual run on another branch, only builds the image to check it.
+The weekly runs pick up new packages.
 
-`.github/workflows/release-drafter.yaml` keeps a draft release on the Releases page up to date as PRs merge:
-grouped notes and the next version (`vX.Y.Z`).
-
-## 3. Publish it
-
-Publish the draft (tick *pre-release* for `vX.Y.Z-rc.1` style versions). GitHub creates the tag, and the tag triggers
-`.github/workflows/build-image.yaml`, which builds, signs (cosign) and attests (SLSA) the image.
-
-| Trigger                    | Image tags                         |
-| -------------------------- | ---------------------------------- |
-| tag `v1.2.3`               | `v1.2.3`, `v1.2`, `v1`, `latest`   |
-| tag `v1.3.0-rc.1`          | `v1.3.0-rc.1` only                 |
-| manual run (tag prefix `rc`) | `rc-<short sha>`                 |
-| pull request               | built, not pushed                  |
-
-Deployments should pin an exact tag plus digest, never `latest` or a floating tag.
-
-Note: a tag created with the default `GITHUB_TOKEN` does not trigger workflows, so publish the draft as a person
-(UI or `gh release edit vX.Y.Z --draft=false`).
-
-## The runner images
-
-`.github/workflows/build-github-actions-runner.yaml` and `build-claude-runner.yaml` (both call `build-release-image.yaml`) publish `github-actions-runner` and `claude-runner`
-(`ghcr.io/cthtrifork/talos-gitops/<image>`) on their own, with no draft to publish:
-
-| Trigger                                      | Result                                                                      |
-| -------------------------------------------- | --------------------------------------------------------------------------- |
-| merge that changes `images/<image>/**`       | image tags `<tool version>-YYYYMMDD.<run number>` and `latest`, and a release `<prefix>-<tag>` |
-| weekly run (Sunday), or a manual run         | the same: it picks up new packages (and the Trivy database in the runner)   |
-| pull request, or a manual run on another branch | built, not pushed                                                        |
-
-| Image                   | Tool version                                   | Image tag example           | Release tag example                |
-| ----------------------- | ---------------------------------------------- | --------------------------- | ---------------------------------- |
-| `github-actions-runner` | actions/runner of the base image (`ARG RUNNER_VERSION` in the Dockerfile) | `2.338.2-20261114.58`       | `runner-2.338.2-20261114.58`       |
-| `claude-runner`         | Claude Code (`ARG CLAUDE_CODE_VERSION` in the Dockerfile)           | `2.1.311-20261114.58`       | `claude-2.1.311-20261114.58`       |
+| Image                   | Tool version                                                        | Image tag                | Release                       |
+| ----------------------- | ------------------------------------------------------------------- | ------------------------ | ----------------------------- |
+| `github-actions-runner` | actions/runner of the base image (`ARG RUNNER_VERSION`)             | `2.338.2-20261114.58`    | `runner-2.338.2-20261114.58`  |
+| `claude-runner`         | Claude Code (`ARG CLAUDE_CODE_VERSION`)                             | `2.1.311-20261114.58`    | `claude-2.1.311-20261114.58`  |
+| `fileserver`            | none: our own code, so `0.0.0`                                      | `0.0.0-20261114.58`      | `fileserver-0.0.0-20261114.58` |
 
 The image tag is valid [semver](https://semver.org): the tool's version, then the build date and run number as the
-prerelease, which compare numerically, so newer builds and newer tool versions sort higher. Renovate bumps both tool
-versions, so a bump produces a new tagged image and release on merge. The release tag has a prefix to keep it apart from
-the `fileserver` `vX.Y.Z` releases. Images are signed (cosign) and have a provenance attestation. The release notes list
-the commits that touched the image since the previous release of the same image, and a release is never marked as the
-repository's latest one: that stays the `vX.Y.Z` release. Deployments pin the tag plus digest, never `latest`.
+prerelease, which compare numerically, so newer builds and newer tool versions sort higher. Renovate bumps the two tool
+versions, so a bump produces a new tagged image and release on merge. The release name has a prefix. The notes list the
+commits that touched the image since the previous release of the same image, and a release is never marked as the
+repository's latest one. Deployments pin the tag plus digest, never `latest`.
