@@ -1,8 +1,8 @@
 ---
-# The elevate page: takes requests and shows status, no Kubernetes credentials. The sidecar (reconcile.sh) does the work via the shared /spool.
+# The elevate page: takes requests and shows the cluster state (read-only token). The sidecar (reconcile.sh) does the work via the shared /spool.
 #
 # GET  /                  the page
-# GET  /api/v1/status     allowed namespaces, max minutes per tier, active grants, the last log lines (written by the sidecar)
+# GET  /api/v1/status     allowed namespaces and max minutes per tier, active grants (from the API server), the sidecar's heartbeat and last log lines
 # POST /api/v1/grants     {"tier": "<tier>", "minutes": <n>, "namespaces": ["adguard-system", ...]}
 # POST /api/v1/revoke     {"all": true} or {"tier": "<tier>", "namespace": "<namespace>"}
 http:
@@ -10,7 +10,8 @@ http:
   address: 0.0.0.0:4195
   debug_endpoints: false
 
-# keys are file names in /spool: req-<nanoseconds>-<uuid> is a request (names sort by arrival), status is the sidecar's answer
+# keys are file names in /spool: req-<nanoseconds>-<uuid> is a request (names sort by arrival); the sidecar also writes heartbeat (epoch seconds),
+# recent (a JSON array of lines) and ui-token (a short-lived token of the read-only ServiceAccount claude-elevate-ui)
 cache_resources:
   - label: spool
     file:
@@ -46,16 +47,11 @@ pipeline:
 
         - check: '@http_server_verb == "GET" && @http_server_request_path == "/api/v1/status"'
           processors:
-            - branch:
-                request_map: 'root = ""'
-                processors:
-                  - cache:
-                      resource: spool
-                      operator: get
-                      key: status
-                  - catch:
-                      - mapping: 'root = {"now": 0, "allowed_namespaces": [], "max_minutes": {}, "grants": [], "log": []}'
-                result_map: 'root = this'
+            - resource: status
+            - catch:
+                - mapping: |
+                    meta status = "502"
+                    root = {"error": "cannot read the cluster state"}
 
         # a cross-site form cannot set this header (no CORS preflight is ever answered)
         - check: '@http_server_verb == "POST" && metadata("X-Requested-With").or("") != "claude-elevate"'
@@ -156,3 +152,79 @@ pipeline:
 
 output:
   sync_response: {}
+
+# GET /api/v1/status: the state comes from the API server (the limits ConfigMap, the namespaces and the grants' ServiceAccounts), read with
+# the token the sidecar leaves in /spool; only the sidecar's heartbeat and recent lines come from files.
+processor_resources:
+  - label: status
+    try:
+      - cache:
+          resource: spool
+          operator: get
+          key: ui-token
+      - mapping: |
+          meta token = content().string().trim()
+          root = ""
+      - branch:
+          request_map: 'root = ""'
+          processors:
+            - http:
+                url: https://kubernetes.default.svc/api/v1/namespaces/claude-system/configmaps/claude-elevate-limits
+                verb: GET
+                headers:
+                  Authorization: 'Bearer ${! @token }'
+                tls:
+                  root_cas_file: /etc/kube-ca/ca.crt
+          result_map: 'meta limits = this.data'
+      - branch:
+          request_map: 'root = ""'
+          processors:
+            - http:
+                url: https://kubernetes.default.svc/api/v1/namespaces
+                verb: GET
+                headers:
+                  Authorization: 'Bearer ${! @token }'
+                tls:
+                  root_cas_file: /etc/kube-ca/ca.crt
+          result_map: 'meta namespaces = this.items'
+      - branch:
+          request_map: 'root = ""'
+          processors:
+            - http:
+                url: 'https://kubernetes.default.svc/api/v1/serviceaccounts?labelSelector=app.kubernetes.io/managed-by%3Dclaude-elevate'
+                verb: GET
+                headers:
+                  Authorization: 'Bearer ${! @token }'
+                tls:
+                  root_cas_file: /etc/kube-ca/ca.crt
+          result_map: 'meta serviceaccounts = this.items'
+      - branch:
+          request_map: 'root = ""'
+          processors:
+            - cache:
+                resource: spool
+                operator: get
+                key: heartbeat
+            - catch:
+                - mapping: 'root = "0"'
+          result_map: 'meta heartbeat = content().string().trim().number().catch(0)'
+      - branch:
+          request_map: 'root = ""'
+          processors:
+            - cache:
+                resource: spool
+                operator: get
+                key: recent
+            - catch:
+                - mapping: 'root = "[]"'
+          result_map: 'meta recent = content().parse_json().catch([])'
+      - mapping: |
+          root.now = @heartbeat
+          root.max_minutes = @limits.map_each(kv -> kv.value.number())
+          root.allowed_namespaces = @limits.map_each(kv -> @namespaces.filter(n -> n.metadata.labels.or({}).get("claude-elevate/" + kv.key) == "true").map_each(n -> n.metadata.name))
+          root.grants = @serviceaccounts.map_each(s -> {
+            "namespace": s.metadata.namespace,
+            "tier": s.metadata.name.trim_prefix("claude-elevate-"),
+            "expires_at": s.metadata.annotations.or({}).get("claude-elevate/expires-at")
+          })
+          root.log = @recent

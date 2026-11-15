@@ -240,8 +240,9 @@ needs a registry request, which the VM does not make for the page. A spoofed rep
 
 `elevate/elevate.yaml`: pick a tier, one or more namespaces and a time on a page, and Claude gets a token for that tier there, valid for that long.
 It is exposed through the Omni service exposer (`Service/claude-elevate`, port 50094, behind Omni login). The pod has two containers
-sharing an emptyDir: Redpanda Connect serves the page and turns a POST into a request file (it has no Kubernetes credentials), and the
-`reconcile` sidecar (`elevate/reconcile.sh`, the only container with a Kubernetes token) re-validates each file. For each namespace it applies
+sharing an emptyDir: Redpanda Connect serves the page, turns a POST into a request file and answers the status from the API server itself (the limits
+ConfigMap, the namespaces' labels and the grants' ServiceAccounts) with a read-only token, and the `reconcile` sidecar
+(`elevate/reconcile.sh`, the only container that can change anything) works through the request files. For each namespace it applies
 a ServiceAccount and a RoleBinding named `claude-elevate-<tier>` (label `app.kubernetes.io/managed-by=claude-elevate`, annotation
 `claude-elevate/expires-at`), requests a token for the ServiceAccount (`TokenRequest`, at least 10 minutes) and writes
 the key `<tier>-<namespace>.kubeconfig` in `Secret/claude-elevated-kubeconfigs`, which `claude-rc` mounts at `/etc/elevated` (the kubelet refreshes
@@ -262,12 +263,17 @@ Guards, outermost first:
 - **Who can reach the page.** Only the Omni exposer (host network) may connect; the NetworkPolicy has no rule for `claude-rc`, so
   the pod that receives the rights cannot ask for them. POSTs need `X-Requested-With: claude-elevate`.
 - **What the broker may do.** `ClusterRole/claude-elevator` can `bind` only `claude-ops`, `claude-debug` and `claude-storage`, patch or delete only
-  ServiceAccounts and RoleBindings named `claude-elevate-<tier>`, and create tokens only for those ServiceAccounts.
-  `ValidatingAdmissionPolicy/claude-elevator-rolebindings` allows only the ServiceAccount `claude-elevate-<tier>` of the same namespace as the
-  subject, and only in a namespace labelled for that tier.
+  ServiceAccounts and RoleBindings named `claude-elevate-<tier>`, create tokens only for those ServiceAccounts (and the read-only one) and `get` and
+  `patch` only the one Secret. The API server does the validating:
+  `ValidatingAdmissionPolicy/claude-elevator-rolebindings` allows only the ServiceAccount `claude-elevate-<tier>` of the same namespace as the subject,
+  and only in a namespace labelled for that tier; `claude-elevator-tokens` limits a token to the tier's minutes in `ConfigMap/claude-elevate-limits`
+  (a tier without a key is denied; the page reads the same ConfigMap); the API itself refuses a token shorter than 10 minutes. The sidecar only
+  checks that names are safe to put in a URL, and a refused grant shows the API's reason in "Recent".
+- **What the page may read.** The sidecar leaves a one-hour token of `claude-elevate-ui` in the spool and renews it at half its life. That account can
+  list namespaces and ServiceAccounts and get the limits ConfigMap, nothing else.
 - **Where.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` (`ops`, `debug`, `storage`) in its own manifest:
-  `adguard-system` has all three, `external-dns-system` has `ops` (exec there can read the DNS API token). The sidecar and the admission policy
-  read the same labels; a failed lookup allows nothing. A revoke works for any namespace.
+  `adguard-system` has all three, `external-dns-system` has `ops` (exec there can read the DNS API token). The page and the admission policy
+  read the same labels. A revoke works for any namespace.
 - **Scope of the tiers.** No tier has a Secrets, RBAC or node rule or can patch workloads or Flux objects. `debug` reads whatever a pod in the
   namespace can (mounted Secrets, its ServiceAccount token). Rollout restarts and forced Flux reconciles are not part of any tier.
 - **Dead controller.** The page shows "Controller not answering" when the status is older than 30 s, and the sidecar's liveness probe

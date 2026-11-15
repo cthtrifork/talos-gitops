@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Turns the request files the page drops into /spool into a ServiceAccount, a RoleBinding and a short-lived token for a tier, stored as a
-# kubeconfig in a Secret that claude-rc mounts. The page is not trusted: tier, minutes and namespaces are checked here again. The token
-# expires on its own; deleting expired ServiceAccounts, bindings and kubeconfigs is housekeeping.
+# kubeconfig in a Secret that claude-rc mounts. The API server decides what is allowed (RBAC, the admission policies, the TokenRequest
+# limits) and the token expires on its own; this only checks that names are safe to put in a URL. Deleting expired ServiceAccounts,
+# bindings and kubeconfigs is housekeeping. The page reads the state from the API itself; it gets from here a read-only token,
+# a heartbeat and the last lines of what happened.
 set -uo pipefail
 
 spool=/spool
@@ -10,19 +12,17 @@ sa_dir=/var/run/secrets/kubernetes.io/serviceaccount
 auth_header=/tmp/auth-header
 secret=/api/v1/namespaces/claude-system/secrets/claude-elevated-kubeconfigs
 grants_path='/api/v1/serviceaccounts?labelSelector=app.kubernetes.io/managed-by%3Dclaude-elevate'
+tier_label='^[a-z]{1,16}$'
 dns_label='^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$'
-min_minutes=10 # the API server's shortest token
-max_minutes='{"ops":60,"debug":15,"storage":15}'
-allowed='{}'
 log=()
 # shellcheck disable=SC2016
 meta_def='def meta: {name: $name, namespace: $ns, labels: {"app.kubernetes.io/managed-by": "claude-elevate"}, annotations: {"claude-elevate/expires-at": $exp}};'
 
-# curl against the API server; a content type means the body is read from stdin
+# curl against the API server; a content type means the body is read from stdin. The last response is kept for the reason of a failure.
 api() { # method path [content-type]
   local body=()
   [[ -n "${3:-}" ]] && body=(-H "Content-Type: $3" --data-binary @-)
-  curl -q -sS --fail-with-body --cacert "${sa_dir}/ca.crt" -H "@${auth_header}" -X "$1" "${body[@]}" "${server}$2"
+  curl -q -sS --fail-with-body --cacert "${sa_dir}/ca.crt" -H "@${auth_header}" -X "$1" "${body[@]}" "${server}$2" | tee /tmp/last-response
 }
 
 # a missing object counts as deleted
@@ -31,24 +31,13 @@ delete() { # path
   err="$(api DELETE "$1" 2>&1 >/dev/null)" || [[ "$err" == *"error: 404"* ]]
 }
 
-# One JSON line on stdout (audit trail) and one line for the page's "Recent" box (last 10, in memory)
+# One JSON line on stdout (audit trail) and one line for the page's "Recent" box (last 10)
 event() { # event [tier] [namespace] [detail]
   jq -nc --arg event "$1" --arg tier "${2:-}" --arg namespace "${3:-}" --arg detail "${4:-}" \
     '{ts: (now | todate), event: $event, tier: $tier, namespace: $namespace, detail: $detail}'
   log+=("$(date -u +%H:%M:%S) $1${2:+ $2}${3:+ in $3}${4:+ $4}")
   if ((${#log[@]} > 10)); then log=("${log[@]:1}"); fi
 }
-
-# A namespace opts in per tier with the label claude-elevate/<tier>=true (the admission policy reads the same label)
-refresh_allowed() {
-  local t out
-  allowed="$(for t in $(jq -r 'keys[]' <<<"$max_minutes"); do
-    out="$(api GET "/api/v1/namespaces?labelSelector=claude-elevate/${t}%3Dtrue" 2>/dev/null)" || out='{"items":[]}'
-    jq -c --arg t "$t" '{($t): [.items[].metadata.name]}' <<<"$out"
-  done | jq -sc add)"
-}
-
-is_allowed() { jq -e --arg t "$1" --arg ns "$2" '.[$t] | index($ns)' <<<"$allowed" >/dev/null; } # tier namespace
 
 list_grants() { api GET "$grants_path"; }
 
@@ -97,15 +86,16 @@ remove() { # tier namespace
 }
 
 grant() { # tier namespace minutes
-  local expires token
+  local expires token why
   expires="$(jq -rn --argjson t "$(($(date +%s) + $3 * 60))" '$t | todate')"
   # a new ServiceAccount invalidates the tokens of an earlier grant
   if remove "$1" "$2" && apply_grant "$1" "$2" "$expires" &&
     token="$(request_token "$1" "$2" "$(($3 * 60))")" && token_within "$token" "$3" && write_kubeconfig "$1" "$2" "$token"; then
     event granted "$1" "$2" "until ${expires}"
   else
+    why="$(jq -r '.message // empty' /tmp/last-response 2>/dev/null)"
     remove "$1" "$2"
-    event grant_failed "$1" "$2"
+    event grant_failed "$1" "$2" "${why:0:160}"
   fi
 }
 
@@ -123,47 +113,39 @@ revoke_grants() { # reason
       | "\(.metadata.name) \(.metadata.namespace)"')
 }
 
+# a short-lived token of the read-only ServiceAccount claude-elevate-ui, refreshed at half its life
+ui_token() {
+  (($(date +%s) - $(stat -c %Y "${spool}/ui-token" 2>/dev/null || echo 0) < 1800)) && return
+  local token
+  token="$(request_token ui claude-system 3600)" && (umask 077 && printf '%s' "$token" >"${spool}/.ui-token.tmp") && mv "${spool}/.ui-token.tmp" "${spool}/ui-token"
+}
+
 handle() { # request file
-  local body action tier minutes ns max
+  local body action tier minutes ns
   body="$(cat "$1")"
   rm -f "$1"
   IFS=$'\x1f' read -r action tier minutes ns < <(jq -r '[.action, .tier, .minutes, .namespace] | map(. // "" | tostring) | join("\u001f")' <<<"$body" 2>/dev/null) ||
     { event rejected "" "" "unreadable request"; return; }
-  max="$(jq -r --arg t "$tier" '.[$t] // empty' <<<"$max_minutes")"
   case "$action" in
     revokeall) revoke_grants requested ;;
     revoke)
-      # not limited to opted-in namespaces
-      if [[ -n "$max" && "$ns" =~ $dns_label ]]; then revoke "$tier" "$ns" requested; else event rejected "" "" "revoke request"; fi
+      if [[ "$tier" =~ $tier_label && "$ns" =~ $dns_label ]]; then revoke "$tier" "$ns" requested; else event rejected "" "" "revoke request"; fi
       ;;
     grant)
-      if [[ -z "$max" || ! "$minutes" =~ ^[1-9][0-9]{0,3}$ ]] || ((minutes < min_minutes || minutes > max)); then
-        event rejected "" "" "grant request: tier or minutes"
-        return
-      fi
+      if [[ ! "$tier" =~ $tier_label || ! "$minutes" =~ ^[1-9][0-9]{0,3}$ ]]; then event rejected "" "" "grant request: tier or minutes"; return; fi
       while read -r ns; do
-        if is_allowed "$tier" "$ns"; then grant "$tier" "$ns" "$minutes"; else event rejected "$tier" "${ns:0:63}" "namespace not opted in"; fi
+        if [[ "$ns" =~ $dns_label ]]; then grant "$tier" "$ns" "$minutes"; else event rejected "$tier" "${ns:0:63}" "invalid namespace"; fi
       done < <(jq -r '(.namespaces // [])[] | strings' <<<"$body")
       ;;
     *) event rejected "" "" "unknown action" ;;
   esac
 }
 
-write_status() {
-  local grants
-  grants="$(list_grants)" || return
-  jq -n --argjson g "$grants" --argjson allowed "$allowed" --argjson max "$max_minutes" --argjson now "$(date +%s)" '{
-      now: $now, max_minutes: $max, allowed_namespaces: $allowed,
-      grants: [$g.items[] | {namespace: .metadata.namespace, tier: (.metadata.name | ltrimstr("claude-elevate-")),
-                            expires_at: .metadata.annotations["claude-elevate/expires-at"]}],
-      log: $ARGS.positional}' --args "${log[@]}" >"${spool}/.status.tmp" && mv "${spool}/.status.tmp" "${spool}/status"
-}
-
 while true; do
-  touch "${spool}/.alive" # liveness probe
+  date +%s >"${spool}/heartbeat" # the page and the liveness probe read it
   # the projected token rotates, so the header file is rewritten every pass
   (umask 077 && printf 'Authorization: Bearer %s\n' "$(cat "${sa_dir}/token")" >"$auth_header")
-  refresh_allowed
+  ui_token
   for f in "${spool}"/req-*; do
     [[ -e "$f" ]] || continue
     # names sort by arrival; stop at a file younger than a second (Connect writes in place) so a later request never runs first
@@ -171,6 +153,6 @@ while true; do
     handle "$f"
   done
   revoke_grants expired
-  write_status
+  jq -nc '$ARGS.positional' --args "${log[@]}" >"${spool}/.recent.tmp" && mv "${spool}/.recent.tmp" "${spool}/recent"
   sleep 3
 done

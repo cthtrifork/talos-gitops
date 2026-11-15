@@ -16,13 +16,6 @@ rules:
   - apiGroups:
       - ""
     resources:
-      - namespaces
-    verbs:
-      - get
-      - list
-  - apiGroups:
-      - ""
-    resources:
       - serviceaccounts
     verbs:
       - get
@@ -47,6 +40,7 @@ rules:
       - claude-elevate-ops
       - claude-elevate-debug
       - claude-elevate-storage
+      - claude-elevate-ui
     verbs:
       - create
   - apiGroups:
@@ -132,6 +126,127 @@ subjects:
   - kind: ServiceAccount
     name: claude-elevator
     namespace: claude-system
+---
+# The longest token per tier in minutes. The admission policy claude-elevator-tokens enforces it and the page reads it for its time choices,
+# so adding a tier is a key here, a role and the elevator's pinned names.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: claude-elevate-limits
+  namespace: claude-system
+data:
+  ops: "60"
+  debug: "15"
+  storage: "15"
+---
+# What the page may read from the API: the namespaces' labels, the grants' ServiceAccounts and the limits. The sidecar hands the page a
+# short-lived token of this account; it has no other use.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: claude-elevate-ui
+  namespace: claude-system
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: claude-elevate-ui
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - serviceaccounts
+    verbs:
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: claude-elevate-ui
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: claude-elevate-ui
+subjects:
+  - kind: ServiceAccount
+    name: claude-elevate-ui
+    namespace: claude-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: claude-elevate-ui
+  namespace: claude-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    resourceNames:
+      - claude-elevate-limits
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: claude-elevate-ui
+  namespace: claude-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: claude-elevate-ui
+subjects:
+  - kind: ServiceAccount
+    name: claude-elevate-ui
+    namespace: claude-system
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
+# A token for a tier's ServiceAccount may not outlive the tier's limit in claude-elevate-limits (a tier without a key is denied); the page's
+# read-only account gets an hour.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: claude-elevator-tokens
+spec:
+  failurePolicy: Fail
+  paramKind:
+    apiVersion: v1
+    kind: ConfigMap
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+        resources:
+          - serviceaccounts/token
+  matchConditions:
+    - name: from-the-elevator
+      expression: request.userInfo.username == "system:serviceaccount:claude-system:claude-elevator"
+  validations:
+    - expression: >-
+        object.spec.expirationSeconds <=
+        (request.name == "claude-elevate-ui" ? 3600 : int(params.data[request.name.replace("claude-elevate-", "")]) * 60)
+      message: the token is longer than the tier's limit in the ConfigMap claude-elevate-limits
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicybinding_v1.json
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: claude-elevator-tokens
+spec:
+  policyName: claude-elevator-tokens
+  paramRef:
+    name: claude-elevate-limits
+    namespace: claude-system
+    parameterNotFoundAction: Deny
+  validationActions:
+    - Deny
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
 # Only the ServiceAccount claude-elevate-<tier> of the same namespace may be bound, and only in a namespace labelled claude-elevate/<tier>.
@@ -237,6 +352,9 @@ spec:
               mountPath: /tmp
             - name: spool
               mountPath: /spool
+            - name: kube-ca
+              mountPath: /etc/kube-ca
+              readOnly: true
             - name: config
               mountPath: /etc/connect
               readOnly: true
@@ -250,7 +368,7 @@ spec:
               command:
                 - sh
                 - -c
-                - test $(( $(date +%s) - $(stat -c %Y /spool/.alive) )) -lt 60
+                - test $(( $(date +%s) - $(cat /spool/heartbeat) )) -lt 60
             initialDelaySeconds: 30
             periodSeconds: 30
           resources:
@@ -283,6 +401,12 @@ spec:
           emptyDir: {}
         - name: spool
           emptyDir: {}
+        - name: kube-ca
+          configMap:
+            name: kube-root-ca.crt
+            items:
+              - key: ca.crt
+                path: ca.crt
         - name: config
           configMap:
             name: claude-elevate-connect-config
