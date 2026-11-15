@@ -4,7 +4,7 @@ name: Build and release an image
 # callers (build-github-actions-runner.yaml, build-claude-runner.yaml) decide when it runs.
 #
 # Tag: <tool version>-YYYYMMDD.<run number>, valid semver (the wrapped tool's version, then the build as the prerelease).
-# The tool version is read from the Dockerfile ARG named by `version-arg` (0.0.0 for an image that wraps no tool). The release is named <tag-prefix>-<tag>; the
+# The tool version is read from the Dockerfile ARG named by `version-arg`. The release is named <tag-prefix>-<tag>; the
 # prefix keeps it apart from the fileserver vX.Y.Z releases. A pull request or a run on another branch builds the image
 # to check it and does not push.
 on:
@@ -19,9 +19,8 @@ on:
         required: true
         type: string
       version-arg:
-        description: "Dockerfile ARG that holds the version of the tool the image wraps; empty for an image of our own, which gets 0.0.0"
-        required: false
-        default: ""
+        description: "Dockerfile ARG that holds the version of the tool the image wraps"
+        required: true
         type: string
 
 permissions:
@@ -57,10 +56,6 @@ jobs:
           NAME: ${{ inputs.name }}
           VERSION_ARG: ${{ inputs.version-arg }}
         run: |
-          if [[ -z "$VERSION_ARG" ]]; then
-            echo "value=0.0.0" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           version="$(sed -n "s/^ARG ${VERSION_ARG}=\([^@ ]*\).*/\1/p" "images/${NAME}/Dockerfile" | head -n 1)"
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::no x.y.z version in ARG ${VERSION_ARG} of images/${NAME}/Dockerfile (got '${version}')"

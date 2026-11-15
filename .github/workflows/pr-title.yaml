@@ -1,8 +1,8 @@
 name: PR title
 
 # Enforces Conventional Commits (`type(scope)!: summary`) on pull request titles and labels the PR from
-# the title (the labels come from the autolabeler in .github/release-drafter.yml). Squash merges use the title as the
-# commit subject, and the image release notes (docs/releasing.md) list those subjects.
+# the title. Squash merges use the title as the commit subject, and the release notes and the next
+# version (.github/release-drafter.yml) are derived from it.
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize]

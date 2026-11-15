@@ -1,8 +1,11 @@
-# Only the autolabeler at the bottom is used now: it labels PRs from their Conventional Commit title (see
-# workflows/pr-title.yaml; keep the types in step). Releases are made by build-release-image.yaml, not by a draft.
+# Release Drafter: release notes and next version, from Conventional Commit PR titles (see docs/releasing.md).
+# Keep the types in step with workflows/pr-title.yaml. The autolabeler at the bottom labels PRs from their title.
 
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
+# Only the vX.Y.Z releases are this stream's previous releases: the runner-/claude- releases of the runner images
+# (build-release-image.yaml) must not become the baseline of the notes or the next version.
+tag-prefix: 'v'
 change-template: '- $TITLE (#$NUMBER) $AUTHORS'
 # Keep a PR title from being read as Markdown. @ and # are made harmless by Release Drafter itself.
 change-title-escapes: '\<*_&'
