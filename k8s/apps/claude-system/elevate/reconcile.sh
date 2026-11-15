@@ -76,7 +76,8 @@ remove() { # tier namespace
 grant() { # tier namespace minutes
   local tier=$1 ns=$2 expires token
   expires="$(jq -rn --argjson t "$(($(date +%s) + $3 * 60))" '$t | todate')"
-  if apply_grant "$tier" "$ns" "$expires" &&
+  # a new ServiceAccount invalidates the tokens of an earlier grant
+  if remove "$tier" "$ns" && apply_grant "$tier" "$ns" "$expires" &&
     token="$(kubectl create token "claude-elevate-$tier" -n "$ns" --duration="${3}m" 2>/dev/null)" &&
     write_kubeconfig "$tier" "$ns" "$token"; then
     event granted "$tier" "$ns" "until ${expires}"
@@ -158,8 +159,8 @@ while true; do
   refresh_allowed
   for f in "${spool}"/req-*; do
     [[ -e "$f" ]] || continue
-    # skip files younger than a second (Connect writes in place)
-    (($(date +%s) - $(stat -c %Y "$f") >= 1)) || continue
+    # names sort by arrival; stop at a file younger than a second (Connect writes in place) so a later request never runs first
+    (($(date +%s) - $(stat -c %Y "$f") >= 1)) || break
     handle "$f"
   done
   revoke_grants expired

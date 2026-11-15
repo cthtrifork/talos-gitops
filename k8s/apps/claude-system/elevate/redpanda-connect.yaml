@@ -10,7 +10,7 @@ http:
   address: 0.0.0.0:4195
   debug_endpoints: false
 
-# keys are file names in /spool: req-<uuid> is a request, status is the sidecar's answer
+# keys are file names in /spool: req-<nanoseconds>-<uuid> is a request (names sort by arrival), status is the sidecar's answer
 cache_resources:
   - label: spool
     file:
@@ -75,7 +75,7 @@ pipeline:
                   $b.namespaces.all(n -> n.type() == "string" && n.re_match("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"))
                 ).catch(false)
                 meta valid = $ok
-                meta req_key = "req-" + uuid_v4()
+                meta req_key = "req-" + timestamp_unix_nano().string() + "-" + uuid_v4()
                 root = if $ok {
                   {"action": "grant", "tier": $b.tier, "minutes": $b.minutes.floor(), "namespaces": $b.namespaces}
                 } else {
@@ -109,7 +109,7 @@ pipeline:
                   $b.namespace.type() == "string" && $b.namespace.re_match("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$")
                 ).catch(false)
                 meta valid = $all || $one
-                meta req_key = "req-" + uuid_v4()
+                meta req_key = "req-" + timestamp_unix_nano().string() + "-" + uuid_v4()
                 root = if $all {
                   {"action": "revokeall"}
                 } else if $one {

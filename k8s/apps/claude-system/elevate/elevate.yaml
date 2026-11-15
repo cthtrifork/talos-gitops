@@ -194,7 +194,6 @@ spec:
     metadata:
       labels:
         app: claude-elevate
-        prometheus-scrape: "true"
     spec:
       serviceAccountName: claude-elevator
       # only the sidecar mounts a token (projected below)
@@ -270,7 +269,7 @@ spec:
               drop:
                 - ALL
           volumeMounts:
-            - name: tmp
+            - name: reconcile-tmp
               mountPath: /tmp
             - name: spool
               mountPath: /spool
@@ -282,6 +281,8 @@ spec:
               readOnly: true
       volumes:
         - name: tmp
+          emptyDir: {}
+        - name: reconcile-tmp
           emptyDir: {}
         - name: spool
           emptyDir: {}

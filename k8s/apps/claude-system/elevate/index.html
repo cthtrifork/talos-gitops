@@ -257,14 +257,19 @@
     s.className = "summary" + (confirming ? " confirm" : "");
   }
 
-  function render() {
+  function health() {
     if (!status) return;
-    buildNamespaces();
     var age = Math.round(Date.now() / 1000) - (status.now || 0);
     var live = status.now > 0 && age < 30;
     $("health").className = "pill " + (live ? "ok" : "stale");
     $("healthText").textContent = live ? "Controller running" : "Controller not answering";
     $("stale").hidden = live;
+  }
+
+  function render() {
+    if (!status) return;
+    buildNamespaces();
+    health();
     var list = $("grants");
     var grants = status.grants || [];
     var key = grants.map(function (g) { return g.tier + "|" + g.namespace + "|" + g.expires_at; }).join(",");
@@ -299,6 +304,7 @@
 
   // updates the countdown text of the listed grants
   function tick() {
+    health();
     Array.prototype.forEach.call(document.querySelectorAll("#grants .left"), function (n) {
       var r = remaining(n.getAttribute("data-expires"));
       n.textContent = r.text;
