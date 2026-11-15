@@ -104,6 +104,14 @@ rules:
       - "dependency-track-vex-api-key"
     verbs:
       - "get"
+  - apiGroups:
+      - ""
+    resources:
+      - "secrets"
+    resourceNames:
+      - "dependency-track-admin"
+    verbs:
+      - "delete" # only to undo a password generated in the same run when admin/admin turns out not to be active
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -167,7 +175,9 @@ spec:
 
                   # 0. fresh install: keep a generated admin password before it is set in Dependency-Track
                   admin_secret=$(kubectl get secret dependency-track-admin --ignore-not-found -o name)
+                  generated=0
                   if [ -z "$admin_secret" ]; then
+                    generated=1
                     kubectl create secret generic dependency-track-admin \
                       --from-literal=username=admin \
                       --from-literal=password="$(head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)"
@@ -181,7 +191,12 @@ spec:
                     code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$DT_URL/api/v1/user/forceChangePassword" \
                       --data-urlencode username=admin --data-urlencode password=admin \
                       --data-urlencode "newPassword=$pw" --data-urlencode "confirmPassword=$pw")
-                    [ "$code" = 200 ] || { echo "cannot log in as admin and the default password is not accepted ($code): the Secret dependency-track-admin does not hold the current admin password" >&2; exit 1; }
+                    if [ "$code" != 200 ]; then
+                      # a password generated in this run was never set: drop it so it cannot be mistaken for the real one
+                      [ "$generated" = 1 ] && kubectl delete secret dependency-track-admin
+                      echo "cannot log in as admin and the default password is not accepted ($code): create the Secret dependency-track-admin with the current admin password" >&2
+                      exit 1
+                    fi
                     [ "$(login "$pw")" = 200 ] || { echo "login as admin failed after the password change" >&2; exit 1; }
                   fi
                   token=$(cat token.txt)

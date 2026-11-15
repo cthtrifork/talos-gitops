@@ -86,7 +86,8 @@ On the first run `config-job.yaml` generates a random admin password and stores 
 keys and applies the settings above. To use your own password, create the Secret before the first run:
 `kubectl -n security-system create secret generic dependency-track-admin --from-literal=username=admin --from-literal=password=<password>`.
 An existing installation just logs in with the Secret; the password is never reset. If the Secret is missing but the
-password was already changed by hand the Job fails with a clear message: seed the Secret with the current password.
+password was already changed by hand, the Job deletes the password it just generated and fails with a clear message: create
+the Secret with the current admin password.
 
 | Secret | Keys | Created by | Used by |
 |---|---|---|---|
