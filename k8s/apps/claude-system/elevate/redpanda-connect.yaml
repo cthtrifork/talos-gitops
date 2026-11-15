@@ -3,8 +3,8 @@
 #
 # GET  /                  the page
 # GET  /api/v1/status     allowed namespaces, max minutes per tier, active grants, the last log lines (written by the sidecar)
-# POST /api/v1/grants     {"tier": "ops"|"debug"|"storage", "minutes": 1-60, "namespaces": ["adguard-system", ...]}
-# POST /api/v1/revoke     {"all": true} or {"tier": "ops", "namespace": "adguard-system"}
+# POST /api/v1/grants     {"tier": "<tier>", "minutes": <n>, "namespaces": ["adguard-system", ...]}
+# POST /api/v1/revoke     {"all": true} or {"tier": "<tier>", "namespace": "<namespace>"}
 http:
   enabled: true
   address: 0.0.0.0:4195
@@ -69,8 +69,8 @@ pipeline:
             - mapping: |
                 let b = content().parse_json().catch({})
                 let ok = (
-                  ["ops", "debug", "storage"].contains($b.tier.or("")) &&
-                  $b.minutes.type() == "number" && $b.minutes >= 1 && $b.minutes <= 60 &&
+                  $b.tier.type() == "string" && $b.tier.re_match("^[a-z]{1,16}$") &&
+                  $b.minutes.type() == "number" && $b.minutes >= 1 &&
                   $b.namespaces.type() == "array" && $b.namespaces.length() >= 1 && $b.namespaces.length() <= 10 &&
                   $b.namespaces.all(n -> n.type() == "string" && n.re_match("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"))
                 ).catch(false)
@@ -105,7 +105,7 @@ pipeline:
                 let b = content().parse_json().catch({})
                 let all = $b.all.or(false) == true
                 let one = (
-                  ["ops", "debug", "storage"].contains($b.tier.or("")) &&
+                  $b.tier.type() == "string" && $b.tier.re_match("^[a-z]{1,16}$") &&
                   $b.namespace.type() == "string" && $b.namespace.re_match("^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$")
                 ).catch(false)
                 meta valid = $all || $one
