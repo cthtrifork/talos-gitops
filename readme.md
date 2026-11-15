@@ -51,11 +51,13 @@ sops edit k8s/apps/claude-system/claude-github-app.enc.yaml
 To import an existing Secret from the cluster into Git, replace the namespace, Secret name and destination path:
 
 ```sh
+set -o pipefail
 kubectl -n claude-system get secret claude-github-app -o json \
   | jq '{apiVersion: "v1", kind: "Secret", metadata: {name: .metadata.name, namespace: .metadata.namespace}, type: .type, data: .data}' \
   | sops encrypt --filename-override k8s/apps/claude-system/claude-github-app.enc.yaml \
       --input-type json --output-type yaml /dev/stdin \
-  > k8s/apps/claude-system/claude-github-app.enc.yaml
+  > claude-github-app.enc.yaml.tmp \
+  && mv claude-github-app.enc.yaml.tmp k8s/apps/claude-system/claude-github-app.enc.yaml
 ```
 
 Include new Secret files under `resources:` in the directory's `kustomization.yaml`, then commit. Flux reconciles the encrypted manifests. Only workloads configured for Reloader or other Secret-change handling are restarted automatically.
