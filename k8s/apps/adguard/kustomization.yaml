@@ -8,7 +8,6 @@ resources:
   - certificate.yaml
   - adguard-exporter.yaml
   - service.yaml
-  - secret.enc.yaml
   - namespace.yaml
   - networkpolicy.yaml
 configMapGenerator:
