@@ -1,18 +1,22 @@
 # Configuration as code for Dependency-Track: what Helm values and env vars cannot set because it lives in the database.
-# A CronJob that is safe to run repeatedly (every 20 minutes, which also bootstraps a fresh install and repairs drift):
-#  0. Dry run: until you have seeded the Secret dependency-track-admin the Job only prints what it would do and changes
-#     nothing (exit 0). Seed it with the admin password you want:
+# The desired state is data in the ConfigMap below (teams.json, properties.json, extensions.json); the script is a generic
+# loop over it. A CronJob that is safe to run repeatedly (every 20 minutes, which also bootstraps a fresh install and
+# repairs drift):
+#  1. Admin: the built-in admin/admin must change its password on first login. If the Secret dependency-track-admin does
+#     not exist the Job generates a random password and stores it there BEFORE it is set in Dependency-Track, so a crash in
+#     between loses nothing. It then logs in with the Secret, or sets the password on a fresh install. To use your own
+#     password create the Secret first:
 #     kubectl -n security-system create secret generic dependency-track-admin --from-literal=username=admin --from-literal=password=<password>
-#  1. Admin: the built-in admin/admin must change its password on first login. With the Secret seeded the Job sets that
-#     password on a fresh install, or just logs in when it is already set.
-#  2. Teams `sbom-uploader` (BOM_UPLOAD, PROJECT_CREATION_UPLOAD; key in the Secret dependency-track-api-key, used by
-#     sbom-hook) and `vex-exporter` (VIEW_PORTFOLIO, VULNERABILITY_ANALYSIS_READ; key in
-#     dependency-track-vex-api-key, used by vex-export.yaml). A key is only created if its Secret does not exist yet.
-#     Permissions are only added, never removed, and an existing Secret is never touched.
-#  3. Extension settings (Trivy analyzer, KEV data sources) from extensions.json below, merged over the current settings
+#  2. Teams from teams.json (`sbom-uploader`: key in dependency-track-api-key, used by sbom-hook; `vex-exporter`: key in
+#     dependency-track-vex-api-key, used by vex-export.yaml). Permissions are only added, never removed. A key is only
+#     created if its Secret does not exist yet, stored as `api-key`, never printed, and an existing Secret is never touched.
+#  3. Config properties from properties.json (group, name, value as a string), only the declared ones; the rest stays
+#     owned by the UI. An unknown property is a failure.
+#  4. Extension settings (Trivy analyzer, KEV data sources) from extensions.json, merged over the current settings
 #     through the v2 API. Add entries there for other vulnerability sources or analyzers (point/name/config; the config
 #     schema is GET /api/v2/extension-points/<point>/extensions/<name>/config-schema).
-# Not covered: notifications, policies, and the NVD/GitHub/OSV vulnerability data sources (they keep their defaults).
+# Every failure (API, Kubernetes, missing prerequisite) fails the Job. Not covered: notifications, policies, and the
+# NVD/GitHub/OSV vulnerability data sources (they keep their defaults).
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -20,6 +24,27 @@ metadata:
   name: dependency-track-config
   namespace: security-system
 data:
+  teams.json: |
+    [
+      {
+        "name": "sbom-uploader",
+        "secret": "dependency-track-api-key",
+        "permissions": ["BOM_UPLOAD", "PROJECT_CREATION_UPLOAD"]
+      },
+      {
+        "name": "vex-exporter",
+        "secret": "dependency-track-vex-api-key",
+        "permissions": ["VIEW_PORTFOLIO", "VULNERABILITY_ANALYSIS_READ"]
+      }
+    ]
+  properties.json: |
+    [
+      {
+        "groupName": "general",
+        "propertyName": "base.url",
+        "propertyValue": "https://dtrack.portableinfo.cloud"
+      }
+    ]
   extensions.json: |
     [
       {
@@ -140,15 +165,13 @@ spec:
 
                   curl -sf -o /dev/null "$DT_URL/api/version" || { echo "api-server not reachable yet" >&2; exit 1; }
 
-                  # 0. dry run until the admin Secret is seeded
-                  if ! kubectl get secret dependency-track-admin >/dev/null 2>&1; then
-                    echo "DRY RUN: Secret dependency-track-admin is not seeded, nothing is changed. Would:"
-                    echo "  - set the admin password from the Secret if admin/admin is still active, then log in as admin"
-                    echo "  - ensure team sbom-uploader (BOM_UPLOAD, PROJECT_CREATION_UPLOAD) and its key Secret dependency-track-api-key"
-                    echo "  - ensure team vex-exporter (VIEW_PORTFOLIO, VULNERABILITY_ANALYSIS_READ) and its key Secret dependency-track-vex-api-key"
-                    jq -r '.[] | "  - apply extension settings " + .point + "/" + .name + ": " + (.config | tostring)' /config/extensions.json
-                    echo "Seed it with: kubectl -n security-system create secret generic dependency-track-admin --from-literal=username=admin --from-literal=password=<password>"
-                    exit 0
+                  # 0. fresh install: keep a generated admin password before it is set in Dependency-Track
+                  admin_secret=$(kubectl get secret dependency-track-admin --ignore-not-found -o name)
+                  if [ -z "$admin_secret" ]; then
+                    kubectl create secret generic dependency-track-admin \
+                      --from-literal=username=admin \
+                      --from-literal=password="$(head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)"
+                    echo "created Secret dependency-track-admin"
                   fi
 
                   # 1. admin password
@@ -181,12 +204,31 @@ spec:
                       kubectl create secret generic "$secret" --from-literal=api-key="$key"
                     fi
                   }
-                  ensure_team sbom-uploader dependency-track-api-key BOM_UPLOAD PROJECT_CREATION_UPLOAD
-                  ensure_team vex-exporter dependency-track-vex-api-key VIEW_PORTFOLIO VULNERABILITY_ANALYSIS_READ
-
-                  # 3. extension settings, merged over the current ones
-                  jq -c '.[]' /config/extensions.json > extensions.jsonl
+                  jq -c '.[]' /config/teams.json > teams.jsonl
+                  while read -r t; do
+                    # shellcheck disable=SC2046
+                    ensure_team "$(echo "$t" | jq -r .name)" "$(echo "$t" | jq -r .secret)" $(echo "$t" | jq -r '.permissions[]')
+                  done < teams.jsonl
                   failed=0
+
+                  # 3. config properties: only the declared ones, values are strings, the type comes from the current property
+                  [ "$(api GET /api/v1/configProperty -o props.json -w '%{http_code}')" = 200 ] || { echo "cannot list config properties" >&2; exit 1; }
+                  jq -c '.[]' /config/properties.json > properties.jsonl
+                  while read -r p; do
+                    g=$(echo "$p" | jq -r .groupName); n=$(echo "$p" | jq -r .propertyName); v=$(echo "$p" | jq -r .propertyValue)
+                    cur=$(jq -c --arg g "$g" --arg n "$n" '[.[] | select(.groupName == $g and .propertyName == $n)][0] // empty' props.json)
+                    if [ -z "$cur" ]; then echo "unknown config property $g/$n" >&2; failed=$((failed+1)); continue; fi
+                    if [ "$(echo "$cur" | jq -r '.propertyValue // ""')" = "$v" ]; then echo "unchanged $g/$n"; continue; fi
+                    body=$(echo "$cur" | jq -c --arg v "$v" '{groupName, propertyName, propertyValue: $v, propertyType}')
+                    code=$(api POST /api/v1/configProperty -H "$json" -d "$body" -o /dev/null -w '%{http_code}')
+                    case "$code" in
+                      200) echo "updated $g/$n" ;;
+                      *) echo "failed $g/$n ($code)" >&2; failed=$((failed+1)) ;;
+                    esac
+                  done < properties.jsonl
+
+                  # 4. extension settings, merged over the current ones
+                  jq -c '.[]' /config/extensions.json > extensions.jsonl
                   while read -r e; do
                     point=$(echo "$e" | jq -r .point); name=$(echo "$e" | jq -r .name)
                     url="/api/v2/extension-points/$point/extensions/$name/config"

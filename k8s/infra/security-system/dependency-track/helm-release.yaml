@@ -58,6 +58,10 @@ spec:
         size: 5Gi
         storageClassName: ${DEFAULT_STORAGE_CLASS:=local-path}
     apiServer:
+      # Seeds the telemetry setting on a fresh install only; the database owns it afterwards.
+      extraEnv:
+        - name: DT_TELEMETRY_SUBMISSION_DEFAULT_ENABLED
+          value: "false"
       podLabels:
         prometheus-scrape: "true"
       image:

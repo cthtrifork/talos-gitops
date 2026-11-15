@@ -74,17 +74,38 @@ The settings live in the ConfigMap `dependency-track-config` (`extensions.json`:
 and are merged over the current settings; add entries there for other analyzers or data sources. Notifications, policies and
 the NVD/GitHub/OSV sources are not managed (UI only, defaults kept).
 
-The same Job bootstraps access. Everything here is a **dry run until you seed the admin Secret**: the Job logs what it
-would do and exits 0, while `sbom-hook` logs `DRY RUN: would upload ...` instead of calling Dependency-Track.
+The same Job bootstraps access, from desired state kept as data in the ConfigMap `dependency-track-config`
+(`teams.json`, `properties.json`, `extensions.json`). The script is a generic loop over those files, so a change is an edit
+of the JSON. `properties.json` lists config properties as strings (group, name, value); only declared ones are managed and
+an unknown one fails the Job. The telemetry default is set with `DT_TELEMETRY_SUBMISSION_DEFAULT_ENABLED` in the HelmRelease;
+it only seeds a fresh install. Dependency-Track has no declarative provisioning of the admin, teams or API keys
+([upstream issue 6193](https://github.com/DependencyTrack/dependency-track/issues/6193)), hence the Job.
 
-1. Seed the admin password you want: `kubectl -n security-system create secret generic dependency-track-admin
-   --from-literal=username=admin --from-literal=password=<password>`. On its next run (every 20 minutes) `config-job.yaml`
-   sets it on the built-in `admin`, creates the team `sbom-uploader` with `BOM_UPLOAD` and `PROJECT_CREATION_UPLOAD` and the team
-   `vex-exporter`, stores their API keys in `dependency-track-api-key` and `dependency-track-vex-api-key` (existing Secrets,
-   such as a key created by hand, are left alone) and applies the settings above. Permissions are only added.
-2. Restart `sbom-hook` once the key Secret exists (it reads the key at start): `kubectl -n security-system rollout restart
-   deploy/sbom-hook`.
-3. For the VEX export, seed the GitHub token (below). Without it the export only prints the documents it would write.
+On the first run `config-job.yaml` generates a random admin password and stores it in `dependency-track-admin`
+**before** it changes the built-in `admin/admin` (so a crash in between loses nothing), creates the teams, stores their API
+keys and applies the settings above. To use your own password, create the Secret before the first run:
+`kubectl -n security-system create secret generic dependency-track-admin --from-literal=username=admin --from-literal=password=<password>`.
+An existing installation just logs in with the Secret; the password is never reset. If the Secret is missing but the
+password was already changed by hand the Job fails with a clear message: seed the Secret with the current password.
+
+| Secret | Keys | Created by | Used by |
+|---|---|---|---|
+| `dependency-track-kek` | `kek` | `kek-job.yaml` | api-server |
+| `dependency-track-admin` | `username`, `password` | `config-job.yaml` (or by hand) | `config-job.yaml` |
+| `dependency-track-api-key` | `api-key` (team `sbom-uploader`) | `config-job.yaml` | `sbom-hook` |
+| `dependency-track-vex-api-key` | `api-key` (team `vex-exporter`) | `config-job.yaml` | `vex-export.yaml` |
+| `dependency-track-vex-github` | `token` | by hand | `vex-export.yaml` |
+
+Teams keep their permissions (`sbom-uploader`: `BOM_UPLOAD`, `PROJECT_CREATION_UPLOAD`; `vex-exporter`: `VIEW_PORTFOLIO`,
+`VULNERABILITY_ANALYSIS_READ`); permissions are only added. A key is created only when its Secret does not exist, and is never
+printed or overwritten. While the key Secret is missing, `sbom-hook` logs `DRY RUN: would upload ...` and the VEX export
+prints that it has nothing to export.
+
+**Key rotation / recovery.** Delete the key Secret; the next run (within 20 minutes) creates a new key and Secret. The old
+key stays valid: revoke it in the UI (Administration, Access Management, Teams, the team's API keys). Then restart the
+consumer, which reads the key at start: `kubectl -n security-system rollout restart deploy/sbom-hook` (the VEX export reads it
+on each run). If the Job created a key but failed to store the Secret, the next run creates another; revoke the unused one.
+A lost admin Secret is recovered by seeding it with the current admin password.
 
 ## Exporting Dependency-Track decisions to the VEX repository
 
