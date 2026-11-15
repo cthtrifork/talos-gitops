@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: harper-pad-admin-tunnel
+  namespace: harper-pad
+type: Opaque
+data:
+  token: ENC[AES256_GCM,data:qxDvnCR7a9/3mskoG8dbcotmuneS5vu/Z1uoFr6tPdiARo4zbPHat8kTIWfESQxXuPEics95P3bi6OgNVGKb5RfXS32gIbaHVHSvY5bZ0Y2SerEtKzo+VArhtk91+PQjmiAbTl4o7RGmHJazOlr0/zI/zUyz69Mb07zMzV+sBGDGwsKg0mIAw+wgFE/rvoqhOMKMDO41G3tj/DGy+m0D3Oob2IK3c2IdHj7GJwOok8T3bnT0daD15RA4vpRFgZxLaJveEtSIJQ4+S4xu7Z9Tr7VVpOMTkOR34W5M1OTxqkIsQtT4zXy+/36aCa0pD/0avenAYCplvwo=,iv:+coG9DWVFyAxibhrRDXKcmoSVzr6B6PqjykIV76QDxY=,tag:yR8Xzguywxqw4PhDYei0ww==,type:str]
+sops:
+  age:
+    - enc: |
+        -----BEGIN AGE ENCRYPTED FILE-----
+        YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBMOU1uUEhWRi9rUWR2Qksr
+        Y0h3Skl0OTArU0tnbERRWHQ3Z1IxeTI1dWl3CjUzamQ4TmVDbGxvYVYvNkk3Rlpt
+        ZmVmeGw2YTVPTHp4eGY5OTJpVGk1RHcKLS0tIDNqWHpmMGl0UU9kYnU3Um9hVHhP
+        RWgzdEI0SXZCRjB1QzhwRjRvcmlNbmsKIq2oAerCMtKaKEsay5WafTj6pb+ZoFz5
+        78fN/thba4du4Ut+OjDxaGZWhQOvnrGVIFG9Bwc1liHbWa3TpywXKA==
+        -----END AGE ENCRYPTED FILE-----
+      recipient: age1qth3nzg27zdmlzpjl2gedzmt0e5nly84q82knja3fcq365kw6u9qeecy6j
+  encrypted_regex: ^(data|stringData)$
+  lastmodified: "2026-11-15T18:35:11Z"
+  mac: ENC[AES256_GCM,data:u3rGeZNHXslkDUAGv5WeWpWuGf8ffZQHHVXSfyEC2nRnTq4ihK+mRxZ5DVubsiLYARnN8ZKKitr5+JpyMQ4eSU8MIVW7SwG9tT/mYXJJ/nwXd7G16pdToHcnndu+wXW0cH3lnfdjXDb3aclPzIcHhU/K7YYEDe2uyXISl/9Tboo=,iv:HuLljaalJGp4TMwhqOToTqT32wwlEa0CUaJIftz4Mpc=,tag:3daZlpRwbBK2I7egz65iUg==,type:str]
+  version: 3.13.3

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ghcr-pull
+  namespace: claude-system
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: ENC[AES256_GCM,data:0alChw7DOxWZ/6nZsMb+MgvHsd8U7QxIzp2vvOp9B7jrtqNtpjDHX/dUYLi0StP+A6KcZwGB51Whpw1J7dAuFWF8uPJopETBxwfp1ZyYdwP9823niBIL+qTJVkBN2iHrli+0U3YdUponICujPhSpOaJWdzVzPfsh9Zn4IyK180JR4i/xT3P32Kw1yMTatQ1YnYO0Z4VctH13BJvMOp7iAPjUH6vgagJSCQ74uZbbvgkFtoz6HslvUfy50Haz99Jy9Yu5HHWw0UEHYEA+CrNwtRAfirx8n8ARos5h3FHOfpBfzjkRg4M5/wHP0aQ/1dAn,iv:Lix9WS0NE/oRub89s/fysS8FCDbb8m9sWo1P+miFy9g=,tag:+T2D4q30l30gbaeCFn3lIw==,type:str]
+sops:
+  age:
+    - enc: |
+        -----BEGIN AGE ENCRYPTED FILE-----
+        YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSAySU9LMUNoUzdndFVWQ2RJ
+        U0FDeGp0ZG9sZ1NsY1ZXclZ2MWVyOUpxclJVCk1Db2NhUXFDaFpEL1gyUjlTa1ds
+        bGRXK2RsSjJtSlNkZ1laY2lkWEFLZmcKLS0tIGhzbnpnNldiZTF3WmlhSFY4Rmhj
+        TGgyN21VdkMrblJseGJweUg3eXRzV28KNnJucFhtBypBdlDIc3Zd5YtCFKinFKYg
+        BeS59bpvw+/S/IFj5BW7Dyl7Z6+W+VSLHOVb+7xwHhlxaD5Q0L265g==
+        -----END AGE ENCRYPTED FILE-----
+      recipient: age1qth3nzg27zdmlzpjl2gedzmt0e5nly84q82knja3fcq365kw6u9qeecy6j
+  encrypted_regex: ^(data|stringData)$
+  lastmodified: "2026-11-15T18:31:44Z"
+  mac: ENC[AES256_GCM,data:JStipAaTarlTv6k7wjxG3TB5cd4v7wTpc17hqd/+2JzQXsjGp+rNsMBm/dYRNQYGEbNZes0cD6y4UtoZ9sphdBo/t51fbe+KsYEupZCBbjWWefO8oqwJxxu8dBpHdVsX+pGanKuDS8T/GhcESdPnBYwiUljjXV060LZT9rqf9Uk=,iv:ZG3AAq/NOsY6fdJzq7cUoi5c8WsO9QGYaBruCirVX2I=,tag:J4n7cidacU2pnovdHSgHVg==,type:str]
+  version: 3.13.3

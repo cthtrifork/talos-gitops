@@ -9,6 +9,8 @@ resources:
   - pvc.yaml
   - deployment.yaml
   - github-app.yaml
+  - claude-github-app.enc.yaml
+  - ghcr-pull.enc.yaml
   - usage/usage.yaml
   - vm-upgrade/vm-upgrade.yaml
   - elevate/rbac.yaml

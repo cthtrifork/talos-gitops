@@ -2,6 +2,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - certificate-cluster-issuer.yaml
   - cloudflare-api-token-secret.enc.yaml
+  - certificate-cluster-issuer.yaml
   - cloudflare-cluster-issuer.yaml
