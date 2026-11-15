@@ -1,6 +1,7 @@
 name: Build and publish container images
 
-# Versioning (see docs/releasing.md):
+# Versioning of claude-runner and fileserver (see docs/releasing.md; the runner image has its own workflow,
+# build-runner-image.yaml):
 #   - Tag push vX.Y.Z (made by publishing the draft release): images get vX.Y.Z, vX.Y, vX and latest.
 #     A pre-release tag (vX.Y.Z-rc.1) gets only its own tag, so the floating tags and latest stay on stable.
 #   - Manual run: <tag prefix>-<short sha>, for example rc-1a2b3c4d. Never a release tag.
@@ -11,7 +12,6 @@ on:
     branches:
       - main
     paths:
-      - images/github-actions-runner/**
       - images/claude-runner/**
       - images/fileserver/**
       - .github/workflows/build-image.yaml
@@ -33,9 +33,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  RUNNER_VERSION: "2.338.2" # renovate: datasource=github-releases depName=actions/runner
-
 jobs:
   build-and-publish:
     name: Build and publish (${{ matrix.image.name }})
@@ -43,8 +40,6 @@ jobs:
     timeout-minutes: 30
     # One output per image: matrix legs cannot share a single output name.
     outputs:
-      image_url_github-actions-runner: ${{ steps.slsa.outputs.image_url_github-actions-runner }}
-      image_digest_github-actions-runner: ${{ steps.slsa.outputs.image_digest_github-actions-runner }}
       image_url_claude-runner: ${{ steps.slsa.outputs.image_url_claude-runner }}
       image_digest_claude-runner: ${{ steps.slsa.outputs.image_digest_claude-runner }}
       image_url_fileserver: ${{ steps.slsa.outputs.image_url_fileserver }}
@@ -57,10 +52,6 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - name: github-actions-runner
-            containerfile: images/github-actions-runner/Dockerfile
-            context: images/github-actions-runner
-            registryurl: ghcr.io/${{ github.repository }}/github-actions-runner
           - name: claude-runner
             containerfile: images/claude-runner/Dockerfile
             context: images/claude-runner
@@ -127,7 +118,6 @@ jobs:
           sbom: ${{ env.PUBLISH == 'true' }}
           provenance: ${{ env.PUBLISH == 'true' && 'mode=max' || 'false' }}
           build-args: |
-            RUNNER_VERSION=${{ env.RUNNER_VERSION }}
             VERSION=${{ steps.meta.outputs.version }}
 
       - name: Install cosign
@@ -172,7 +162,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [github-actions-runner, claude-runner, fileserver]
+        image: [claude-runner, fileserver]
     permissions:
       actions: read # for detecting the Github Actions environment.
       id-token: write # for creating OIDC tokens for signing.
