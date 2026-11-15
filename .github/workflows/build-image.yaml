@@ -78,11 +78,12 @@ jobs:
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ matrix.image.registryurl }}
-          # Keep the v prefix: deployed manifests reference tags like v0.6.1.
+          # Keep the v prefix (also for a pre-release): deployed manifests reference tags like v0.6.1. The semver tags
+          # come from the pushed tag only, so a manual run on a release tag cannot re-tag it or move latest.
           tags: |
-            type=semver,pattern=v{{version}}
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}
+            type=semver,pattern={{version}},prefix=v,enable=${{ github.event_name == 'push' }}
+            type=semver,pattern={{major}}.{{minor}},prefix=v,enable=${{ github.event_name == 'push' }}
+            type=semver,pattern={{major}},prefix=v,enable=${{ github.event_name == 'push' }}
             type=raw,value=${{ steps.prep.outputs.DEV_TAG }},enable=${{ github.event_name == 'workflow_dispatch' }}
             type=ref,event=pr
           labels: |
