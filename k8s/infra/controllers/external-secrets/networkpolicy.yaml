@@ -1,5 +1,6 @@
-# Default deny both ways for the namespace, then DNS and the Kubernetes API. Nothing else is needed: the only provider
-# in use is the Kubernetes one (the API server). The webhook is called by the API server on the pod port 10250.
+# Default deny both ways for the namespace, then DNS and the Kubernetes API. The controller also needs api.github.com:443
+# for the GithubAccessToken generator (k8s/apps/claude-system/external-secrets.yaml); the Kubernetes provider is only the
+# API server. The webhook is called by the API server on the pod port 10250.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -31,9 +32,30 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
+          # lets Cilium learn the addresses behind api.github.com for the FQDN rule below
+          rules:
+            dns:
+              - matchPattern: "*"
     # Kubernetes API
     - toEntities:
         - kube-apiserver
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: external-secrets-controller-egress-github
+  namespace: external-secrets-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: external-secrets
+  egress:
+    - toFQDNs:
+        - matchName: api.github.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy

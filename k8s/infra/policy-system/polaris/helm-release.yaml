@@ -177,7 +177,6 @@ spec:
             - sensitiveContainerEnvVar
         # Keyword false positives: ConfigMaps whose keys or scripts mention "token" or "secret", but hold no credentials
         - controllerNames:
-            - claude-token-scripts
             - talos-bootstrap-manifests-inventory
             - trivy-operator-config
           rules:
