@@ -45,6 +45,11 @@ spec:
               protocol: TCP
             - port: "9617"
               protocol: TCP
+            # Garage's admin API (metrics) and the Valkey redis_exporter in renovate-system
+            - port: "3903"
+              protocol: TCP
+            - port: "9121"
+              protocol: TCP
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -126,6 +131,8 @@ spec:
         - ports:
             - port: "4195"
               protocol: TCP
+            - port: "3903"
+              protocol: TCP
             - port: "5000"
               protocol: TCP
             - port: "6443"
@@ -143,6 +150,8 @@ spec:
             - port: "9103"
               protocol: TCP
             - port: "9104"
+              protocol: TCP
+            - port: "9121"
               protocol: TCP
             - port: "9153"
               protocol: TCP

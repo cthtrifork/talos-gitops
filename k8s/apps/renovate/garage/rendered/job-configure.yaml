@@ -10,6 +10,7 @@ metadata:
     app.kubernetes.io/component: garage
     app.kubernetes.io/version: "v2.5.0"
     app.kubernetes.io/managed-by: Helm
+    prometheus-scrape: "true"
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
@@ -25,6 +26,7 @@ spec:
         app.kubernetes.io/component: garage
         app.kubernetes.io/version: "v2.5.0"
         app.kubernetes.io/managed-by: Helm
+        prometheus-scrape: "true"
     spec:
       restartPolicy: OnFailure
       serviceAccountName: garage

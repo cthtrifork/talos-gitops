@@ -35,6 +35,33 @@ spec:
         enabled: false
       dataStorage:
         enabled: false
+      podLabels:
+        prometheus-scrape: "true"
+      # redis_exporter sidecar (keyspace hits and misses, memory), scraped on 9121
+      metrics:
+        enabled: true
+        exporter:
+          image:
+            # renovate: datasource=docker depName=ghcr.io/oliver006/redis_exporter
+            tag: v1.79.0@sha256:67e175f144212fe5796b3134dae1f3db33782b57dc53f7c6f5d938f8f70d9754
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+        serviceMonitor:
+          enabled: true
+          additionalLabels:
+            release: kube-prometheus-stack
     # Renovate's repository cache in Garage (forwarded to the job pods as RENOVATE_S3_URL)
     s3:
       bucket: renovate

@@ -10,6 +10,7 @@ metadata:
     app.kubernetes.io/component: garage
     app.kubernetes.io/version: "v2.5.0"
     app.kubernetes.io/managed-by: Helm
+    prometheus-scrape: "true"
   namespace: renovate-system
 spec:
   type: ClusterIP
@@ -30,6 +31,34 @@ spec:
       targetPort: admin
       protocol: TCP
       name: admin
+  selector:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/component: garage
+---
+# Source: garage/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-metrics
+  labels:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/component: garage
+    app.kubernetes.io/version: "v2.5.0"
+    app.kubernetes.io/managed-by: Helm
+    prometheus-scrape: "true"
+  annotations:
+    prometheus.io/scrape: "true"
+  namespace: renovate-system
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 3903
+      targetPort: 3903
+      protocol: TCP
+      name: metrics
   selector:
     app.kubernetes.io/name: garage
     app.kubernetes.io/instance: garage

@@ -1,0 +1,32 @@
+---
+# Source: garage/templates/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: garage
+  namespace: renovate-system
+  labels:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/component: garage
+    app.kubernetes.io/version: "v2.5.0"
+    app.kubernetes.io/managed-by: Helm
+    prometheus-scrape: "true"
+    release: kube-prometheus-stack
+spec:
+  endpoints:
+    - port: metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      path: /metrics
+      scheme: http
+  jobLabel: "garage"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: garage
+      app.kubernetes.io/instance: garage
+      app.kubernetes.io/component: garage
+  namespaceSelector:
+    matchNames:
+      - renovate-system

@@ -16,6 +16,16 @@ spec:
   values:
     deployment:
       replicaCount: 1
+    # Prometheus scrapes the admin port (3903, /metrics): S3 request counts and block and table metrics
+    commonLabels:
+      prometheus-scrape: "true"
+    monitoring:
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+          labels:
+            release: kube-prometheus-stack
     # The namespace enforces PodSecurity restricted; the chart's defaults lack these two fields
     podSecurityContext:
       seccompProfile:

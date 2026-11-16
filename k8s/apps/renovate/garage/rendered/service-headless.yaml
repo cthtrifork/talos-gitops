@@ -10,6 +10,7 @@ metadata:
     app.kubernetes.io/component: garage
     app.kubernetes.io/version: "v2.5.0"
     app.kubernetes.io/managed-by: Helm
+    prometheus-scrape: "true"
   namespace: renovate-system
 spec:
   type: ClusterIP
