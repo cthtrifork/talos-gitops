@@ -65,15 +65,20 @@
   },
   "packageRules": [
     {
-      "description": "Automerge patch and digest updates everywhere; more specific rules below can override",
+      "description": "Group every update into one pull request and automerge all update types, majors included; more specific rules below can override (groupName, automerge)",
+      "groupName": "renovate updates",
+      "groupSlug": "all",
       "automerge": true,
       "automergeType": "pr",
       "matchUpdateTypes": [
+        "major",
+        "minor",
         "patch",
         "digest"
       ]
     },
     {
+      "groupName": null,
       "automerge": false,
       "matchUpdateTypes": [
         "major",
@@ -190,6 +195,7 @@
         "kubevirt/kubevirt",
         "kubevirt/containerized-data-importer"
       ],
+      "groupName": null,
       "automerge": false
     },
     {
