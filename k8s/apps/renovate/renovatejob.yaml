@@ -17,6 +17,11 @@ spec:
   image: ghcr.io/renovatebot/renovate:44.242.0-full@sha256:9e5914a5ff8c579aa293421d37dc29f508cceefb273620c14f4b3ff5686b3a3d
   parallelism: 2
   extraEnv:
+    # The operator reads PR activity (the PRs a run created, updated or automerged, and the PR metrics) from Renovate's debug log
+    - name: LOG_LEVEL
+      value: debug
+    - name: RENOVATE_LOG_LEVEL
+      value: debug
     # the root filesystem is read-only below: tools that write under their home (npm, go, pip caches) use the scratch volume
     - name: HOME
       value: /tmp

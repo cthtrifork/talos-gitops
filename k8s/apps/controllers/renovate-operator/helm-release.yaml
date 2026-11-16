@@ -58,6 +58,9 @@ spec:
       jobTTLSecondsAfterFinished: 3600
       forwardCacheToJobs: true
       forwardS3CacheToJobs: true
+      # The last run's log per project for the UI, in Valkey (kept 30 days, lost when Valkey restarts); the job pods are deleted
+      logStorage:
+        mode: valkey
       # lets the namespace policy select the Renovate job pods
       podLabelTemplates:
         renovate-job: "true"

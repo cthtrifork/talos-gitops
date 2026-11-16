@@ -1,0 +1,46 @@
+# Alerts on the renovate-operator's metrics (docs/operations/metrics.md in mogenius/renovate-operator). There is no Alertmanager:
+# nothing is sent, the alerts are read from Prometheus. The release label is how Prometheus selects rules.
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: renovate-alerts
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: renovate
+      rules:
+        - alert: RenovateRunFailed
+          expr: renovate_operator_run_failed == 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: The last Renovate run failed for {{ $labels.project }}
+            description: "The last run of {{ $labels.project }} in the RenovateJob {{ $labels.renovate_job }} failed. The log is in the operator's UI (the job pod is deleted when it succeeds, kept when it fails: kubectl -n renovate-system get pods)."
+        - alert: RenovateJobFailures
+          expr: sum by (renovate_job, kind, reason) (increase(renovate_operator_job_failures_total[1h])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Renovate {{ $labels.kind }} jobs are failing ({{ $labels.reason }})
+            description: "{{ $value | humanize }} failed {{ $labels.kind }} jobs of {{ $labels.renovate_job }} in the last hour, reason {{ $labels.reason }}."
+        - alert: RenovateScheduleMissed
+          expr: time() - renovate_operator_schedule_next_run_timestamp_seconds > 3600
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: The Renovate schedule is overdue for {{ $labels.renovate_job }}
+            description: "The next planned run is more than an hour in the past: the operator may be stalled."
+        - alert: RenovateJobSuspended
+          expr: renovate_operator_renovatejob_suspended == 1
+          for: 12h
+          labels:
+            severity: info
+          annotations:
+            summary: The RenovateJob {{ $labels.renovate_job }} has been suspended for 12 hours
+            description: No run starts while spec.suspend is true. It is set in k8s/apps/renovate/renovatejob.yaml (a live change is put back by Flux).
