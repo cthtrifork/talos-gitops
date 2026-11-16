@@ -38,7 +38,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: get-busybox-tools
-          image: "mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4"
+          image: "mirror.gcr.io/library/busybox:1.38-musl@sha256:80e38f9a1b39188b8bdb28879178edb322a4402b081a9aedda1924609decd6f6"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
