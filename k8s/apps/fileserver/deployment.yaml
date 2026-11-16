@@ -8,6 +8,9 @@ metadata:
   namespace: fileserver-system
   annotations:
     reloader.stakater.com/auto: "true"
+    # Recreates the Deployment when an immutable field (the selector) changes. Reloader used to inject a STAKATER_*_SECRET env var
+    # that Flux does not own, so it never goes away on an update. Remove this annotation after the first reconcile.
+    kustomize.toolkit.fluxcd.io/force: enabled
 spec:
   replicas: 1
   strategy:
@@ -15,10 +18,12 @@ spec:
   selector:
     matchLabels:
       app: fileserver
+      app.kubernetes.io/name: fileserver
   template:
     metadata:
       labels:
         app: fileserver
+        app.kubernetes.io/name: fileserver
         prometheus-scrape: "true"
     spec:
       serviceAccountName: fileserver
@@ -141,11 +146,12 @@ spec:
             - sh
             - -ec
             - |
-              until [ -n "$R2_BUCKET" ]; do echo "no fileserver-r2 Secret yet"; sleep 60; done
+              until [ -n "$R2_BUCKET" ]; do date +%s > /state/alive; echo "no fileserver-r2 Secret yet"; sleep 60; done
               export RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare
               export RCLONE_CONFIG_R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
               export RCLONE_CONFIG_R2_ENDPOINT="$R2_ENDPOINT" RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true
               while true; do
+                date +%s > /state/alive
                 rclone sync /data/public "R2:$R2_BUCKET" --max-delete 50 --transfers 2 --checksum --stats-one-line -v || echo "sync failed"
                 sleep 60
               done
@@ -153,6 +159,22 @@ spec:
             - secretRef:
                 name: fileserver-r2
                 optional: true
+          # The loop writes the time of each round to /state/alive. A sync stuck for 30 minutes restarts the container; readiness only
+          # checks that the loop started, so a slow sync never takes the pod out of the Services.
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - '[ $(( $(date +%s) - $(cat /state/alive) )) -lt 1800 ]'
+            initialDelaySeconds: 30
+            periodSeconds: 60
+          readinessProbe:
+            exec:
+              command:
+                - test
+                - -s
+                - /state/alive
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -170,8 +192,13 @@ spec:
               mountPath: /data/public
               subPath: public
               readOnly: true
+            - name: state
+              mountPath: /state
 
       volumes:
+        - name: state
+          emptyDir:
+            sizeLimit: 1Mi
         - name: data
           persistentVolumeClaim:
             claimName: fileserver-data
