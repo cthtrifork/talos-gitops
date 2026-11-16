@@ -18,7 +18,7 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | `vm-upgrade/` | "Update VMs" buttons (claude-vm and homeserver): `vm-upgrade.yaml` (a third Redpanda Connect), `redpanda-connect.yaml` (a flag per VM, two listeners), `index.html` (the page) |
 | `urlshare/` | Approval-gated URL sharing: `urlshare.yaml` (a fourth Redpanda Connect), `redpanda-connect.yaml` (requests, fetch, TTL), `index.html` (the approval page) |
 | `pvc.yaml` | 5Gi volume holding the login (`/home/claude`); delete it to sign out |
-| `../../../images/claude-runner/` | Image: Anthropic publishes none, so this wraps the `claude` binary (checksum verified) plus `kubectl`, `gh`, `crane`, the Flux MCP server and a git credential helper |
+| `../../../images/claude-runner/` | Image: Anthropic publishes none, so this wraps the `claude` binary (checksum verified) plus `kubectl`, `gh`, `crane`, `talosctl`, `omnictl`, the Flux MCP server and a git credential helper |
 
 ## 1. Build the image
 
@@ -95,6 +95,33 @@ permissions only (for example Zone:Read, DNS:Read, Analytics:Read), scoped to th
 The Secret is SOPS-encrypted (root `readme.md`). The header holds the literal `${CLOUDFLARE_API_TOKEN}`, which Claude Code
 expands when it connects, so the token is not written to `~/.claude.json` on the PVC. To rotate, edit the Secret with `sops edit`
 and restart the pod. Egress: `mcp.cloudflare.com` only. Check with `claude mcp list` in the pod.
+
+## talosctl (read-only, through Omni)
+
+The image carries `talosctl` and `omnictl`. The Talos API is reached through Omni, so the credential is an Omni service account with
+the **Reader** role, not a Talos client certificate. If the Secret `omni-service-account` exists, the deployment passes `OMNI_ENDPOINT`
+and `OMNI_SERVICE_ACCOUNT_KEY` to the pod and runs `omnictl talosconfig` at every start to write `$TALOSCONFIG`
+(`/home/claude/.talos/config`); `talosctl` reads the key from the environment. Egress: the Omni endpoint only. Check in the pod:
+
+```sh
+talosctl -n <node-ip> get links     # works
+talosctl -n <node-ip> reboot        # PermissionDenied
+```
+
+**Create** the service account on your machine with `omnictl serviceaccount create claude-rc --role Reader --use-user-role=false --ttl 8760h`
+(the key is shown once), then encrypt it (command and `enc` helper: "Secrets (SOPS)" in the root `readme.md`):
+
+```sh
+enc k8s/apps/claude-system/omni-service-account.enc.yaml \
+  kubectl -n claude-system create secret generic omni-service-account \
+    --from-literal=OMNI_SERVICE_ACCOUNT_KEY="$OMNI_SERVICE_ACCOUNT_KEY" \
+    --from-literal=OMNI_ENDPOINT="$OMNI_ENDPOINT"
+```
+
+and list the file in `kustomization.yaml` `resources:`. **Renew** before the key expires (TTL 365 days; nothing alerts on expiry, so
+note the date): `omnictl serviceaccount renew claude-rc --ttl 8760h`, re-run the command above with the new key and merge. Reloader
+(or a manual restart) rolls the pod. The pod then holds a credential for the node-management plane next to the claude.ai login and
+the GitHub token, and node files and logs read with `talosctl` are input Claude acts on, so keep the role at Reader.
 
 ## Check what the pod can and cannot do
 
