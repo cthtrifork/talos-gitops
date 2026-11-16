@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/instance: traefik-traefik-system
     app.kubernetes.io/version: "v3.7.19"
-    helm.sh/chart: traefik-42.3.2
+    helm.sh/chart: traefik-42.4.0
     app.kubernetes.io/managed-by: Helm
   annotations:
     reloader.stakater.com/auto: "true"
@@ -36,7 +36,7 @@ spec:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: traefik
         app.kubernetes.io/version: v3.7.19
-        helm.sh/chart: traefik-42.3.2
+        helm.sh/chart: traefik-42.4.0
     spec:
       automountServiceAccountToken: true
       containers:
@@ -52,7 +52,9 @@ spec:
             - --providers.kubernetescrd
             - --providers.kubernetescrd.allowEmptyServices=true
             - --entryPoints.web.forwardedHeaders.trustedIPs=127.0.0.1/32
+            - --entryPoints.web.transport.lifeCycle.requestAcceptGraceTimeout=5s
             - --entryPoints.websecure.http.tls=true
+            - --entryPoints.websecure.transport.lifeCycle.requestAcceptGraceTimeout=5s
             - --log.level=INFO
           env:
             - name: POD_NAME
