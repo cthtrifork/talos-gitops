@@ -1,269 +1,271 @@
+---
+# Source: gha-runner-scale-set/templates/autoscalingrunnerset.yaml
 apiVersion: actions.github.com/v1alpha1
 kind: AutoscalingRunnerSet
 metadata:
+  name: arc-ubuntu
+  namespace: arc-runners-system
+  labels:
+    app.kubernetes.io/component: "autoscaling-runner-set"
+    helm.sh/chart: gha-rs-0.15.1
+    app.kubernetes.io/name: arc-ubuntu
+    app.kubernetes.io/instance: arc-ubuntu
+    app.kubernetes.io/version: "0.15.1"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: gha-rs
+    actions.github.com/scale-set-name: arc-ubuntu
+    actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
+    actions.github.com/values-hash: bc30cc66a71cf27a05aa489734036f5f21991fc9835fdd3c3b24743e2360cbe
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
-    actions.github.com/values-hash: bc30cc66a71cf27a05aa489734036f5f21991fc9835fdd3c3b24743e2360cbe
-  labels:
-    actions.github.com/scale-set-name: arc-ubuntu
-    actions.github.com/scale-set-namespace: arc-runners-system
-    app.kubernetes.io/component: autoscaling-runner-set
-    app.kubernetes.io/instance: arc-ubuntu
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: arc-ubuntu
-    app.kubernetes.io/part-of: gha-rs
-    app.kubernetes.io/version: 0.15.1
-    helm.sh/chart: gha-rs-0.15.1
-  name: arc-ubuntu
-  namespace: arc-runners-system
 spec:
-  ephemeralRunnerMetadata:
-    annotations:
-      kubernetes.io/egress-bandwidth: 300M
-      kubernetes.io/ingress-bandwidth: 300M
-  githubConfigSecret: github-auth
   githubConfigUrl: https://github.com/cthtrifork/homeserver-bootc
-  listenerConfig:
-    scaler:
-      burst: 100
-      qps: 50
+  githubConfigSecret: github-auth
+  runnerScaleSetName: arc-ubuntu
+  runnerScaleSetLabels:
+    - arc-ubuntu
+    - arc-ubuntu-docker
+  maxRunners: 1
+  minRunners: 1
   listenerTemplate:
     spec:
       containers:
-      - name: listener
-        resources:
-          limits:
-            memory: 256Mi
-          requests:
-            cpu: 15m
-            memory: 64Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          runAsNonRoot: true
-          runAsUser: 1000
+        - name: listener
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              cpu: 15m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            runAsUser: 1000
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-  maxRunners: 1
-  minRunners: 1
-  runnerScaleSetLabels:
-  - arc-ubuntu
-  - arc-ubuntu-docker
-  runnerScaleSetName: arc-ubuntu
+  listenerConfig:
+    scaler:
+      burst: 100
+      qps: 50
+  ephemeralRunnerMetadata:
+    annotations:
+      kubernetes.io/egress-bandwidth: 300M
+      kubernetes.io/ingress-bandwidth: 300M
   template:
     spec:
-      containers:
-      - command:
-        - /home/runner/run.sh
-        env:
-        - name: DOCKER_HOST
-          value: unix:///var/run/docker.sock
-        - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
-          value: "120"
-        - name: STORAGE_DRIVER
-          value: overlay
-        - name: BUILDAH_ISOLATION
-          value: chroot
-        - name: BUILDAH_LAYERS
-          value: "true"
-        - name: RUNNER_UPDATE_CA_CERTS
-          value: "1"
-        - name: FILESERVER_TOKEN
-          valueFrom:
-            secretKeyRef:
-              key: current
-              name: fileserver-upload-token
-              optional: true
-        - name: FILESERVER_URL
-          value: http://fileserver-upload.fileserver-system.svc:8082
-        image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
-        imagePullPolicy: IfNotPresent
-        name: runner
-        resources:
-          limits:
-            memory: 12Gi
-          requests:
-            cpu: 500m
-            memory: 2Gi
-        securityContext:
-          privileged: true
-          runAsGroup: 1001
-          runAsUser: 1001
-          seLinuxOptions:
-            type: container_file_t
-        volumeMounts:
-        - mountPath: /usr/local/share/ca-certificates/private-ca.crt
-          name: ca-certs
-          subPath: ca.crt
-        - mountPath: /var/lib/containers/storage
-          name: container-storage-rootful
-        - mountPath: /home/runner/_work
-          name: work
-        - mountPath: /var/run
-          name: dind-sock
-        - mountPath: /home/runner/.local/share/containers/storage
-          name: container-rootless-storage
-        - mountPath: /var/lib/shared
-          name: container-shared-storage
-        - mountPath: /var/lib/docker
-          name: docker-lib
-        - mountPath: /var/cache/dnf
-          name: dnf-cache
-        - mountPath: /home/runner/.cache/dnf
-          name: dnf-cache
-        - mountPath: /home/runner/.cache/tmp
-          name: cross-run-cache
-        - mountPath: /tmp
-          name: tmp-memory
-        - mountPath: /var/tmp
-          name: podman-tmp
-        - mountPath: /run/udev
-          name: host-udev
-          readOnly: true
-        - mountPath: /host-dev
-          name: host-dev
       imagePullSecrets:
-      - name: github-auth
-      initContainers:
-      - command:
-        - sh
-        - -c
-        - |
-          set -e
-          find /tmp/arc-cache -type f -mtime +14 -print -delete
-          find /tmp/arc-cache -type d -empty -mtime +14 -print -delete || true
-        image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
-        imagePullPolicy: IfNotPresent
-        name: data-retention
-        resources:
-          limits:
-            memory: 128Mi
-          requests:
-            cpu: 25m
-            memory: 128Mi
-        securityContext:
-          allowPrivilegeEscalation: true
-          privileged: true
-          runAsGroup: 0
-          runAsUser: 0
-        volumeMounts:
-        - mountPath: /tmp/arc-cache
-          name: cross-run-cache
-      - command:
-        - cp
-        - -r
-        - /home/runner/externals/.
-        - /home/runner/tmpDir/
-        image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
-        imagePullPolicy: IfNotPresent
-        name: init-dind-externals
-        resources:
-          limits:
-            memory: 1Gi
-          requests:
-            cpu: 25m
-            memory: 128Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          runAsGroup: 1001
-          runAsNonRoot: true
-          runAsUser: 1001
-        volumeMounts:
-        - mountPath: /home/runner/tmpDir
-          name: dind-externals
-      - args:
-        - dockerd
-        - --host=unix:///var/run/docker.sock
-        - --group=$(DOCKER_GROUP_GID)
-        env:
-        - name: DOCKER_GROUP_GID
-          value: "123"
-        image: mirror.gcr.io/library/docker:29.9.3-dind@sha256:7bf70dcb85c822e3fa6f2d332143e474b99147b9d7b39102b0cfe8b04a7dd61b
-        imagePullPolicy: IfNotPresent
-        name: dind
-        resources:
-          limits:
-            memory: 4Gi
-          requests:
-            cpu: 100m
-            memory: 512Mi
-        restartPolicy: Always
-        securityContext:
-          privileged: true
-        startupProbe:
-          exec:
-            command:
-            - docker
-            - info
-          failureThreshold: 24
-          initialDelaySeconds: 0
-          periodSeconds: 5
-        volumeMounts:
-        - mountPath: /home/runner/_work
-          name: work
-        - mountPath: /var/run
-          name: dind-sock
-        - mountPath: /home/runner/externals
-          name: dind-externals
-        - mountPath: /var/lib/docker
-          name: docker-lib
-      restartPolicy: Never
+        - name: github-auth
       securityContext:
         fsGroup: 1001
+      restartPolicy: Never
       serviceAccountName: arc-ubuntu-gha-rs-no-permission
+      initContainers:
+        - command:
+            - sh
+            - -c
+            - |
+              set -e
+              find /tmp/arc-cache -type f -mtime +14 -print -delete
+              find /tmp/arc-cache -type d -empty -mtime +14 -print -delete || true
+          image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+          imagePullPolicy: IfNotPresent
+          name: data-retention
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            privileged: true
+            runAsGroup: 0
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /tmp/arc-cache
+              name: cross-run-cache
+        - command:
+            - cp
+            - -r
+            - /home/runner/externals/.
+            - /home/runner/tmpDir/
+          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+          imagePullPolicy: IfNotPresent
+          name: init-dind-externals
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 25m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+          volumeMounts:
+            - mountPath: /home/runner/tmpDir
+              name: dind-externals
+        - args:
+            - dockerd
+            - --host=unix:///var/run/docker.sock
+            - --group=$(DOCKER_GROUP_GID)
+          env:
+            - name: DOCKER_GROUP_GID
+              value: "123"
+          image: mirror.gcr.io/library/docker:29.9.3-dind@sha256:7bf70dcb85c822e3fa6f2d332143e474b99147b9d7b39102b0cfe8b04a7dd61b
+          imagePullPolicy: IfNotPresent
+          name: dind
+          resources:
+            limits:
+              memory: 4Gi
+            requests:
+              cpu: 100m
+              memory: 512Mi
+          restartPolicy: Always
+          securityContext:
+            privileged: true
+          startupProbe:
+            exec:
+              command:
+                - docker
+                - info
+            failureThreshold: 24
+            initialDelaySeconds: 0
+            periodSeconds: 5
+          volumeMounts:
+            - mountPath: /home/runner/_work
+              name: work
+            - mountPath: /var/run
+              name: dind-sock
+            - mountPath: /home/runner/externals
+              name: dind-externals
+            - mountPath: /var/lib/docker
+              name: docker-lib
+      containers:
+        - name: runner
+          command:
+            - /home/runner/run.sh
+          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              memory: 12Gi
+            requests:
+              cpu: 500m
+              memory: 2Gi
+          securityContext:
+            privileged: true
+            runAsGroup: 1001
+            runAsUser: 1001
+            seLinuxOptions:
+              type: container_file_t
+          env:
+            - name: DOCKER_HOST
+              value: unix:///var/run/docker.sock
+            - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+              value: "120"
+            - name: STORAGE_DRIVER
+              value: overlay
+            - name: BUILDAH_ISOLATION
+              value: chroot
+            - name: BUILDAH_LAYERS
+              value: "true"
+            - name: RUNNER_UPDATE_CA_CERTS
+              value: "1"
+            - name: FILESERVER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: current
+                  name: fileserver-upload-token
+                  optional: true
+            - name: FILESERVER_URL
+              value: http://fileserver-upload.fileserver-system.svc:8082
+          volumeMounts:
+            - mountPath: /usr/local/share/ca-certificates/private-ca.crt
+              name: ca-certs
+              subPath: ca.crt
+            - mountPath: /var/lib/containers/storage
+              name: container-storage-rootful
+            - mountPath: /home/runner/_work
+              name: work
+            - mountPath: /var/run
+              name: dind-sock
+            - mountPath: /home/runner/.local/share/containers/storage
+              name: container-rootless-storage
+            - mountPath: /var/lib/shared
+              name: container-shared-storage
+            - mountPath: /var/lib/docker
+              name: docker-lib
+            - mountPath: /var/cache/dnf
+              name: dnf-cache
+            - mountPath: /home/runner/.cache/dnf
+              name: dnf-cache
+            - mountPath: /home/runner/.cache/tmp
+              name: cross-run-cache
+            - mountPath: /tmp
+              name: tmp-memory
+            - mountPath: /var/tmp
+              name: podman-tmp
+            - mountPath: /run/udev
+              name: host-udev
+              readOnly: true
+            - mountPath: /host-dev
+              name: host-dev
       volumes:
-      - configMap:
-          items:
-          - key: ca-bundle.crt
-            path: ca.crt
-          name: portableinfo-ca-bundle
-        name: ca-certs
-      - hostPath:
-          path: /run/udev
-          type: Directory
-        name: host-udev
-      - hostPath:
-          path: /dev
-          type: Directory
-        name: host-dev
-      - emptyDir:
-          sizeLimit: 32Gi
-        name: work
-      - emptyDir: {}
-        name: dind-sock
-      - emptyDir:
-          sizeLimit: 2Gi
-        name: dind-externals
-      - emptyDir:
-          sizeLimit: 32Gi
-        name: docker-lib
-      - emptyDir:
-          sizeLimit: 20Gi
-        name: tmp-memory
-      - name: container-storage-rootful
-        persistentVolumeClaim:
-          claimName: container-storage-rootful
-      - name: container-rootless-storage
-        persistentVolumeClaim:
-          claimName: container-rootless-storage
-      - name: podman-tmp
-        persistentVolumeClaim:
-          claimName: podman-tmp
-      - name: dnf-cache
-        persistentVolumeClaim:
-          claimName: dnf-cache
-      - name: container-shared-storage
-        persistentVolumeClaim:
-          claimName: container-shared-storage
-      - name: cross-run-cache
-        persistentVolumeClaim:
-          claimName: cross-run-cache
+        - configMap:
+            items:
+              - key: ca-bundle.crt
+                path: ca.crt
+            name: portableinfo-ca-bundle
+          name: ca-certs
+        - hostPath:
+            path: /run/udev
+            type: Directory
+          name: host-udev
+        - hostPath:
+            path: /dev
+            type: Directory
+          name: host-dev
+        - emptyDir:
+            sizeLimit: 32Gi
+          name: work
+        - emptyDir: {}
+          name: dind-sock
+        - emptyDir:
+            sizeLimit: 2Gi
+          name: dind-externals
+        - emptyDir:
+            sizeLimit: 32Gi
+          name: docker-lib
+        - emptyDir:
+            sizeLimit: 20Gi
+          name: tmp-memory
+        - name: container-storage-rootful
+          persistentVolumeClaim:
+            claimName: container-storage-rootful
+        - name: container-rootless-storage
+          persistentVolumeClaim:
+            claimName: container-rootless-storage
+        - name: podman-tmp
+          persistentVolumeClaim:
+            claimName: podman-tmp
+        - name: dnf-cache
+          persistentVolumeClaim:
+            claimName: dnf-cache
+        - name: container-shared-storage
+          persistentVolumeClaim:
+            claimName: container-shared-storage
+        - name: cross-run-cache
+          persistentVolumeClaim:
+            claimName: cross-run-cache
