@@ -38,10 +38,10 @@ with a token in the global config of the `RenovateJob`.
 2. Dry run: add `extraEnv` `RENOVATE_DRY_RUN=full` to the `RenovateJob`, set `suspend: false`, and compare the report with the last
    Actions run. Check that a second run is faster (Valkey keys, objects under `renovate-cache/` in Garage) and that the
    drop metrics show nothing (skill `cilium-drops`).
-3. Remove the dry run for one full cycle with `talos-gitops` only, then add the other repositories to `discoveryFilters` one at
-   a time. Their `renovate.json5` files load as the global config in the Actions workflows; here they are repo config, so
-   global-only options (`allowedCommands`, `platform`, `hostRules`, ...) have to move to the inline config first.
-4. Slow the Actions fallback (`17 */2 * * *` to `47 */6 * * *`) in each repository.
+3. The dry run is removed and all six repositories are in `discoveryFilters`. Their `renovate.json5` files load as repo config here, so a
+   global-only option in one (`allowedCommands`, `platform`, `hostRules`, ...) is an error: those live in the inline global config
+   of the `RenovateJob` and, for the Actions fallback, in each repository's `.github/workflows/renovate-config.js`. Keep the two in step.
+4. The Actions fallback runs once a day in each repository.
 
 ## Roll back
 
