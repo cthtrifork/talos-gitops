@@ -136,7 +136,7 @@ jobs:
 
       - name: Suspend workload Kustomizations
         run: |
-          for ks in app-controllers app renovate gitops-infra \
+          for ks in app-controllers renovate \
               $(kubectl get kustomization -n flux-system -l gitops.homelab/tier=apps -o name | cut -d/ -f2); do
             flux suspend kustomization "${ks}"
           done
@@ -165,7 +165,11 @@ jobs:
       - name: Dry-run apps against the API server
         timeout-minutes: 3
         run: |
-          kustomize build k8s/apps --load-restrictor=LoadRestrictionsNone > "${RUNNER_TEMP}/apps.yaml"
+          # the app-* Kustomizations; renovate needs CRDs from app-controllers, which is suspended here
+          for app in adguard arc-runner claude-system fileserver harper-pad; do
+            kustomize build "k8s/apps/${app}" --load-restrictor=LoadRestrictionsNone
+            echo "---"
+          done > "${RUNNER_TEMP}/apps.yaml"
           yq 'select(.kind == "Namespace")' "${RUNNER_TEMP}/apps.yaml" | kubectl apply -f -
           yq 'select(has("sops") | not)' "${RUNNER_TEMP}/apps.yaml" | kubectl apply --dry-run=server -f -
 
