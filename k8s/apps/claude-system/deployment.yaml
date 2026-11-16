@@ -98,6 +98,13 @@ spec:
                 claude mcp add --scope user --transport http cloudflare https://mcp.cloudflare.com/mcp \
                   --header 'Authorization: Bearer $${CLOUDFLARE_API_TOKEN}'
               fi
+              # Talos API through Omni, read-only through the role of the service account in the Secret omni-service-account.
+              # talosctl reads OMNI_SERVICE_ACCOUNT_KEY itself; the talosconfig only names the endpoint and cluster.
+              if [ -n "$OMNI_SERVICE_ACCOUNT_KEY" ]; then
+                mkdir -p "$(dirname "$TALOSCONFIG")"
+                omnictl talosconfig --force "$TALOSCONFIG" \
+                  || echo "omnictl talosconfig failed: talosctl is unavailable until the next start"
+              fi
               exec claude remote-control --name homelab
           env:
             - name: DISABLE_AUTOUPDATER
@@ -135,6 +142,20 @@ spec:
                   name: claude-cloudflare # SOPS-encrypted (root readme.md), a Cloudflare API token with Read permissions only
                   key: CLOUDFLARE_API_TOKEN
                   optional: true
+            - name: OMNI_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: omni-service-account # SOPS-encrypted (root readme.md), an Omni service account with the Reader role
+                  key: OMNI_ENDPOINT
+                  optional: true
+            - name: OMNI_SERVICE_ACCOUNT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: omni-service-account
+                  key: OMNI_SERVICE_ACCOUNT_KEY
+                  optional: true
+            - name: TALOSCONFIG
+              value: /home/claude/.talos/config # written at start by omnictl talosconfig
             - name: CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX
               value: claude-k8s-helper # session names instead of the pod hostname prefix
           resources:

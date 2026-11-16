@@ -30,6 +30,10 @@ ARG FLUX_VERSION=2.10.0
 ARG ACTIONLINT_VERSION=1.7.12
 # renovate: datasource=pypi depName=yamllint
 ARG YAMLLINT_VERSION=1.38.0
+# renovate: datasource=github-releases depName=siderolabs/talos
+ARG TALOSCTL_VERSION=1.14.6
+# renovate: datasource=github-releases depName=siderolabs/omni
+ARG OMNICTL_VERSION=1.13.3
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       git curl ca-certificates openssh-client jq python3 python3-pip shellcheck make \
@@ -135,6 +139,22 @@ RUN base="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VE
  && tar -xzf "${tarball}" actionlint \
  && install -m 0755 actionlint /usr/local/bin/actionlint \
  && rm -rf "${tarball}" actionlint
+
+# talosctl and omnictl, checksum verified against the releases' sha256sum.txt. The pod reaches the Talos API through Omni
+# with a read-only service account (OMNI_SERVICE_ACCOUNT_KEY, see k8s/apps/claude-system/README.md).
+RUN base="https://github.com/siderolabs/talos/releases/download/v${TALOSCTL_VERSION}" \
+ && cd /tmp \
+ && curl -fsSL "${base}/talosctl-linux-amd64" -o talosctl-linux-amd64 \
+ && curl -fsSL "${base}/sha256sum.txt" | grep -F "  talosctl-linux-amd64" | sha256sum -c - \
+ && install -m 0755 talosctl-linux-amd64 /usr/local/bin/talosctl \
+ && rm -f talosctl-linux-amd64
+
+RUN base="https://github.com/siderolabs/omni/releases/download/v${OMNICTL_VERSION}" \
+ && cd /tmp \
+ && curl -fsSL "${base}/omnictl-linux-amd64" -o omnictl-linux-amd64 \
+ && curl -fsSL "${base}/sha256sum.txt" | grep -F "  omnictl-linux-amd64" | sha256sum -c - \
+ && install -m 0755 omnictl-linux-amd64 /usr/local/bin/omnictl \
+ && rm -f omnictl-linux-amd64
 
 # yamllint at the version CI pins; Debian's pip is externally managed, hence --break-system-packages
 RUN pip install --no-cache-dir --break-system-packages "yamllint==${YAMLLINT_VERSION}"

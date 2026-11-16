@@ -12,6 +12,7 @@ resources:
   - claude-github-app.enc.yaml
   - ghcr-pull.enc.yaml
   - claude-cloudflare.enc.yaml
+  - omni-service-account.enc.yaml
   - usage/usage.yaml
   - vm-upgrade/vm-upgrade.yaml
   - urlshare/urlshare.yaml

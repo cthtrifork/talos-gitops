@@ -137,6 +137,8 @@ spec:
         # Claude Code itself: plugin installs and metadata, documentation lookups
         # Cloudflare API MCP server (read-only token); the pod only talks to this host, the server calls the API itself
         - matchName: mcp.cloudflare.com
+        # Omni (Talos API proxy for talosctl, read-only service account)
+        - matchName: portableinfo.eu-central-1.omni.siderolabs.io
         - matchName: downloads.claude.ai
         - matchName: storage.googleapis.com
         - matchName: code.claude.com
