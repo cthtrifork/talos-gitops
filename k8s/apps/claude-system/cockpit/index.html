@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Cockpit</title>
+<style>
+  /* Layout: a status strip first, then three bands (Cluster, GitHub, Homelab) that each fit a 2-column grid and stack on a phone.
+     Same tokens as usage/index.html; the status colors are separate from the accent. MOCKUP: every number below is example data. */
+  :root {
+    color-scheme: light;
+    --page: #f4f4f1;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #7c7a74;
+    --grid: #e1e0d9;
+    --ring: rgba(11, 11, 11, 0.10);
+    --accent: #2a78d6;
+    --ok: #1a7f55;
+    --ok-bg: #dff3ea;
+    --warn: #8a5a00;
+    --warn-bg: #fff4d6;
+    --bad: #b3261e;
+    --bad-bg: #fde4e1;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
+      --ok: #55c79a; --ok-bg: #12301f; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
+    --ok: #55c79a; --ok-bg: #12301f; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 var(--font);
+    padding-block: 20px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+  h2 { font-size: 11px; margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  h3 { font-size: 13px; margin: 0; font-weight: 600; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+  .mono { font-family: var(--mono); font-size: 12px; }
+
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+  .mock { font-size: 12px; color: var(--warn); background: var(--warn-bg); padding: 6px 10px; border-radius: 4px; }
+
+  /* status strip: one chip per section, worst state first */
+  .strip { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .ok { color: var(--ok); background: var(--ok-bg); }
+  .warn { color: var(--warn); background: var(--warn-bg); }
+  .bad { color: var(--bad); background: var(--bad-bg); }
+
+  .band { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .big { font-size: 30px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
+  .big small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+
+  ul.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  ul.rows li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-top: 1px solid var(--grid); }
+  ul.rows li:first-child { border-top: 0; }
+  ul.rows .l { min-width: 0; overflow-wrap: anywhere; }
+
+  .bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; display: flex; }
+  .bar i { display: block; height: 100%; }
+  .spark { width: 100%; height: 44px; display: block; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+  .src { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .pending { border: 1px dashed var(--muted); background: transparent; box-shadow: none; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Cockpit</h1>
+    <span class="mock">Mockup for issue #849. All numbers are example data; nothing here is wired up.</span>
+  </header>
+
+  <div class="strip" role="status" aria-label="Overall status">
+    <span class="pill bad">2 alerts firing</span>
+    <span class="pill warn">Flux: 1 not ready</span>
+    <span class="pill warn">12 open PRs</span>
+    <span class="pill ok">Polaris 91%</span>
+    <span class="pill ok">VMs up to date</span>
+  </div>
+
+  <section aria-labelledby="h-cluster">
+    <h2 id="h-cluster">Cluster</h2>
+    <div class="band">
+      <div class="panel">
+        <div class="panel-head"><h3>Dropped traffic, last hour</h3><span class="pill warn">above usual</span></div>
+        <div class="big num">184 <small>packets denied</small></div>
+        <svg class="spark" viewBox="0 0 240 44" preserveAspectRatio="none" role="img" aria-label="Denied packets per 5 minutes over the last hour, rising at the end">
+          <line x1="0" y1="43" x2="240" y2="43" stroke="var(--grid)" stroke-width="1"/>
+          <path d="M0 40 L20 38 L40 41 L60 37 L80 39 L100 36 L120 38 L140 33 L160 35 L180 28 L200 22 L220 10 L240 6 L240 43 L0 43 Z" fill="var(--warn)" fill-opacity="0.15"/>
+          <path d="M0 40 L20 38 L40 41 L60 37 L80 39 L100 36 L120 38 L140 33 L160 35 L180 28 L200 22 L220 10 L240 6" fill="none" stroke="var(--warn)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+          <circle cx="238" cy="6" r="2.5" fill="var(--warn)"/>
+        </svg>
+        <ul class="rows">
+          <li><span class="l">claude-rc → 10.0.4.12:443</span><span class="num muted">121</span></li>
+          <li><span class="l">renovate-system → ghcr.io</span><span class="num muted">44</span></li>
+          <li><span class="l">3 more destinations</span><span class="num muted">19</span></li>
+        </ul>
+        <span class="src">Prometheus · hubble_drop_total · POLICY_DENIED</span>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Firing alerts</h3><span class="pill bad">2</span></div>
+        <ul class="rows">
+          <li><span class="l"><strong>NodeFilesystemSpaceFillingUp</strong><br><span class="muted">talos-cp-2 · /var · since 2 h</span></span><span class="pill warn">warning</span></li>
+          <li><span class="l"><strong>TargetDown</strong><br><span class="muted">spegel · 1 of 3 targets · since 14 min</span></span><span class="pill warn">warning</span></li>
+        </ul>
+        <span class="src">Prometheus · ALERTS{alertstate="firing"}</span>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Flux reconciliation</h3><span class="pill warn">1 not ready</span></div>
+        <div class="bar" role="img" aria-label="61 of 63 ready, 1 reconciling, 1 failed">
+          <i style="width:96.8%;background:var(--ok)"></i><i style="width:1.6%;background:var(--accent)"></i><i style="width:1.6%;background:var(--bad)"></i>
+        </div>
+        <div class="legend"><span><span class="dot" style="background:var(--ok)"></span>61 ready</span><span><span class="dot" style="background:var(--accent)"></span>1 reconciling</span><span><span class="dot" style="background:var(--bad)"></span>1 failed</span></div>
+        <ul class="rows">
+          <li><span class="l"><strong>HelmRelease/trivy-operator</strong><br><span class="muted">upgrade retries exhausted</span></span><span class="pill bad">failed</span></li>
+        </ul>
+        <span class="src">Kubernetes API · kustomizations, helmreleases</span>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Polaris score</h3><span class="pill ok">no change</span></div>
+        <div class="big num">91<small> / 100</small></div>
+        <div class="bar" role="img" aria-label="Score 91 of 100"><i style="width:91%;background:var(--ok)"></i></div>
+        <ul class="rows">
+          <li><span class="l">Danger</span><span class="num">0</span></li>
+          <li><span class="l">Warning</span><span class="num">7</span></li>
+        </ul>
+        <span class="src">polaris-dashboard · /results.json</span>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-gh">
+    <h2 id="h-gh">GitHub</h2>
+    <div class="band">
+      <div class="panel">
+        <div class="panel-head"><h3>Open pull requests</h3><span class="num muted">12</span></div>
+        <div class="bar" role="img" aria-label="9 Renovate, 3 other"><i style="width:75%;background:var(--accent)"></i><i style="width:25%;background:var(--ink-2)"></i></div>
+        <div class="legend"><span><span class="dot" style="background:var(--accent)"></span>Renovate 9</span><span><span class="dot" style="background:var(--ink-2)"></span>Other 3</span></div>
+        <h3>Other</h3>
+        <ul class="rows">
+          <li><span class="l"><a href="#">#892</a> feat(claude-system): cockpit mockup</span><span class="muted">claude · 1 h</span></li>
+          <li><span class="l"><a href="#">#885</a> fix(infra): order the CRD layers</span><span class="muted">cthtrifork · 2 d</span></li>
+          <li><span class="l"><a href="#">#880</a> docs: update the Talos upgrade notes</span><span class="muted">cthtrifork · 5 d</span></li>
+        </ul>
+        <h3>Renovate</h3>
+        <ul class="rows">
+          <li><span class="l"><a href="#">#891</a> chore(deps): update cilium to v1.19.2</span><span class="muted">1 d</span></li>
+          <li><span class="l"><a href="#">#890</a> chore(deps): update ghcr.io/cthtrifork/…/claude-runner</span><span class="muted">1 d</span></li>
+          <li><span class="l muted">7 more</span><span></span></li>
+        </ul>
+        <span class="src">GitHub API · pulls, grouped by author renovate[bot]</span>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Open issues</h3><span class="num muted">4</span></div>
+        <ul class="rows">
+          <li><span class="l"><a href="#">#849</a> Github and homelab cockpit</span><span class="muted">today</span></li>
+          <li><span class="l"><a href="#">#871</a> Spegel target flapping on talos-cp-2</span><span class="muted">4 d</span></li>
+          <li><span class="l"><a href="#">#862</a> Rotate the Omni service account key</span><span class="muted">9 d</span></li>
+          <li><span class="l"><a href="#">#840</a> Move zot retention to a per-repo policy</span><span class="muted">3 w</span></li>
+        </ul>
+        <span class="muted">The Renovate Dependency Dashboard issue is left out.</span>
+        <span class="src">GitHub API · issues</span>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-home">
+    <h2 id="h-home">Homelab</h2>
+    <div class="band">
+      <div class="panel">
+        <div class="panel-head"><h3>Running versions</h3><span class="pill ok">up to date</span></div>
+        <ul class="rows">
+          <li><span class="l"><strong>claude-vm</strong><br><span class="muted">reported 2 min ago</span></span><span class="mono">fedora-bootc 44.20261112.0</span></li>
+          <li><span class="l"><strong>homeserver</strong><br><span class="muted">reported 3 min ago</span></span><span class="mono">fedora-bootc 44.20261112.0</span></li>
+        </ul>
+        <span class="muted">Shows “unknown” until a VM reports again after the pod restarts.</span>
+        <span class="src">claude-vm-upgrade · /api/v1/status</span>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Claude usage, last 7 days</h3><span class="pill warn">remaining: undecided</span></div>
+        <div class="big num">$38.20 <small>spent</small></div>
+        <div class="bar" role="img" aria-label="claude-vm 71 percent, claude-rc 29 percent">
+          <i style="width:71%;background:var(--accent)"></i><i style="width:29%;background:#eb6834"></i>
+        </div>
+        <div class="legend"><span><span class="dot" style="background:var(--accent)"></span>claude-vm $27.10</span><span><span class="dot" style="background:#eb6834"></span>claude-rc $11.10</span></div>
+        <div class="panel pending">
+          <h3>Remaining plan usage</h3>
+          <span class="muted">Needs a usage endpoint and a stored VM credential, neither confirmed. Until then the page shows what was used, from the same data as the usage page.</span>
+        </div>
+        <span class="src">Prometheus · claude_code_cost_usage</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="muted">Refreshed 30 s ago · reads only, nothing on this page changes the cluster.</footer>
+</main>
+</body>
+</html>
