@@ -305,7 +305,7 @@ A request is `pending` until you decide, then `approved`, `failed` (approve agai
 | Listener | Reached through | Endpoints |
 |---|---|---|
 | `:8081` api | MetalLB `claude-urlshare-lb`, 192.168.1.245, plain HTTP, only from `claude-rc` and 192.168.1.0/24 | `GET /?url=<URL-encoded URL>` (or `/<id>`): `200` the stored page, `202` pending (nothing fetched), `403` rejected, `502` fetch failed (`error` says why), `410` expired, `400` not an acceptable URL, `429` too many waiting |
-| `:8080` page | Omni service exposer, `Service/claude-urlshare` (port 50094, behind Omni login) | `GET /` the page, `GET /api/v1/requests`, `POST /api/v1/requests/<id>/approve\|reject` (needs `X-Requested-With: urlshare-approval`) |
+| `:8080` page | Omni service exposer, `Service/claude-urlshare` (port 50096, behind Omni login) | `GET /` the page, `GET /api/v1/requests`, `POST /api/v1/requests/<id>/approve\|reject` (needs `X-Requested-With: urlshare-approval`) |
 
 - **Flow:** an unknown URL becomes `pending` and is not fetched. Approving fetches it (10 s timeout, redirects followed) and stores the HTML or plain
   text. Requests, decisions and pages live 24 h in memory (at most 100 requests); a restart drops them and the URLs need approving again.
