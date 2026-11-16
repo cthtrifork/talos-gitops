@@ -197,7 +197,8 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": [
         "ghcr.io/cthtrifork/talos-gitops/github-actions-runner",
-        "ghcr.io/cthtrifork/talos-gitops/claude-runner"
+        "ghcr.io/cthtrifork/talos-gitops/claude-runner",
+        "ghcr.io/cthtrifork/talos-gitops/fileserver"
       ],
       "ignoreUnstable": false
     },
