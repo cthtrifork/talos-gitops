@@ -370,15 +370,16 @@ flowchart LR
   app[GitHub App] -->|"JWT, 1 h token"| es[ExternalSecret<br/>every 30 min]
   es -->|"mounted file"| cockpit
 
-  cockpit -.->|"planned: GET /api/v1/status"| vmup[claude-vm-upgrade]
-  vm[claude-vm, homeserver] -.->|"planned: POST report<br/>+ 5 h and 7 d usage"| vmup
+  cockpit -->|"GET /api/v1/status"| vmup[claude-vm-upgrade]
+  vm[claude-vm status line] -->|"POST /api/v1/sessions/claude-vm<br/>5 h and 7 d usage, model, version"| lb["claude-cockpit-lb :8081<br/>192.168.1.246, LAN, VM address only"]
+  lb --> cockpit
 
   classDef new fill:#e4eefb,stroke:#2a78d6,stroke-width:2px,color:#0b0b0b
   class cockpit new
 ```
 
-Solid lines exist today, dashed lines are the planned homelab section (see the issue for the design). The cockpit itself only ever sends GETs; the
-VM report is a push into `claude-vm-upgrade`.
+The cockpit itself only ever sends GETs. The one push into it is the Claude VM's session data on the second listener (`:8081`, below); the VM versions
+are read from `claude-vm-upgrade`, which keeps its own reports.
 
 | Panel | Source | Needs |
 |---|---|---|
@@ -388,6 +389,8 @@ VM report is a push into `claude-vm-upgrade`.
 | Polaris score | `polaris-dashboard` `/results.json` (score, and failing checks by severity) | egress to the dashboard `:8080` |
 | Pull requests, Renovate pull requests, open issues | GitHub search (`/search/issues`, one call for both repositories): Renovate's are the ones authored by the Renovate App, and the Dependency Dashboard issue is left out | the cockpit's own token, egress to `api.github.com:443` |
 | Renovate runs | Kubernetes API: `renovateprojects` (`status`, `duration`, `prActivity`); a failed run is also an alert | `renovate-operator.mogenius.com` get and list in the `claude-cockpit` ClusterRole |
+| Running versions | `claude-vm-upgrade` `GET /api/v1/status`: what each VM booted and staged, and when it last polled | egress to that pod, and an ingress rule on it for the cockpit |
+| Claude usage (5-hour and 7-day windows) | pushed by the Claude VM's status line (below), kept in memory for 24 hours | the second listener, `claude-cockpit-lb` and the VM's address in the policy |
 | Disk, local-path volumes | Prometheus: `node_filesystem_*` on `/var/mnt/local-path-provisioner`, joined with `node_uname_info` for the node name | Prometheus |
 
 Network: `CiliumNetworkPolicy/claude-cockpit` in `networkpolicy.yaml` lets in the Omni exposer (host, remote-node) on 8080 and Prometheus on the
@@ -404,3 +407,28 @@ curl -s localhost:8080/api/v1/status | jq 'keys, .meta'
 
 `meta.workflow.failed` names the sources that did not answer. If a panel stays unavailable, `kubectl -n claude-system logs deploy/claude-cockpit` has the
 reason, and a hang on connect means a missing egress rule (the `cilium-drops` skill).
+
+### Session data from the Claude VM (usage windows)
+
+There is no usable Anthropic token for the cluster and the OpenTelemetry metrics carry no plan limits, so the remaining usage comes from Claude Code
+itself: its status line receives `rate_limits` (the 5-hour and 7-day used percentage and when each resets) on a Pro, Max or Ultra login. The VM's
+status line script sends that to the cockpit, not to the vm-upgrade pod. [homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc) holds the script (`statusline-report`).
+
+| Listener | Reached through | Endpoints |
+|---|---|---|
+| `:8080` page | Omni service exposer, `Service/claude-cockpit` (port 50097) | `GET /`, `GET /api/v1/status` |
+| `:8081` ingest | MetalLB `claude-cockpit-lb`, 192.168.1.246, plain HTTP, only from the Claude VM | `POST /api/v1/sessions/claude-vm`: the status line JSON; anything else is a 404 |
+
+Connect keeps only the two windows (used percentage 0 to 100 and the reset time), the context use, the model name and the Claude Code version, as
+clamped numbers or plain strings of at most 64 characters, under `session:claude-vm` for 24 hours. State is in memory, so a pod restart empties it
+until the VM sends again; the page then says "no data", and after 6 hours without a report it marks the numbers stale (the script only runs while
+Claude Code is in use). A window whose reset time has passed shows 0%.
+
+Like `vm-upgrade`, there is no token: `CiliumNetworkPolicy/claude-cockpit` lets in `192.168.1.138/32` on 8081, and the LoadBalancer Service uses
+`externalTrafficPolicy: Local` so Cilium sees the VM's address. A host that spoofs that address could only change what the page displays. The one
+manual step is the Cloudflare record (DNS only): an `A` record `cockpit` -> `192.168.1.246`. Check that address is free on the LAN before the first
+apply. Until the record exists the script's request fails quietly and the page shows "no data".
+
+Check from the VM: `curl -s -XPOST -d '{}' http://cockpit.portableinfo.cloud/api/v1/sessions/claude-vm` answers `{"ok":true}` (from any other address the
+request times out), and `GET /api/v1/status` then shows `sessions.claude-vm`.
+

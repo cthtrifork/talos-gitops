@@ -5,7 +5,16 @@
 #
 # GET /                 the page
 # GET /healthz          ok
-# GET /api/v1/status    drops_total, drops_series, drops_top, alerts, disk, polaris, flux_ks, flux_hr, github, renovate; meta.workflow.failed lists the branches that failed
+# GET /api/v1/status    drops_total, drops_series, drops_top, alerts, disk, polaris, flux_ks, flux_hr, github, renovate, vm_upgrade, sessions; meta.workflow.failed lists the branches that failed
+#
+# Two listeners:
+#   :8080  ui      the page and the GETs above               Omni service exposer (Omni login)
+#   :8081  ingest  the Claude VM's session data              MetalLB, LAN only, the NetworkPolicy lets in the VM's address only
+# ingest POST /api/v1/sessions/<vm>   the VM's status line sends what Claude Code tells it (rate limits, model, version, context use). Only the
+#   fields below are kept, as numbers clamped to their range or short plain strings, for 24 hours, in memory: a pod restart empties it until the
+#   VM sends again. <vm> is one of the names in `vm_names`. There is no authentication: the address is the only check, so a host that spoofs it
+#   could only change what the page shows. Nothing in the body is ever put in a query, a path or a command.
+# The VM versions come from the vm-upgrade pod (GET /api/v1/status), which already holds what each VM last reported.
 #
 # The Kubernetes API is read with the pod's own token (claude-cockpit ClusterRole: get and list on the Flux Kustomizations, HelmReleases and Renovate projects).
 # GitHub is read with the cockpit's own one-hour App token (github-token.yaml), mounted at /etc/github/token; one search call returns the open pull requests and issues.
@@ -25,21 +34,52 @@ cache_resources:
     file:
       directory: /etc/github
 
+  # in-memory state: "session:<vm>" holds what the VM's status line last sent
+  - label: state
+    memory:
+      default_ttl: 24h
+      compaction_interval: 5m
+
 input:
-  http_server:
-    address: 0.0.0.0:8080
-    path: /
-    allowed_verbs:
-      - GET
-    sync_response:
-      status: '${! @status.or("200") }'
-      headers:
-        Content-Type: '${! @content_type.or("application/json") }'
-        Cache-Control: no-store
+  broker:
+    inputs:
+      - label: ui
+        http_server:
+          address: 0.0.0.0:8080
+          path: /
+          allowed_verbs:
+            - GET
+          sync_response:
+            status: '${! @status.or("200") }'
+            headers:
+              Content-Type: '${! @content_type.or("application/json") }'
+              Cache-Control: no-store
+        processors:
+          - mapping: 'meta listener = "ui"'
+
+      - label: ingest
+        http_server:
+          address: 0.0.0.0:8081
+          path: /
+          allowed_verbs:
+            - GET
+            - POST
+          sync_response:
+            status: '${! @status.or("200") }'
+            headers:
+              Content-Type: '${! @content_type.or("application/json") }'
+              Cache-Control: no-store
+        processors:
+          - mapping: 'meta listener = "ingest"'
 
 pipeline:
   processors:
     - switch:
+        # everything on the VM's listener, whatever the path, goes to the ingest handler (which answers 404 to what it does not know)
+        - check: '@listener == "ingest"'
+          processors:
+            - resource: ingest_api
+
         - check: '@http_server_request_path == "/" || @http_server_request_path == "/index.html"'
           processors:
             - mapping: |
@@ -65,6 +105,55 @@ output:
   sync_response: {}
 
 processor_resources:
+  # The VM's listener: POST /api/v1/sessions/<vm> with the status line JSON. Keeps a few fields, numbers clamped and strings cut to plain
+  # characters, and stores them under session:<vm> with the time they arrived.
+  - label: ingest_api
+    switch:
+      - check: '@http_server_request_path == "/healthz"'
+        processors:
+          - mapping: |
+              meta content_type = "text/plain"
+              root = "ok"
+
+      - check: '@http_server_verb == "POST" && ["claude-vm"].contains(@http_server_request_path.re_find_object("^/api/v1/sessions/(?P<vm>[a-z-]+)$").vm.or(""))'
+        processors:
+          - mapping: |
+              map pct {
+                let n = this.number().catch(-1)
+                root = if $n < 0 { null } else if $n > 100 { 100 } else { $n.round() }
+              }
+              map secs {
+                let n = this.number().catch(0)
+                root = if $n > 0 { $n.round() } else { null }
+              }
+              map clean {
+                root = this.string().catch("").re_replace_all("[^A-Za-z0-9._:/@+ -]", "").slice(0, 64).catch("")
+              }
+              let b = content().parse_json().catch({})
+              meta vm = @http_server_request_path.re_find_object("^/api/v1/sessions/(?P<vm>[a-z-]+)$").vm
+              meta session = {
+                "five_hour": {"used_pct": $b.rate_limits.five_hour.used_percentage.apply("pct"), "resets_at": $b.rate_limits.five_hour.resets_at.apply("secs")},
+                "seven_day": {"used_pct": $b.rate_limits.seven_day.used_percentage.apply("pct"), "resets_at": $b.rate_limits.seven_day.resets_at.apply("secs")},
+                "context_pct": $b.context_window.used_percentage.apply("pct"),
+                "model": $b.model.display_name.or("").apply("clean"),
+                "version": $b.version.or("").apply("clean"),
+                "received_at": now().ts_unix()
+              }
+          - branch:
+              request_map: 'root = @session'
+              processors:
+                - cache:
+                    resource: state
+                    operator: set
+                    key: 'session:${! @vm }'
+                    value: '${! content() }'
+          - mapping: 'root = {"ok": true}'
+
+      - processors:
+          - mapping: |
+              meta status = "404"
+              root = {"error": "not found"}
+
   # puts the pod's token in the metadata field `token`; kube_get sends it
   - label: login
     branch:
@@ -266,6 +355,28 @@ processor_resources:
                     root.renovate = {"count": $renovate.length(), "items": $renovate.slice(0, 5)}
                     root.issues = {"count": $issues.length(), "items": $issues.slice(0, 5)}
               result_map: 'root.github = this'
+
+            # What the VMs run and when they last polled: the vm-upgrade pod already holds it (its page listener, in the cluster)
+            vm_upgrade:
+              request_map: 'root = ""'
+              processors:
+                - http:
+                    url: '${VM_UPGRADE_URL:http://claude-vm-upgrade.claude-system.svc}/api/v1/status'
+                    verb: GET
+                    timeout: 10s
+              result_map: 'root.vm_upgrade = this'
+
+            # What the Claude VM's status line sent last: {} when nothing, or nothing in the last 24 hours
+            sessions:
+              request_map: 'root = ""'
+              processors:
+                - cache:
+                    resource: state
+                    operator: get
+                    key: session:claude-vm
+                - catch:
+                    - mapping: 'root = {}'
+              result_map: 'root.sessions = {"claude-vm": this}'
 
             renovate:
               request_map: |

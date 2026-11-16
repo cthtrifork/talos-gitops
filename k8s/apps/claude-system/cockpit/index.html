@@ -91,6 +91,10 @@
     <h2 id="h-gh">GitHub</h2>
     <div class="band" id="github"></div>
   </section>
+  <section aria-labelledby="h-home">
+    <h2 id="h-home">Homelab</h2>
+    <div class="band" id="homelab"></div>
+  </section>
   <footer class="muted">
     Reads only, nothing on this page changes the cluster. <button type="button" id="refresh">Refresh now</button>
   </footer>
@@ -340,6 +344,79 @@
     return p;
   }
 
+  function until(sec) {
+    if (sec < 90) return "less than a minute";
+    if (sec < 5400) return Math.round(sec / 60) + " min";
+    if (sec < 172800) return Math.round(sec / 360) / 10 + " h";
+    return Math.round(sec / 86400) + " days";
+  }
+  function versionsPanel(d) {
+    var title = "Running versions";
+    var v = d.vm_upgrade && d.vm_upgrade.vms;
+    if (!v) return unavailable(title, "claude-vm-upgrade · /api/v1/status");
+    var now = d.vm_upgrade.now || Math.round(Date.now() / 1000);
+    var worst = "ok", label = "reporting";
+    var items = ["claude-vm", "homeserver"].map(function (name) {
+      var x = v[name] || {};
+      var vm = x.vm || {};
+      var age = x.last_poll_at ? now - x.last_poll_at : null;
+      var st = age === null || age > 300 ? "bad" : vm.staged_version ? "warn" : "ok";
+      if (st === "bad") { worst = "bad"; label = "not reporting"; }
+      else if (st === "warn" && worst !== "bad") { worst = "warn"; label = "reboot pending"; }
+      var sub = age === null ? "has not reported" : "reported " + ago(age) + " ago";
+      if (vm.staged_version) sub += " · staged " + vm.staged_version;
+      return { title: name, sub: sub, right: el("span", "muted num", vm.booted_version ? vm.booted_version + (vm.booted_digest ? " · " + vm.booted_digest : "") : "unknown") };
+    });
+    var p = panel(head(title, worst, label));
+    p.appendChild(rows(items));
+    p.appendChild(el("span", "muted", "Shows what each VM booted, not whether a newer image exists."));
+    p.appendChild(src("claude-vm-upgrade · /api/v1/status"));
+    return p;
+  }
+  function usagePanel(d) {
+    var title = "Claude usage";
+    var s = d.sessions && d.sessions["claude-vm"];
+    if (!d.sessions) return unavailable(title, "claude-vm status line → cockpit");
+    if (!s || !s.received_at) {
+      var e = panel(head(title, "none", "no data"));
+      e.appendChild(el("span", "muted", "Nothing received in the last 24 hours. The Claude VM sends it while Claude Code is in use."));
+      e.appendChild(src("claude-vm status line → cockpit · rate_limits"));
+      return e;
+    }
+    var now = Math.round(Date.now() / 1000);
+    var age = now - s.received_at;
+    var stale = age > 6 * 3600;
+    var windows = [["5-hour window", s.five_hour], ["7-day window", s.seven_day]];
+    var worst = 0;
+    var box = el("div", "limit");
+    windows.forEach(function (w) {
+      var x = w[1] || {};
+      var over = x.resets_at && x.resets_at < now;
+      var used = x.used_pct === null || x.used_pct === undefined ? null : over ? 0 : x.used_pct;
+      if (used !== null) worst = Math.max(worst, used);
+      var r = el("div", "limit-row");
+      r.appendChild(el("span", null, w[0]));
+      var v = el("span", "num");
+      if (used === null) v.appendChild(document.createTextNode("no data"));
+      else {
+        v.appendChild(el("strong", null, used + "%"));
+        v.appendChild(document.createTextNode(" used" + (x.resets_at && !over ? " · resets in " + until(x.resets_at - now) : over ? " · window has reset" : "")));
+      }
+      r.appendChild(v);
+      box.appendChild(r);
+      box.appendChild(bar(w[0] + ", " + (used === null ? "no data" : used + " percent used"), used === null ? [] : [{ pct: used, color: used >= 90 ? "var(--bad)" : used >= 75 ? "var(--warn)" : "var(--ok)" }]));
+    });
+    var state = stale ? "none" : worst >= 90 ? "bad" : worst >= 75 ? "warn" : "ok";
+    var p = panel(head(title, state, stale ? "stale" : worst + "% at most"));
+    p.appendChild(box);
+    var bits = ["reported " + ago(age) + " ago"];
+    if (s.model) bits.push(s.model);
+    if (s.version) bits.push("Claude Code " + s.version);
+    p.appendChild(el("span", "muted", bits.join(" · ") + (stale ? ". Older than 6 hours, so the VM may be idle." : "")));
+    p.appendChild(src("claude-vm status line → cockpit · rate_limits"));
+    return p;
+  }
+
   function stripChips(d) {
     var chips = [];
     if (d.alerts) {
@@ -364,6 +441,11 @@
       if (bad) chips.push(["bad", "Renovate: " + bad + " failed"]);
       else if (na) chips.push(["warn", "Renovate: " + na + " need approval"]);
     }
+    var us = d.sessions && d.sessions["claude-vm"];
+    if (us && us.received_at && Math.round(Date.now() / 1000) - us.received_at <= 6 * 3600) {
+      var w7 = us.seven_day && us.seven_day.used_pct;
+      if (w7 !== null && w7 !== undefined && !(us.seven_day.resets_at && us.seven_day.resets_at < Math.round(Date.now() / 1000))) chips.push([w7 >= 90 ? "bad" : w7 >= 75 ? "warn" : "ok", "Claude 7-day " + w7 + "%"]);
+    }
     var order = { bad: 0, warn: 1, ok: 2 };
     chips.sort(function (a, b) { return order[a[0]] - order[b[0]]; });
     return chips;
@@ -377,6 +459,9 @@
     var cluster = document.getElementById("cluster");
     cluster.textContent = "";
     [dropsPanel, alertsPanel, fluxPanel, polarisPanel, diskPanel].forEach(function (f) { cluster.appendChild(f(d)); });
+    var hl = document.getElementById("homelab");
+    hl.textContent = "";
+    [versionsPanel, usagePanel].forEach(function (f) { hl.appendChild(f(d)); });
     var gh = document.getElementById("github");
     gh.textContent = "";
     [prsPanel, renovatePrsPanel, issuesPanel, renovateRunsPanel].forEach(function (f) { gh.appendChild(f(d)); });

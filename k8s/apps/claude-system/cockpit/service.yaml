@@ -20,3 +20,27 @@ spec:
     - name: metrics
       port: 4195
       targetPort: metrics
+---
+# The Claude VM's status line sends its session data here (POST /api/v1/sessions/claude-vm), plain HTTP on the LAN; the Cloudflare A record
+# cockpit.portableinfo.cloud points at it (added by hand, DNS only) and is the URL in the claude-vm image. Not exposed through Omni.
+# Only the VM's address (192.168.1.138) is let in, by the CiliumNetworkPolicy. externalTrafficPolicy Local keeps the client address:
+# with Cluster, traffic that lands on another node is source-NATed to that node and the policy would see the node, not the VM.
+# 192.168.1.246 is the next address after the ones the repo uses (240, 242 to 245) in the MetalLB pool (192.168.1.221-254): check it is
+# free on the network before the first apply.
+apiVersion: v1
+kind: Service
+metadata:
+  name: claude-cockpit-lb
+  namespace: claude-system
+  annotations:
+    metallb.io/loadBalancerIPs: 192.168.1.246
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector:
+    app: claude-cockpit
+  ports:
+    - name: ingest
+      port: 80
+      targetPort: ingest
+      protocol: TCP
