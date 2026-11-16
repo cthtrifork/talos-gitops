@@ -16,6 +16,12 @@ spec:
   values:
     deployment:
       replicaCount: 1
+    # The namespace enforces PodSecurity restricted; the chart's defaults lack these two fields
+    podSecurityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
     image:
       repository: mirror.gcr.io/dxflrs/garage
       # renovate: datasource=docker depName=dxflrs/garage
@@ -43,6 +49,11 @@ spec:
         enabled: true
         zone: dc1
         capacity: 10Gi
+      podSecurityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      securityContext:
+        allowPrivilegeEscalation: false
       buckets:
         - name: renovate
       keys:
