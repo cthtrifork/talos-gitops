@@ -17,7 +17,7 @@
 # The VM versions come from the vm-upgrade pod (GET /api/v1/status), which already holds what each VM last reported.
 #
 # The Kubernetes API is read with the pod's own token (claude-cockpit ClusterRole: get and list on the Flux Kustomizations, HelmReleases and Renovate projects).
-# GitHub is read with the cockpit's own one-hour App token (github-token.yaml), mounted at /etc/github/token; one search call returns the open pull requests and issues.
+# GitHub is read with the cockpit's own one-hour App token (githubaccesstoken.yaml, externalsecret.yaml), mounted at /etc/github/token; one search call returns the open pull requests and issues.
 # Not a Flux template (configMapGenerator disables postBuild envsubst); ${PROM_URL:default} is Redpanda Connect's own.
 http:
   enabled: true

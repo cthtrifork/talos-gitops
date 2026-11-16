@@ -78,7 +78,7 @@ spec:
             name: claude-cockpit-connect-config
         - name: github-token
           secret:
-            secretName: claude-cockpit-github-token # minted by github-token.yaml
+            secretName: claude-cockpit-github-token # minted by externalsecret.yaml
             optional: true
             defaultMode: 0400
         - name: kube-api-access

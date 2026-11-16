@@ -32,7 +32,8 @@ resources:
   - elevate/service.yaml
   - elevate/podmonitor.yaml
   - cockpit/rbac.yaml
-  - cockpit/github-token.yaml
+  - cockpit/githubaccesstoken.yaml
+  - cockpit/externalsecret.yaml
   - cockpit/deployment.yaml
   - cockpit/service.yaml
   - cockpit/podmonitor.yaml

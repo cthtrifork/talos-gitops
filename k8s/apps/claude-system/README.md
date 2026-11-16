@@ -355,7 +355,7 @@ A request is `pending` until you decide, then `approved`, `failed` (approve agai
 One page for the state of the cluster, GitHub and the homelab (issue #849), behind the Omni login at `claudecockpit` (`Service/claude-cockpit`, port
 50097). It is a Redpanda Connect pod like the other pages: `GET /api/v1/status` calls its sources in parallel with fixed paths and queries
 (nothing from the request goes into a query), one branch per source, so a source that is down leaves only its own panel out and the page names it.
-There is no POST and no state. The Kubernetes API is read with the pod's token, GitHub with a one-hour App token of its own (`github-token.yaml`, narrowed to reading pull requests on `talos-gitops` and `homeserver-bootc`), and the other sources need none.
+There is no POST and no state. The Kubernetes API is read with the pod's token, GitHub with a one-hour App token of its own (`githubaccesstoken.yaml` and `externalsecret.yaml`, narrowed to reading pull requests on `talos-gitops` and `homeserver-bootc`), and the other sources need none.
 
 ```mermaid
 flowchart LR
