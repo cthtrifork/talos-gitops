@@ -1,4 +1,4 @@
-# Renovate for the cthtrifork repositories, run by the operator in renovate-system. Starts suspended; see
+# Renovate for the cthtrifork repositories, run by the operator in renovate-system. Dry run for now; see
 # ../controllers/renovate-operator/README.md for how to turn it on. The global config below is Renovate's global
 # (self-hosted) config: no credentials in it, the token comes from the GitHub App.
 ---
@@ -9,12 +9,19 @@ metadata:
   name: renovate
   namespace: renovate-system
 spec:
-  suspend: true
+  suspend: false
   schedule: "7,37 * * * *"
   # The full image (not -slim): harper-pad and kglance need go for gomodTidy
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate versioning=docker
   image: ghcr.io/renovatebot/renovate:44.242.0-full@sha256:9e5914a5ff8c579aa293421d37dc29f508cceefb273620c14f4b3ff5686b3a3d
   parallelism: 2
+  # DRY RUN: reports what it would do and writes nothing (no branches, no PRs, no merges). Remove these two entries to go
+  # live (README, step 3). The debug log shows the cache hits.
+  extraEnv:
+    - name: RENOVATE_DRY_RUN
+      value: full
+    - name: LOG_LEVEL
+      value: debug
   provider:
     name: github
   skipForks: true
