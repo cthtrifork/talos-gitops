@@ -11,7 +11,7 @@ Public downloads, an admin page and a CI upload API in one pod. The app: `images
 ## Downloads from R2
 
 The `r2-sync` container copies `public/` to a Cloudflare R2 bucket every minute (`rclone sync`, so a file deleted or moved to
-private here is removed from the bucket too). Cloudflare serves the bucket on `files.portableinfo.cloud`, so downloads never reach
+private here is removed from the bucket too). Cloudflare serves the bucket on `shared-files.portableinfo.cloud`, so downloads never reach
 the pod, Traefik or the node disk. It stays idle until the Secret `fileserver-r2` exists.
 
 1. Cloudflare > R2: create a bucket, an API token with Object Read & Write on that bucket only, and note the account's S3 endpoint.
@@ -20,9 +20,10 @@ the pod, Traefik or the node disk. It stays idle until the Secret `fileserver-r2
    Reloader restarts the pod. The pod is the source of truth: a file deleted or made private here disappears from the bucket
    within a minute or two. A sync that would delete more than 50 files fails (`--max-delete 50`) and is retried; raise it for a bulk clean-up.
 3. Check `kubectl -n fileserver-system logs deploy/fileserver -c r2-sync` until the first sync has finished.
-4. Cut over: remove the tunnel hostname `files.portableinfo.cloud`, then bucket > Settings > Custom domains > add it. Add a
+4. Cut over: bucket > Settings > Custom domains > add `shared-files.portableinfo.cloud` (it can run next to the tunnel hostname
+   `files.portableinfo.cloud`, so compare both, then remove the tunnel hostname). Add a
    WAF rate-limiting rule and a Transform Rule for HSTS (the Traefik middlewares no longer apply). A follow-up PR removes the
-   `public` container, the `fileserver-public` Service and the IngressRoute.
+   `public` container, the `fileserver-public` Service and the IngressRoute, and points `PUBLIC_URL` at the new host.
 
 ## Upload token
 
