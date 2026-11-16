@@ -319,7 +319,7 @@ processor_resources:
 
             github:
               request_map: |
-                let q = "is:open repo:cthtrifork/talos-gitops repo:cthtrifork/homeserver-bootc"
+                let q = "is:open archived:false user:cthtrifork"
                 meta path = "/search/issues?q=" + $q.escape_url_query() + "&per_page=100&sort=updated&order=desc"
                 root = ""
               processors:
