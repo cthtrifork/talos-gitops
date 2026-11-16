@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - garage/
   - renovatejob.yaml
+  - github-app-credentials.enc.yaml
