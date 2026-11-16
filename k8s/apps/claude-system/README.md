@@ -386,7 +386,7 @@ flowchart LR
 | Flux, Renovate runs | Kubernetes API (`claude-cockpit` ClusterRole: get and list on Kustomizations, HelmReleases and RenovateProjects) |
 | Polaris score | `polaris-dashboard` `/results.json` |
 | Pull requests, issues | GitHub search over all repositories of the owner the App is installed on (private ones included), with the cockpit's own one-hour read-only App token (`githubaccesstoken.yaml`, `externalsecret.yaml`) |
-| Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io` (anonymous, the packages are public) |
+| Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io`, read with the runner's `ghcr-pull` read:packages token (`homeserver-bootc` is a private package) |
 | Claude usage | Pushed by the Claude VM's status line (`statusline-report` in [homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)) to `POST /api/v1/sessions/claude-vm` on `:8081`, kept in memory for 24 hours |
 
 The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in `192.168.1.138/32` only and the LoadBalancer uses
