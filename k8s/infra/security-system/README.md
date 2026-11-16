@@ -117,9 +117,21 @@ of this repository, regenerates `vex/index.json` and opens a pull request from t
 Merge it and the `vex-cache` image is rebuilt from `vex/`; the next scan job hides those findings. It only changes files under `vex/`, never pushes to `main`,
 and only deletes documents whose author is `Dependency-Track`. Findings on components without a PURL are skipped.
 
-It needs the Secret `dependency-track-vex-github` (key `token`), seeded by hand: a fine-grained personal access token (or
-GitHub App installation token) for this repository only, with Contents and Pull requests read/write.
-`kubectl -n security-system create secret generic dependency-track-vex-github --from-literal=token=<token>`.
+It pushes as a GitHub App, so no long-lived token is stored: each run signs a JWT with the App's private key and trades it for a
+one-hour installation token that the request narrows to this repository with Contents and Pull requests read/write.
+Without the Secret the Job is a dry run that prints the documents it would write.
+
+1. Create a separate App (not the one of `claude-system`, which also has Workflows): GitHub, Settings > Developer settings >
+   GitHub Apps > New. Repository permissions **Contents** and **Pull requests**: read and write; **Metadata**: read; everything
+   else off. Untick "Webhook active". Never make it a bypass actor in a ruleset.
+2. Generate a private key (`.pem`), install the App only on `talos-gitops`, and note the **App ID** and the **installation ID**
+   (the number at the end of the installation's URL, `https://github.com/settings/installations/<id>`).
+3. Create the Secret `dependency-track-vex-github-app` in `security-system` with the keys `app-id`, `installation-id` and
+   `private-key.pem` as a SOPS-encrypted file `dependency-track/vex-github-app.enc.yaml` (same procedure as `claude-github-app`,
+   "Secrets (SOPS)" in the root `readme.md`), and add it to `dependency-track/kustomization.yaml` `resources:`.
+4. Run it once instead of waiting for the schedule:
+   `kubectl -n security-system create job --from=cronjob/dependency-track-vex-export vex-first` and read its logs.
+
 The API key comes from `config-job.yaml` (team `vex-exporter`). Trivy identifies a scanned image by the PURL
 `pkg:oci/<name>@<digest>?repository_url=<registry>/<repository>` and matches a statement only if the version is the same, so
 `sbom-hook/` versions each Dependency-Track project by the image digest, not the tag. The export skips projects whose

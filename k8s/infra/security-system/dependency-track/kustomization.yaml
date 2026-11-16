@@ -5,6 +5,7 @@ resources:
   - external-secret-kek.yaml
   - config-job.yaml
   - vex-export.yaml
+  - vex-github-app.enc.yaml
   - service-lb.yaml
   - helm-release.yaml
   - helm-repository.yaml

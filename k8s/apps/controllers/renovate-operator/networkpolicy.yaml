@@ -98,9 +98,13 @@ spec:
         - matchPattern: "*.quay.io"
         - matchName: mirror.gcr.io
         - matchName: registry.k8s.io
+        - matchName: cdn.registry.k8s.io
+        - matchName: index.docker.io
         - matchName: registry-1.docker.io
         - matchName: auth.docker.io
         - matchName: production.cloudflare.docker.com
+        # Docker Hub release dates and source links
+        - matchName: hub.docker.com
         - matchName: helm.cilium.io
         # Package registries (npm, Go modules, PyPI)
         - matchName: registry.npmjs.org
