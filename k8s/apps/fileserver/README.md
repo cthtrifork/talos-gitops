@@ -16,7 +16,9 @@ the pod, Traefik or the node disk. It stays idle until the Secret `fileserver-r2
 
 1. Cloudflare > R2: create a bucket, an API token with Object Read & Write on that bucket only, and note the account's S3 endpoint.
 2. Add `fileserver-r2.enc.yaml` (SOPS, like the other `*.enc.yaml`) with `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
-   `R2_ENDPOINT` (`https://<account-id>.r2.cloudflarestorage.com`) and `R2_BUCKET`. Reloader restarts the pod.
+   `R2_ENDPOINT` (`https://<account-id>.r2.cloudflarestorage.com`) and `R2_BUCKET`, and list it in `kustomization.yaml`.
+   Reloader restarts the pod. The pod is the source of truth: a file deleted or made private here disappears from the bucket
+   within a minute or two. A sync that would delete more than 50 files fails (`--max-delete 50`) and is retried; raise it for a bulk clean-up.
 3. Check `kubectl -n fileserver-system logs deploy/fileserver -c r2-sync` until the first sync has finished.
 4. Cut over: remove the tunnel hostname `files.portableinfo.cloud`, then bucket > Settings > Custom domains > add it. Add a
    WAF rate-limiting rule and a Transform Rule for HSTS (the Traefik middlewares no longer apply). A follow-up PR removes the
