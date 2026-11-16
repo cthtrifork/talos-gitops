@@ -1,0 +1,19 @@
+# The operator's UI (port 8081), for the Omni service exposer (Omni login). The NetworkPolicy lets in nothing else.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: renovate-operator-ui
+  namespace: renovate-system
+  annotations:
+    omni-kube-service-exposer.sidero.dev/label: "Renovate"
+    omni-kube-service-exposer.sidero.dev/port: "50095"
+    omni-kube-service-exposer.sidero.dev/prefix: renovate
+spec:
+  type: ClusterIP
+  selector:
+    app: renovate-operator
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

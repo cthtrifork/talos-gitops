@@ -38,7 +38,7 @@ spec:
             dns:
               - matchPattern: "*"
 ---
-# The operator: the Kubernetes API (it creates the job pods), GitHub, and the Valkey it keeps its sessions in
+# The operator: the UI for the Omni service exposer, the Kubernetes API (it creates the job pods), GitHub, and the Valkey it keeps its sessions in
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -48,6 +48,15 @@ spec:
   endpointSelector:
     matchLabels:
       app: renovate-operator
+  ingress:
+    # The UI (renovate-operator-ui, 80 to 8081): the Omni service exposer runs on the host network
+    - fromEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
   egress:
     - toEntities:
         - kube-apiserver

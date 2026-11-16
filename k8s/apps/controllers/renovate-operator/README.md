@@ -33,7 +33,7 @@ with a token in the global config of the `RenovateJob`.
 ## Turn it on
 
 1. Merge, check that `app-controllers` and `renovate` reconcile and that the operator, Valkey and Garage pods are Ready and the
-   Garage configure Job completed (bucket `renovate`). The UI: `kubectl -n renovate-system port-forward svc/renovate-operator 8081`.
+   Garage configure Job completed (bucket `renovate`). The UI is exposed through the Omni service exposer (`Service/renovate-operator-ui`, port 50095, Omni login, LAN only).
 2. Dry run: add `extraEnv` `RENOVATE_DRY_RUN=full` to the `RenovateJob`, set `suspend: false`, and compare the report with the last
    Actions run. Check that a second run is faster (Valkey keys, objects under `renovate-cache/` in Garage) and that the
    drop metrics show nothing (skill `cilium-drops`).
