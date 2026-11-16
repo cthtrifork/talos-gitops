@@ -372,8 +372,8 @@ flowchart LR
   es -->|"mounted file"| cockpit
 
   cockpit -->|"GET /api/v1/status"| vmup[claude-vm-upgrade]
-  vm[claude-vm status line] -->|"POST /api/v1/sessions/claude-vm<br/>5 h and 7 d usage, model, version"| lb["claude-cockpit-lb :8081<br/>192.168.1.246, LAN, VM address only"]
-  lb --> cockpit
+  vm[claude-vm status line] -->|"POST /api/v1/sessions/claude-vm<br/>5 h and 7 d usage, model, version"| lb["claude-cockpit-lb 192.168.1.246 :80<br/>LAN, VM address only"]
+  lb -->|":8081"| cockpit
 
   classDef new fill:#e4eefb,stroke:#2a78d6,stroke-width:2px,color:#0b0b0b
   class cockpit new
