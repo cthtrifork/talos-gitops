@@ -8,9 +8,6 @@ metadata:
   namespace: fileserver-system
   annotations:
     reloader.stakater.com/auto: "true"
-    # Recreates the Deployment when an immutable field (the selector) changes. Reloader used to inject a STAKATER_*_SECRET env var
-    # that Flux does not own, so it never goes away on an update. Remove this annotation after the first reconcile.
-    kustomize.toolkit.fluxcd.io/force: enabled
 spec:
   replicas: 1
   strategy:
