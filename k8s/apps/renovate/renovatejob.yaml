@@ -1,0 +1,49 @@
+# Renovate for the cthtrifork repositories, run by the operator in renovate-system. Starts suspended; see
+# ../controllers/renovate-operator/README.md for how to turn it on. The global config below is Renovate's global
+# (self-hosted) config: no credentials in it, the token comes from the GitHub App.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/renovate-operator.mogenius.com/renovatejob_v1alpha1.json
+apiVersion: renovate-operator.mogenius.com/v1alpha1
+kind: RenovateJob
+metadata:
+  name: renovate
+  namespace: renovate-system
+spec:
+  suspend: true
+  schedule: "7,37 * * * *"
+  # The full image (not -slim): harper-pad and kglance need go for gomodTidy
+  # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate versioning=docker
+  image: ghcr.io/renovatebot/renovate:44.242.0-full@sha256:9e5914a5ff8c579aa293421d37dc29f508cceefb273620c14f4b3ff5686b3a3d
+  parallelism: 2
+  provider:
+    name: github
+  skipForks: true
+  # The repositories are listed one by one, never cthtrifork/*. Add the others one at a time (see the README).
+  discoveryFilters:
+    - cthtrifork/talos-gitops
+  githubAppReference:
+    secretName: github-app-credentials
+    appIdSecretKey: APP_ID
+    installationIdSecretKey: INSTALL_ID
+    pemSecretKey: PEM
+  renovateConfig:
+    fileName: config.js
+    inline: |
+      module.exports = {
+        onboarding: false,
+        requireConfig: 'required',
+        cachePrivatePackages: true,
+        // The union of the allowedCommands of the repositories above (a repository's own file is repo config here)
+        allowedCommands: [
+          '^scripts/update-htmx\\.sh [0-9]+\\.[0-9]+\\.[0-9]+$',
+          '^scripts/podman-checksums\\.sh$',
+        ],
+      };
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+  scratchVolume:
+    sizeLimit: 2Gi

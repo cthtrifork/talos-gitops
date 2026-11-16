@@ -1,0 +1,61 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: renovate-operator
+  namespace: renovate-system
+spec:
+  interval: 30m
+  releaseName: renovate-operator
+  chartRef:
+    kind: OCIRepository
+    name: renovate-operator
+  install:
+    createNamespace: true
+  # https://github.com/mogenius/renovate-operator/blob/main/charts/renovate-operator/values.yaml
+  values:
+    fullnameOverride: renovate-operator
+    # The CRDs are part of the release (not a kubectl hook Job, which would need egress)
+    crd:
+      mode: template
+    deployment:
+      podLabels:
+        prometheus-scrape: "true"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 256Mi
+    # The shared cache for the job pods (forwarded to Renovate as its redisUrl). A lost cache only costs a cold run,
+    # so no volume and no password: the namespace policy lets only the operator and the job pods reach it.
+    valkey:
+      enabled: true
+      auth:
+        enabled: false
+      dataStorage:
+        enabled: false
+    # Renovate's repository cache in Garage (forwarded to the job pods as RENOVATE_S3_URL)
+    s3:
+      bucket: renovate
+      endpoint: http://garage.renovate-system.svc.cluster.local:3900
+      region: garage
+      forcePathStyle: true
+      cachePrefix: renovate-cache
+      existingSecret: garage-s3-key
+    config:
+      defaultJobActiveDeadlineSeconds: 1500
+      globalParallelismLimit: 2
+      deleteSuccessfulJobs: true
+      jobTTLSecondsAfterFinished: 3600
+      forwardCacheToJobs: true
+      forwardS3CacheToJobs: true
+      # lets the namespace policy select the Renovate job pods
+      podLabelTemplates:
+        renovate-job: "true"
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        labels:
+          release: kube-prometheus-stack

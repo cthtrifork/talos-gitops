@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+---
+# Renovate (Garage and the RenovateJob) has its own Kustomization, not part of app: the RenovateJob needs the CRDs from the
+# operator HelmRelease in app-controllers, which that Kustomization does not wait for, so the first reconcile can fail its
+# dry run until they exist (it retries every 2 minutes). Here that stays contained and does not hold back the other apps.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: renovate
+  namespace: flux-system
+spec:
+  interval: 30m
+  retryInterval: 2m
+  prune: true
+  wait: true
+  timeout: 10m
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+  dependsOn:
+    - name: app-controllers
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ../../k8s/apps/renovate
+  postBuild:
+    substitute:
+      var_substitution_enabled: "true"

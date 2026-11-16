@@ -9,4 +9,5 @@ resources:
   - gitops-infra-post.yaml
   - app-controllers.yaml
   - app.yaml
+  - renovate.yaml
   #- virtualmachines.yaml
