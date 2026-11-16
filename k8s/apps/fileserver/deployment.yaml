@@ -1,4 +1,4 @@
-# The public container mounts only public/ read-only, so it cannot see private files or the token.
+# Downloads are served by Cloudflare R2 (r2-sync copies public/ there), not by this pod.
 # GOMEMLIMIT is ~80% of the memory limit (Go does not read the cgroup limit). The memory numbers are estimates.
 ---
 apiVersion: apps/v1
@@ -31,50 +31,6 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: public
-          image: ghcr.io/cthtrifork/talos-gitops/fileserver:v0.13.0@sha256:287d6db13996853cf2e2014a5b7c4afd59108f082a3cc2862fbe3d0c62c8848b
-          args:
-            - "--mode=public"
-          env:
-            - name: PUBLIC_DIR
-              value: /data/public
-            - name: LISTEN_ADDR
-              value: ":8080"
-            - name: HEALTH_ADDR
-              value: ":9102"
-            - name: GOMEMLIMIT
-              value: 200MiB
-          ports:
-            - name: public
-              containerPort: 8080
-            - name: m-public
-              containerPort: 9102
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: m-public
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: m-public
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - "ALL"
-          resources:
-            requests:
-              cpu: 10m
-              memory: 32Mi
-            limits:
-              memory: 256Mi
-          volumeMounts:
-            - name: data
-              mountPath: /data/public
-              subPath: public
-              readOnly: true
-
         - name: admin
           image: ghcr.io/cthtrifork/talos-gitops/fileserver:v0.13.0@sha256:287d6db13996853cf2e2014a5b7c4afd59108f082a3cc2862fbe3d0c62c8848b
           args:
@@ -89,7 +45,7 @@ spec:
             - name: HEALTH_ADDR
               value: ":9103"
             - name: PUBLIC_URL
-              value: https://files.portableinfo.cloud
+              value: https://shared-files.portableinfo.cloud
             - name: UPLOAD_URL
               value: http://fileserver-upload.fileserver-system.svc:8082
             - name: MAX_FILE_BYTES

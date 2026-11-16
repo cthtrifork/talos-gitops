@@ -76,12 +76,3 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    # fileserver: the public port (http, 8080)
-    - toEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: fileserver-system
-            k8s:app: fileserver
-      toPorts:
-        - ports:
-            - port: "8080"
-              protocol: TCP

@@ -30,7 +30,7 @@ spec:
             - port: "53"
               protocol: ANY
 ---
-# 8080 Traefik, 8081 the Omni exposer (host or remote-node), 8082 the runners
+# 8081 the Omni exposer (host or remote-node), 8082 the runners
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -41,14 +41,6 @@ spec:
     matchLabels:
       app: fileserver
   ingress:
-    - fromEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: traefik-system
-            k8s:app.kubernetes.io/name: traefik
-      toPorts:
-        - ports:
-            - port: "8080"
-              protocol: TCP
     - fromEntities:
         - host
         - remote-node
