@@ -90,6 +90,14 @@ spec:
               # every start (remove first, `mcp add` fails if the name exists).
               claude mcp remove --scope user flux >/dev/null 2>&1 || true
               claude mcp add --scope user flux -- flux-operator-mcp serve --read-only
+              # Cloudflare API MCP server, read-only through the permissions of the token in the Secret claude-cloudflare.
+              # Registered only when the token exists. The header stores the variable name, not its value (escaped for Flux's
+              # postBuild substitution): Claude Code expands it when it connects, so the token is not in ~/.claude.json on the PVC.
+              claude mcp remove --scope user cloudflare >/dev/null 2>&1 || true
+              if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
+                claude mcp add --scope user --transport http cloudflare https://mcp.cloudflare.com/mcp \
+                  --header 'Authorization: Bearer $${CLOUDFLARE_API_TOKEN}'
+              fi
               exec claude remote-control --name homelab
           env:
             - name: DISABLE_AUTOUPDATER
@@ -121,6 +129,12 @@ spec:
               value: "1" # do not try to register the official plugin marketplace on start (host not in the egress allowlist)
             - name: DOCKER_CONFIG
               value: /etc/registry-auth # registry credentials for crane, from the optional Secret ghcr-pull
+            - name: CLOUDFLARE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: claude-cloudflare # SOPS-encrypted (root readme.md), a Cloudflare API token with Read permissions only
+                  key: CLOUDFLARE_API_TOKEN
+                  optional: true
             - name: CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX
               value: claude-k8s-helper # session names instead of the pod hostname prefix
           resources:
