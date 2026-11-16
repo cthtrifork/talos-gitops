@@ -64,9 +64,10 @@ spec:
           secretKey: secret-access-key
           buckets:
             - renovate
+      # a statically linked busybox (musl): it is copied into and run from the Garage image, which has no libc
       toolsImage:
         repository: mirror.gcr.io/library/busybox
-        tag: 1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+        tag: 1.38-musl@sha256:80e38f9a1b39188b8bdb28879178edb322a4402b081a9aedda1924609decd6f6
       configureImage:
         repository: mirror.gcr.io/library/busybox
         tag: 1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
