@@ -11,6 +11,7 @@ resources:
   - external-secrets.yaml
   - claude-github-app.enc.yaml
   - ghcr-pull.enc.yaml
+  - claude-cloudflare.enc.yaml
   - usage/usage.yaml
   - vm-upgrade/vm-upgrade.yaml
   - elevate/rbac.yaml

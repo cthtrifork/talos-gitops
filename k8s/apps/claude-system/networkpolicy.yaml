@@ -127,6 +127,8 @@ spec:
         - matchPattern: "*.portableinfo.cloud"
 
         # Claude Code itself: plugin installs and metadata, documentation lookups
+        # Cloudflare API MCP server (read-only token); the pod only talks to this host, the server calls the API itself
+        - matchName: mcp.cloudflare.com
         - matchName: downloads.claude.ai
         - matchName: storage.googleapis.com
         - matchName: code.claude.com

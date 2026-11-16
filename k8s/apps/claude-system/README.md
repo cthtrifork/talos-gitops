@@ -83,6 +83,18 @@ user-scoped MCP server `flux` at every start, in read-only mode (`--read-only`: 
 apply tools). It uses the pod's in-cluster ServiceAccount, so it can read no more than `rbac.yaml` allows. Check
 with `claude mcp list` in the pod. No egress change is needed, it only talks to the Kubernetes API.
 
+## Cloudflare MCP server
+
+The deployment registers Cloudflare's API MCP server (`https://mcp.cloudflare.com/mcp`, see
+<https://developers.cloudflare.com/agents/model-context-protocol/mcp-servers-for-cloudflare/>) as the user-scoped MCP server
+`cloudflare` at every start, when the Secret `claude-cloudflare` exists. It authenticates with the key `CLOUDFLARE_API_TOKEN` as a
+bearer token. Read-only is enforced by the token, not by the MCP server (which can also make changes): create it with Read
+permissions only (for example Zone:Read, DNS:Read, Analytics:Read), scoped to the account or zones to expose, never Edit.
+
+The Secret is SOPS-encrypted (root `readme.md`). The header holds the literal `${CLOUDFLARE_API_TOKEN}`, which Claude Code
+expands when it connects, so the token is not written to `~/.claude.json` on the PVC. To rotate, edit the Secret with `sops edit`
+and restart the pod. Egress: `mcp.cloudflare.com` only. Check with `claude mcp list` in the pod.
+
 ## Check what the pod can and cannot do
 
 ```sh
