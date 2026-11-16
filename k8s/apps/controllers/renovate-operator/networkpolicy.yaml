@@ -99,13 +99,19 @@ spec:
         - matchName: mirror.gcr.io
         - matchName: registry.k8s.io
         - matchName: cdn.registry.k8s.io
+        # registry.k8s.io redirects image requests to Artifact Registry (europe-west4-docker.pkg.dev, ...)
+        - matchPattern: "*.pkg.dev"
         - matchName: index.docker.io
         - matchName: registry-1.docker.io
         - matchName: auth.docker.io
         - matchName: production.cloudflare.docker.com
+        - matchName: production.cloudfront.docker.com
         # Docker Hub release dates and source links
         - matchName: hub.docker.com
         - matchName: helm.cilium.io
+        - matchName: kubernetes-sigs.github.io
+        - matchName: charts.fairwinds.com
+        - matchName: charts.redpanda.com
         # Package registries (npm, Go modules, PyPI)
         - matchName: registry.npmjs.org
         - matchName: proxy.golang.org
