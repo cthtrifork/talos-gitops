@@ -190,3 +190,8 @@ data:
         - adguard-deployment
         rules:
         - privilegeEscalationAllowed
+      - controllerNames:
+        - renovate-operator
+        namespace: renovate-system
+        rules:
+        - sensitiveContainerEnvVar

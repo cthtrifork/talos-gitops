@@ -26,7 +26,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: '130d249e8bcf91ef4524048328f26cc56822a09dfdaef2ecda26eddf971d3fcb'
+        checksum/config: '64f8d8f241c4d5a625d072b00716dcf0384609dc5eb4aa5c3d09e476bab31226'
       labels:
         app: polaris
         app.kubernetes.io/name: polaris
