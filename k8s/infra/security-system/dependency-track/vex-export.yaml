@@ -107,15 +107,21 @@ spec:
                   mkdir -p /work/out
                   curl -fsS -H "X-Api-Key: $API_KEY" "$DT_URL/api/v1/project?pageSize=1000" |
                     jq -r '.[] | [.uuid, .name, (.version // "-")] | @tsv' > /work/projects.tsv
+                  total=0 digest=0 decided=0
                   while IFS="$(printf '\t')" read -r uuid name version; do
+                    total=$((total + 1))
                     # only projects versioned by digest (sbom-hook, sbom-uploader): Trivy matches an image by its digest
                     case "$version" in sha256:*) ;; *) continue ;; esac
+                    digest=$((digest + 1))
                     curl -fsS -H "X-Api-Key: $API_KEY" "$DT_URL/api/v1/vex/cyclonedx/project/$uuid" |
                       jq -c -f /work/vex.jq --arg name "$name" --arg version "$version" > /work/stmts.json
                     [ "$(jq length /work/stmts.json)" -gt 0 ] || continue
+                    decided=$((decided + 1))
+                    echo "decisions: $name $version ($(jq length /work/stmts.json) statements)"
                     mkdir -p "/work/out/$name"
                     cat /work/stmts.json >> "/work/out/$name/stmts.jsonl"
                   done < /work/projects.tsv
+                  echo "projects: $total, versioned by digest: $digest, with exportable decisions: $decided"
 
                   # 2. one document per image: new/changed ones are written, ones without decisions any more are removed
                   now=$(date -u +%FT%TZ)
