@@ -112,6 +112,7 @@
 (function () {
   "use strict";
   var REFRESH_MS = 60000;
+  var MAX_ROWS = 5; // longest list shown in any panel; the rest is a count
   var SVGNS = "http://www.w3.org/2000/svg";
 
   // Elements are built from text, never from markup, so nothing in the data can inject HTML.
@@ -231,9 +232,19 @@
     var n = d.alerts.length;
     var p = panel(head(title, n === 0 ? "ok" : crit ? "bad" : "warn", n === 0 ? "none" : String(n)));
     if (n === 0) { p.classList.add("compact"); p.appendChild(el("span", "muted", "Nothing is firing.")); }
-    else p.appendChild(rows(d.alerts.map(function (a) {
-      return { title: a.name, sub: a.summary, right: pill(a.severity === "critical" ? "bad" : "warn", a.severity) };
-    })));
+    else {
+      // Critical first, then by name; a long incident list is capped so it cannot push every other panel off the screen.
+      var sorted = d.alerts.slice().sort(function (a, b) {
+        return (a.severity === "critical" ? 0 : 1) - (b.severity === "critical" ? 0 : 1) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+      });
+      p.appendChild(rows(sorted.slice(0, MAX_ROWS).map(function (a) {
+        return { title: a.name, sub: a.summary, right: pill(a.severity === "critical" ? "bad" : "warn", a.severity) };
+      })));
+      if (n > MAX_ROWS) {
+        var hiddenCrit = sorted.slice(MAX_ROWS).filter(function (a) { return a.severity === "critical"; }).length;
+        p.appendChild(el("span", "muted", "and " + (n - MAX_ROWS) + " more" + (hiddenCrit ? ", " + hiddenCrit + " of them critical" : "")));
+      }
+    }
     p.appendChild(src("Prometheus · /api/v1/alerts · state firing"));
     return p;
   }
@@ -266,10 +277,16 @@
       s.appendChild(dot); s.appendChild(document.createTextNode(x[1])); lg.appendChild(s);
     });
     p.appendChild(lg);
-    var probs = t.problems.slice(0, 5);
+    var ORDER = { failed: 0, unknown: 1, progressing: 2 };
+    var probs = t.problems.slice().sort(function (a, b) {
+      var k = a.namespace + "/" + a.name, l = b.namespace + "/" + b.name;
+      return (ORDER[a.state] - ORDER[b.state]) || (k < l ? -1 : k > l ? 1 : 0);
+    }).slice(0, MAX_ROWS);
+    var hidden = t.failed + t.unknown + t.progressing - probs.length;
     if (probs.length) p.appendChild(rows(probs.map(function (x) {
       return { title: x.namespace + "/" + x.name, sub: x.message, right: pill(x.state === "failed" ? "bad" : x.state === "unknown" ? "warn" : "none", x.state) };
     })));
+    if (hidden > 0) p.appendChild(el("span", "muted", "and " + hidden + " more not listed"));
     if (!t.complete) p.appendChild(el("span", "muted", "One of the two lists did not answer, so the counts are partial."));
     p.appendChild(src("Kubernetes API · kustomizations, helmreleases"));
     return p;
