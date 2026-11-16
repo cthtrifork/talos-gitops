@@ -22,6 +22,7 @@ spec:
         runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
+        fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -80,7 +81,7 @@ spec:
           secret:
             secretName: claude-cockpit-github-token # minted by externalsecret.yaml
             optional: true
-            defaultMode: 0400
+            defaultMode: 0440
         - name: kube-api-access
           projected:
             sources:
