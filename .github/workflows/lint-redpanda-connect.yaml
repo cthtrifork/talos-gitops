@@ -1,0 +1,50 @@
+name: Lint Redpanda Connect
+
+# Lints every redpanda-connect.yaml when one changes in the PR; a manual run lints them all.
+on:
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: lint-redpanda-connect-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  CONNECT_VERSION: "4.118.0" # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint Connect pipelines
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Get changed Redpanda Connect files
+        id: changed
+        if: github.event_name == 'pull_request'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            **/redpanda-connect.yaml
+          files_ignore: |
+            **/rendered/**
+      - name: Lint all Redpanda Connect files
+        if: github.event_name == 'workflow_dispatch' || steps.changed.outputs.any_changed == 'true'
+        run: |
+          mapfile -t files < <(git ls-files '*/redpanda-connect.yaml' | grep -v '/rendered/')
+          [ "${#files[@]}" -gt 0 ] || { echo "::error::no redpanda-connect.yaml found"; exit 1; }
+          printf 'Linting %s\n' "${files[@]}"
+          # the pipelines read /etc/connect/index.html with file(); an empty page stands in for it
+          : > "${RUNNER_TEMP}/index.html"
+          docker run --rm --volume "${PWD}:/repo:ro" --volume "${RUNNER_TEMP}/index.html:/etc/connect/index.html:ro" --workdir /repo \
+            "mirror.gcr.io/redpandadata/connect:${CONNECT_VERSION}" lint --skip-env-var-check "${files[@]}"
+      - name: Nothing to lint
+        if: github.event_name == 'pull_request' && steps.changed.outputs.any_changed != 'true'
+        run: echo "No Redpanda Connect file changed in this PR."

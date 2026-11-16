@@ -1,0 +1,25 @@
+# Narrowed to reading pull requests on the two repositories the page shows.
+---
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubAccessToken
+metadata:
+  name: claude-cockpit-github-token
+  namespace: claude-system
+spec:
+  appIDRef:
+    name: claude-github-app
+    key: app-id
+  installIDRef:
+    name: claude-github-app
+    key: installation-id
+  auth:
+    privateKey:
+      secretRef:
+        name: claude-github-app
+        key: private-key.pem
+  permissions:
+    pull_requests: read
+    metadata: read
+  repositories:
+    - talos-gitops
+    - homeserver-bootc

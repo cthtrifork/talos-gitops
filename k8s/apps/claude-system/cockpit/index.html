@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Cockpit</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f4f4f1; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #7c7a74;
+    --grid: #e1e0d9; --ring: rgba(11, 11, 11, 0.10); --accent: #2a78d6;
+    --ok: #1a7f55; --ok-bg: #dff3ea; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
+      --ok: #55c79a; --ok-bg: #12301f; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
+    --ok: #55c79a; --ok-bg: #12301f; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 var(--font);
+    padding-block: 20px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 11px; margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  h3 { font-size: 13px; margin: 0; font-weight: 600; }
+  a { color: var(--accent); text-decoration: none; overflow-wrap: anywhere; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  button { font: inherit; color: var(--accent); background: none; border: 0; padding: 2px 4px; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+  .strip { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .ok { color: var(--ok); background: var(--ok-bg); }
+  .warn { color: var(--warn); background: var(--warn-bg); }
+  .bad { color: var(--bad); background: var(--bad-bg); }
+  .none { color: var(--muted); background: var(--grid); }
+  .band { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .big { font-size: 30px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
+  .big small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  ul.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  ul.rows li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-top: 1px solid var(--grid); }
+  ul.rows li:first-child { border-top: 0; }
+  ul.rows .l { min-width: 0; overflow-wrap: anywhere; }
+  .bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; display: flex; }
+  .bar i { display: block; height: 100%; }
+  .spark { width: 100%; height: 44px; display: block; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+  .limit { display: flex; flex-direction: column; gap: 6px; }
+  .limit-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13px; }
+  .src { font-size: 11px; color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
+  .banner { padding: 8px 12px; border-radius: 4px; font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Cockpit</h1>
+    <span class="muted" id="updated">Loading…</span>
+  </header>
+  <div id="banner" class="banner bad" role="alert" hidden></div>
+  <div class="strip" id="strip" role="status" aria-label="Overall status"></div>
+  <section aria-labelledby="h-cluster">
+    <h2 id="h-cluster">Cluster</h2>
+    <div class="band" id="cluster"></div>
+  </section>
+  <section aria-labelledby="h-gh">
+    <h2 id="h-gh">GitHub</h2>
+    <div class="band" id="github"></div>
+  </section>
+  <section aria-labelledby="h-home">
+    <h2 id="h-home">Homelab</h2>
+    <div class="band" id="homelab"></div>
+  </section>
+  <footer class="muted">
+    Reads only, nothing on this page changes the cluster. <button type="button" id="refresh">Refresh now</button>
+  </footer>
+</main>
+<script>
+(function () {
+  "use strict";
+  var REFRESH_MS = 60000;
+  var SVGNS = "http://www.w3.org/2000/svg";
+
+  // Elements are built from text, never from markup, so nothing in the data can inject HTML.
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = String(text);
+    return e;
+  }
+  function pill(state, text) { return el("span", "pill " + state, text); }
+  function head(title, state, text) {
+    var h = el("div", "panel-head");
+    h.appendChild(el("h3", null, title));
+    h.appendChild(pill(state, text));
+    return h;
+  }
+  function src(text) { return el("span", "src", text); }
+  function panel() {
+    var p = el("div", "panel");
+    for (var i = 0; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]);
+    return p;
+  }
+  function unavailable(title, source) {
+    return panel(head(title, "none", "unavailable"), el("span", "muted", "The source did not answer. The other panels are unaffected."), src(source));
+  }
+  function bar(label, parts) {
+    var b = el("div", "bar");
+    b.setAttribute("role", "img");
+    b.setAttribute("aria-label", label);
+    parts.forEach(function (p) {
+      if (!p.pct) return;
+      var i = document.createElement("i");
+      i.style.width = p.pct + "%";
+      i.style.background = p.color;
+      b.appendChild(i);
+    });
+    return b;
+  }
+  function rows(items) {
+    var ul = el("ul", "rows");
+    items.forEach(function (it) {
+      var li = el("li");
+      var l = el("span", "l");
+      if (it.href && it.href.indexOf("https://github.com/") === 0) {
+        var a = el("a", null, it.title);
+        a.href = it.href;
+        a.rel = "noopener noreferrer";
+        a.target = "_blank";
+        l.appendChild(a);
+      } else {
+        l.appendChild(el("strong", null, it.title));
+      }
+      if (it.sub) { l.appendChild(document.createElement("br")); l.appendChild(el("span", "muted", it.sub)); }
+      li.appendChild(l);
+      if (it.right) li.appendChild(it.right);
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+  function ago(sec) {
+    if (sec < 90) return sec + " s";
+    if (sec < 5400) return Math.round(sec / 60) + " min";
+    return Math.round(sec / 3600) + " h";
+  }
+
+  function dropsPanel(d) {
+    var title = "Dropped traffic, last hour";
+    if (d.drops_total === undefined) return unavailable(title, "Prometheus · hubble_drop_total · POLICY_DENIED");
+    var p = panel(head(title, d.drops_total > 0 ? "warn" : "ok", d.drops_total > 0 ? "denied" : "none"));
+    var big = el("div", "big num", d.drops_total);
+    big.appendChild(el("small", null, " packets denied"));
+    p.appendChild(big);
+    var s = d.drops_series || [];
+    if (s.length > 1) {
+      var max = Math.max.apply(null, s.concat([1]));
+      var pts = s.map(function (v, i) { return (i / (s.length - 1) * 240).toFixed(1) + " " + (40 - v / max * 34).toFixed(1); });
+      var svg = document.createElementNS(SVGNS, "svg");
+      svg.setAttribute("class", "spark");
+      svg.setAttribute("viewBox", "0 0 240 44");
+      svg.setAttribute("preserveAspectRatio", "none");
+      svg.setAttribute("role", "img");
+      svg.setAttribute("aria-label", "Denied packets per 5 minutes over the last hour, highest " + max);
+      var base = document.createElementNS(SVGNS, "line");
+      base.setAttribute("x1", "0"); base.setAttribute("y1", "43"); base.setAttribute("x2", "240"); base.setAttribute("y2", "43");
+      base.setAttribute("stroke", "var(--grid)");
+      var area = document.createElementNS(SVGNS, "path");
+      area.setAttribute("d", "M" + pts.join(" L") + " L240 43 L0 43 Z");
+      area.setAttribute("fill", "var(--warn)");
+      area.setAttribute("fill-opacity", "0.15");
+      var line = document.createElementNS(SVGNS, "path");
+      line.setAttribute("d", "M" + pts.join(" L"));
+      line.setAttribute("fill", "none");
+      line.setAttribute("stroke", "var(--warn)");
+      line.setAttribute("stroke-width", "1.5");
+      line.setAttribute("vector-effect", "non-scaling-stroke");
+      svg.appendChild(base); svg.appendChild(area); svg.appendChild(line);
+      p.appendChild(svg);
+    }
+    var top = d.drops_top || [];
+    if (top.length) {
+      p.appendChild(rows(top.map(function (t) {
+        return { title: t.source + " → " + t.destination, right: el("span", "num muted", t.count) };
+      })));
+    }
+    p.appendChild(src("Prometheus · hubble_drop_total · POLICY_DENIED"));
+    return p;
+  }
+
+  function alertsPanel(d) {
+    var title = "Firing alerts";
+    if (!d.alerts) return unavailable(title, "Prometheus · /api/v1/alerts");
+    var crit = d.alerts.some(function (a) { return a.severity === "critical"; });
+    var n = d.alerts.length;
+    var p = panel(head(title, n === 0 ? "ok" : crit ? "bad" : "warn", n === 0 ? "none" : String(n)));
+    if (n === 0) p.appendChild(el("span", "muted", "Nothing is firing."));
+    else p.appendChild(rows(d.alerts.map(function (a) {
+      return { title: a.name, sub: a.summary, right: pill(a.severity === "critical" ? "bad" : "warn", a.severity) };
+    })));
+    p.appendChild(src("Prometheus · /api/v1/alerts · state firing"));
+    return p;
+  }
+
+  function fluxTotals(d) {
+    var parts = [d.flux_ks, d.flux_hr].filter(Boolean);
+    var t = { total: 0, ready: 0, reconciling: 0, suspended: 0, failed: 0, problems: [] };
+    parts.forEach(function (x) {
+      t.total += x.total; t.ready += x.ready; t.reconciling += x.reconciling; t.suspended += x.suspended; t.failed += x.failed;
+      t.problems = t.problems.concat(x.problems || []);
+    });
+    t.complete = parts.length === 2;
+    return t;
+  }
+  function fluxPanel(d) {
+    var title = "Flux reconciliation";
+    var t = fluxTotals(d);
+    if (!d.flux_ks && !d.flux_hr) return unavailable(title, "Kubernetes API · kustomizations, helmreleases");
+    var notReady = t.failed + t.reconciling;
+    var state = t.failed ? "bad" : t.reconciling ? "warn" : "ok";
+    var p = panel(head(title, state, notReady ? notReady + " not ready" : "all ready"));
+    var pct = function (n) { return t.total ? n / t.total * 100 : 0; };
+    p.appendChild(bar(t.ready + " of " + t.total + " ready", [
+      { pct: pct(t.ready), color: "var(--ok)" }, { pct: pct(t.reconciling), color: "var(--accent)" },
+      { pct: pct(t.failed), color: "var(--bad)" }, { pct: pct(t.suspended), color: "var(--muted)" }
+    ]));
+    var lg = el("div", "legend");
+    [["var(--ok)", t.ready + " ready"], ["var(--accent)", t.reconciling + " reconciling"], ["var(--bad)", t.failed + " failed"], ["var(--muted)", t.suspended + " suspended"]].forEach(function (x) {
+      var s = el("span"); var dot = el("span", "dot"); dot.style.background = x[0];
+      s.appendChild(dot); s.appendChild(document.createTextNode(x[1])); lg.appendChild(s);
+    });
+    p.appendChild(lg);
+    var probs = t.problems.slice(0, 5);
+    if (probs.length) p.appendChild(rows(probs.map(function (x) {
+      return { title: x.namespace + "/" + x.name, sub: x.message, right: pill(x.state === "failed" ? "bad" : "warn", x.state) };
+    })));
+    if (!t.complete) p.appendChild(el("span", "muted", "One of the two lists did not answer, so the counts are partial."));
+    p.appendChild(src("Kubernetes API · kustomizations, helmreleases"));
+    return p;
+  }
+
+  function polarisPanel(d) {
+    var title = "Polaris score";
+    var x = d.polaris;
+    if (!x) return unavailable(title, "polaris-dashboard · /results.json");
+    var state = x.score >= 90 ? "ok" : x.score >= 75 ? "warn" : "bad";
+    var p = panel(head(title, state, x.danger ? x.danger + " danger" : "no danger"));
+    var big = el("div", "big num", x.score);
+    big.appendChild(el("small", null, " / 100"));
+    p.appendChild(big);
+    p.appendChild(bar("Score " + x.score + " of 100", [{ pct: x.score, color: state === "ok" ? "var(--ok)" : state === "warn" ? "var(--warn)" : "var(--bad)" }]));
+    p.appendChild(rows([
+      { title: "Danger", right: el("span", "num", x.danger) },
+      { title: "Warning", right: el("span", "num", x.warning) }
+    ]));
+    p.appendChild(el("span", "muted", "Audited " + String(x.audit_time).replace("T", " ").replace("Z", " UTC")));
+    p.appendChild(src("polaris-dashboard · /results.json"));
+    return p;
+  }
+
+  function diskPanel(d) {
+    var title = "Disk, local-path volumes";
+    if (!d.disk) return unavailable(title, "Prometheus · node_filesystem_*");
+    var max = d.disk.reduce(function (m, n) { return Math.max(m, n.used_pct); }, 0);
+    var state = max >= 85 ? "bad" : max >= 75 ? "warn" : "ok";
+    var p = panel(head(title, state, max >= 75 ? "node over " + (max >= 85 ? 85 : 75) + "%" : "ok"));
+    var box = el("div", "limit");
+    d.disk.forEach(function (n) {
+      var r = el("div", "limit-row");
+      r.appendChild(el("span", null, n.node));
+      var v = el("span", "num"); v.appendChild(el("strong", null, n.used_pct + "%")); v.appendChild(document.createTextNode(" used"));
+      r.appendChild(v); box.appendChild(r);
+      box.appendChild(bar(n.node + ", " + n.used_pct + " percent used", [{ pct: n.used_pct, color: n.used_pct >= 85 ? "var(--bad)" : n.used_pct >= 75 ? "var(--warn)" : "var(--ok)" }]));
+    });
+    p.appendChild(box);
+    p.appendChild(el("span", "muted", "PVC sizes are not enforced, so the node disk is the limit."));
+    p.appendChild(src("Prometheus · node_filesystem_* · /var/mnt/local-path-provisioner"));
+    return p;
+  }
+
+  function prRows(items) {
+    return rows(items.map(function (i) {
+      return { title: i.repo + "#" + i.number, href: i.url, sub: i.title + " · " + i.author, right: el("span", "muted num", ago(Math.max(0, Math.round((Date.now() - Date.parse(i.updated)) / 1000)))) };
+    }));
+  }
+  function ghPanel(title, group, d, emptyText, state) {
+    var g = d.github && d.github[group];
+    if (!g) return unavailable(title, "GitHub API · search/issues");
+    var p = panel(head(title, state(g.count), g.count + " open"));
+    if (g.count === 0) p.appendChild(el("span", "muted", emptyText));
+    else p.appendChild(prRows(g.items));
+    if (g.count > g.items.length) p.appendChild(el("span", "muted", g.count - g.items.length + " more on GitHub"));
+    if (d.github.truncated) p.appendChild(el("span", "muted", "More than 100 are open, so the counts are a lower bound."));
+    p.appendChild(src("GitHub API · search/issues"));
+    return p;
+  }
+  function prsPanel(d) { return ghPanel("Pull requests", "other", d, "No open pull requests.", function (n) { return n ? "warn" : "ok"; }); }
+  function renovatePrsPanel(d) { return ghPanel("Renovate pull requests", "renovate", d, "No open Renovate pull requests.", function (n) { return n > 10 ? "warn" : "none"; }); }
+  function issuesPanel(d) {
+    var p = ghPanel("Open issues", "issues", d, "No open issues.", function (n) { return n ? "warn" : "ok"; });
+    return p;
+  }
+  function renovateRunsPanel(d) {
+    var title = "Renovate runs";
+    if (!d.renovate) return unavailable(title, "Kubernetes API · renovateprojects");
+    var ps = d.renovate.projects;
+    var approval = ps.reduce(function (n, x) { return n + x.needs_approval; }, 0);
+    var bad = ps.filter(function (x) { return /fail|error/i.test(x.status + " " + x.result); });
+    var p = panel(head(title, bad.length ? "bad" : approval ? "warn" : "ok", bad.length ? bad.length + " failed" : approval ? approval + " need approval" : "all done"));
+    p.appendChild(rows(ps.map(function (x) {
+      var bits = [];
+      if (x.duration) bits.push("took " + x.duration);
+      if (x.needs_approval) bits.push(x.needs_approval + " need approval");
+      if (x.automerged) bits.push(x.automerged + " automerged");
+      if (x.unchanged) bits.push(x.unchanged + " unchanged");
+      var st = /fail|error/i.test(x.status + " " + x.result) ? "bad" : x.status === "completed" ? "ok" : "warn";
+      return { title: x.project, sub: bits.join(" · ") || "no changes", right: pill(st, x.status) };
+    })));
+    p.appendChild(src("Kubernetes API · renovateprojects (status, duration, prActivity)"));
+    return p;
+  }
+
+  function until(sec) {
+    if (sec < 90) return "less than a minute";
+    if (sec < 5400) return Math.round(sec / 60) + " min";
+    if (sec < 172800) return Math.round(sec / 360) / 10 + " h";
+    return Math.round(sec / 86400) + " days";
+  }
+  function versionsPanel(d) {
+    var title = "Running versions";
+    var v = d.vm_upgrade && d.vm_upgrade.vms;
+    if (!v) return unavailable(title, "claude-vm-upgrade · /api/v1/status");
+    var now = d.vm_upgrade.now || Math.round(Date.now() / 1000);
+    var worst = "ok", label = "reporting";
+    var items = ["claude-vm", "homeserver"].map(function (name) {
+      var x = v[name] || {};
+      var vm = x.vm || {};
+      var age = x.last_poll_at ? now - x.last_poll_at : null;
+      var st = age === null || age > 300 ? "bad" : vm.staged_version ? "warn" : "ok";
+      if (st === "bad") { worst = "bad"; label = "not reporting"; }
+      else if (st === "warn" && worst !== "bad") { worst = "warn"; label = "reboot pending"; }
+      var sub = age === null ? "has not reported" : "reported " + ago(age) + " ago";
+      if (vm.staged_version) sub += " · staged " + vm.staged_version;
+      return { title: name, sub: sub, right: el("span", "muted num", vm.booted_version ? vm.booted_version + (vm.booted_digest ? " · " + vm.booted_digest : "") : "unknown") };
+    });
+    var p = panel(head(title, worst, label));
+    p.appendChild(rows(items));
+    p.appendChild(el("span", "muted", "Shows what each VM booted, not whether a newer image exists."));
+    p.appendChild(src("claude-vm-upgrade · /api/v1/status"));
+    return p;
+  }
+  function usagePanel(d) {
+    var title = "Claude usage";
+    var s = d.sessions && d.sessions["claude-vm"];
+    if (!d.sessions) return unavailable(title, "claude-vm status line → cockpit");
+    if (!s || !s.received_at) {
+      var e = panel(head(title, "none", "no data"));
+      e.appendChild(el("span", "muted", "Nothing received in the last 24 hours. The Claude VM sends it while Claude Code is in use."));
+      e.appendChild(src("claude-vm status line → cockpit · rate_limits"));
+      return e;
+    }
+    var now = Math.round(Date.now() / 1000);
+    var age = now - s.received_at;
+    var stale = age > 6 * 3600;
+    var windows = [["5-hour window", s.five_hour], ["7-day window", s.seven_day]];
+    var worst = 0;
+    var box = el("div", "limit");
+    windows.forEach(function (w) {
+      var x = w[1] || {};
+      var over = x.resets_at && x.resets_at < now;
+      var used = x.used_pct === null || x.used_pct === undefined ? null : over ? 0 : x.used_pct;
+      if (used !== null) worst = Math.max(worst, used);
+      var r = el("div", "limit-row");
+      r.appendChild(el("span", null, w[0]));
+      var v = el("span", "num");
+      if (used === null) v.appendChild(document.createTextNode("no data"));
+      else {
+        v.appendChild(el("strong", null, used + "%"));
+        v.appendChild(document.createTextNode(" used" + (x.resets_at && !over ? " · resets in " + until(x.resets_at - now) : over ? " · window has reset" : "")));
+      }
+      r.appendChild(v);
+      box.appendChild(r);
+      box.appendChild(bar(w[0] + ", " + (used === null ? "no data" : used + " percent used"), used === null ? [] : [{ pct: used, color: used >= 90 ? "var(--bad)" : used >= 75 ? "var(--warn)" : "var(--ok)" }]));
+    });
+    var state = stale ? "none" : worst >= 90 ? "bad" : worst >= 75 ? "warn" : "ok";
+    var p = panel(head(title, state, stale ? "stale" : worst + "% at most"));
+    p.appendChild(box);
+    var bits = ["reported " + ago(age) + " ago"];
+    if (s.model) bits.push(s.model);
+    if (s.version) bits.push("Claude Code " + s.version);
+    p.appendChild(el("span", "muted", bits.join(" · ") + (stale ? ". Older than 6 hours, so the VM may be idle." : "")));
+    p.appendChild(src("claude-vm status line → cockpit · rate_limits"));
+    return p;
+  }
+
+  function stripChips(d) {
+    var chips = [];
+    if (d.alerts) {
+      var crit = d.alerts.some(function (a) { return a.severity === "critical"; });
+      chips.push(d.alerts.length ? [crit ? "bad" : "warn", d.alerts.length + (d.alerts.length === 1 ? " alert firing" : " alerts firing")] : ["ok", "No alerts firing"]);
+    }
+    var t = fluxTotals(d);
+    if (d.flux_ks || d.flux_hr) chips.push(t.failed ? ["bad", "Flux: " + t.failed + " failed"] : t.reconciling ? ["warn", "Flux: " + t.reconciling + " reconciling"] : ["ok", "Flux ready"]);
+    if (d.polaris) chips.push([d.polaris.score >= 90 ? "ok" : d.polaris.score >= 75 ? "warn" : "bad", "Polaris " + d.polaris.score + "%"]);
+    if (d.disk && d.disk.length) {
+      var m = d.disk.reduce(function (a, n) { return Math.max(a, n.used_pct); }, 0);
+      chips.push([m >= 85 ? "bad" : m >= 75 ? "warn" : "ok", "Disk " + m + "%"]);
+    }
+    if (d.drops_total !== undefined) chips.push([d.drops_total > 0 ? "warn" : "ok", d.drops_total + " packets denied"]);
+    if (d.github) {
+      var o = d.github.other.count;
+      chips.push([o ? "warn" : "ok", o + (o === 1 ? " open PR" : " open PRs")]);
+    }
+    if (d.renovate) {
+      var bad = d.renovate.projects.filter(function (x) { return /fail|error/i.test(x.status + " " + x.result); }).length;
+      var na = d.renovate.projects.reduce(function (n, x) { return n + x.needs_approval; }, 0);
+      if (bad) chips.push(["bad", "Renovate: " + bad + " failed"]);
+      else if (na) chips.push(["warn", "Renovate: " + na + " need approval"]);
+    }
+    var us = d.sessions && d.sessions["claude-vm"];
+    if (us && us.received_at && Math.round(Date.now() / 1000) - us.received_at <= 6 * 3600) {
+      var w7 = us.seven_day && us.seven_day.used_pct;
+      if (w7 !== null && w7 !== undefined && !(us.seven_day.resets_at && us.seven_day.resets_at < Math.round(Date.now() / 1000))) chips.push([w7 >= 90 ? "bad" : w7 >= 75 ? "warn" : "ok", "Claude 7-day " + w7 + "%"]);
+    }
+    var order = { bad: 0, warn: 1, ok: 2 };
+    chips.sort(function (a, b) { return order[a[0]] - order[b[0]]; });
+    return chips;
+  }
+
+  function render(d) {
+    var strip = document.getElementById("strip");
+    strip.textContent = "";
+    stripChips(d).forEach(function (c) { strip.appendChild(pill(c[0], c[1])); });
+    var cluster = document.getElementById("cluster");
+    cluster.textContent = "";
+    [dropsPanel, alertsPanel, fluxPanel, polarisPanel, diskPanel].forEach(function (f) { cluster.appendChild(f(d)); });
+    var hl = document.getElementById("homelab");
+    hl.textContent = "";
+    [versionsPanel, usagePanel].forEach(function (f) { hl.appendChild(f(d)); });
+    var gh = document.getElementById("github");
+    gh.textContent = "";
+    [prsPanel, renovatePrsPanel, issuesPanel, renovateRunsPanel].forEach(function (f) { gh.appendChild(f(d)); });
+    var failed = (d.meta && d.meta.workflow && d.meta.workflow.failed) || {};
+    var names = Object.keys(failed);
+    var banner = document.getElementById("banner");
+    banner.hidden = names.length === 0;
+    banner.textContent = names.length ? "Some sources did not answer: " + names.join(", ") + "." : "";
+    document.getElementById("updated").textContent = "Updated " + new Date().toLocaleTimeString();
+  }
+  function load() {
+    fetch("api/v1/status", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(render)
+      .catch(function (e) {
+        var banner = document.getElementById("banner");
+        banner.hidden = false;
+        banner.textContent = "The cockpit could not be reached (" + e.message + "). Showing the last data, if any.";
+      });
+  }
+  document.getElementById("refresh").addEventListener("click", load);
+  load();
+  setInterval(load, REFRESH_MS);
+})();
+</script>
+</body>
+</html>

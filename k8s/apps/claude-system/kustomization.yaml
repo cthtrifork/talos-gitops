@@ -31,6 +31,12 @@ resources:
   - elevate/deployment.yaml
   - elevate/service.yaml
   - elevate/podmonitor.yaml
+  - cockpit/rbac.yaml
+  - cockpit/githubaccesstoken.yaml
+  - cockpit/externalsecret.yaml
+  - cockpit/deployment.yaml
+  - cockpit/service.yaml
+  - cockpit/podmonitor.yaml
 configMapGenerator:
   - name: claude-usage-connect-config
     namespace: claude-system
@@ -68,6 +74,15 @@ configMapGenerator:
     files:
       - elevate/redpanda-connect.yaml
       - elevate/index.html
+  - name: claude-cockpit-connect-config
+    namespace: claude-system
+    options:
+      annotations:
+        # Redpanda Connect interpolations and a web page, not Flux variables: skip postBuild envsubst
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+    files:
+      - cockpit/redpanda-connect.yaml
+      - cockpit/index.html
   - name: claude-md
     namespace: claude-system
     options:

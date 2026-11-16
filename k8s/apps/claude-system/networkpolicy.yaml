@@ -217,6 +217,14 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
+    # the cockpit page reads the status (what the VMs run)
+    - fromEndpoints:
+        - matchLabels:
+            k8s:app: claude-cockpit
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
     - fromCIDR:
         - 192.168.1.138/32 # claude-vm
         - 192.168.1.173/32 # homeserver
@@ -339,5 +347,87 @@ spec:
         - ports:
             - port: "80"
               protocol: TCP
+            - port: "443"
+              protocol: TCP
+---
+# Cockpit: the Omni exposer (host, remote-node) on 8080, Prometheus on the metrics port only, the Claude VM on 8081.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-cockpit
+  namespace: claude-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: claude-cockpit
+  ingress:
+    - fromEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            k8s:app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "4195"
+              protocol: TCP
+    # the Claude VM status line, through claude-cockpit-lb; the address is the only check
+    - fromCIDR:
+        - 192.168.1.138/32 # claude-vm
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          # lets Cilium learn the addresses behind api.github.com for the FQDN rule below
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            k8s:app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "9090"
+              protocol: TCP
+    # Polaris dashboard; the service's port 80 maps to 8080 on the pod
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: policy-system
+            k8s:app: polaris
+            k8s:component: dashboard
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - toEntities:
+        - kube-apiserver
+    # What the VMs run: the vm-upgrade pod's page listener
+    - toEndpoints:
+        - matchLabels:
+            k8s:app: claude-vm-upgrade
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    # GitHub (search for the open pull requests and issues)
+    - toFQDNs:
+        - matchName: api.github.com
+      toPorts:
+        - ports:
             - port: "443"
               protocol: TCP
