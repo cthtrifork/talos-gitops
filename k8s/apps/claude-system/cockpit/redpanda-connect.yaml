@@ -14,6 +14,10 @@ cache_resources:
     file:
       directory: /etc/github
 
+  - label: registryauth
+    file:
+      directory: /etc/registry-auth
+
   - label: state
     memory:
       default_ttl: 24h
@@ -173,15 +177,27 @@ processor_resources:
         User-Agent: claude-cockpit
       timeout: 10s
 
-  # The digest of the latest image of the metadata field `image` (anonymous pull token, packages are public): the sha256 of the manifest is its digest
+  # The digest of the latest image of the metadata field `image`: the sha256 of the manifest is its digest. The pull token is requested with the
+  # read:packages credential of ghcr-pull, because homeserver-bootc is a private package.
   - label: image_digest
     processors:
+      - branch:
+          request_map: 'root = ""'
+          processors:
+            - cache:
+                resource: registryauth
+                operator: get
+                key: config.json
+            - mapping: 'root = content().parse_json().auths."ghcr.io".auth'
+          result_map: 'meta registry_auth = content().string()'
       - branch:
           request_map: 'root = ""'
           processors:
             - http:
                 url: 'https://ghcr.io/token?service=ghcr.io&scope=repository:cthtrifork/homeserver-bootc/${! @image }:pull'
                 verb: GET
+                headers:
+                  Authorization: 'Basic ${! @registry_auth }'
                 timeout: 10s
           result_map: 'meta registry_token = this.token'
       - http:
