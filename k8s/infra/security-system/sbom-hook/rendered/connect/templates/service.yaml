@@ -6,10 +6,10 @@ metadata:
   name: sbom-hook
   namespace: security-system
   labels:
-    helm.sh/chart: redpanda-connect-3.2.36
+    helm.sh/chart: redpanda-connect-3.2.37
     app.kubernetes.io/name: redpanda-connect
     app.kubernetes.io/instance: sbom-hook
-    app.kubernetes.io/version: "4.115.1"
+    app.kubernetes.io/version: "4.118.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   type: ClusterIP
