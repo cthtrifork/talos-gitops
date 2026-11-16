@@ -104,7 +104,6 @@
     <span class="pill bad">2 alerts firing</span>
     <span class="pill bad">Renovate: 1 failed</span>
     <span class="pill warn">Flux: 1 not ready</span>
-    <span class="pill warn">Omni key: 47 days</span>
     <span class="pill warn">Disk 78%</span>
     <span class="pill warn">12 open PRs</span>
     <span class="pill warn">Claude 7-day 78%</span>
@@ -162,18 +161,6 @@
           <li><span class="l">Warning</span><span class="num">7</span></li>
         </ul>
         <span class="src">polaris-dashboard · /results.json</span>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head"><h3>Expiring credentials</h3><span class="pill warn">1 under 60 days</span></div>
-        <ul class="rows">
-          <li><span class="l"><strong>Omni service account key</strong><br><span class="muted">claude-rc · expires 2027-01-02</span></span><span class="pill warn num">47 days</span></li>
-          <li><span class="l">adguard-tls</span><span class="num muted">61 days</span></li>
-          <li><span class="l">arc-runner-cert</span><span class="num muted">69 days</span></li>
-          <li><span class="l">ExternalSecrets</span><span class="pill ok">3 of 3 synced</span></li>
-        </ul>
-        <span class="muted">The Omni key cannot be read from the cluster, so its expiry date is recorded in a Prometheus rule and updated when the key is renewed.</span>
-        <span class="src">Kubernetes API · certificates, externalsecrets · Prometheus · omni_service_account_key_expiry_timestamp_seconds</span>
       </div>
 
       <div class="panel">
