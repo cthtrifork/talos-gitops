@@ -10,7 +10,7 @@
     color-scheme: light;
     --page: #f4f4f1; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6b6963;
     --grid: #e1e0d9; --ring: rgba(11, 11, 11, 0.10); --accent: #1f63b5;
-    --ok: #15704a; --ok-bg: #dff3ea; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
+    --calm: #77756f; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
@@ -19,14 +19,14 @@
       color-scheme: dark;
       --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
       --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
-      --ok: #55c79a; --ok-bg: #12301f; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+      --calm: #8d8b85; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
     --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
     --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
-    --ok: #55c79a; --ok-bg: #12301f; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+    --calm: #8d8b85; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
   }
   * { box-sizing: border-box; }
   body {
@@ -50,10 +50,11 @@
   .strip { display: flex; flex-wrap: wrap; gap: 8px; }
   .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
   .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-  .ok { color: var(--ok); background: var(--ok-bg); }
   .warn { color: var(--warn); background: var(--warn-bg); }
   .bad { color: var(--bad); background: var(--bad-bg); }
-  .none { color: var(--ink-2); background: var(--grid); }
+  /* Healthy and neutral look the same: colour is kept for what needs a look, so a problem stands out. */
+  .ok, .none { color: var(--ink-2); background: var(--grid); }
+  .ok::before, .none::before { display: none; }
   /* Wrapping flex, not a grid: the last row stretches to the full width instead of leaving an empty slot. */
   .band { display: flex; flex-wrap: wrap; gap: 12px; }
   .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1 1 min(100%, 300px); scroll-margin-top: 12px; }
@@ -83,6 +84,9 @@
   .limit { display: flex; flex-direction: column; gap: 6px; }
   .limit-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13px; }
   .src { font-size: 11px; color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
+  /* Nothing below the header is shown until the first data arrives: content that appears after the fetch would
+     push the footer down (a layout shift of about 0.8 on the default throttled load). */
+  main:not(.ready) > nav, main:not(.ready) > section, main:not(.ready) > footer { display: none; }
   .banner { padding: 8px 12px; border-radius: 4px; font-size: 13px; }
 </style>
 </head>
@@ -128,8 +132,9 @@
   function pill(state, text) { return el("span", "pill " + state, text); }
   function head(title, state, text) {
     var h = el("div", "panel-head");
+    h.dataset.state = state;
     h.appendChild(el("h3", null, title));
-    h.appendChild(pill(state, text));
+    if (state !== "ok") h.appendChild(pill(state, text)); // a healthy panel stays quiet: the strip counts it
     return h;
   }
   // A source line on every card was repeated noise: the cards stay clean and the footer lists each source once.
@@ -193,7 +198,8 @@
     big.appendChild(el("small", null, " packets denied"));
     p.appendChild(big);
     var s = d.drops_series || [];
-    if (s.length > 1) {
+    if (d.drops_total === 0) p.classList.add("compact"); // nothing dropped: no chart of nothing
+    if (s.length > 1 && d.drops_total !== 0) {
       var max = Math.max.apply(null, s.concat([1]));
       var pts = s.map(function (v, i) { return (i / (s.length - 1) * 240).toFixed(1) + " " + (40 - v / max * 34).toFixed(1); });
       var svg = document.createElementNS(SVGNS, "svg");
@@ -271,11 +277,11 @@
     var p = panel(head(title, state, label));
     var pct = function (n) { return t.total ? n / t.total * 100 : 0; };
     p.appendChild(bar(t.ready + " of " + t.total + " ready", [
-      { pct: pct(t.ready), color: "var(--ok)" }, { pct: pct(t.progressing), color: "var(--accent)" },
-      { pct: pct(t.failed), color: "var(--bad)" }, { pct: pct(t.unknown), color: "var(--warn)" }, { pct: pct(t.suspended), color: "var(--muted)" }
+      { pct: pct(t.ready), color: "var(--calm)" }, { pct: pct(t.progressing), color: "var(--accent)" },
+      { pct: pct(t.failed), color: "var(--bad)" }, { pct: pct(t.unknown), color: "var(--warn)" }, { pct: pct(t.suspended), color: "var(--ink-2)" }
     ]));
     var lg = el("div", "legend");
-    [["var(--ok)", t.ready + " ready"], ["var(--accent)", t.progressing + " progressing"], ["var(--bad)", t.failed + " failed"], ["var(--warn)", t.unknown + " unknown"], ["var(--muted)", t.suspended + " suspended"]].forEach(function (x) {
+    [["var(--calm)", t.ready + " ready"], ["var(--accent)", t.progressing + " progressing"], ["var(--bad)", t.failed + " failed"], ["var(--warn)", t.unknown + " unknown"], ["var(--ink-2)", t.suspended + " suspended"]].forEach(function (x) {
       var s = el("span"); var dot = el("span", "dot"); dot.style.background = x[0];
       s.appendChild(dot); s.appendChild(document.createTextNode(x[1])); lg.appendChild(s);
     });
@@ -301,14 +307,11 @@
     if (!x) return unavailable(title, "polaris-dashboard · /results.json");
     var state = x.score >= 90 ? "ok" : x.score >= 75 ? "warn" : "bad";
     var p = panel(head(title, state, x.danger ? x.danger + " danger" : "no danger"));
-    var big = el("div", "big num", x.score);
-    big.appendChild(el("small", null, " / 100"));
-    p.appendChild(big);
-    p.appendChild(bar("Score " + x.score + " of 100", [{ pct: x.score, color: state === "ok" ? "var(--ok)" : state === "warn" ? "var(--warn)" : "var(--bad)" }]));
-    p.appendChild(rows([
-      { title: "Danger", right: el("span", "num", x.danger) },
-      { title: "Warning", right: el("span", "num", x.warning) }
-    ]));
+    p.classList.add("compact");
+    var line = el("div", "num");
+    line.appendChild(el("strong", null, x.score + " / 100"));
+    line.appendChild(document.createTextNode(" · " + x.danger + " danger · " + x.warning + " warning"));
+    p.appendChild(line);
     p.appendChild(el("span", "muted", "Audited " + String(x.audit_time).replace("T", " ").replace("Z", " UTC")));
     p.appendChild(src("polaris-dashboard · /results.json"));
     return p;
@@ -320,16 +323,24 @@
     var max = d.disk.reduce(function (m, n) { return Math.max(m, n.used_pct); }, 0);
     var state = max >= 85 ? "bad" : max >= 75 ? "warn" : "ok";
     var p = panel(head(title, state, max >= 75 ? "node over " + (max >= 85 ? 85 : 75) + "%" : "ok"));
-    var box = el("div", "limit");
-    d.disk.forEach(function (n) {
-      var r = el("div", "limit-row");
-      r.appendChild(el("span", null, n.node));
-      var v = el("span", "num"); v.appendChild(el("strong", null, n.used_pct + "%")); v.appendChild(document.createTextNode(" used"));
-      r.appendChild(v); box.appendChild(r);
-      box.appendChild(bar(n.node + ", " + n.used_pct + " percent used", [{ pct: n.used_pct, color: n.used_pct >= 85 ? "var(--bad)" : n.used_pct >= 75 ? "var(--warn)" : "var(--ok)" }]));
-    });
-    p.appendChild(box);
-    p.appendChild(el("span", "muted", "PVC sizes are not enforced, so the node disk is the limit."));
+    var SHOW = 60; // nodes under this are only counted
+    var hot = d.disk.filter(function (n) { return n.used_pct >= SHOW; }).sort(function (x, y) { return y.used_pct - x.used_pct; });
+    if (!hot.length) {
+      p.classList.add("compact");
+      p.appendChild(el("span", "muted", d.disk.length ? "All " + d.disk.length + (d.disk.length === 1 ? " node" : " nodes") + " under " + SHOW + "%, highest " + max + "%" : "No nodes reported."));
+    } else {
+      var box = el("div", "limit");
+      hot.forEach(function (n) {
+        var r = el("div", "limit-row");
+        r.appendChild(el("span", null, n.node));
+        var v = el("span", "num"); v.appendChild(el("strong", null, n.used_pct + "%")); v.appendChild(document.createTextNode(" used"));
+        r.appendChild(v); box.appendChild(r);
+        box.appendChild(bar(n.node + ", " + n.used_pct + " percent used", [{ pct: n.used_pct, color: n.used_pct >= 85 ? "var(--bad)" : n.used_pct >= 75 ? "var(--warn)" : "var(--calm)" }]));
+      });
+      p.appendChild(box);
+      var rest = d.disk.length - hot.length;
+      if (rest) p.appendChild(el("span", "muted", rest + (rest === 1 ? " other node" : " other nodes") + " under " + SHOW + "%"));
+    }
     p.appendChild(src("Prometheus · node_filesystem_* · /var/mnt/local-path-provisioner"));
     return p;
   }
@@ -397,10 +408,13 @@
       var st = age === null || age > 300 ? "bad" : vm.staged_version ? "warn" : behind ? "warn" : "ok";
       if (st === "bad") { worst = "bad"; label = "not reporting"; }
       else if (st === "warn" && worst !== "bad") { worst = "warn"; label = vm.staged_version ? "reboot pending" : "update available"; }
-      var sub = age === null ? "has not reported" : "reported " + ago(age) + " ago";
-      if (vm.staged_version) sub += " · staged " + vm.staged_version;
-      else if (behind) sub += " · newer image " + latest;
-      else if (latest) sub += " · up to date";
+      var bits = [];
+      if (age === null) bits.push("has not reported");
+      else if (age > 120) bits.push("reported " + ago(age) + " ago");
+      if (vm.staged_version) bits.push("staged " + vm.staged_version);
+      else if (behind) bits.push("newer image " + latest);
+      else if (latest) bits.push("up to date");
+      var sub = bits.join(" · ");
       return { title: name, sub: sub, right: el("span", "muted num", vm.booted_version ? vm.booted_version + (vm.booted_digest ? " · " + vm.booted_digest : "") : "unknown") };
     });
     var p = panel(head(title, worst, label));
@@ -425,12 +439,18 @@
     var windows = [["5-hour window", s.five_hour], ["7-day window", s.seven_day]];
     var worst = 0;
     var box = el("div", "limit");
-    windows.forEach(function (w) {
+    var vals = windows.map(function (w) {
+      var x = w[1] || {};
+      return x.used_pct === null || x.used_pct === undefined ? -1 : x.resets_at && x.resets_at < now ? 0 : x.used_pct;
+    });
+    var main = vals.indexOf(Math.max.apply(null, vals)); // only this window gets a bar
+    windows.forEach(function (w, i) {
       var x = w[1] || {};
       var over = x.resets_at && x.resets_at < now;
       var used = x.used_pct === null || x.used_pct === undefined ? null : over ? 0 : x.used_pct;
       if (used !== null) worst = Math.max(worst, used);
       var r = el("div", "limit-row");
+      if (i !== main) r.classList.add("muted");
       r.appendChild(el("span", null, w[0]));
       var v = el("span", "num");
       if (used === null) v.appendChild(document.createTextNode("no data"));
@@ -440,15 +460,15 @@
       }
       r.appendChild(v);
       box.appendChild(r);
-      box.appendChild(bar(w[0] + ", " + (used === null ? "no data" : used + " percent used"), used === null ? [] : [{ pct: used, color: used >= 90 ? "var(--bad)" : used >= 75 ? "var(--warn)" : "var(--ok)" }]));
+      if (i === main) box.appendChild(bar(w[0] + ", " + (used === null ? "no data" : used + " percent used"), used === null ? [] : [{ pct: used, color: used >= 90 ? "var(--bad)" : used >= 75 ? "var(--warn)" : "var(--calm)" }]));
     });
     var state = stale ? "none" : worst >= 90 ? "bad" : worst >= 75 ? "warn" : "ok";
     var p = panel(head(title, state, stale ? "stale" : "peak " + worst + "%"));
     p.appendChild(box);
-    var bits = ["reported " + ago(age) + " ago"];
+    var bits = stale ? ["reported " + ago(age) + " ago"] : [];
     if (s.model) bits.push(s.model);
     if (s.version) bits.push("Claude Code " + s.version);
-    p.appendChild(el("span", "muted", bits.join(" · ") + (stale ? ". Older than 6 hours, so the VM may be idle." : "")));
+    if (bits.length) p.appendChild(el("span", "muted", bits.join(" · ") + (stale ? ". Older than 6 hours, so the VM may be idle." : "")));
     p.appendChild(src("claude-vm status line → cockpit · rate_limits"));
     return p;
   }
@@ -489,9 +509,8 @@
 
   var SEV = { bad: 0, warn: 1, none: 2, ok: 3 };
   function sev(p) {
-    var pl = p.querySelector(".panel-head .pill");
-    var m = pl && /\b(bad|warn|none|ok)\b/.exec(pl.className);
-    return m ? SEV[m[1]] : 2;
+    var h = p.querySelector(".panel-head");
+    return h && h.dataset.state in SEV ? SEV[h.dataset.state] : 2;
   }
   function slug(t) { return "p-" + t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
   // Swap a container's contents in one go. A refresh must not drop keyboard focus, so a focused link is found again by its href.
@@ -514,14 +533,18 @@
     swap(document.getElementById(id), f);
   }
   function chip(c) {
-    var a = el("a", "pill " + c[0], c[1]);
-    a.href = "#" + c[2];
+    var a = el(c[2] ? "a" : "span", "pill " + c[0], c[1]);
+    if (c[2]) a.href = "#" + c[2];
     return a;
   }
   function render(d) {
     sources = {};
     var strip = document.createDocumentFragment();
-    stripChips(d).forEach(function (c) { strip.appendChild(chip(c)); });
+    var all = stripChips(d);
+    var shown = all.filter(function (c) { return c[0] !== "ok"; });
+    shown.forEach(function (c) { strip.appendChild(chip(c)); });
+    var healthy = all.length - shown.length;
+    if (healthy) strip.appendChild(chip(["ok", shown.length ? healthy + " healthy" : "All healthy"]));
     swap(document.getElementById("strip"), strip);
     fill("cluster", [dropsPanel, alertsPanel, fluxPanel, polarisPanel, diskPanel], d);
     fill("homelab", [versionsPanel, usagePanel], d);
@@ -534,6 +557,7 @@
     var banner = document.getElementById("banner");
     banner.hidden = names.length === 0;
     banner.textContent = names.length ? "Some sources did not answer: " + names.join(", ") + "." : "";
+    document.querySelector("main").classList.add("ready");
     var u = document.getElementById("updated");
     u.className = "muted";
     u.textContent = "Updated " + new Date().toLocaleTimeString();
