@@ -23,9 +23,14 @@ spec:
   provider:
     name: github
   skipForks: true
-  # The repositories are listed one by one, never cthtrifork/*. Add the others one at a time (see the README).
+  # The repositories are listed one by one, never cthtrifork/*
   discoveryFilters:
     - cthtrifork/talos-gitops
+    - cthtrifork/github-runner-bootc
+    - cthtrifork/harper-pad
+    - cthtrifork/homeserver-bootc
+    - cthtrifork/kglance
+    - cthtrifork/trivy-dashboard-wail3
   githubAppReference:
     secretName: github-app-credentials
     appIdSecretKey: APP_ID
@@ -38,7 +43,8 @@ spec:
         onboarding: false,
         requireConfig: 'required',
         cachePrivatePackages: true,
-        // The union of the allowedCommands of the repositories above (a repository's own file is repo config here)
+        // The union of the global options of the repositories above (their renovate.json5 is repo config here; the Actions
+        // fallback loads the same global options from .github/workflows/renovate-config.js)
         allowedCommands: [
           '^scripts/update-htmx\\.sh [0-9]+\\.[0-9]+\\.[0-9]+$',
           '^scripts/podman-checksums\\.sh$',
