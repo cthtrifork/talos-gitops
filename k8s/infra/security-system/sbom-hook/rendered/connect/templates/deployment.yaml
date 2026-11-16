@@ -43,7 +43,7 @@ spec:
               drop:
                 - ALL
             readOnlyRootFilesystem: true
-          image: "mirror.gcr.io/redpandadata/connect:4.117.0@sha256:b6df7ca0c506578c8cc8b0cd223c117366bbeac84365f95944d339f0165b551c"
+          image: "mirror.gcr.io/redpandadata/connect:4.118.0@sha256:2c6dd2fe757eaa588eeee90376ec2220a5d1731940d71a2005d8b249296dd2be"
           imagePullPolicy: IfNotPresent
           args:
             - -c
