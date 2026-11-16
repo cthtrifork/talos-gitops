@@ -1,0 +1,50 @@
+name: Lint Redpanda Connect
+
+# Lints every Redpanda Connect pipeline in the repo (the cockpit, elevate, urlshare, usage and vm-upgrade pages and the sbom-hook) with the same
+# linter as `rpk connect lint`, run from the pinned Connect image the pods use. It only runs when the PR changes one of those files; a manual run
+# always lints them all. The lint reads the files as written, before Flux or kustomize touch them.
+on:
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: lint-redpanda-connect-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  CONNECT_VERSION: "4.118.0" # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint Connect pipelines
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Get changed Redpanda Connect files
+        id: changed
+        if: github.event_name == 'pull_request'
+        uses: step-security/changed-files@2e07db73e5ccdb319b9a6c7766bd46d39d304bad # v47.0.5
+        with:
+          files: |
+            **/redpanda-connect.yaml
+          files_ignore: |
+            **/rendered/**
+      - name: Lint all Redpanda Connect files
+        if: github.event_name == 'workflow_dispatch' || steps.changed.outputs.any_changed == 'true'
+        run: |
+          mapfile -t files < <(git ls-files '*redpanda-connect.yaml' | grep -v '/rendered/')
+          [ "${#files[@]}" -gt 0 ] || { echo "::error::no redpanda-connect.yaml found"; exit 1; }
+          printf 'Linting %s\n' "${files[@]}"
+          docker run --rm --volume "${PWD}:/repo:ro" --workdir /repo \
+            "mirror.gcr.io/redpandadata/connect:${CONNECT_VERSION}" lint "${files[@]}"
+      - name: Nothing to lint
+        if: github.event_name == 'pull_request' && steps.changed.outputs.any_changed != 'true'
+        run: echo "No Redpanda Connect file changed in this PR."
