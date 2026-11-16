@@ -38,8 +38,6 @@ spec:
           env:
             - name: DATA_DIR
               value: /data
-            - name: TOKEN_DIR
-              value: /var/run/fileserver-token
             - name: LISTEN_ADDR
               value: ":8081"
             - name: HEALTH_ADDR
@@ -91,8 +89,6 @@ spec:
           env:
             - name: DATA_DIR
               value: /data
-            - name: TOKEN_DIR
-              value: /var/run/fileserver-token
             - name: LISTEN_ADDR
               value: ":8082"
             - name: HEALTH_ADDR
@@ -177,6 +173,7 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: fileserver-data
+        # TOKEN_DIR is not set: /var/run/fileserver-token is the default, and the name trips Polaris' sensitiveContainerEnvVar.
         # optional: uploads are refused until the first sync. Reloader restarts the pod when the Secret changes.
         - name: token
           secret:

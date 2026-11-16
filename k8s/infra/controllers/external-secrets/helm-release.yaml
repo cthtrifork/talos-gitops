@@ -29,6 +29,10 @@ spec:
         memory: 64Mi
       limits:
         memory: 256Mi
+    livenessProbe:
+      enabled: true
+    readinessProbe:
+      enabled: true
     webhook:
       image:
         # renovate: datasource=docker depName=ghcr.io/external-secrets/external-secrets versioning=docker
@@ -39,6 +43,8 @@ spec:
           memory: 32Mi
         limits:
           memory: 128Mi
+      livenessProbe:
+        enabled: true
     certController:
       image:
         # renovate: datasource=docker depName=ghcr.io/external-secrets/external-secrets versioning=docker
@@ -49,3 +55,5 @@ spec:
           memory: 64Mi
         limits:
           memory: 128Mi
+      livenessProbe:
+        enabled: true
