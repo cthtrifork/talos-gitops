@@ -350,9 +350,7 @@ spec:
             - port: "443"
               protocol: TCP
 ---
-# Cockpit. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node); claude-rc has no
-# ingress rule. Prometheus reaches only the metrics port (the pod does not carry the prometheus-scrape label, whose cluster-wide rule also
-# opens 8080). Egress is the five things it reads: Prometheus (queries and alerts), the Polaris dashboard (/results.json), the API server, api.github.com and the vm-upgrade pod.
+# Cockpit: the Omni exposer (host, remote-node) on 8080, Prometheus on the metrics port only, the Claude VM on 8081.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -378,7 +376,7 @@ spec:
         - ports:
             - port: "4195"
               protocol: TCP
-    # The Claude VM's status line (192.168.1.138) posts its session data to 8081 through claude-cockpit-lb. The address is the only check.
+    # the Claude VM status line, through claude-cockpit-lb; the address is the only check
     - fromCIDR:
         - 192.168.1.138/32 # claude-vm
       toPorts:

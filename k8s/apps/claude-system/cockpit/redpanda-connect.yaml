@@ -1,40 +1,19 @@
 ---
-# The cockpit page and its read-only JSON API. One GET answers everything: the status calls Prometheus, Polaris and the Kubernetes API in parallel
-# with fixed paths and queries (nothing from the request is put into a query), and each section is filled by its own branch, so a source that
-# is down leaves its section out and the page shows it as unavailable. There is no POST and no state.
-#
-# GET /                 the page
-# GET /healthz          ok
-# GET /api/v1/status    drops_total, drops_series, drops_top, alerts, disk, polaris, flux_ks, flux_hr, github, renovate, vm_upgrade, sessions; meta.workflow.failed lists the branches that failed
-#
-# Two listeners:
-#   :8080  ui      the page and the GETs above               Omni service exposer (Omni login)
-#   :8081  ingest  the Claude VM's session data              MetalLB, LAN only, the NetworkPolicy lets in the VM's address only
-# ingest POST /api/v1/sessions/<vm>   the VM's status line sends what Claude Code tells it (rate limits, model, version, context use). Only the
-#   fields below are kept, as numbers clamped to their range or short plain strings, for 24 hours, in memory: a pod restart empties it until the
-#   VM sends again. <vm> is one of the names in `vm_names`. There is no authentication: the address is the only check, so a host that spoofs it
-#   could only change what the page shows. Nothing in the body is ever put in a query, a path or a command.
-# The VM versions come from the vm-upgrade pod (GET /api/v1/status), which already holds what each VM last reported.
-#
-# The Kubernetes API is read with the pod's own token (claude-cockpit ClusterRole: get and list on the Flux Kustomizations, HelmReleases and Renovate projects).
-# GitHub is read with the cockpit's own one-hour App token (githubaccesstoken.yaml, externalsecret.yaml), mounted at /etc/github/token; one search call returns the open pull requests and issues.
-# Not a Flux template (configMapGenerator disables postBuild envsubst); ${PROM_URL:default} is Redpanda Connect's own.
+# Cockpit page and read-only status API; architecture in the README. Not a Flux template (configMapGenerator disables postBuild envsubst).
+# The ingest listener (:8081) has no authentication: the NetworkPolicy lets in the Claude VM only, and a spoofed sender could only change what the page shows.
 http:
   enabled: true
   address: 0.0.0.0:4195
   debug_endpoints: false
 
-# the pod's token rotates, so it is read from the file on every request
 cache_resources:
   - label: serviceaccount
     file:
       directory: /var/run/secrets/kubernetes.io/serviceaccount
-  # the GitHub token is refreshed every 30 minutes, so it is read from the file on every request too
   - label: githubtoken
     file:
       directory: /etc/github
 
-  # in-memory state: "session:<vm>" holds what the VM's status line last sent
   - label: state
     memory:
       default_ttl: 24h
@@ -75,7 +54,6 @@ input:
 pipeline:
   processors:
     - switch:
-        # everything on the VM's listener, whatever the path, goes to the ingest handler (which answers 404 to what it does not know)
         - check: '@listener == "ingest"'
           processors:
             - resource: ingest_api
@@ -105,8 +83,6 @@ output:
   sync_response: {}
 
 processor_resources:
-  # The VM's listener: POST /api/v1/sessions/<vm> with the status line JSON. Keeps a few fields, numbers clamped and strings cut to plain
-  # characters, and stores them under session:<vm> with the time they arrived.
   - label: ingest_api
     switch:
       - check: '@http_server_request_path == "/healthz"'
@@ -154,7 +130,6 @@ processor_resources:
               meta status = "404"
               root = {"error": "not found"}
 
-  # puts the pod's token in the metadata field `token`; kube_get sends it
   - label: login
     branch:
       request_map: 'root = ""'
@@ -165,7 +140,6 @@ processor_resources:
             key: token
       result_map: 'meta token = content().string().trim()'
 
-  # The caller sets the metadata field `path`
   - label: kube_get
     http:
       url: 'https://kubernetes.default.svc${! @path }'
@@ -177,7 +151,6 @@ processor_resources:
         enabled: true
         root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
-  # puts the GitHub token in the metadata field `gh_token`; github_get sends it
   - label: github_login
     branch:
       request_map: 'root = ""'
@@ -188,7 +161,6 @@ processor_resources:
             key: token
       result_map: 'meta gh_token = content().string().trim()'
 
-  # The caller sets the metadata field `path`
   - label: github_get
     http:
       url: 'https://api.github.com${! @path }'
@@ -206,7 +178,6 @@ processor_resources:
       verb: GET
       timeout: 10s
 
-  # Ready, reconciling, suspended and failed counts of a list of Flux objects, and what is wrong with the ones that are not ready
   - label: flux_summary
     mapping: |
       let items = this.items.or([]).map_each(i -> {
@@ -224,8 +195,7 @@ processor_resources:
       root.failed = $items.filter(i -> i.state == "failed").length()
       root.problems = $items.filter(i -> i.state == "failed" || i.state == "reconciling").sort_by(i -> i.state + i.namespace + i.name).slice(0, 8).map_each(i -> {"namespace": i.namespace, "name": i.name, "state": i.state, "message": i.message})
 
-  # GET /api/v1/status. The branches have no dependencies on each other, so they run in parallel. A branch that fails (its source is down) is
-  # left out and named in meta.workflow.failed; the catch clears the error flag so the rest is still answered.
+  # a failed branch is left out and named in meta.workflow.failed; the catch clears the error flag so the rest is still answered
   - label: status
     processors:
       - mapping: 'root = {"generated_at": now().ts_unix()}'
@@ -326,8 +296,6 @@ processor_resources:
                 - resource: flux_summary
               result_map: 'root.flux_hr = this'
 
-            # One search returns the open pull requests and issues of both repositories (public, so the token only lifts the rate limit).
-            # Renovate's pull requests are the ones whose author is the Renovate App; the Dependency Dashboard issue is left out.
             github:
               request_map: |
                 let q = "is:open repo:cthtrifork/talos-gitops repo:cthtrifork/homeserver-bootc"
@@ -356,7 +324,6 @@ processor_resources:
                     root.issues = {"count": $issues.length(), "items": $issues.slice(0, 5)}
               result_map: 'root.github = this'
 
-            # What the VMs run and when they last polled: the vm-upgrade pod already holds it (its page listener, in the cluster)
             vm_upgrade:
               request_map: 'root = ""'
               processors:
@@ -366,7 +333,6 @@ processor_resources:
                     timeout: 10s
               result_map: 'root.vm_upgrade = this'
 
-            # What the Claude VM's status line sent last: {} when nothing, or nothing in the last 24 hours
             sessions:
               request_map: 'root = ""'
               processors:

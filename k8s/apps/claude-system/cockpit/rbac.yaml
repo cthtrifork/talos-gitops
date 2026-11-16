@@ -1,4 +1,3 @@
-# The cockpit page reads the state of the Flux objects and the Renovate projects with its own token: get and list on those kinds, nothing else (no Secrets, no write verbs).
 ---
 apiVersion: v1
 kind: ServiceAccount

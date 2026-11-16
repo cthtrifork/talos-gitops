@@ -1,7 +1,4 @@
-# The cockpit's own GitHub token, so it never shares the runner's. The GithubAccessToken generator (same App as githubaccesstoken.yaml) trades a signed
-# JWT for a one-hour installation token, here narrowed to reading pull requests (the search and list calls need nothing else; both repositories are public)
-# on the two repositories the page shows. External Secrets writes it into the Secret `claude-cockpit-github-token` every 30 minutes and the pod
-# reads the file /etc/github/token on every request, so the kubelet's in-place refresh needs no restart.
+# Narrowed to reading pull requests on the two repositories the page shows.
 ---
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: GithubAccessToken

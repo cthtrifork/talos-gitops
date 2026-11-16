@@ -6,7 +6,6 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <title>Cockpit</title>
 <style>
-  /* Same tokens as usage/index.html. Status colors are separate from the accent. */
   :root {
     color-scheme: light;
     --page: #f4f4f1; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #7c7a74;
@@ -168,7 +167,6 @@
     return Math.round(sec / 3600) + " h";
   }
 
-  // --- panels ---
   function dropsPanel(d) {
     var title = "Dropped traffic, last hour";
     if (d.drops_total === undefined) return unavailable(title, "Prometheus · hubble_drop_total · POLICY_DENIED");
@@ -451,7 +449,6 @@
     return chips;
   }
 
-  // --- page ---
   function render(d) {
     var strip = document.getElementById("strip");
     strip.textContent = "";

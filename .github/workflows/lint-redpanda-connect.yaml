@@ -1,8 +1,6 @@
 name: Lint Redpanda Connect
 
-# Lints every Redpanda Connect pipeline in the repo (the cockpit, elevate, urlshare, usage and vm-upgrade pages and the sbom-hook) with the same
-# linter as `rpk connect lint`, run from the pinned Connect image the pods use. It only runs when the PR changes one of those files; a manual run
-# always lints them all. The lint reads the files as written, before Flux or kustomize touch them.
+# Lints every redpanda-connect.yaml when one changes in the PR; a manual run lints them all.
 on:
   workflow_dispatch:
   pull_request:
@@ -43,8 +41,7 @@ jobs:
           mapfile -t files < <(git ls-files '*/redpanda-connect.yaml' | grep -v '/rendered/')
           [ "${#files[@]}" -gt 0 ] || { echo "::error::no redpanda-connect.yaml found"; exit 1; }
           printf 'Linting %s\n' "${files[@]}"
-          # The pages read /etc/connect/index.html with file(), which the linter resolves, so an empty page stands in for it.
-          # Environment variables (Flux and Connect interpolations) are not checked: they are set in the cluster.
+          # the pipelines read /etc/connect/index.html with file(); an empty page stands in for it
           : > "${RUNNER_TEMP}/index.html"
           docker run --rm --volume "${PWD}:/repo:ro" --volume "${RUNNER_TEMP}/index.html:/etc/connect/index.html:ro" --workdir /repo \
             "mirror.gcr.io/redpandadata/connect:${CONNECT_VERSION}" lint --skip-env-var-check "${files[@]}"
