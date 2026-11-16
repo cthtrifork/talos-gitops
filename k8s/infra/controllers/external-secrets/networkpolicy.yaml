@@ -1,5 +1,5 @@
 # Default deny both ways for the namespace, then DNS and the Kubernetes API. The controller also needs api.github.com:443
-# for the GithubAccessToken generator (k8s/apps/claude-system/external-secrets.yaml); the Kubernetes provider is only the
+# for the GithubAccessToken generator (k8s/apps/claude-system/githubaccesstoken.yaml); the Kubernetes provider is only the
 # API server. The webhook is called by the API server on the pod port 10250.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json

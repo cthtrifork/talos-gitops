@@ -4,23 +4,32 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - rbac.yaml
-  - rbac-elevated.yaml
+  - clusterrole-elevated.yaml
   - networkpolicy.yaml
   - pvc.yaml
   - deployment.yaml
-  - external-secrets.yaml
+  - githubaccesstoken.yaml
+  - externalsecret.yaml
   - claude-github-app.enc.yaml
   - ghcr-pull.enc.yaml
   - claude-cloudflare.enc.yaml
   - omni-service-account.enc.yaml
-  - usage/deployment-service-podmonitor.yaml
-  - vm-upgrade/deployment-service-podmonitor.yaml
-  - urlshare/deployment-service-podmonitor.yaml
+  - usage/deployment.yaml
+  - usage/service.yaml
+  - usage/podmonitor.yaml
+  - vm-upgrade/deployment.yaml
+  - vm-upgrade/service.yaml
+  - vm-upgrade/podmonitor.yaml
+  - urlshare/deployment.yaml
+  - urlshare/service.yaml
+  - urlshare/podmonitor.yaml
   - elevate/rbac.yaml
   - elevate/configmap.yaml
-  - elevate/admission.yaml
+  - elevate/validatingadmissionpolicy.yaml
+  - elevate/validatingadmissionpolicybinding.yaml
   - elevate/deployment.yaml
-  - elevate/service-podmonitor.yaml
+  - elevate/service.yaml
+  - elevate/podmonitor.yaml
 configMapGenerator:
   - name: claude-usage-connect-config
     namespace: claude-system

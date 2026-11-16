@@ -7,16 +7,17 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | File | What |
 |---|---|
 | `rbac.yaml` | ServiceAccount `claude`; built-in `view` (no Secrets) plus read-only access to nodes, storage, CRDs and the CRD groups in use (including MetalLB, the ARC runner resources and the trivy-operator reports). No write verbs, no `pods/exec` |
-| `rbac-elevated.yaml` | The break-glass ClusterRoles `claude-ops`, `claude-debug` and `claude-storage`; nothing binds them by default |
+| `clusterrole-elevated.yaml` | The break-glass ClusterRoles `claude-ops`, `claude-debug` and `claude-storage`; nothing binds them by default |
 | `elevate/` | The "Elevate Claude" page (below): a Redpanda Connect pod, its RBAC, limits and admission policies |
 | `networkpolicy.yaml` | Cilium default deny, then DNS, the Kubernetes API and TCP 443 to the hosts Claude Code needs |
-| `external-secrets.yaml` | External Secrets `GithubAccessToken` generator + ExternalSecret that mint a one-hour GitHub App installation token into `claude-github-token` every 30 minutes |
+| `githubaccesstoken.yaml` | External Secrets `GithubAccessToken` generator |
+| `externalsecret.yaml` | ExternalSecret that writes the one-hour GitHub App installation token into `claude-github-token` every 30 minutes |
 | `deployment.yaml` | `claude-rc`: idles until a login exists, then runs `claude remote-control`; non-root, read-only root filesystem |
 | `claude-md/CLAUDE.md` | The only `CLAUDE.md` (user-level and repo notes together), generated into the `claude-md` ConfigMap by `kustomization.yaml` and symlinked to `~/.claude/CLAUDE.md` at pod start. Edit it in Git; the ConfigMap name hash rolls the pod |
 | `claude-md/skills/<name>/SKILL.md` | Task-specific runbooks split out of `CLAUDE.md`, generated into the `claude-skills` ConfigMap and mounted at `/etc/claude-skills` (items map each key to `<name>/SKILL.md`); each is symlinked into `~/.claude/skills/` at pod start |
-| `usage/` | Usage page and JSON API out: `usage.yaml` (a second Redpanda Connect), `redpanda-connect.yaml` (PromQL behind each endpoint), `index.html` (the page) |
-| `vm-upgrade/` | "Update VMs" buttons (claude-vm and homeserver): `vm-upgrade.yaml` (a third Redpanda Connect), `redpanda-connect.yaml` (a flag per VM, two listeners), `index.html` (the page) |
-| `urlshare/` | Approval-gated URL sharing: `urlshare.yaml` (a fourth Redpanda Connect), `redpanda-connect.yaml` (requests, fetch, TTL), `index.html` (the approval page) |
+| `usage/` | Usage page and JSON API out: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml` for the Redpanda Connect; `redpanda-connect.yaml` (PromQL behind each endpoint), `index.html` (the page) |
+| `vm-upgrade/` | "Update VMs" buttons (claude-vm and homeserver): `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (a flag per VM, two listeners), `index.html` (the page) |
+| `urlshare/` | Approval-gated URL sharing: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (requests, fetch, TTL), `index.html` (the approval page) |
 | `pvc.yaml` | 5Gi volume holding the login (`/home/claude`); delete it to sign out |
 | `../../../images/claude-runner/` | Image: Anthropic publishes none, so this wraps the `claude` binary (checksum verified) plus `kubectl`, `gh`, `crane`, `talosctl`, `omnictl`, the Flux MCP server and a git credential helper |
 
@@ -33,9 +34,9 @@ The pod reads a token from the Secret `claude-github-token` and hands it to git 
 (the image's `gh` wrapper reads the same file, so the pod can push branches and open PRs; `api.github.com` is in the egress allowlist). A GitHub App keeps that Secret
 fresh, with a token that expires every hour.
 
-`external-secrets.yaml` has External Secrets sign a JWT with the App's private key and exchange it for a
+`githubaccesstoken.yaml` has External Secrets sign a JWT with the App's private key and exchange it for a
 one-hour installation token, with everything the App was granted on the repositories it is installed on (the request is not narrowed,
-so scope it in the App's settings). The pod holds only that short-lived token.
+so scope it in the App's settings). `externalsecret.yaml` writes that short-lived token to the Secret mounted by the pod.
 
 1. Create the App (GitHub: Settings > Developer settings > GitHub Apps > New). Repository permissions:
    **Contents: read and write**, **Pull requests: read and write**, **Workflows: read and write**,
@@ -182,7 +183,7 @@ only the endpoint and the environment name differ:
 
 ### Usage page and API
 
-`usage/deployment-service-podmonitor.yaml` deploys a Redpanda Connect that holds no data: every request becomes PromQL against Prometheus.
+`usage/deployment.yaml` deploys a Redpanda Connect that holds no data: every request becomes PromQL against Prometheus.
 It is exposed through the Omni service exposer (`omni-kube-service-exposer.sidero.dev/*` on `Service/claude-usage`, port
 50091, plain HTTP, LAN only, read-only, aggregates only).
 

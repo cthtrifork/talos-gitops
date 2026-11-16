@@ -40,24 +40,3 @@ spec:
     sourceCriterion:
       # the real client address as set by Cloudflare; every request arrives from the tunnel
       requestHeaderName: Cf-Connecting-Ip
----
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
-  name: harper-pad-sync
-  namespace: harper-pad
-spec:
-  entryPoints:
-    - web
-  routes:
-    - kind: Rule
-      # The probes are on the pod's port 9102, which is not routed. /readyz stays excluded as a second line of defence for an image that
-      # still serves it on :9000.
-      match: Host(`harper-sync.portableinfo.cloud`) && !Path(`/readyz`)
-      middlewares:
-        - name: sync-headers
-        - name: sync-ratelimit
-        - name: sync-bodylimit
-      services:
-        - name: harper-pad-sync
-          port: http

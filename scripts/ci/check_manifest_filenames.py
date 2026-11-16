@@ -14,12 +14,6 @@ ALIASES = {
     "PodDisruptionBudget": {"pdb"},
 }
 GROUPED_FILENAMES = {
-    "admission": {"ValidatingAdmissionPolicy", "ValidatingAdmissionPolicyBinding"},
-    "external-secrets": {"ExternalSecret", "GithubAccessToken"},
-    "helm-release": {"HelmRelease", "PersistentVolumeClaim"},
-    "helm-release-podman": {"HelmRelease", "ConfigMap"},
-    "ingressroute": {"IngressRoute", "Middleware"},
-    "postgres-certificates": {"Certificate", "Issuer"},
     "rbac": {
         "ClusterRole",
         "ClusterRoleBinding",
@@ -46,6 +40,14 @@ def filename_matches_kind(filename: str, kind: str) -> bool:
     return any(normalize(name) in normalized_stem for name in accepted_names)
 
 
+def check_kinds(filename: str, kinds: set[str]) -> list[str]:
+    if len(kinds) > 1:
+        allowed_kinds = GROUPED_FILENAMES.get(Path(filename).stem)
+        if allowed_kinds is None or not kinds <= allowed_kinds:
+            return sorted(kinds)
+    return sorted(kind for kind in kinds if not filename_matches_kind(filename, kind))
+
+
 def manifest_files(root: Path):
     for path in sorted(root.rglob("*")):
         if path.suffix not in {".yaml", ".yml"}:
@@ -68,7 +70,7 @@ def check_file(path: Path) -> list[str]:
 
     if not kinds:
         return []
-    return sorted(kind for kind in kinds if not filename_matches_kind(path.name, kind))
+    return check_kinds(path.name, kinds)
 
 
 def main() -> int:
@@ -76,11 +78,14 @@ def main() -> int:
     for path in manifest_files(APP_ROOT):
         mismatched_kinds = check_file(path)
         if mismatched_kinds:
-            print(
-                f"ERROR: {path} filename does not identify resource kind(s): "
-                f"{', '.join(mismatched_kinds)}",
-                file=sys.stderr,
-            )
+            if len(mismatched_kinds) > 1:
+                message = (
+                    f"combines resource kinds ({', '.join(mismatched_kinds)}); "
+                    "split them into separate files or use the approved rbac.yaml grouping"
+                )
+            else:
+                message = f"filename does not identify resource kind: {mismatched_kinds[0]}"
+            print(f"ERROR: {path} {message}", file=sys.stderr)
             failed = True
     return 1 if failed else 0
 

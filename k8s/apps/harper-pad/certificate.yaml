@@ -19,16 +19,6 @@ spec:
     name: portableinfo-pmx01-root-ca-bootstrap
     kind: ClusterIssuer
 ---
-# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/issuer_v1.json
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: harper-pad-db-ca
-  namespace: harper-pad
-spec:
-  ca:
-    secretName: harper-pad-db-ca
----
 # Server certificate for the CNPG cluster services.
 apiVersion: cert-manager.io/v1
 kind: Certificate

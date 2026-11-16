@@ -25,22 +25,3 @@ spec:
       secretRef:
         name: claude-github-app
         key: private-key.pem
----
-# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/external-secrets.io/externalsecret_v1.json
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: claude-github-token
-  namespace: claude-system
-spec:
-  # GitHub tokens expire after 60 minutes: keep this well below
-  refreshInterval: 30m
-  target:
-    name: claude-github-token
-    creationPolicy: Owner
-  dataFrom:
-    - sourceRef:
-        generatorRef:
-          apiVersion: generators.external-secrets.io/v1alpha1
-          kind: GithubAccessToken
-          name: claude-github-token
