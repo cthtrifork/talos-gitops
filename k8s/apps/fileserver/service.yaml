@@ -1,18 +1,4 @@
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: fileserver-public
-  namespace: fileserver-system
-spec:
-  type: ClusterIP
-  selector:
-    app: fileserver
-  ports:
-    - name: http
-      port: 8080
-      targetPort: public
----
 # Reached through the Omni service exposer.
 apiVersion: v1
 kind: Service

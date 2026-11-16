@@ -13,8 +13,6 @@ spec:
     matchLabels:
       app: fileserver
   podMetricsEndpoints:
-    - port: m-public
-      path: /metrics
     - port: m-admin
       path: /metrics
     - port: m-upload

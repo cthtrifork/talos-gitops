@@ -1,12 +1,13 @@
 # fileserver
 
-Public downloads, an admin page and a CI upload API in one pod. The app: `images/fileserver/README.md`.
+An admin page and a CI upload API in one pod. Public downloads are served by Cloudflare R2. The app: `images/fileserver/README.md`.
 
 | Port | Service | Reached by |
 |---|---|---|
-| 8080 public | `fileserver-public` | Traefik, `files.portableinfo.cloud` (read-only `public/`) |
 | 8081 admin | `fileserver-admin` | the Omni exposer, prefix `files` |
 | 8082 upload | `fileserver-upload` | the ARC runners only |
+
+Downloads: `https://shared-files.portableinfo.cloud/<name>`, the R2 bucket `homeserver-files` (a Cloudflare custom domain, no tunnel, no Traefik).
 
 ## Downloads from R2
 
@@ -20,10 +21,8 @@ the pod, Traefik or the node disk. It stays idle until the Secret `fileserver-r2
    Reloader restarts the pod. The pod is the source of truth: a file deleted or made private here disappears from the bucket
    within a minute or two. A sync that would delete more than 50 files fails (`--max-delete 50`) and is retried; raise it for a bulk clean-up.
 3. Check `kubectl -n fileserver-system logs deploy/fileserver -c r2-sync` until the first sync has finished.
-4. Cut over: bucket > Settings > Custom domains > add `shared-files.portableinfo.cloud` (it can run next to the tunnel hostname
-   `files.portableinfo.cloud`, so compare both, then remove the tunnel hostname). Add a
-   WAF rate-limiting rule and a Transform Rule for HSTS (the Traefik middlewares no longer apply). A follow-up PR removes the
-   `public` container, the `fileserver-public` Service and the IngressRoute, and points `PUBLIC_URL` at the new host.
+4. Cloudflare: bucket > Settings > Custom domains > `shared-files.portableinfo.cloud`, a WAF rate-limiting rule and a Transform Rule for
+   HSTS and `nosniff` (what the Traefik middlewares used to do).
 
 ## Upload token
 
@@ -35,7 +34,7 @@ a rotation fails and is retried. The admin page shows the token.
 
 ## First deploy
 
-1. Cloudflare Zero Trust > Networks > Tunnels > the Traefik tunnel > Public hostname: `files.portableinfo.cloud` to `HTTP localhost:8000`.
+1. Set up the R2 bucket as described above.
 2. The token needs no action: External Secrets creates it on the first sync. To rotate it now, delete the key `current`
    in the Secret `secret-store/fileserver-upload-token`, or wait for the next 30 days.
 
