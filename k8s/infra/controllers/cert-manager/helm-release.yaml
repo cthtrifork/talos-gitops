@@ -22,6 +22,9 @@ spec:
       tag: v1.21.3@sha256:9f4f96a33c7774cef24466fcd85031997531a03a8d117f151126baa8d1290dcc
     crds:
       enabled: true
+    # Metrics (9402) are scraped by label, see k8s/infra/kube-prometheus-stack/networkpolicy.yaml
+    podLabels:
+      prometheus-scrape: "true"
     resources:
       requests:
         cpu: 50m
@@ -29,6 +32,8 @@ spec:
       limits:
         memory: 256Mi
     webhook:
+      podLabels:
+        prometheus-scrape: "true"
       # the API server calls this on every cert-manager resource write: keep it up while a node drains
       replicaCount: 2
       podDisruptionBudget:
@@ -64,6 +69,8 @@ spec:
           cpu: 50m
           memory: 32Mi
     cainjector:
+      podLabels:
+        prometheus-scrape: "true"
       image:
         # renovate: datasource=docker depName=quay.io/jetstack/cert-manager-cainjector versioning=docker
         tag: v1.21.3@sha256:083d0e906f8eb44e255fe4ff817ae54e49f9ed82e22f1011bb4e9e4f4b8a641f
@@ -74,9 +81,9 @@ spec:
         limits:
           memory: 256Mi
     prometheus:
-      enabled: false
+      enabled: true
       servicemonitor:
-        enabled: false
+        enabled: true
     podDisruptionBudget:
       enabled: false
       maxUnavailable: 1
