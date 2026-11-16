@@ -40,11 +40,14 @@ jobs:
       - name: Lint all Redpanda Connect files
         if: github.event_name == 'workflow_dispatch' || steps.changed.outputs.any_changed == 'true'
         run: |
-          mapfile -t files < <(git ls-files '*redpanda-connect.yaml' | grep -v '/rendered/')
+          mapfile -t files < <(git ls-files '*/redpanda-connect.yaml' | grep -v '/rendered/')
           [ "${#files[@]}" -gt 0 ] || { echo "::error::no redpanda-connect.yaml found"; exit 1; }
           printf 'Linting %s\n' "${files[@]}"
-          docker run --rm --volume "${PWD}:/repo:ro" --workdir /repo \
-            "mirror.gcr.io/redpandadata/connect:${CONNECT_VERSION}" lint "${files[@]}"
+          # The pages read /etc/connect/index.html with file(), which the linter resolves, so an empty page stands in for it.
+          # Environment variables (Flux and Connect interpolations) are not checked: they are set in the cluster.
+          : > "${RUNNER_TEMP}/index.html"
+          docker run --rm --volume "${PWD}:/repo:ro" --volume "${RUNNER_TEMP}/index.html:/etc/connect/index.html:ro" --workdir /repo \
+            "mirror.gcr.io/redpandadata/connect:${CONNECT_VERSION}" lint --skip-env-var-check "${files[@]}"
       - name: Nothing to lint
         if: github.event_name == 'pull_request' && steps.changed.outputs.any_changed != 'true'
         run: echo "No Redpanda Connect file changed in this PR."
