@@ -4,4 +4,5 @@ kind: Kustomization
 resources:
   - garage/
   - renovatejob.yaml
+  - prometheusrule.yaml
   - github-app-credentials.enc.yaml

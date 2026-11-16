@@ -104,7 +104,7 @@ spec:
             - name: POD_LABEL_TEMPLATES
               value: "{\"renovate-job\":\"true\"}"
             - name: LOG_STORE_MODE
-              value: "disabled"
+              value: "valkey"
             - name: S3_BUCKET
               value: "renovate"
             - name: S3_REGION
