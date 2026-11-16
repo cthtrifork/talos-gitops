@@ -65,12 +65,20 @@ spec:
             - name: kube-api-access
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
               readOnly: true
+            - name: github-token
+              mountPath: /etc/github
+              readOnly: true
       volumes:
         - name: tmp
           emptyDir: {}
         - name: config
           configMap:
             name: claude-cockpit-connect-config
+        - name: github-token
+          secret:
+            secretName: claude-cockpit-github-token # minted by github-token.yaml
+            optional: true
+            defaultMode: 0400
         - name: kube-api-access
           projected:
             sources:

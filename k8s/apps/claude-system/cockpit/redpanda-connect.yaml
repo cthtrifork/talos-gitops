@@ -5,9 +5,10 @@
 #
 # GET /                 the page
 # GET /healthz          ok
-# GET /api/v1/status    drops_total, drops_series, drops_top, alerts, disk, polaris, flux_ks, flux_hr; meta.workflow.failed lists the branches that failed
+# GET /api/v1/status    drops_total, drops_series, drops_top, alerts, disk, polaris, flux_ks, flux_hr, github, renovate; meta.workflow.failed lists the branches that failed
 #
-# The Kubernetes API is read with the pod's own token (claude-cockpit ClusterRole: get and list on the Flux Kustomizations and HelmReleases).
+# The Kubernetes API is read with the pod's own token (claude-cockpit ClusterRole: get and list on the Flux Kustomizations, HelmReleases and Renovate projects).
+# GitHub is read with the cockpit's own one-hour App token (github-token.yaml), mounted at /etc/github/token; one search call returns the open pull requests and issues.
 # Not a Flux template (configMapGenerator disables postBuild envsubst); ${PROM_URL:default} is Redpanda Connect's own.
 http:
   enabled: true
@@ -19,6 +20,10 @@ cache_resources:
   - label: serviceaccount
     file:
       directory: /var/run/secrets/kubernetes.io/serviceaccount
+  # the GitHub token is refreshed every 30 minutes, so it is read from the file on every request too
+  - label: githubtoken
+    file:
+      directory: /etc/github
 
 input:
   http_server:
@@ -82,6 +87,29 @@ processor_resources:
       tls:
         enabled: true
         root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  # puts the GitHub token in the metadata field `gh_token`; github_get sends it
+  - label: github_login
+    branch:
+      request_map: 'root = ""'
+      processors:
+        - cache:
+            resource: githubtoken
+            operator: get
+            key: token
+      result_map: 'meta gh_token = content().string().trim()'
+
+  # The caller sets the metadata field `path`
+  - label: github_get
+    http:
+      url: 'https://api.github.com${! @path }'
+      verb: GET
+      headers:
+        Authorization: 'Bearer ${! @gh_token }'
+        Accept: application/vnd.github+json
+        X-GitHub-Api-Version: "2022-11-28"
+        User-Agent: claude-cockpit
+      timeout: 10s
 
   - label: prom_get
     http:
@@ -208,6 +236,58 @@ processor_resources:
                 - resource: kube_get
                 - resource: flux_summary
               result_map: 'root.flux_hr = this'
+
+            # One search returns the open pull requests and issues of both repositories (public, so the token only lifts the rate limit).
+            # Renovate's pull requests are the ones whose author is the Renovate App; the Dependency Dashboard issue is left out.
+            github:
+              request_map: |
+                let q = "is:open repo:cthtrifork/talos-gitops repo:cthtrifork/homeserver-bootc"
+                meta path = "/search/issues?q=" + $q.escape_url_query() + "&per_page=100&sort=updated&order=desc"
+                root = ""
+              processors:
+                - resource: github_login
+                - resource: github_get
+                - mapping: |
+                    let items = this.items.or([]).map_each(i -> {
+                      "number": i.number,
+                      "title": i.title.or("").slice(0, 120),
+                      "author": i.user.login.or("unknown"),
+                      "url": i.html_url.or(""),
+                      "repo": i.repository_url.or("unknown").split("/").index(-1),
+                      "updated": i.updated_at.or(""),
+                      "pr": i.pull_request != null,
+                      "renovate": i.user.login.or("").lowercase().contains("renovate")
+                    })
+                    let other = $items.filter(i -> i.pr && !i.renovate)
+                    let renovate = $items.filter(i -> i.pr && i.renovate)
+                    let issues = $items.filter(i -> !i.pr && i.title != "Dependency Dashboard")
+                    root.truncated = this.total_count.or(0) > 100
+                    root.other = {"count": $other.length(), "items": $other.slice(0, 5)}
+                    root.renovate = {"count": $renovate.length(), "items": $renovate.slice(0, 5)}
+                    root.issues = {"count": $issues.length(), "items": $issues.slice(0, 5)}
+              result_map: 'root.github = this'
+
+            renovate:
+              request_map: |
+                meta path = "/apis/renovate-operator.mogenius.com/v1alpha1/renovateprojects"
+                root = ""
+              processors:
+                - resource: login
+                - resource: kube_get
+                - mapping: |
+                    root.projects = this.items.or([]).map_each(i -> {
+                      "project": i.spec.project.or("unknown").split("/").index(-1),
+                      "status": i.status.status.or("unknown"),
+                      "result": i.status.renovateResultStatus.or(""),
+                      "last_transition": i.status.lastTransition.or(""),
+                      "duration": i.status.duration.or(""),
+                      "needs_approval": i.status.prActivity.needsApproval.or(0),
+                      "automerged": i.status.prActivity.automerged.or(0),
+                      "created": i.status.prActivity.created.or(0),
+                      "updated": i.status.prActivity.updated.or(0),
+                      "unchanged": i.status.prActivity.unchanged.or(0)
+                    }).sort_by(p -> p.project)
+              result_map: 'root.renovate = this'
       - catch:
           - log:
               level: WARN

@@ -1,4 +1,4 @@
-# The cockpit page reads the state of the Flux objects with its own token: get and list on the two kinds, nothing else (no Secrets, no write verbs).
+# The cockpit page reads the state of the Flux objects and the Renovate projects with its own token: get and list on those kinds, nothing else (no Secrets, no write verbs).
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -23,6 +23,13 @@ rules:
       - helm.toolkit.fluxcd.io
     resources:
       - helmreleases
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - renovate-operator.mogenius.com
+    resources:
+      - renovateprojects
     verbs:
       - get
       - list

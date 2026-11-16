@@ -355,7 +355,7 @@ A request is `pending` until you decide, then `approved`, `failed` (approve agai
 One page for the state of the cluster, GitHub and the homelab (issue #849), behind the Omni login at `claudecockpit` (`Service/claude-cockpit`, port
 50097). It is a Redpanda Connect pod like the other pages: `GET /api/v1/status` calls its sources in parallel with fixed paths and queries
 (nothing from the request goes into a query), one branch per source, so a source that is down leaves only its own panel out and the page names it.
-There is no POST, no state and no credential of its own: the Kubernetes API is read with the pod's token and the other sources need none.
+There is no POST and no state. The Kubernetes API is read with the pod's token, GitHub with a one-hour App token of its own (`github-token.yaml`, narrowed to reading pull requests on `talos-gitops` and `homeserver-bootc`), and the other sources need none.
 
 ```mermaid
 flowchart LR
@@ -364,21 +364,21 @@ flowchart LR
 
   cockpit -->|"drops, alerts, disk"| prom[(Prometheus :9090)]
   cockpit -->|"GET /results.json"| polaris[polaris-dashboard :8080]
-  cockpit -->|"Flux Kustomizations, HelmReleases"| api[kube-apiserver]
+  cockpit -->|"Flux, Renovate projects"| api[kube-apiserver]
+  cockpit -->|"search: pulls, issues"| gh[api.github.com :443]
 
-  cockpit -.->|"planned: pulls, issues"| gh[api.github.com :443]
+  app[GitHub App] -->|"JWT, 1 h token"| es[ExternalSecret<br/>every 30 min]
+  es -->|"mounted file"| cockpit
+
   cockpit -.->|"planned: GET /api/v1/status"| vmup[claude-vm-upgrade]
-
-  app[GitHub App] -.->|"planned: JWT, 1 h token"| es[ExternalSecret<br/>every 30 min]
-  es -.->|"planned: mounted file"| cockpit
   vm[claude-vm, homeserver] -.->|"planned: POST report<br/>+ 5 h and 7 d usage"| vmup
 
   classDef new fill:#e4eefb,stroke:#2a78d6,stroke-width:2px,color:#0b0b0b
   class cockpit new
 ```
 
-Solid lines exist today, dashed lines are the planned GitHub and homelab sections (see the issue for the design). Every dashed arrow is a read of
-an existing object or a push the pod does not start; the cockpit itself only ever sends GETs.
+Solid lines exist today, dashed lines are the planned homelab section (see the issue for the design). The cockpit itself only ever sends GETs; the
+VM report is a push into `claude-vm-upgrade`.
 
 | Panel | Source | Needs |
 |---|---|---|
@@ -386,11 +386,13 @@ an existing object or a push the pod does not start; the cockpit itself only eve
 | Firing alerts | Prometheus `/api/v1/alerts` (there is no Alertmanager), so the Omni key, certificate and ExternalSecret alerts show here | same |
 | Flux reconciliation | Kubernetes API: `kustomizations` and `helmreleases`, from the Ready and Reconciling conditions | the `claude-cockpit` ClusterRole: get and list on those two kinds |
 | Polaris score | `polaris-dashboard` `/results.json` (score, and failing checks by severity) | egress to the dashboard `:8080` |
+| Pull requests, Renovate pull requests, open issues | GitHub search (`/search/issues`, one call for both repositories): Renovate's are the ones authored by the Renovate App, and the Dependency Dashboard issue is left out | the cockpit's own token, egress to `api.github.com:443` |
+| Renovate runs | Kubernetes API: `renovateprojects` (`status`, `duration`, `prActivity`); a failed run is also an alert | `renovate-operator.mogenius.com` get and list in the `claude-cockpit` ClusterRole |
 | Disk, local-path volumes | Prometheus: `node_filesystem_*` on `/var/mnt/local-path-provisioner`, joined with `node_uname_info` for the node name | Prometheus |
 
 Network: `CiliumNetworkPolicy/claude-cockpit` in `networkpolicy.yaml` lets in the Omni exposer (host, remote-node) on 8080 and Prometheus on the
 metrics port 4195 only (the pod does not carry `prometheus-scrape`, whose cluster-wide rule also opens 8080), and lets out DNS, Prometheus, the Polaris
-dashboard and the API server. `claude-rc` has no rule to reach it.
+dashboard, the API server and `api.github.com`. `claude-rc` has no rule to reach it.
 
 Check it after Flux applied it:
 

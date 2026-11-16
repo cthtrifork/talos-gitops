@@ -344,7 +344,7 @@ spec:
 ---
 # Cockpit. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node); claude-rc has no
 # ingress rule. Prometheus reaches only the metrics port (the pod does not carry the prometheus-scrape label, whose cluster-wide rule also
-# opens 8080). Egress is the three things it reads: Prometheus (queries and alerts), the Polaris dashboard (/results.json) and the API server.
+# opens 8080). Egress is the four things it reads: Prometheus (queries and alerts), the Polaris dashboard (/results.json), the API server and api.github.com.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -379,6 +379,10 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
+          # lets Cilium learn the addresses behind api.github.com for the FQDN rule below
+          rules:
+            dns:
+              - matchPattern: "*"
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
@@ -399,3 +403,10 @@ spec:
               protocol: TCP
     - toEntities:
         - kube-apiserver
+    # GitHub (search for the open pull requests and issues)
+    - toFQDNs:
+        - matchName: api.github.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

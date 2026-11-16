@@ -40,6 +40,9 @@
   h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
   h2 { font-size: 11px; margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
   h3 { font-size: 13px; margin: 0; font-weight: 600; }
+  a { color: var(--accent); text-decoration: none; overflow-wrap: anywhere; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
   button { font: inherit; color: var(--accent); background: none; border: 0; padding: 2px 4px; cursor: pointer; }
   button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
   .num { font-variant-numeric: tabular-nums; }
@@ -83,6 +86,10 @@
   <section aria-labelledby="h-cluster">
     <h2 id="h-cluster">Cluster</h2>
     <div class="band" id="cluster"></div>
+  </section>
+  <section aria-labelledby="h-gh">
+    <h2 id="h-gh">GitHub</h2>
+    <div class="band" id="github"></div>
   </section>
   <footer class="muted">
     Reads only, nothing on this page changes the cluster. <button type="button" id="refresh">Refresh now</button>
@@ -135,7 +142,15 @@
     items.forEach(function (it) {
       var li = el("li");
       var l = el("span", "l");
-      l.appendChild(el("strong", null, it.title));
+      if (it.href && it.href.indexOf("https://github.com/") === 0) {
+        var a = el("a", null, it.title);
+        a.href = it.href;
+        a.rel = "noopener noreferrer";
+        a.target = "_blank";
+        l.appendChild(a);
+      } else {
+        l.appendChild(el("strong", null, it.title));
+      }
       if (it.sub) { l.appendChild(document.createElement("br")); l.appendChild(el("span", "muted", it.sub)); }
       li.appendChild(l);
       if (it.right) li.appendChild(it.right);
@@ -283,6 +298,48 @@
     return p;
   }
 
+  function prRows(items) {
+    return rows(items.map(function (i) {
+      return { title: i.repo + "#" + i.number, href: i.url, sub: i.title + " · " + i.author, right: el("span", "muted num", ago(Math.max(0, Math.round((Date.now() - Date.parse(i.updated)) / 1000)))) };
+    }));
+  }
+  function ghPanel(title, group, d, emptyText, state) {
+    var g = d.github && d.github[group];
+    if (!g) return unavailable(title, "GitHub API · search/issues");
+    var p = panel(head(title, state(g.count), g.count + " open"));
+    if (g.count === 0) p.appendChild(el("span", "muted", emptyText));
+    else p.appendChild(prRows(g.items));
+    if (g.count > g.items.length) p.appendChild(el("span", "muted", g.count - g.items.length + " more on GitHub"));
+    if (d.github.truncated) p.appendChild(el("span", "muted", "More than 100 are open, so the counts are a lower bound."));
+    p.appendChild(src("GitHub API · search/issues"));
+    return p;
+  }
+  function prsPanel(d) { return ghPanel("Pull requests", "other", d, "No open pull requests.", function (n) { return n ? "warn" : "ok"; }); }
+  function renovatePrsPanel(d) { return ghPanel("Renovate pull requests", "renovate", d, "No open Renovate pull requests.", function (n) { return n > 10 ? "warn" : "none"; }); }
+  function issuesPanel(d) {
+    var p = ghPanel("Open issues", "issues", d, "No open issues.", function (n) { return n ? "warn" : "ok"; });
+    return p;
+  }
+  function renovateRunsPanel(d) {
+    var title = "Renovate runs";
+    if (!d.renovate) return unavailable(title, "Kubernetes API · renovateprojects");
+    var ps = d.renovate.projects;
+    var approval = ps.reduce(function (n, x) { return n + x.needs_approval; }, 0);
+    var bad = ps.filter(function (x) { return /fail|error/i.test(x.status + " " + x.result); });
+    var p = panel(head(title, bad.length ? "bad" : approval ? "warn" : "ok", bad.length ? bad.length + " failed" : approval ? approval + " need approval" : "all done"));
+    p.appendChild(rows(ps.map(function (x) {
+      var bits = [];
+      if (x.duration) bits.push("took " + x.duration);
+      if (x.needs_approval) bits.push(x.needs_approval + " need approval");
+      if (x.automerged) bits.push(x.automerged + " automerged");
+      if (x.unchanged) bits.push(x.unchanged + " unchanged");
+      var st = /fail|error/i.test(x.status + " " + x.result) ? "bad" : x.status === "completed" ? "ok" : "warn";
+      return { title: x.project, sub: bits.join(" · ") || "no changes", right: pill(st, x.status) };
+    })));
+    p.appendChild(src("Kubernetes API · renovateprojects (status, duration, prActivity)"));
+    return p;
+  }
+
   function stripChips(d) {
     var chips = [];
     if (d.alerts) {
@@ -297,6 +354,16 @@
       chips.push([m >= 85 ? "bad" : m >= 75 ? "warn" : "ok", "Disk " + m + "%"]);
     }
     if (d.drops_total !== undefined) chips.push([d.drops_total > 0 ? "warn" : "ok", d.drops_total + " packets denied"]);
+    if (d.github) {
+      var o = d.github.other.count;
+      chips.push([o ? "warn" : "ok", o + (o === 1 ? " open PR" : " open PRs")]);
+    }
+    if (d.renovate) {
+      var bad = d.renovate.projects.filter(function (x) { return /fail|error/i.test(x.status + " " + x.result); }).length;
+      var na = d.renovate.projects.reduce(function (n, x) { return n + x.needs_approval; }, 0);
+      if (bad) chips.push(["bad", "Renovate: " + bad + " failed"]);
+      else if (na) chips.push(["warn", "Renovate: " + na + " need approval"]);
+    }
     var order = { bad: 0, warn: 1, ok: 2 };
     chips.sort(function (a, b) { return order[a[0]] - order[b[0]]; });
     return chips;
@@ -310,6 +377,9 @@
     var cluster = document.getElementById("cluster");
     cluster.textContent = "";
     [dropsPanel, alertsPanel, fluxPanel, polarisPanel, diskPanel].forEach(function (f) { cluster.appendChild(f(d)); });
+    var gh = document.getElementById("github");
+    gh.textContent = "";
+    [prsPanel, renovatePrsPanel, issuesPanel, renovateRunsPanel].forEach(function (f) { gh.appendChild(f(d)); });
     var failed = (d.meta && d.meta.workflow && d.meta.workflow.failed) || {};
     var names = Object.keys(failed);
     var banner = document.getElementById("banner");
