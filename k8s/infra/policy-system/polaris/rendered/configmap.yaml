@@ -119,7 +119,6 @@ data:
         rules:
         - sensitiveContainerEnvVar
       - controllerNames:
-        - claude-token-scripts
         - talos-bootstrap-manifests-inventory
         - trivy-operator-config
         rules:
