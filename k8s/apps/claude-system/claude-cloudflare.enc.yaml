@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: claude-cloudflare
+  namespace: claude-system
+type: null
+data:
+  CLOUDFLARE_API_TOKEN: ENC[AES256_GCM,data:54/ecI5GeuWVIcdKl9QEFX53RasYYibXx6Br3EOgPjaKKXuqC4VjoRZ2SwLnYgVO/AwDNK2ZEVyKkx3KNUy198+w57XA/T8d,iv:1XJv2Rprq7VHXNoUZ4zBkKOupGbSLRn4nnbeyhlqHbo=,tag:4lFCuXSNV+BReEAGlcP1mg==,type:str]
+sops:
+  age:
+    - enc: |
+        -----BEGIN AGE ENCRYPTED FILE-----
+        YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA4bmduUE9MMG9JWHFvbXRn
+        dW5ibC9ETTYrUVFrRHJTNjZOUkVNeHJjYTJvCktZNjMwdE5qVDBKTFNaSzNlbXpK
+        d3JLc1FMYkMzdlRwZWlJMmUzd3lNYWcKLS0tIHI5dlZidXJvRGdpQitCWE1zOVdY
+        OElQWkRIV3R6MG9McGh2TFVETkFkMjAKPlMdfCeCfB3en0gq9EPkgdk3223FHxru
+        cZ2PeVlslwxRFV2G48m0mawUGFvUN2/BqLR2HW4IHmH9LGqVUEzDjw==
+        -----END AGE ENCRYPTED FILE-----
+      recipient: age1qth3nzg27zdmlzpjl2gedzmt0e5nly84q82knja3fcq365kw6u9qeecy6j
+  encrypted_regex: ^(data|stringData)$
+  lastmodified: "2026-11-16T15:07:58Z"
+  mac: ENC[AES256_GCM,data:4ZMvJiwyuVF1XFsN7kCYGr1UQRMkSjHN8ywEzdSKS5CdMwwjLmWwE714paTEJ5M/Au82PBzq4AoW9GFAJTzXqTArKcAuiB7cqK3o/CXVB3KIn/tyRTp+rpxO1Sw1KEog1UjZsGmrGc/APVJh/6xNklBrXFPoLY29mgEXJLJUQeI=,iv:u0m7/8uq3u0fSoQAhH53Vytn9YAsAGCpjiV3qkxM92A=,tag:YvoX50Kj/oCXzBZuwX0qkw==,type:str]
+  version: 3.13.3
