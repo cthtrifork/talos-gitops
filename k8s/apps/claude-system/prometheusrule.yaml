@@ -1,7 +1,4 @@
-# Expiry of the Omni service account key that claude-rc uses for talosctl (omni-service-account.enc.yaml, TTL 365 days).
-# Omni's key cannot be read from the cluster, so the expiry date is written here when the key is created or renewed
-# (README, "talosctl"): the recorded date is the only input. There is no Alertmanager: nothing is sent, the alerts are read from Prometheus.
-# Days left: (omni_service_account_key_expiry_timestamp_seconds - time()) / 86400. The release label is how Prometheus selects rules.
+# Expiry date of the Omni service account key (README, "talosctl"): update it when the key is renewed.
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -14,7 +11,7 @@ spec:
   groups:
     - name: claude-omni-key
       rules:
-        # 2027-11-16 00:00 UTC: the commit date of the key plus 8760h. Approximate (the key is created a little before it is committed).
+        # 2027-11-16 00:00 UTC: the key's commit date plus 8760h, so approximate
         - record: omni_service_account_key_expiry_timestamp_seconds
           expr: vector(1826323200)
           labels:
