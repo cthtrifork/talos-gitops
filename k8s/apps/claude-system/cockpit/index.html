@@ -358,17 +358,21 @@
       var x = v[name] || {};
       var vm = x.vm || {};
       var age = x.last_poll_at ? now - x.last_poll_at : null;
-      var st = age === null || age > 300 ? "bad" : vm.staged_version ? "warn" : "ok";
+      var latest = d.vm_images && d.vm_images[name] && d.vm_images[name].digest;
+      var behind = latest && vm.booted_digest && latest !== vm.booted_digest;
+      var st = age === null || age > 300 ? "bad" : vm.staged_version ? "warn" : behind ? "warn" : "ok";
       if (st === "bad") { worst = "bad"; label = "not reporting"; }
-      else if (st === "warn" && worst !== "bad") { worst = "warn"; label = "reboot pending"; }
+      else if (st === "warn" && worst !== "bad") { worst = "warn"; label = vm.staged_version ? "reboot pending" : "update available"; }
       var sub = age === null ? "has not reported" : "reported " + ago(age) + " ago";
       if (vm.staged_version) sub += " · staged " + vm.staged_version;
+      else if (behind) sub += " · newer image " + latest;
+      else if (latest) sub += " · up to date";
       return { title: name, sub: sub, right: el("span", "muted num", vm.booted_version ? vm.booted_version + (vm.booted_digest ? " · " + vm.booted_digest : "") : "unknown") };
     });
     var p = panel(head(title, worst, label));
     p.appendChild(rows(items));
-    p.appendChild(el("span", "muted", "Shows what each VM booted, not whether a newer image exists."));
-    p.appendChild(src("claude-vm-upgrade · /api/v1/status"));
+    if (!d.vm_images) p.appendChild(el("span", "muted", "The registry did not answer, so newer images are not shown."));
+    p.appendChild(src("claude-vm-upgrade · /api/v1/status · ghcr.io latest digest"));
     return p;
   }
   function usagePanel(d) {

@@ -35,7 +35,7 @@ spec:
     - toEntities:
         - kube-apiserver
 ---
-# Polaris dashboard: read by the claude-rc pod (/results.json) and published by the Omni service exposer, which runs
+# Polaris dashboard: read by the claude-rc pod and the cockpit (/results.json) and published by the Omni service exposer, which runs
 # on the host network, so its traffic arrives as the host or remote-node entity.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -52,6 +52,9 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: claude-system
             k8s:app: claude-rc
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: claude-system
+            k8s:app: claude-cockpit
       toPorts:
         - ports:
             - port: "8080"

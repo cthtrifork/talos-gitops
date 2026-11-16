@@ -424,9 +424,10 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    # GitHub (search for the open pull requests and issues)
+    # GitHub (search for the open pull requests and issues) and the registry (digest of the latest VM images)
     - toFQDNs:
         - matchName: api.github.com
+        - matchName: ghcr.io
       toPorts:
         - ports:
             - port: "443"

@@ -372,6 +372,7 @@ flowchart LR
   es -->|"mounted file"| cockpit
 
   cockpit -->|"GET /api/v1/status"| vmup[claude-vm-upgrade]
+  cockpit -->|"latest image digest"| ghcr[ghcr.io :443]
   vm[claude-vm status line] -->|"POST /api/v1/sessions/claude-vm<br/>5 h and 7 d usage, model, version"| lb["claude-cockpit-lb 192.168.1.246 :80<br/>LAN, VM address only"]
   lb -->|":8081"| cockpit
 
@@ -385,7 +386,7 @@ flowchart LR
 | Flux, Renovate runs | Kubernetes API (`claude-cockpit` ClusterRole: get and list on Kustomizations, HelmReleases and RenovateProjects) |
 | Polaris score | `polaris-dashboard` `/results.json` |
 | Pull requests, issues | GitHub search with the cockpit's own one-hour App token (`githubaccesstoken.yaml`, `externalsecret.yaml`) |
-| Running versions | `claude-vm-upgrade` `GET /api/v1/status` |
+| Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io` (anonymous, the packages are public) |
 | Claude usage | Pushed by the Claude VM's status line (`statusline-report` in [homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)) to `POST /api/v1/sessions/claude-vm` on `:8081`, kept in memory for 24 hours |
 
 The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in `192.168.1.138/32` only and the LoadBalancer uses

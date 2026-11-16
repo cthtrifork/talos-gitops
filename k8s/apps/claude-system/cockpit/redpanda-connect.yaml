@@ -173,6 +173,26 @@ processor_resources:
         User-Agent: claude-cockpit
       timeout: 10s
 
+  # The digest of the latest image of the metadata field `image` (anonymous pull token, packages are public): the sha256 of the manifest is its digest
+  - label: image_digest
+    processors:
+      - branch:
+          request_map: 'root = ""'
+          processors:
+            - http:
+                url: 'https://ghcr.io/token?service=ghcr.io&scope=repository:cthtrifork/homeserver-bootc/${! @image }:pull'
+                verb: GET
+                timeout: 10s
+          result_map: 'meta registry_token = this.token'
+      - http:
+          url: 'https://ghcr.io/v2/cthtrifork/homeserver-bootc/${! @image }/manifests/latest'
+          verb: GET
+          headers:
+            Authorization: 'Bearer ${! @registry_token }'
+            Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json
+          timeout: 10s
+      - mapping: 'root = {"digest": content().hash("sha256").encode("hex").slice(0, 12)}'
+
   - label: prom_get
     http:
       url: '${PROM_URL:http://kube-prom-prometheus.kube-prometheus-stack-system.svc:9090}${! @path }'
@@ -333,6 +353,22 @@ processor_resources:
                     verb: GET
                     timeout: 10s
               result_map: 'root.vm_upgrade = this'
+
+            vm_image_claude_vm:
+              request_map: |
+                meta image = "claude-vm-bootc"
+                root = ""
+              processors:
+                - resource: image_digest
+              result_map: 'root.vm_images."claude-vm" = this'
+
+            vm_image_homeserver:
+              request_map: |
+                meta image = "homeserver-bootc"
+                root = ""
+              processors:
+                - resource: image_digest
+              result_map: 'root.vm_images.homeserver = this'
 
             sessions:
               request_map: 'root = ""'
