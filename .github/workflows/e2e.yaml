@@ -136,7 +136,8 @@ jobs:
 
       - name: Suspend workload Kustomizations
         run: |
-          for ks in app-controllers app renovate; do
+          for ks in app-controllers app renovate gitops-infra \
+              $(kubectl get kustomization -n flux-system -l gitops.homelab/tier=apps -o name | cut -d/ -f2); do
             flux suspend kustomization "${ks}"
           done
       - name: Reconcile bootstrap
@@ -146,15 +147,20 @@ jobs:
 
       - name: Patch infra Kustomizations for kind
         run: |
-          for ks in gitops-infra-controllers gitops-infra gitops-infra-post; do
+          for ks in gitops-infra-controllers gitops-infra-post; do
             kubectl patch kustomization "${ks}" -n flux-system --type merge --patch-file "scripts/ci/e2e/${ks}.yaml"
+          done
+          for ks in $(kubectl get kustomization -n flux-system -l gitops.homelab/tier=infra -o name | cut -d/ -f2); do
+            kubectl patch kustomization "${ks}" -n flux-system --type merge --patch-file scripts/ci/e2e/gitops-infra.yaml
           done
       - name: Reconcile infra
         timeout-minutes: 15
         run: |
-          for ks in gitops-infra-controllers gitops-infra gitops-infra-post; do
+          flux reconcile kustomization gitops-infra-controllers --timeout=8m
+          for ks in $(kubectl get kustomization -n flux-system -l gitops.homelab/tier=infra -o name | cut -d/ -f2); do
             flux reconcile kustomization "${ks}" --timeout=8m
           done
+          flux reconcile kustomization gitops-infra-post --timeout=8m
 
       - name: Dry-run apps against the API server
         timeout-minutes: 3

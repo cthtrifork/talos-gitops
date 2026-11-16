@@ -1,5 +1,8 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/kustomize.toolkit.fluxcd.io/kustomization_v1.json
 ---
+# Migration step 1 of 2 (see app-<component>): the objects now belong to the per-component Kustomizations, which
+# re-label them as they apply. prune: false makes sure this one can never delete an object while it changes owner (a PVC
+# or namespace would take its data with it). Step 2 deletes this Kustomization, which then leaves the objects alone.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -8,7 +11,7 @@ metadata:
 spec:
   interval: 30m
   retryInterval: 2m
-  prune: true
+  prune: false
   decryption:
     provider: sops
     secretRef:

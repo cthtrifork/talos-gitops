@@ -6,8 +6,24 @@ resources:
   - gitops-infra-bootstrap.yaml
   - gitops-infra-controllers.yaml
   - gitops-infra.yaml
+  - gitops-infra-cilium.yaml
+  - gitops-infra-local-path-provisioner.yaml
+  - gitops-infra-openebs-system.yaml
+  - gitops-infra-flux-system.yaml
+  - gitops-infra-metrics-server.yaml
+  - gitops-infra-coredns.yaml
+  - gitops-infra-kube-prometheus-stack.yaml
+  - gitops-infra-policy-system.yaml
+  - gitops-infra-registry-system.yaml
+  - gitops-infra-security-system.yaml
+  - gitops-infra-external-dns.yaml
   - gitops-infra-post.yaml
   - app-controllers.yaml
   - app.yaml
+  - app-adguard.yaml
+  - app-arc-runner.yaml
+  - app-claude-system.yaml
+  - app-fileserver.yaml
+  - app-harper-pad.yaml
   - renovate.yaml
   #- virtualmachines.yaml
