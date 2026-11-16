@@ -12,6 +12,15 @@ spec:
         metadata:
           name: github-auth
     - target:
+        kind: Secret
+        name: flux-webhook-token
+      patch: |
+        $patch: delete
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: flux-webhook-token
+    - target:
         kind: HelmRelease
       patch: |
         - op: add
