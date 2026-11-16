@@ -117,12 +117,13 @@ spec:
         - matchName: kubernetes-sigs.github.io
         - matchName: charts.fairwinds.com
         - matchName: charts.redpanda.com
-        # Package registries (npm, Go modules, PyPI)
+        # Package registries (npm, Go modules, PyPI) and the Node.js release index
         - matchName: registry.npmjs.org
         - matchName: proxy.golang.org
         - matchName: sum.golang.org
         - matchName: pypi.org
         - matchName: files.pythonhosted.org
+        - matchName: nodejs.org
       toPorts:
         - ports:
             - port: "443"
