@@ -3,6 +3,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - external-secret-kek.yaml
+  - external-secret-vex-github.yaml
   - config-job.yaml
   - vex-export.yaml
   - vex-github-app.enc.yaml

@@ -96,7 +96,7 @@ the Secret with the current admin password.
 | `dependency-track-admin` | `username`, `password` | `config-job.yaml` (or by hand) | `config-job.yaml` |
 | `dependency-track-api-key` | `api-key` (team `sbom-uploader`) | `config-job.yaml` | `sbom-hook` |
 | `dependency-track-vex-api-key` | `api-key` (team `vex-exporter`) | `config-job.yaml` | `vex-export.yaml` |
-| `dependency-track-vex-github` | `token` | by hand | `vex-export.yaml` |
+| `dependency-track-vex-github` | `token` | `external-secret-vex-github.yaml` (minted from `dependency-track-vex-github-app`) | `vex-export.yaml` |
 
 Teams keep their permissions (`sbom-uploader`: `BOM_UPLOAD`, `PROJECT_CREATION_UPLOAD`; `vex-exporter`: `VIEW_PORTFOLIO`,
 `VULNERABILITY_ANALYSIS_READ`); permissions are only added. A key is created only when its Secret does not exist, and is never
@@ -128,7 +128,8 @@ Without the Secret the Job is a dry run that prints the documents it would write
    (the number at the end of the installation's URL, `https://github.com/settings/installations/<id>`).
 3. Create the Secret `dependency-track-vex-github-app` in `security-system` with the keys `app-id`, `installation-id` and
    `private-key.pem` as a SOPS-encrypted file `dependency-track/vex-github-app.enc.yaml` (same procedure as `claude-github-app`,
-   "Secrets (SOPS)" in the root `readme.md`), and add it to `dependency-track/kustomization.yaml` `resources:`.
+   "Secrets (SOPS)" in the root `readme.md`), and add it to `dependency-track/kustomization.yaml` `resources:`. External Secrets
+   turns it into the one-hour token `dependency-track-vex-github` (`kubectl -n security-system get externalsecret dependency-track-vex-github`).
 4. Run it once instead of waiting for the schedule:
    `kubectl -n security-system create job --from=cronjob/dependency-track-vex-export vex-first` and read its logs.
 
