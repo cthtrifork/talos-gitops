@@ -46,7 +46,7 @@ spec:
             runAsGroup: 65532
             runAsNonRoot: true
             runAsUser: 65532
-          image: registry.k8s.io/external-dns/external-dns:v0.23.0
+          image: registry.k8s.io/external-dns/external-dns:v0.24.0@sha256:a80a146d2540fa138565e404f0625157271071a06093021f27ae19d8316d10f9
           imagePullPolicy: IfNotPresent
           env:
             - name: CF_API_TOKEN
