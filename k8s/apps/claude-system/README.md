@@ -16,6 +16,7 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | `claude-md/skills/<name>/SKILL.md` | Task-specific runbooks split out of `CLAUDE.md`, generated into the `claude-skills` ConfigMap and mounted at `/etc/claude-skills` (items map each key to `<name>/SKILL.md`); each is symlinked into `~/.claude/skills/` at pod start |
 | `usage/` | Usage page and JSON API out: `usage.yaml` (a second Redpanda Connect), `redpanda-connect.yaml` (PromQL behind each endpoint), `index.html` (the page) |
 | `vm-upgrade/` | "Update VMs" buttons (claude-vm and homeserver): `vm-upgrade.yaml` (a third Redpanda Connect), `redpanda-connect.yaml` (a flag per VM, two listeners), `index.html` (the page) |
+| `urlshare/` | Approval-gated URL sharing: `urlshare.yaml` (a fourth Redpanda Connect), `redpanda-connect.yaml` (requests, fetch, TTL), `index.html` (the approval page) |
 | `pvc.yaml` | 5Gi volume holding the login (`/home/claude`); delete it to sign out |
 | `../../../images/claude-runner/` | Image: Anthropic publishes none, so this wraps the `claude` binary (checksum verified) plus `kubectl`, `gh`, `crane`, the Flux MCP server and a git credential helper |
 
@@ -262,3 +263,25 @@ Kubernetes API with the pod's own token; the steps and the API are in `elevate/r
   (mounted Secrets, its ServiceAccount token).
 - **Token storage and audit.** The token is plain text in the Secret (readable with `get secrets` in `claude-system`) and in the mount. Grants and
   revokes are log lines on the container (no log shipper: `kubectl logs`) and count in `elevate_requests{action,tier}`; who clicked is not recorded.
+
+## Share URLs (approval-gated page fetch)
+
+`urlshare/` lets Claude read an article without a wider egress allowlist. Claude asks, the owner approves the exact URL, the pod fetches it once.
+
+| Listener | Reached through | Endpoints |
+|---|---|---|
+| `:8081` api | MetalLB `claude-urlshare-lb`, 192.168.1.245, plain HTTP, only from `claude-rc` and 192.168.1.0/24 | `GET /?url=<URL-encoded URL>` (or `/<id>`): `200` the stored page, `202` pending (nothing fetched), `403` rejected, `502` fetch failed (`error` says why), `410` expired, `400` not an acceptable URL, `429` too many waiting |
+| `:8080` page | Omni service exposer, `Service/claude-urlshare` (port 50094, behind Omni login) | `GET /` the page, `GET /api/v1/requests`, `POST /api/v1/requests/<id>/approve\|reject` (needs `X-Requested-With: urlshare-approval`) |
+
+- **Flow:** an unknown URL becomes `pending` and is not fetched. Approving fetches it (10 s timeout, redirects followed) and stores the HTML or plain
+  text. Requests, decisions and pages live 24 h in memory (at most 100 requests); a restart drops them and the URLs need approving again.
+- **Where it can fetch from** is decided by `CiliumNetworkPolicy/claude-urlshare`, not by the app (Redpanda Connect cannot inspect the address it
+  connects to): TCP 80 and 443 to addresses outside the private, loopback, link-local and other special ranges, so a name that resolves to
+  one, or a redirect to one, is dropped and the fetch fails. The app also refuses non-http(s) URLs, other ports, user names, IP literals and
+  names such as `*.local`, and keeps only `text/html`, `application/xhtml+xml` and `text/plain`. Nothing is executed; pages are served with
+  `Content-Security-Policy: sandbox` and `nosniff`.
+- **Limits that are weaker than they look:** the 2 MiB size limit is checked after the download (Connect has no download limit), so a larger
+  page is only bounded by the 10 s timeout and the 384Mi memory limit, and a fetch holds up other requests until it ends (one pipeline
+  thread, so the list of requests is never written twice at once). The approval page has no login of its own: it is the Omni exposer's.
+- **Manual step:** a Cloudflare `A` record `urlshare` -> `192.168.1.245` (DNS only, like `vm-upgrade`). Inside the cluster
+  `http://claude-urlshare-lb.claude-system.svc/` works without it.

@@ -1,0 +1,388 @@
+---
+# URL sharing with approval. Claude asks for a page, the owner approves the exact URL on a page, the pod fetches it once and keeps the
+# HTML for a while. Two listeners:
+#
+#   :8080  ui   the approval page and its API   Omni service exposer (Omni login)
+#   :8081  api  Claude asks for a page          MetalLB, LAN, plain HTTP, only claude-rc and the LAN are let in
+#
+# api  GET /?url=<URL-encoded URL>   (also /https:/host/path: a client that sends https://host/path has it cleaned to this form by the server)
+#      GET /<id>                     the id from an earlier answer
+#      200 the stored page (approved) | 202 pending or being fetched | 403 rejected | 404 unknown id | 410 expired
+#      | 502 the fetch failed (the reason is in "error") | 400 not an acceptable URL | 429 too many requests waiting
+#      A URL that is not known becomes pending and is NOT fetched. Only the owner's approval on the ui listener fetches it.
+# ui   GET  /                                 the page
+#      GET  /api/v1/requests                  every request (never the page content)
+#      POST /api/v1/requests/<id>/approve     fetch the page now (needs the header X-Requested-With: urlshare-approval)
+#      POST /api/v1/requests/<id>/reject
+#
+# State is in memory and expires: a request waits 24h for an answer, a page and a decision are kept 24h (cache TTLs below). A pod restart
+# drops everything, so the URLs have to be approved again.
+#
+# Which destinations are reachable is decided by the CiliumNetworkPolicy, not here (Redpanda Connect cannot check the address it connects
+# to): egress is only TCP 80 and 443 to addresses outside the private, loopback, link-local and other special ranges, which also holds for redirects
+# and for a name that resolves to a private address. Here the URL must be http(s) with a host name that ends in a letter-only label, no user name,
+# no IP literal and port 80 or 443, at most 2048 bytes. Only html and plain text are kept, at most 2 MiB. The size is checked after the download:
+# Connect has no download limit, so the memory limit and the 10s timeout bound a page that is larger.
+# Not a Flux template (configMapGenerator disables postBuild envsubst).
+http:
+  enabled: true
+  address: 0.0.0.0:4195
+  debug_endpoints: false
+
+# One thread: the index of ids is read, changed and written back. The cost is that a fetch (at most 10s) holds up the other requests.
+pipeline:
+  threads: 1
+  processors:
+    - mapping: 'meta listener = @listener'
+    - switch:
+        - check: '@listener == "ui"'
+          processors:
+            - resource: ui_api
+        - check: '@listener == "api"'
+          processors:
+            - resource: client_api
+
+# --- state: "req:<id>" the request (json), "body:<id>" the page, "index" the list of ids ---
+cache_resources:
+  - label: state
+    memory:
+      default_ttl: 24h
+      compaction_interval: 1m
+
+input:
+  broker:
+    inputs:
+      - label: ui
+        http_server:
+          address: 0.0.0.0:8080
+          path: /
+          allowed_verbs:
+            - GET
+            - POST
+          timeout: 30s
+          sync_response:
+            status: '${! @status.or("200") }'
+            headers:
+              Content-Type: '${! @content_type.or("application/json") }'
+              Cache-Control: no-store
+              X-Content-Type-Options: nosniff
+              Content-Security-Policy: "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'"
+        processors:
+          - mapping: 'meta listener = "ui"'
+
+      - label: api
+        http_server:
+          address: 0.0.0.0:8081
+          path: /
+          allowed_verbs:
+            - GET
+          timeout: 30s
+          sync_response:
+            status: '${! @status.or("200") }'
+            headers:
+              Content-Type: '${! @content_type.or("application/json") }'
+              Cache-Control: no-store
+              X-Content-Type-Options: nosniff
+              # a stored page is never run: no scripts, no requests, no framing
+              Content-Security-Policy: "sandbox; default-src 'none'"
+        processors:
+          - mapping: 'meta listener = "api"'
+
+output:
+  sync_response: {}
+
+processor_resources:
+  # ------------------------------------------------------------------------------------------------
+  # State helpers. The whole list of requests is one cache key, so there is nothing to fan out and expire one by one.
+  # ------------------------------------------------------------------------------------------------
+
+  # Reads the live requests into the metadata field `entries`, and the one named by `id` (when set) into `entry` (null when there is none).
+  - label: load_entry
+    processors:
+      - branch:
+          request_map: 'root = ""'
+          processors:
+            - cache:
+                resource: state
+                operator: get
+                key: index
+            - catch:
+                - mapping: 'root = []'
+          result_map: 'meta entries = this'
+      - mapping: |
+          meta entries = @entries.filter(e -> e.expires_at > now().ts_unix())
+          meta entry = @entries.filter(e -> e.id == @id.or("")).index(0).catch(null)
+
+  # Stores the field `entry` (a new request, or a changed one) in `entries` and writes them. It expires in 24h.
+  - label: save_entry
+    processors:
+      - mapping: |
+          meta entry = @entry.without("expires_at").merge({"expires_at": now().ts_unix() + 86400})
+          meta entries = @entries.filter(e -> e.id != @entry.id).concat([@entry])
+      - branch:
+          request_map: 'root = @entries'
+          processors:
+            - cache:
+                resource: state
+                operator: set
+                key: index
+                value: '${! content() }'
+                ttl: 30h
+
+  # ------------------------------------------------------------------------------------------------
+  # Turns the field `raw` into the canonical URL `url` and the id, or sets `url_error`.
+  # ------------------------------------------------------------------------------------------------
+  - label: normalize_url
+    mapping: |
+      let m = @raw.trim().re_find_object("^(?i)(https?)://([a-z0-9][a-z0-9.-]*\\.[a-z][a-z0-9-]*)(?::(80|443))?(/[^#\\s]*)?(?:#.*)?$")
+      let blocked_tld = ["local", "localhost", "internal", "lan", "home", "arpa", "svc", "cluster", "test", "invalid", "example"]
+      meta url_error = if @raw.length() > 2048 {
+        "URL longer than 2048 bytes"
+      } else if $m == null || $m.length() == 0 {
+        "only http(s) URLs with a host name, no credentials, no IP address and port 80 or 443 are accepted"
+      } else if $blocked_tld.contains($m.2.lowercase().split(".").index(-1)) {
+        "this host name is not public"
+      } else {
+        ""
+      }
+      let host = $m.2.or("").lowercase()
+      let scheme = $m.1.or("").lowercase()
+      let port = if $m.3.or("") == "" || ($scheme == "http" && $m.3 == "80") || ($scheme == "https" && $m.3 == "443") { "" } else { ":" + $m.3 }
+      meta url = $scheme + "://" + $host + $port + $m.4.or("/")
+      meta id = @url.hash("sha256").encode("hex").slice(0, 32)
+
+  # ------------------------------------------------------------------------------------------------
+  # Replies
+  # ------------------------------------------------------------------------------------------------
+  - label: reply_entry
+    mapping: |
+      meta status = match @entry.status {
+        "pending" => "202",
+        "fetching" => "202",
+        "rejected" => "403",
+        "failed" => "502",
+        _ => "200"
+      }
+      root = {
+        "id": @id,
+        "url": @entry.url,
+        "status": @entry.status,
+        "error": @entry.error.or(""),
+        "message": match @entry.status {
+          "pending" => "Host approval required: the owner has to approve " + @entry.url + ". Nothing was fetched. Ask again later.",
+          "rejected" => "The owner rejected " + @entry.url + ".",
+          "failed" => "The fetch failed: " + @entry.error.or("unknown error") + ". The owner can approve it again.",
+          _ => ""
+        }
+      }
+
+  - label: not_found
+    mapping: |
+      meta status = "404"
+      root = {"error": "not found"}
+
+  # ------------------------------------------------------------------------------------------------
+  # The client listener (Claude)
+  # ------------------------------------------------------------------------------------------------
+  - label: client_api
+    switch:
+      - check: '@http_server_request_path == "/healthz"'
+        processors:
+          - mapping: |
+              meta content_type = "text/plain"
+              root = "ok"
+
+      # What the request names: ?url=, a path that starts with a scheme, a 32 character id, or nothing (the help).
+      - check: '@url.or("") != "" || @http_server_request_path.re_match("^/https?:/+[^/]")'
+        processors:
+          - mapping: |
+              meta raw = if @url.or("") != "" { @url } else { @http_server_request_path.trim_prefix("/").re_replace_all("^(https?):/+", "$1://") }
+          - resource: normalize_url
+          - switch:
+              - check: '@url_error != ""'
+                processors:
+                  - mapping: |
+                      meta status = "400"
+                      root = {"error": @url_error}
+              - processors:
+                  - resource: load_entry
+                  - resource: serve_or_request
+
+      - check: '@http_server_request_path.re_match("^/[0-9a-f]{32}$")'
+        processors:
+          - mapping: 'meta id = @http_server_request_path.trim_prefix("/")'
+          - resource: load_entry
+          - switch:
+              - check: '@entry == null'
+                processors:
+                  - mapping: |
+                      meta status = "404"
+                      root = {"error": "unknown or expired id: ask for the URL again"}
+              - processors:
+                  - resource: serve_or_request
+
+      - check: '@http_server_request_path == "/"'
+        processors:
+          - mapping: |
+              root = {
+                "usage": "GET /?url=<URL-encoded http(s) URL>, or GET /<id>",
+                "flow": "A new URL is recorded as pending and is not fetched. The owner approves it, then the same request returns the stored page."
+              }
+
+      - processors:
+          - resource: not_found
+
+  # Needs `id`, `url` (when asked by URL) and `entry`. A known request is answered by its status; an unknown one becomes pending.
+  - label: serve_or_request
+    switch:
+      - check: '@entry == null'
+        processors:
+          - switch:
+              - check: '@entries.length() >= 100'
+                processors:
+                  - mapping: |
+                      meta status = "429"
+                      root = {"error": "too many requests are waiting for approval"}
+              - processors:
+                  - mapping: 'meta entry = {"id": @id, "url": @url, "status": "pending", "requested_at": now().ts_unix(), "error": ""}'
+                  - resource: save_entry
+                  - resource: reply_entry
+
+      - check: '@entry.status == "approved"'
+        processors:
+          - cache:
+              resource: state
+              operator: get
+              key: 'body:${! @id }'
+          - catch:
+              - mapping: |
+                  meta status = "410"
+                  meta content_type = "application/json"
+                  root = {"error": "the stored page has expired: ask for the URL again"}
+          - mapping: |
+              meta content_type = if @status.or("200") == "200" { @entry.content_type } else { "application/json" }
+              meta id = @id
+
+      - processors:
+          - resource: reply_entry
+
+  # ------------------------------------------------------------------------------------------------
+  # The approval listener (the owner)
+  # ------------------------------------------------------------------------------------------------
+  - label: ui_api
+    switch:
+      - check: '@http_server_verb == "GET" && @http_server_request_path == "/"'
+        processors:
+          - mapping: |
+              meta content_type = "text/html; charset=utf-8"
+              root = file("/etc/connect/index.html")
+
+      - check: '@http_server_request_path == "/healthz"'
+        processors:
+          - mapping: |
+              meta content_type = "text/plain"
+              root = "ok"
+
+      - check: '@http_server_verb == "GET" && @http_server_request_path == "/api/v1/requests"'
+        processors:
+          - resource: load_entry
+          - mapping: 'root = {"now": now().ts_unix(), "requests": @entries.sort_by(e -> 0 - e.requested_at)}'
+
+      # A form on another site cannot add a custom header without a CORS preflight, which this server never answers.
+      - check: '@http_server_verb == "POST" && metadata("X-Requested-With").or("") != "urlshare-approval"'
+        processors:
+          - mapping: |
+              meta status = "403"
+              root = {"error": "missing X-Requested-With header"}
+
+      - check: '@http_server_verb == "POST" && @http_server_request_path.re_match("^/api/v1/requests/[0-9a-f]{32}/(approve|reject)$")'
+        processors:
+          - mapping: |
+              let m = @http_server_request_path.re_find_object("^/api/v1/requests/(?P<id>[0-9a-f]{32})/(?P<action>approve|reject)$")
+              meta id = $m.id
+              meta action = $m.action
+          - resource: load_entry
+          - switch:
+              - check: '@entry == null'
+                processors:
+                  - mapping: |
+                      meta status = "404"
+                      root = {"error": "unknown or expired request"}
+              - check: '@entry.status == "approved" || @entry.status == "fetching"'
+                processors:
+                  - mapping: |
+                      meta status = "409"
+                      root = {"error": "already " + @entry.status}
+              - check: '@action == "reject"'
+                processors:
+                  - mapping: |
+                      meta entry = {"id": @entry.id, "url": @entry.url, "status": "rejected", "requested_at": @entry.requested_at, "error": "", "decided_at": now().ts_unix()}
+                  - resource: save_entry
+                  - mapping: 'root = @entry'
+              - processors:
+                  - resource: approve
+
+      - processors:
+          - resource: not_found
+
+  # Fetches @entry.url and stores the page. The answer is the request, with status "approved" or "failed".
+  - label: approve
+    processors:
+      - mapping: |
+          meta url = @entry.url
+          meta fetch_error = ""
+          meta content_type = ""
+          meta size = 0
+      - branch:
+          request_map: 'root = ""'
+          processors:
+            - try:
+                - http:
+                    url: '${! @url }'
+                    verb: GET
+                    headers:
+                      User-Agent: urlshare/1 (single page, approved by the owner)
+                      Accept: text/html,application/xhtml+xml,text/plain;q=0.9
+                    extract_headers:
+                      include_patterns:
+                        - '(?i)^content-type$'
+                    timeout: 10s
+                    retries: 0
+                    follow_redirects: true
+                - mapping: |
+                    let ct = metadata("content-type").or("").lowercase()
+                    root = if !$ct.re_match("^(text/html|application/xhtml\\+xml|text/plain)(;|$)") {
+                      throw("content type \"" + $ct + "\" is not allowed: html and plain text only")
+                    } else if content().length() > 2097152 {
+                      throw("the page is larger than 2 MiB")
+                    } else {
+                      content()
+                    }
+                - cache:
+                    resource: state
+                    operator: set
+                    key: 'body:${! @id }'
+                    value: '${! content() }'
+                    ttl: 24h
+          result_map: |
+            meta content_type = metadata("content-type").or("")
+            meta size = content().length()
+      - catch:
+          - mapping: |
+              let e = error().re_replace_all("^processors failed: ", "").re_replace_all("failed assignment \\(line [0-9]+\\): ", "")
+              meta fetch_error = $e.re_replace_all("^.*unexpected response code \\(([0-9]+)\\).*$", "the site answered $1").slice(0, 300)
+      - mapping: |
+          meta entry = {
+            "id": @entry.id,
+            "url": @entry.url,
+            "status": if @fetch_error == "" { "approved" } else { "failed" },
+            "requested_at": @entry.requested_at,
+            "decided_at": now().ts_unix(),
+            "error": @fetch_error,
+            "content_type": @content_type,
+            "size": @size
+          }
+      - resource: save_entry
+      - mapping: |
+          meta status = if @entry.status == "approved" { "200" } else { "502" }
+          root = @entry
