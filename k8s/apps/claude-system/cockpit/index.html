@@ -8,9 +8,9 @@
 <style>
   :root {
     color-scheme: light;
-    --page: #f4f4f1; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #7c7a74;
-    --grid: #e1e0d9; --ring: rgba(11, 11, 11, 0.10); --accent: #2a78d6;
-    --ok: #1a7f55; --ok-bg: #dff3ea; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
+    --page: #f4f4f1; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6b6963;
+    --grid: #e1e0d9; --ring: rgba(11, 11, 11, 0.10); --accent: #1f63b5;
+    --ok: #15704a; --ok-bg: #dff3ea; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
@@ -53,7 +53,7 @@
   .ok { color: var(--ok); background: var(--ok-bg); }
   .warn { color: var(--warn); background: var(--warn-bg); }
   .bad { color: var(--bad); background: var(--bad-bg); }
-  .none { color: var(--muted); background: var(--grid); }
+  .none { color: var(--ink-2); background: var(--grid); }
   .band { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
   .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
   .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -453,19 +453,19 @@
     return chips;
   }
 
+  // Each container is rebuilt off-screen and swapped in once, so a refresh costs one reflow per band.
+  function fill(id, fns, d) {
+    var f = document.createDocumentFragment();
+    fns.forEach(function (fn) { f.appendChild(fn(d)); });
+    document.getElementById(id).replaceChildren(f);
+  }
   function render(d) {
-    var strip = document.getElementById("strip");
-    strip.textContent = "";
+    var strip = document.createDocumentFragment();
     stripChips(d).forEach(function (c) { strip.appendChild(pill(c[0], c[1])); });
-    var cluster = document.getElementById("cluster");
-    cluster.textContent = "";
-    [dropsPanel, alertsPanel, fluxPanel, polarisPanel, diskPanel].forEach(function (f) { cluster.appendChild(f(d)); });
-    var hl = document.getElementById("homelab");
-    hl.textContent = "";
-    [versionsPanel, usagePanel].forEach(function (f) { hl.appendChild(f(d)); });
-    var gh = document.getElementById("github");
-    gh.textContent = "";
-    [prsPanel, renovatePrsPanel, issuesPanel, renovateRunsPanel].forEach(function (f) { gh.appendChild(f(d)); });
+    document.getElementById("strip").replaceChildren(strip);
+    fill("cluster", [dropsPanel, alertsPanel, fluxPanel, polarisPanel, diskPanel], d);
+    fill("homelab", [versionsPanel, usagePanel], d);
+    fill("github", [prsPanel, renovatePrsPanel, issuesPanel, renovateRunsPanel], d);
     var failed = (d.meta && d.meta.workflow && d.meta.workflow.failed) || {};
     var names = Object.keys(failed);
     var banner = document.getElementById("banner");
@@ -473,19 +473,31 @@
     banner.textContent = names.length ? "Some sources did not answer: " + names.join(", ") + "." : "";
     document.getElementById("updated").textContent = "Updated " + new Date().toLocaleTimeString();
   }
+
+  // One request at a time: a refresh while one is in flight, or one that hangs, replaces it instead of stacking up.
+  var inflight = null, loadedAt = 0;
   function load() {
-    fetch("api/v1/status", { cache: "no-store" })
+    if (inflight) inflight.abort();
+    var ctl = inflight = new AbortController();
+    var timer = setTimeout(function () { ctl.abort(); }, 20000);
+    fetch("api/v1/status", { signal: ctl.signal })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(render)
+      .then(function (d) { loadedAt = Date.now(); render(d); })
       .catch(function (e) {
+        if (inflight !== ctl) return; // superseded by a newer request
         var banner = document.getElementById("banner");
         banner.hidden = false;
-        banner.textContent = "The cockpit could not be reached (" + e.message + "). Showing the last data, if any.";
-      });
+        banner.textContent = "The cockpit could not be reached (" + (e.name === "AbortError" ? "timed out" : e.message) + "). Showing the last data, if any.";
+      })
+      .then(function () { clearTimeout(timer); if (inflight === ctl) inflight = null; });
   }
   document.getElementById("refresh").addEventListener("click", load);
+  // A hidden tab does not poll; coming back refreshes at once if the data is older than the interval.
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && Date.now() - loadedAt >= REFRESH_MS) load();
+  });
   load();
-  setInterval(load, REFRESH_MS);
+  setInterval(function () { if (!document.hidden) load(); }, REFRESH_MS);
 })();
 </script>
 </body>
