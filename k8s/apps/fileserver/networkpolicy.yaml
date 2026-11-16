@@ -63,3 +63,22 @@ spec:
         - ports:
             - port: "8082"
               protocol: TCP
+  egress:
+    # r2-sync: <account-id>.r2.cloudflarestorage.com. The DNS rule lets Cilium learn the addresses.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*.r2.cloudflarestorage.com"
+    - toFQDNs:
+        - matchPattern: "*.r2.cloudflarestorage.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

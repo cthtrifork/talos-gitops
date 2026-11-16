@@ -177,6 +177,46 @@ spec:
               mountPath: /var/run/fileserver-token
               readOnly: true
 
+        # Copies public/ to the R2 bucket every minute so that Cloudflare serves the downloads, not this pod. Idle until the
+        # Secret fileserver-r2 (R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET) exists. The pod is the source of truth:
+        # files gone from public/ are deleted from the bucket, but --max-delete 50 stops a bad mount from emptying it.
+        - name: r2-sync
+          # renovate: datasource=docker depName=docker.io/rclone/rclone versioning=docker
+          image: mirror.gcr.io/rclone/rclone:1.76.0@sha256:7cbeec24a44f206067597c0368be4de90ae19a64d5113c7d1938bd737a81e466
+          command:
+            - sh
+            - -ec
+            - |
+              until [ -n "$R2_BUCKET" ]; do echo "no fileserver-r2 Secret yet"; sleep 60; done
+              export RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare
+              export RCLONE_CONFIG_R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
+              export RCLONE_CONFIG_R2_ENDPOINT="$R2_ENDPOINT" RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true
+              while true; do
+                rclone sync /data/public "R2:$R2_BUCKET" --max-delete 50 --transfers 2 --checksum --stats-one-line -v || echo "sync failed"
+                sleep 60
+              done
+          envFrom:
+            - secretRef:
+                name: fileserver-r2
+                optional: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - "ALL"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data/public
+              subPath: public
+              readOnly: true
+
       volumes:
         - name: data
           persistentVolumeClaim:
