@@ -45,6 +45,9 @@ spec:
               protocol: TCP
             - port: "9617"
               protocol: TCP
+            # cert-manager (controller, webhook and cainjector metrics)
+            - port: "9402"
+              protocol: TCP
             # Garage's admin API (metrics) in renovate-system
             - port: "3903"
               protocol: TCP
@@ -152,6 +155,8 @@ spec:
             - port: "9153"
               protocol: TCP
             - port: "9187"
+              protocol: TCP
+            - port: "9402"
               protocol: TCP
             - port: "9617"
               protocol: TCP

@@ -6,9 +6,10 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 
 | File | What |
 |---|---|
-| `rbac.yaml` | ServiceAccount `claude`; built-in `view` (no Secrets) plus read-only access to nodes, storage, CRDs and the CRD groups in use (including MetalLB, the ARC runner resources and the trivy-operator reports). No write verbs, no `pods/exec` |
+| `rbac.yaml` | ServiceAccount `claude`; built-in `view` (no Secrets) plus read-only access to nodes, storage, CRDs and the CRD groups in use (including MetalLB, the ARC runner resources, the trivy-operator reports, External Secrets and the Renovate operator). No write verbs, no `pods/exec` |
 | `clusterrole-elevated.yaml` | The break-glass ClusterRoles `claude-ops`, `claude-debug` and `claude-storage`; nothing binds them by default |
 | `elevate/` | The "Elevate Claude" page (below): a Redpanda Connect pod, its RBAC, limits and admission policies |
+| `prometheusrule.yaml` | The recorded expiry date of the Omni service account key as a Prometheus series, and the warning (30 days) and critical (7 days) alerts on it |
 | `networkpolicy.yaml` | Cilium default deny, then DNS, the Kubernetes API and TCP 443 to the hosts Claude Code needs |
 | `githubaccesstoken.yaml` | External Secrets `GithubAccessToken` generator |
 | `externalsecret.yaml` | ExternalSecret that writes the one-hour GitHub App installation token into `claude-github-token` every 30 minutes |
@@ -119,8 +120,8 @@ enc k8s/apps/claude-system/omni-service-account.enc.yaml \
     --from-literal=OMNI_ENDPOINT="$OMNI_ENDPOINT"
 ```
 
-and list the file in `kustomization.yaml` `resources:`. **Renew** before the key expires (TTL 365 days; nothing alerts on expiry, so
-note the date): `omnictl serviceaccount renew claude-rc --ttl 8760h`, re-run the command above with the new key and merge. Reloader
+and list the file in `kustomization.yaml` `resources:`. **Renew** before the key expires (TTL 365 days; `prometheusrule.yaml` alerts 30 and 7 days before the date recorded there, so
+update that date to the new expiry in the same PR): `omnictl serviceaccount renew claude-rc --ttl 8760h`, re-run the command above with the new key and merge. Reloader
 (or a manual restart) rolls the pod. The pod then holds a credential for the node-management plane next to the claude.ai login and
 the GitHub token, and node files and logs read with `talosctl` are input Claude acts on, so keep the role at Reader.
 

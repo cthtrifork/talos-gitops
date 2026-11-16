@@ -1,0 +1,37 @@
+# Expiry of the Omni service account key that claude-rc uses for talosctl (omni-service-account.enc.yaml, TTL 365 days).
+# Omni's key cannot be read from the cluster, so the expiry date is written here when the key is created or renewed
+# (README, "talosctl"): the recorded date is the only input. There is no Alertmanager: nothing is sent, the alerts are read from Prometheus.
+# Days left: (omni_service_account_key_expiry_timestamp_seconds - time()) / 86400. The release label is how Prometheus selects rules.
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: claude-omni-key-expiry
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: claude-omni-key
+      rules:
+        # 2027-11-16 00:00 UTC: the commit date of the key plus 8760h. Approximate (the key is created a little before it is committed).
+        - record: omni_service_account_key_expiry_timestamp_seconds
+          expr: vector(1826323200)
+          labels:
+            service_account: claude-rc
+        - alert: OmniServiceAccountKeyExpiring
+          expr: omni_service_account_key_expiry_timestamp_seconds - time() < 30 * 86400
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: The Omni service account key for {{ $labels.service_account }} expires in {{ $value | humanizeDuration }}
+            description: Renew it with omnictl serviceaccount renew, update omni-service-account.enc.yaml and the date in k8s/apps/claude-system/prometheusrule.yaml (README, "talosctl").
+        - alert: OmniServiceAccountKeyExpiresSoon
+          expr: omni_service_account_key_expiry_timestamp_seconds - time() < 7 * 86400
+          for: 1h
+          labels:
+            severity: critical
+          annotations:
+            summary: The Omni service account key for {{ $labels.service_account }} expires in {{ $value | humanizeDuration }}
+            description: talosctl in claude-rc stops working at expiry. Renew it now (README, "talosctl").

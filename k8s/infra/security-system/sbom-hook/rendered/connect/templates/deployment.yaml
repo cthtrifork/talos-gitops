@@ -6,10 +6,10 @@ metadata:
   name: sbom-hook
   namespace: security-system
   labels:
-    helm.sh/chart: redpanda-connect-3.2.36
+    helm.sh/chart: redpanda-connect-3.2.37
     app.kubernetes.io/name: redpanda-connect
     app.kubernetes.io/instance: sbom-hook
-    app.kubernetes.io/version: "4.115.1"
+    app.kubernetes.io/version: "4.118.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
@@ -20,7 +20,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: c2ac0636fd9bfe83e66d48edf864e3f211783ef673cc1454d3f34d736e7727ab
+        checksum/config: 0895b9cc76f0552ad0c2bc73e1b7cdac1f959ff52c750d36af7b724bc50c75d5
         reloader.stakater.com/auto: "true"
       labels:
         app.kubernetes.io/name: redpanda-connect
