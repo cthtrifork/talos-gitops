@@ -30,6 +30,7 @@ spec:
         app.kubernetes.io/version: "v1.21.3"
         app.kubernetes.io/managed-by: Helm
         helm.sh/chart: cert-manager-v1.21.3
+        prometheus-scrape: "true"
     spec:
       serviceAccountName: cert-manager-webhook
       enableServiceLinks: false
@@ -49,7 +50,6 @@ spec:
             - --dynamic-serving-dns-names=cert-manager-webhook
             - --dynamic-serving-dns-names=cert-manager-webhook.$(POD_NAMESPACE)
             - --dynamic-serving-dns-names=cert-manager-webhook.$(POD_NAMESPACE).svc
-            - --metrics-listen-address=0
           ports:
             - name: https
               protocol: TCP
@@ -57,6 +57,9 @@ spec:
             - name: healthcheck
               protocol: TCP
               containerPort: 6080
+            - containerPort: 9402
+              name: http-metrics
+              protocol: TCP
           livenessProbe:
             httpGet:
               path: /livez
