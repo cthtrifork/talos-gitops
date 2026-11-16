@@ -16,7 +16,17 @@ spec:
     secretRef:
       name: sops-age
   dependsOn:
-    - name: gitops-infra
+    - name: gitops-infra-cilium
+    - name: gitops-infra-local-path-provisioner
+    - name: gitops-infra-openebs-system
+    - name: gitops-infra-flux-system
+    - name: gitops-infra-metrics-server
+    - name: gitops-infra-coredns
+    - name: gitops-infra-kube-prometheus-stack
+    - name: gitops-infra-policy-system
+    - name: gitops-infra-registry-system
+    - name: gitops-infra-security-system
+    - name: gitops-infra-external-dns
   sourceRef:
     kind: GitRepository
     name: flux-system
