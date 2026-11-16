@@ -42,7 +42,7 @@
   a { color: var(--accent); text-decoration: none; overflow-wrap: anywhere; }
   a:hover { text-decoration: underline; }
   a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
-  button { font: inherit; color: var(--accent); background: none; border: 0; padding: 2px 4px; cursor: pointer; }
+  button { font: inherit; color: var(--accent); background: none; border: 1px solid var(--accent); border-radius: 6px; min-height: 32px; padding: 4px 12px; cursor: pointer; }
   button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
   .num { font-variant-numeric: tabular-nums; }
   .muted { color: var(--muted); }
@@ -54,8 +54,17 @@
   .warn { color: var(--warn); background: var(--warn-bg); }
   .bad { color: var(--bad); background: var(--bad-bg); }
   .none { color: var(--ink-2); background: var(--grid); }
-  .band { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
-  .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  /* Wrapping flex, not a grid: the last row stretches to the full width instead of leaving an empty slot. */
+  .band { display: flex; flex-wrap: wrap; gap: 12px; }
+  .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1 1 min(100%, 300px); scroll-margin-top: 12px; }
+  .panel.compact { padding: 10px 16px; gap: 4px; }
+  .panel:target { box-shadow: 0 0 0 2px var(--accent); }
+  a.pill:hover { text-decoration: none; filter: brightness(0.94); }
+  a.pill:focus-visible { outline-offset: 1px; border-radius: 999px; }
+  .hdr-r { display: flex; align-items: center; gap: 12px; }
+  footer p { margin: 0 0 8px; }
+  .sources summary { cursor: pointer; color: var(--ink-2); }
+  .sources ul { margin-top: 6px; }
   .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .big { font-size: 30px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
   .big small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
@@ -78,10 +87,10 @@
 <main>
   <header>
     <h1>Cockpit</h1>
-    <span class="muted" id="updated">Loading…</span>
+    <div class="hdr-r"><span class="muted" id="updated">Loading…</span><button type="button" id="refresh">Refresh now</button></div>
   </header>
   <div id="banner" class="banner bad" role="alert" hidden></div>
-  <div class="strip" id="strip" role="status" aria-label="Overall status"></div>
+  <nav class="strip" id="strip" aria-label="Overall status, each item jumps to its panel"></nav>
   <section aria-labelledby="h-cluster">
     <h2 id="h-cluster">Cluster</h2>
     <div class="band" id="cluster"></div>
@@ -95,7 +104,8 @@
     <div class="band" id="homelab"></div>
   </section>
   <footer class="muted">
-    Reads only, nothing on this page changes the cluster. <button type="button" id="refresh">Refresh now</button>
+    <p>Reads only, nothing on this page changes the cluster.</p>
+    <details class="sources"><summary>Data sources</summary><ul class="rows" id="source-list"></ul></details>
   </footer>
 </main>
 <script>
@@ -118,14 +128,17 @@
     h.appendChild(pill(state, text));
     return h;
   }
-  function src(text) { return el("span", "src", text); }
+  // A source line on every card was repeated noise: the cards stay clean and the footer lists each source once.
+  // A failed source keeps its own visible line, because there the name is what the reader needs.
+  var sources = {};
+  function src(text) { sources[text] = 1; return document.createDocumentFragment(); }
   function panel() {
     var p = el("div", "panel");
     for (var i = 0; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]);
     return p;
   }
   function unavailable(title, source) {
-    return panel(head(title, "none", "unavailable"), el("span", "muted", "The source did not answer. The other panels are unaffected."), src(source));
+    return panel(head(title, "none", "unavailable"), el("span", "muted", "The source did not answer. The other panels are unaffected."), el("span", "src", source));
   }
   function bar(label, parts) {
     var b = el("div", "bar");
@@ -135,6 +148,7 @@
       if (!p.pct) return;
       var i = document.createElement("i");
       i.style.width = p.pct + "%";
+      i.style.minWidth = "4px"; // a lone failure among many stays visible
       i.style.background = p.color;
       b.appendChild(i);
     });
@@ -216,7 +230,7 @@
     var crit = d.alerts.some(function (a) { return a.severity === "critical"; });
     var n = d.alerts.length;
     var p = panel(head(title, n === 0 ? "ok" : crit ? "bad" : "warn", n === 0 ? "none" : String(n)));
-    if (n === 0) p.appendChild(el("span", "muted", "Nothing is firing."));
+    if (n === 0) { p.classList.add("compact"); p.appendChild(el("span", "muted", "Nothing is firing.")); }
     else p.appendChild(rows(d.alerts.map(function (a) {
       return { title: a.name, sub: a.summary, right: pill(a.severity === "critical" ? "bad" : "warn", a.severity) };
     })));
@@ -309,7 +323,7 @@
     var g = d.github && d.github[group];
     if (!g) return unavailable(title, "GitHub API · search/issues");
     var p = panel(head(title, state(g.count), g.count + " open"));
-    if (g.count === 0) p.appendChild(el("span", "muted", emptyText));
+    if (g.count === 0) { p.classList.add("compact"); p.appendChild(el("span", "muted", emptyText)); }
     else p.appendChild(prRows(g.items));
     if (g.count > g.items.length) p.appendChild(el("span", "muted", g.count - g.items.length + " more on GitHub"));
     if (d.github.truncated) p.appendChild(el("span", "muted", "More than 100 are open, so the counts are a lower bound."));
@@ -317,7 +331,7 @@
     return p;
   }
   function prsPanel(d) { return ghPanel("Pull requests", "other", d, "No open pull requests.", function (n) { return n ? "warn" : "ok"; }); }
-  function renovatePrsPanel(d) { return ghPanel("Renovate pull requests", "renovate", d, "No open Renovate pull requests.", function (n) { return n > 10 ? "warn" : "none"; }); }
+  function renovatePrsPanel(d) { return ghPanel("Renovate pull requests", "renovate", d, "No open Renovate pull requests.", function (n) { return n === 0 ? "ok" : n > 10 ? "warn" : "none"; }); }
   function issuesPanel(d) {
     var p = ghPanel("Open issues", "issues", d, "No open issues.", function (n) { return n ? "warn" : "ok"; });
     return p;
@@ -409,7 +423,7 @@
       box.appendChild(bar(w[0] + ", " + (used === null ? "no data" : used + " percent used"), used === null ? [] : [{ pct: used, color: used >= 90 ? "var(--bad)" : used >= 75 ? "var(--warn)" : "var(--ok)" }]));
     });
     var state = stale ? "none" : worst >= 90 ? "bad" : worst >= 75 ? "warn" : "ok";
-    var p = panel(head(title, state, stale ? "stale" : worst + "% at most"));
+    var p = panel(head(title, state, stale ? "stale" : "peak " + worst + "%"));
     p.appendChild(box);
     var bits = ["reported " + ago(age) + " ago"];
     if (s.model) bits.push(s.model);
@@ -423,55 +437,86 @@
     var chips = [];
     if (d.alerts) {
       var crit = d.alerts.some(function (a) { return a.severity === "critical"; });
-      chips.push(d.alerts.length ? [crit ? "bad" : "warn", d.alerts.length + (d.alerts.length === 1 ? " alert firing" : " alerts firing")] : ["ok", "No alerts firing"]);
+      chips.push(d.alerts.length ? [crit ? "bad" : "warn", d.alerts.length + (d.alerts.length === 1 ? " alert firing" : " alerts firing"), "p-firing-alerts"] : ["ok", "No alerts firing", "p-firing-alerts"]);
     }
     var t = fluxTotals(d);
-    if (d.flux_ks || d.flux_hr) chips.push(t.failed ? ["bad", "Flux: " + t.failed + " failed"] : t.unknown ? ["warn", "Flux: " + t.unknown + " unknown"] : t.progressing ? ["none", "Flux: " + t.progressing + " progressing"] : ["ok", "Flux ready"]);
-    if (d.polaris) chips.push([d.polaris.score >= 90 ? "ok" : d.polaris.score >= 75 ? "warn" : "bad", "Polaris " + d.polaris.score + "%"]);
+    if (d.flux_ks || d.flux_hr) chips.push(t.failed ? ["bad", "Flux: " + t.failed + " failed", "p-flux-reconciliation"] : t.unknown ? ["warn", "Flux: " + t.unknown + " unknown", "p-flux-reconciliation"] : t.progressing ? ["none", "Flux: " + t.progressing + " progressing", "p-flux-reconciliation"] : ["ok", "Flux ready", "p-flux-reconciliation"]);
+    if (d.polaris) chips.push([d.polaris.score >= 90 ? "ok" : d.polaris.score >= 75 ? "warn" : "bad", "Polaris " + d.polaris.score + "/100", "p-polaris-score"]);
     if (d.disk && d.disk.length) {
       var m = d.disk.reduce(function (a, n) { return Math.max(a, n.used_pct); }, 0);
-      chips.push([m >= 85 ? "bad" : m >= 75 ? "warn" : "ok", "Disk " + m + "%"]);
+      chips.push([m >= 85 ? "bad" : m >= 75 ? "warn" : "ok", "Disk " + m + "%", "p-disk-local-path-volumes"]);
     }
-    if (d.drops_total !== undefined) chips.push([d.drops_total > 0 ? "warn" : "ok", d.drops_total + " packets denied"]);
+    if (d.drops_total !== undefined) chips.push([d.drops_total > 0 ? "warn" : "ok", d.drops_total + " packets denied", "p-dropped-traffic-last-hour"]);
     if (d.github) {
       var o = d.github.other.count;
-      chips.push([o ? "warn" : "ok", o + (o === 1 ? " open PR" : " open PRs")]);
+      chips.push([o ? "warn" : "ok", o + (o === 1 ? " open PR" : " open PRs"), "p-pull-requests"]);
     }
     if (d.renovate) {
       var bad = d.renovate.projects.filter(function (x) { return /fail|error/i.test(x.status + " " + x.result); }).length;
       var na = d.renovate.projects.reduce(function (n, x) { return n + x.needs_approval; }, 0);
-      if (bad) chips.push(["bad", "Renovate: " + bad + " failed"]);
-      else if (na) chips.push(["warn", "Renovate: " + na + " need approval"]);
+      if (bad) chips.push(["bad", "Renovate: " + bad + " failed", "p-renovate-runs"]);
+      else if (na) chips.push(["warn", "Renovate: " + na + " need approval", "p-renovate-runs"]);
     }
     var us = d.sessions && d.sessions["claude-vm"];
     if (us && us.received_at && Math.round(Date.now() / 1000) - us.received_at <= 6 * 3600) {
       var w7 = us.seven_day && us.seven_day.used_pct;
-      if (w7 !== null && w7 !== undefined && !(us.seven_day.resets_at && us.seven_day.resets_at < Math.round(Date.now() / 1000))) chips.push([w7 >= 90 ? "bad" : w7 >= 75 ? "warn" : "ok", "Claude 7-day " + w7 + "%"]);
+      if (w7 !== null && w7 !== undefined && !(us.seven_day.resets_at && us.seven_day.resets_at < Math.round(Date.now() / 1000))) chips.push([w7 >= 90 ? "bad" : w7 >= 75 ? "warn" : "ok", "Claude 7-day " + w7 + "%", "p-claude-usage"]);
     }
     var order = { bad: 0, warn: 1, none: 2, ok: 3 };
     chips.sort(function (a, b) { return order[a[0]] - order[b[0]]; });
     return chips;
   }
 
-  // Each container is rebuilt off-screen and swapped in once, so a refresh costs one reflow per band.
+  var SEV = { bad: 0, warn: 1, none: 2, ok: 3 };
+  function sev(p) {
+    var pl = p.querySelector(".panel-head .pill");
+    var m = pl && /\b(bad|warn|none|ok)\b/.exec(pl.className);
+    return m ? SEV[m[1]] : 2;
+  }
+  function slug(t) { return "p-" + t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
+  // Swap a container's contents in one go. A refresh must not drop keyboard focus, so a focused link is found again by its href.
+  function swap(box, node) {
+    var a = document.activeElement;
+    var key = a && box.contains(a) ? a.getAttribute("href") : null;
+    box.replaceChildren(node);
+    if (key) Array.prototype.some.call(box.querySelectorAll("a"), function (x) {
+      if (x.getAttribute("href") !== key) return false;
+      x.focus({ preventScroll: true });
+      return true;
+    });
+  }
+  // Panels are built off-screen, worst first (failing, warning, neutral, healthy), so a problem is never below the fold.
   function fill(id, fns, d) {
+    var ps = fns.map(function (fn, i) { var p = fn(d); p._i = i; p.id = slug(p.querySelector("h3").textContent); return p; });
+    ps.sort(function (x, y) { return sev(x) - sev(y) || x._i - y._i; });
     var f = document.createDocumentFragment();
-    fns.forEach(function (fn) { f.appendChild(fn(d)); });
-    document.getElementById(id).replaceChildren(f);
+    ps.forEach(function (p) { f.appendChild(p); });
+    swap(document.getElementById(id), f);
+  }
+  function chip(c) {
+    var a = el("a", "pill " + c[0], c[1]);
+    a.href = "#" + c[2];
+    return a;
   }
   function render(d) {
+    sources = {};
     var strip = document.createDocumentFragment();
-    stripChips(d).forEach(function (c) { strip.appendChild(pill(c[0], c[1])); });
-    document.getElementById("strip").replaceChildren(strip);
+    stripChips(d).forEach(function (c) { strip.appendChild(chip(c)); });
+    swap(document.getElementById("strip"), strip);
     fill("cluster", [dropsPanel, alertsPanel, fluxPanel, polarisPanel, diskPanel], d);
     fill("homelab", [versionsPanel, usagePanel], d);
     fill("github", [prsPanel, renovatePrsPanel, issuesPanel, renovateRunsPanel], d);
+    var sl = document.createDocumentFragment();
+    Object.keys(sources).forEach(function (t) { var li = el("li"); li.appendChild(el("span", "src", t)); sl.appendChild(li); });
+    document.getElementById("source-list").replaceChildren(sl);
     var failed = (d.meta && d.meta.workflow && d.meta.workflow.failed) || {};
     var names = Object.keys(failed);
     var banner = document.getElementById("banner");
     banner.hidden = names.length === 0;
     banner.textContent = names.length ? "Some sources did not answer: " + names.join(", ") + "." : "";
-    document.getElementById("updated").textContent = "Updated " + new Date().toLocaleTimeString();
+    var u = document.getElementById("updated");
+    u.className = "muted";
+    u.textContent = "Updated " + new Date().toLocaleTimeString();
   }
 
   // One request at a time: a refresh while one is in flight, or one that hangs, replaces it instead of stacking up.
@@ -488,6 +533,10 @@
         var banner = document.getElementById("banner");
         banner.hidden = false;
         banner.textContent = "The cockpit could not be reached (" + (e.name === "AbortError" ? "timed out" : e.message) + "). Showing the last data, if any.";
+        // The time shown is when the data was last good, so a failed refresh cannot look current.
+        var u = document.getElementById("updated");
+        u.className = "pill warn";
+        u.textContent = loadedAt ? "Stale, data from " + new Date(loadedAt).toLocaleTimeString() : "No data yet";
       })
       .then(function () { clearTimeout(timer); if (inflight === ctl) inflight = null; });
   }
