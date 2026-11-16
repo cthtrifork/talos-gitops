@@ -11,11 +11,11 @@ ARG CLAUDE_CODE_VERSION=2.1.323
 # Keep within one minor version of the cluster
 ARG KUBECTL_VERSION=v1.34.1
 # renovate: datasource=github-releases depName=cli/cli
-ARG GH_VERSION=2.103.3
+ARG GH_VERSION=2.104.0
 # renovate: datasource=github-releases depName=google/go-containerregistry
 ARG CRANE_VERSION=0.22.1
 # renovate: datasource=github-releases depName=mikefarah/yq
-ARG YQ_VERSION=4.54.2
+ARG YQ_VERSION=4.54.3
 # renovate: datasource=github-releases depName=controlplaneio-fluxcd/flux-operator
 ARG FLUX_OPERATOR_VERSION=0.62.1
 # renovate: datasource=github-releases depName=kubernetes-sigs/kustomize extractVersion=^kustomize/v(?<version>.+)$
@@ -23,7 +23,7 @@ ARG KUSTOMIZE_VERSION=5.8.3
 # renovate: datasource=github-releases depName=yannh/kubeconform
 ARG KUBECONFORM_VERSION=0.8.0
 # renovate: datasource=github-releases depName=helm/helm
-ARG HELM_VERSION=4.3.1
+ARG HELM_VERSION=4.3.2
 # renovate: datasource=github-releases depName=fluxcd/flux2
 ARG FLUX_VERSION=2.10.0
 # renovate: datasource=github-releases depName=rhysd/actionlint
