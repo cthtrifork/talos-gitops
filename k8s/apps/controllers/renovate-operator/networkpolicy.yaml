@@ -90,6 +90,7 @@ spec:
         - matchName: github.com
         - matchName: api.github.com
         - matchName: codeload.github.com
+        - matchName: github-cloud.s3.amazonaws.com
         # Registries and chart repositories the repositories' images and charts live on
         - matchName: ghcr.io
         # raw files, release assets and the registry blob redirects
@@ -97,15 +98,24 @@ spec:
         - matchName: quay.io
         - matchPattern: "*.quay.io"
         - matchName: mirror.gcr.io
+        - matchName: gcr.io
+        - matchName: mcr.microsoft.com
+        - matchName: registry.access.redhat.com
         - matchName: registry.k8s.io
         - matchName: cdn.registry.k8s.io
+        # registry.k8s.io redirects image requests to Artifact Registry (europe-west4-docker.pkg.dev, ...)
+        - matchPattern: "*.pkg.dev"
         - matchName: index.docker.io
         - matchName: registry-1.docker.io
         - matchName: auth.docker.io
         - matchName: production.cloudflare.docker.com
+        - matchName: production.cloudfront.docker.com
         # Docker Hub release dates and source links
         - matchName: hub.docker.com
         - matchName: helm.cilium.io
+        - matchName: kubernetes-sigs.github.io
+        - matchName: charts.fairwinds.com
+        - matchName: charts.redpanda.com
         # Package registries (npm, Go modules, PyPI)
         - matchName: registry.npmjs.org
         - matchName: proxy.golang.org
