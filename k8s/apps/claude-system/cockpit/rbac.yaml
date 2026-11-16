@@ -1,0 +1,41 @@
+# The cockpit page reads the state of the Flux objects with its own token: get and list on the two kinds, nothing else (no Secrets, no write verbs).
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: claude-cockpit
+  namespace: claude-system
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: claude-cockpit
+rules:
+  - apiGroups:
+      - kustomize.toolkit.fluxcd.io
+    resources:
+      - kustomizations
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - helm.toolkit.fluxcd.io
+    resources:
+      - helmreleases
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: claude-cockpit
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: claude-cockpit
+subjects:
+  - kind: ServiceAccount
+    name: claude-cockpit
+    namespace: claude-system

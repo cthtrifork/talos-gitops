@@ -18,6 +18,7 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | `claude-md/skills/<name>/SKILL.md` | Task-specific runbooks split out of `CLAUDE.md`, generated into the `claude-skills` ConfigMap and mounted at `/etc/claude-skills` (items map each key to `<name>/SKILL.md`); each is symlinked into `~/.claude/skills/` at pod start |
 | `usage/` | Usage page and JSON API out: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml` for the Redpanda Connect; `redpanda-connect.yaml` (PromQL behind each endpoint), `index.html` (the page) |
 | `vm-upgrade/` | "Update VMs" buttons (claude-vm and homeserver): `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (a flag per VM, two listeners), `index.html` (the page) |
+| `cockpit/` | The cockpit status page (below): `deployment.yaml`, `service.yaml`, `podmonitor.yaml` and `rbac.yaml`; `redpanda-connect.yaml` (one read-only status call, a branch per source), `index.html` (the page), `mockup.html` (the reviewed UX mockup, example data) |
 | `urlshare/` | Approval-gated URL sharing: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (requests, fetch, TTL), `index.html` (the approval page) |
 | `pvc.yaml` | 5Gi volume holding the login (`/home/claude`); delete it to sign out |
 | `../../../images/claude-runner/` | Image: Anthropic publishes none, so this wraps the `claude` binary (checksum verified) plus `kubectl`, `gh`, `crane`, `talosctl`, `omnictl`, the Flux MCP server and a git credential helper |
@@ -348,3 +349,56 @@ A request is `pending` until you decide, then `approved`, `failed` (approve agai
   thread, so the list of requests is never written twice at once). The approval page has no login of its own: it is the Omni exposer's.
 - **Manual step:** a Cloudflare `A` record `urlshare` -> `192.168.1.245` (DNS only, like `vm-upgrade`). Inside the cluster
   `http://claude-urlshare-lb.claude-system.svc/` works without it.
+
+## Cockpit
+
+One page for the state of the cluster, GitHub and the homelab (issue #849), behind the Omni login at `claudecockpit` (`Service/claude-cockpit`, port
+50097). It is a Redpanda Connect pod like the other pages: `GET /api/v1/status` calls its sources in parallel with fixed paths and queries
+(nothing from the request goes into a query), one branch per source, so a source that is down leaves only its own panel out and the page names it.
+There is no POST, no state and no credential of its own: the Kubernetes API is read with the pod's token and the other sources need none.
+
+```mermaid
+flowchart LR
+  you([Browser]) -->|HTTPS, Omni login| omni[Omni exposer]
+  omni -->|GET only| cockpit["claude-cockpit<br/>Redpanda Connect<br/>index.html, /api/v1/status"]
+
+  cockpit -->|"drops, alerts, disk"| prom[(Prometheus :9090)]
+  cockpit -->|"GET /results.json"| polaris[polaris-dashboard :8080]
+  cockpit -->|"Flux Kustomizations, HelmReleases"| api[kube-apiserver]
+
+  cockpit -.->|"planned: pulls, issues"| gh[api.github.com :443]
+  cockpit -.->|"planned: GET /api/v1/status"| vmup[claude-vm-upgrade]
+
+  app[GitHub App] -.->|"planned: JWT, 1 h token"| es[ExternalSecret<br/>every 30 min]
+  es -.->|"planned: mounted file"| cockpit
+  vm[claude-vm, homeserver] -.->|"planned: POST report<br/>+ 5 h and 7 d usage"| vmup
+
+  classDef new fill:#e4eefb,stroke:#2a78d6,stroke-width:2px,color:#0b0b0b
+  class cockpit new
+```
+
+Solid lines exist today, dashed lines are the planned GitHub and homelab sections (see the issue for the design). Every dashed arrow is a read of
+an existing object or a push the pod does not start; the cockpit itself only ever sends GETs.
+
+| Panel | Source | Needs |
+|---|---|---|
+| Dropped traffic, last hour | Prometheus: `hubble_drop_total{reason="POLICY_DENIED"}`, a total, 5-minute buckets and the top three | egress to Prometheus `:9090` |
+| Firing alerts | Prometheus `/api/v1/alerts` (there is no Alertmanager), so the Omni key, certificate and ExternalSecret alerts show here | same |
+| Flux reconciliation | Kubernetes API: `kustomizations` and `helmreleases`, from the Ready and Reconciling conditions | the `claude-cockpit` ClusterRole: get and list on those two kinds |
+| Polaris score | `polaris-dashboard` `/results.json` (score, and failing checks by severity) | egress to the dashboard `:8080` |
+| Disk, local-path volumes | Prometheus: `node_filesystem_*` on `/var/mnt/local-path-provisioner`, joined with `node_uname_info` for the node name | Prometheus |
+
+Network: `CiliumNetworkPolicy/claude-cockpit` in `networkpolicy.yaml` lets in the Omni exposer (host, remote-node) on 8080 and Prometheus on the
+metrics port 4195 only (the pod does not carry `prometheus-scrape`, whose cluster-wide rule also opens 8080), and lets out DNS, Prometheus, the Polaris
+dashboard and the API server. `claude-rc` has no rule to reach it.
+
+Check it after Flux applied it:
+
+```sh
+kubectl -n claude-system get pods -l app=claude-cockpit
+kubectl -n claude-system port-forward deploy/claude-cockpit 8080:8080   # needs the debug tier; or open the Omni link
+curl -s localhost:8080/api/v1/status | jq 'keys, .meta'
+```
+
+`meta.workflow.failed` names the sources that did not answer. If a panel stays unavailable, `kubectl -n claude-system logs deploy/claude-cockpit` has the
+reason, and a hang on connect means a missing egress rule (the `cilium-drops` skill).

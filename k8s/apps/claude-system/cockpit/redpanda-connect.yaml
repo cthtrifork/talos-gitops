@@ -1,0 +1,216 @@
+---
+# The cockpit page and its read-only JSON API. One GET answers everything: the status calls Prometheus, Polaris and the Kubernetes API in parallel
+# with fixed paths and queries (nothing from the request is put into a query), and each section is filled by its own branch, so a source that
+# is down leaves its section out and the page shows it as unavailable. There is no POST and no state.
+#
+# GET /                 the page
+# GET /healthz          ok
+# GET /api/v1/status    drops_total, drops_series, drops_top, alerts, disk, polaris, flux_ks, flux_hr; meta.workflow.failed lists the branches that failed
+#
+# The Kubernetes API is read with the pod's own token (claude-cockpit ClusterRole: get and list on the Flux Kustomizations and HelmReleases).
+# Not a Flux template (configMapGenerator disables postBuild envsubst); ${PROM_URL:default} is Redpanda Connect's own.
+http:
+  enabled: true
+  address: 0.0.0.0:4195
+  debug_endpoints: false
+
+# the pod's token rotates, so it is read from the file on every request
+cache_resources:
+  - label: serviceaccount
+    file:
+      directory: /var/run/secrets/kubernetes.io/serviceaccount
+
+input:
+  http_server:
+    address: 0.0.0.0:8080
+    path: /
+    allowed_verbs:
+      - GET
+    sync_response:
+      status: '${! @status.or("200") }'
+      headers:
+        Content-Type: '${! @content_type.or("application/json") }'
+        Cache-Control: no-store
+
+pipeline:
+  processors:
+    - switch:
+        - check: '@http_server_request_path == "/" || @http_server_request_path == "/index.html"'
+          processors:
+            - mapping: |
+                meta content_type = "text/html; charset=utf-8"
+                root = file("/etc/connect/index.html")
+
+        - check: '@http_server_request_path == "/healthz"'
+          processors:
+            - mapping: |
+                meta content_type = "text/plain"
+                root = "ok"
+
+        - check: '@http_server_request_path == "/api/v1/status"'
+          processors:
+            - resource: status
+
+        - processors:
+            - mapping: |
+                meta status = "404"
+                root = {"error": "not found"}
+
+output:
+  sync_response: {}
+
+processor_resources:
+  # puts the pod's token in the metadata field `token`; kube_get sends it
+  - label: login
+    branch:
+      request_map: 'root = ""'
+      processors:
+        - cache:
+            resource: serviceaccount
+            operator: get
+            key: token
+      result_map: 'meta token = content().string().trim()'
+
+  # The caller sets the metadata field `path`
+  - label: kube_get
+    http:
+      url: 'https://kubernetes.default.svc${! @path }'
+      verb: GET
+      headers:
+        Authorization: 'Bearer ${! @token }'
+      timeout: 10s
+      tls:
+        enabled: true
+        root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  - label: prom_get
+    http:
+      url: '${PROM_URL:http://kube-prom-prometheus.kube-prometheus-stack-system.svc:9090}${! @path }'
+      verb: GET
+      timeout: 10s
+
+  # Ready, reconciling, suspended and failed counts of a list of Flux objects, and what is wrong with the ones that are not ready
+  - label: flux_summary
+    mapping: |
+      let items = this.items.or([]).map_each(i -> {
+        "name": i.metadata.name,
+        "namespace": i.metadata.namespace,
+        "suspended": i.spec.suspend.or(false),
+        "ready": i.status.conditions.or([]).filter(c -> c.type == "Ready").map_each(c -> c.status).index(0).catch("Unknown"),
+        "reconciling": i.status.conditions.or([]).filter(c -> c.type == "Reconciling" && c.status == "True").length() > 0,
+        "message": i.status.conditions.or([]).filter(c -> c.type == "Ready").map_each(c -> c.message).index(0).catch("").slice(0, 160)
+      }).map_each(i -> i.merge({"state": if i.suspended { "suspended" } else if i.ready == "True" { "ready" } else if i.reconciling || i.ready == "Unknown" { "reconciling" } else { "failed" }}))
+      root.total = $items.length()
+      root.ready = $items.filter(i -> i.state == "ready").length()
+      root.reconciling = $items.filter(i -> i.state == "reconciling").length()
+      root.suspended = $items.filter(i -> i.state == "suspended").length()
+      root.failed = $items.filter(i -> i.state == "failed").length()
+      root.problems = $items.filter(i -> i.state == "failed" || i.state == "reconciling").sort_by(i -> i.state + i.namespace + i.name).slice(0, 8).map_each(i -> {"namespace": i.namespace, "name": i.name, "state": i.state, "message": i.message})
+
+  # GET /api/v1/status. The branches have no dependencies on each other, so they run in parallel. A branch that fails (its source is down) is
+  # left out and named in meta.workflow.failed; the catch clears the error flag so the rest is still answered.
+  - label: status
+    processors:
+      - mapping: 'root = {"generated_at": now().ts_unix()}'
+      - workflow:
+          branches:
+            drops_total:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "sum(increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[1h]))".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: 'root.drops_total = this.data.result.index(0).value.index(1).number().round().catch(0)'
+
+            drops_series:
+              request_map: |
+                let end = now().ts_unix()
+                meta path = "/api/v1/query_range?query=" + "sum(increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[5m]))".escape_url_query() + "&start=" + ($end - 3600).string() + "&end=" + $end.string() + "&step=300"
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: 'root.drops_series = this.data.result.index(0).values.map_each(v -> v.index(1).number().round()).catch([])'
+
+            drops_top:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "topk(3, sum by (source_workload, destination_ip, destination_namespace, destination_workload) (increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[1h])) > 0)".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.drops_top = this.data.result.map_each(r -> {
+                  "source": r.metric.source_workload.or("unknown"),
+                  "destination": if r.metric.destination_workload.or("") != "" { r.metric.destination_namespace.or("-") + "/" + r.metric.destination_workload } else { r.metric.destination_ip.or("unknown") },
+                  "count": r.value.index(1).number().round()
+                })
+
+            alerts:
+              request_map: |
+                meta path = "/api/v1/alerts"
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.alerts = this.data.alerts.filter(a -> a.state == "firing").map_each(a -> {
+                  "name": a.labels.alertname.or("unknown"),
+                  "severity": a.labels.severity.or("none"),
+                  "summary": a.annotations.summary.or("").slice(0, 160),
+                  "since": a.activeAt.or("")
+                }).sort_by(a -> a.name)
+
+            disk:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/var/mnt/local-path-provisioner\"} / node_filesystem_size_bytes{mountpoint=\"/var/mnt/local-path-provisioner\"}) * on(instance) group_left(nodename) node_uname_info".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.disk = this.data.result.map_each(r -> {
+                  "node": r.metric.nodename.or(r.metric.instance.or("unknown")),
+                  "used_pct": r.value.index(1).number().round()
+                }).sort_by(n -> n.node)
+
+            polaris:
+              request_map: 'root = ""'
+              processors:
+                - http:
+                    url: '${POLARIS_URL:http://polaris-dashboard.policy-system.svc.cluster.local}/results.json'
+                    verb: GET
+                    timeout: 15s
+                - mapping: |
+                    let failing = this.Results.map_each(r -> [
+                      r.Results.or({}).values(),
+                      r.PodResult.Results.or({}).values(),
+                      r.PodResult.ContainerResults.or([]).map_each(c -> c.Results.or({}).values()).flatten()
+                    ].flatten()).flatten().filter(x -> x.Success == false)
+                    root.score = this.Score
+                    root.audit_time = this.AuditTime
+                    root.danger = $failing.filter(x -> x.Severity == "danger").length()
+                    root.warning = $failing.filter(x -> x.Severity == "warning").length()
+              result_map: 'root.polaris = this'
+
+            flux_ks:
+              request_map: |
+                meta path = "/apis/kustomize.toolkit.fluxcd.io/v1/kustomizations"
+                root = ""
+              processors:
+                - resource: login
+                - resource: kube_get
+                - resource: flux_summary
+              result_map: 'root.flux_ks = this'
+
+            flux_hr:
+              request_map: |
+                meta path = "/apis/helm.toolkit.fluxcd.io/v2/helmreleases"
+                root = ""
+              processors:
+                - resource: login
+                - resource: kube_get
+                - resource: flux_summary
+              result_map: 'root.flux_hr = this'
+      - catch:
+          - log:
+              level: WARN
+              message: a status source failed
+              fields_mapping: 'root.error = error()'
+          - mapping: 'root = this'

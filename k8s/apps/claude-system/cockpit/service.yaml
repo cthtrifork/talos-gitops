@@ -1,0 +1,22 @@
+---
+# Omni exposer (Omni login). The NetworkPolicy lets in nothing else.
+apiVersion: v1
+kind: Service
+metadata:
+  name: claude-cockpit
+  namespace: claude-system
+  annotations:
+    omni-kube-service-exposer.sidero.dev/label: "Cockpit"
+    omni-kube-service-exposer.sidero.dev/port: "50097"
+    omni-kube-service-exposer.sidero.dev/prefix: claudecockpit
+spec:
+  type: ClusterIP
+  selector:
+    app: claude-cockpit
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: metrics
+      port: 4195
+      targetPort: metrics
