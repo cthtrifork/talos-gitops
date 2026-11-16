@@ -131,6 +131,10 @@ data:
         - readinessProbeMissing
         - livenessProbeMissing
       - controllerNames:
+        - trust-manager
+        rules:
+        - livenessProbeMissing
+      - controllerNames:
         - arc-ubuntu
         rules:
         - readinessProbeMissing

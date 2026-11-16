@@ -38,6 +38,10 @@ spec:
             httpGet:
               path: /ready
               port: metrics
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: metrics
           resources:
             requests:
               cpu: 20m
