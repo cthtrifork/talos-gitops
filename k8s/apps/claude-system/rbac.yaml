@@ -65,6 +65,9 @@ rules:
       - frrk8s.metallb.io
       - aquasecurity.github.io
       - actions.github.com
+      - external-secrets.io
+      - generators.external-secrets.io
+      - renovate-operator.mogenius.com
     resources:
       - "*"
     verbs:

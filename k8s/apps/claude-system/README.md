@@ -6,7 +6,7 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 
 | File | What |
 |---|---|
-| `rbac.yaml` | ServiceAccount `claude`; built-in `view` (no Secrets) plus read-only access to nodes, storage, CRDs and the CRD groups in use (including MetalLB, the ARC runner resources and the trivy-operator reports). No write verbs, no `pods/exec` |
+| `rbac.yaml` | ServiceAccount `claude`; built-in `view` (no Secrets) plus read-only access to nodes, storage, CRDs and the CRD groups in use (including MetalLB, the ARC runner resources, the trivy-operator reports, External Secrets and the Renovate operator). No write verbs, no `pods/exec` |
 | `clusterrole-elevated.yaml` | The break-glass ClusterRoles `claude-ops`, `claude-debug` and `claude-storage`; nothing binds them by default |
 | `elevate/` | The "Elevate Claude" page (below): a Redpanda Connect pod, its RBAC, limits and admission policies |
 | `networkpolicy.yaml` | Cilium default deny, then DNS, the Kubernetes API and TCP 443 to the hosts Claude Code needs |
