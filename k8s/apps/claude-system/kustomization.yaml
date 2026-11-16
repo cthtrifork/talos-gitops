@@ -13,14 +13,14 @@ resources:
   - ghcr-pull.enc.yaml
   - claude-cloudflare.enc.yaml
   - omni-service-account.enc.yaml
-  - usage/usage.yaml
-  - vm-upgrade/vm-upgrade.yaml
-  - urlshare/urlshare.yaml
+  - usage/deployment-service-podmonitor.yaml
+  - vm-upgrade/deployment-service-podmonitor.yaml
+  - urlshare/deployment-service-podmonitor.yaml
   - elevate/rbac.yaml
-  - elevate/state.yaml
+  - elevate/configmap.yaml
   - elevate/admission.yaml
   - elevate/deployment.yaml
-  - elevate/service.yaml
+  - elevate/service-podmonitor.yaml
 configMapGenerator:
   - name: claude-usage-connect-config
     namespace: claude-system

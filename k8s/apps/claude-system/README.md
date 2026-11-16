@@ -182,7 +182,7 @@ only the endpoint and the environment name differ:
 
 ### Usage page and API
 
-`usage/usage.yaml` is a Redpanda Connect that holds no data: every request becomes PromQL against Prometheus.
+`usage/deployment-service-podmonitor.yaml` deploys a Redpanda Connect that holds no data: every request becomes PromQL against Prometheus.
 It is exposed through the Omni service exposer (`omni-kube-service-exposer.sidero.dev/*` on `Service/claude-usage`, port
 50091, plain HTTP, LAN only, read-only, aggregates only).
 
