@@ -425,15 +425,31 @@
   }
   function usagePanel(d) {
     var title = "Claude usage";
-    var s = d.sessions && d.sessions["claude-vm"];
     if (!d.sessions) return unavailable(title, "claude-vm status line → cockpit");
-    if (!s || !s.received_at) {
+    var users = usageUsers(d);
+    if (!users.length) {
       var e = panel(head(title, "none", "no data"));
       e.appendChild(el("span", "muted", "Nothing received in the last 24 hours. The Claude VM sends it while Claude Code is in use."));
       e.appendChild(src("claude-vm status line → cockpit · rate_limits"));
       return e;
     }
     var now = Math.round(Date.now() / 1000);
+    var blocks = users.map(function (u) { return usageBlock(u[1], now); });
+    var live = blocks.filter(function (b) { return !b.stale; });
+    var worst = live.reduce(function (m, b) { return Math.max(m, b.worst); }, 0);
+    var state = !live.length ? "none" : worst >= 90 ? "bad" : worst >= 75 ? "warn" : "ok";
+    var p = panel(head(title, state, !live.length ? "stale" : "peak " + worst + "%"));
+    blocks.forEach(function (b, i) {
+      // With several users each block is named; with one the panel reads as before.
+      if (users.length > 1) p.appendChild(el("strong", null, users[i][0]));
+      p.appendChild(b.box);
+      if (b.note) p.appendChild(b.note);
+    });
+    p.appendChild(src("claude-vm status line → cockpit · rate_limits"));
+    return p;
+  }
+  // The usage of one Linux user: a bar for the window closer to its limit, the other as a line.
+  function usageBlock(s, now) {
     var age = now - s.received_at;
     var stale = age > 6 * 3600;
     var windows = [["5-hour window", s.five_hour], ["7-day window", s.seven_day]];
@@ -462,15 +478,15 @@
       box.appendChild(r);
       if (i === main) box.appendChild(bar(w[0] + ", " + (used === null ? "no data" : used + " percent used"), used === null ? [] : [{ pct: used, color: used >= 90 ? "var(--bad)" : used >= 75 ? "var(--warn)" : "var(--calm)" }]));
     });
-    var state = stale ? "none" : worst >= 90 ? "bad" : worst >= 75 ? "warn" : "ok";
-    var p = panel(head(title, state, stale ? "stale" : "peak " + worst + "%"));
-    p.appendChild(box);
     var bits = stale ? ["reported " + ago(age) + " ago"] : [];
     if (s.model) bits.push(s.model);
     if (s.version) bits.push("Claude Code " + s.version);
-    if (bits.length) p.appendChild(el("span", "muted", bits.join(" · ") + (stale ? ". Older than 6 hours, so the VM may be idle." : "")));
-    p.appendChild(src("claude-vm status line → cockpit · rate_limits"));
-    return p;
+    return { box: box, worst: worst, stale: stale, note: bits.length ? el("span", "muted", bits.join(" · ") + (stale ? ". Older than 6 hours, so the VM may be idle." : "")) : null };
+  }
+  // The Linux users that reported anything in the last 24 hours, by name.
+  function usageUsers(d) {
+    var m = (d.sessions && d.sessions["claude-vm"]) || {};
+    return Object.keys(m).sort().filter(function (k) { return m[k] && m[k].received_at; }).map(function (k) { return [k, m[k]]; });
   }
 
   function stripChips(d) {
@@ -497,11 +513,13 @@
       if (bad) chips.push(["bad", "Renovate: " + bad + " failed", "p-renovate-runs"]);
       else if (na) chips.push(["warn", "Renovate: " + na + " need approval", "p-renovate-runs"]);
     }
-    var us = d.sessions && d.sessions["claude-vm"];
-    if (us && us.received_at && Math.round(Date.now() / 1000) - us.received_at <= 6 * 3600) {
-      var w7 = us.seven_day && us.seven_day.used_pct;
-      if (w7 !== null && w7 !== undefined && !(us.seven_day.resets_at && us.seven_day.resets_at < Math.round(Date.now() / 1000))) chips.push([w7 >= 90 ? "bad" : w7 >= 75 ? "warn" : "ok", "Claude 7-day " + w7 + "%", "p-claude-usage"]);
-    }
+    var nowS = Math.round(Date.now() / 1000), usage = usageUsers(d), top = null;
+    usage.forEach(function (u) {
+      var s = u[1], w = s.seven_day && s.seven_day.used_pct;
+      if (nowS - s.received_at > 6 * 3600 || w === null || w === undefined || (s.seven_day.resets_at && s.seven_day.resets_at < nowS)) return;
+      if (!top || w > top.w) top = { w: w, name: u[0] };
+    });
+    if (top) chips.push([top.w >= 90 ? "bad" : top.w >= 75 ? "warn" : "ok", "Claude 7-day " + top.w + "%" + (usage.length > 1 ? " (" + top.name + ")" : ""), "p-claude-usage"]);
     var order = { bad: 0, warn: 1, none: 2, ok: 3 };
     chips.sort(function (a, b) { return order[a[0]] - order[b[0]]; });
     return chips;

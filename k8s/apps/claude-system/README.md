@@ -373,7 +373,7 @@ flowchart LR
 
   cockpit -->|"GET /api/v1/status"| vmup[claude-vm-upgrade]
   cockpit -->|"latest image digest"| ghcr[ghcr.io :443]
-  vm[claude-vm status line] -->|"POST /api/v1/sessions/claude-vm<br/>5 h and 7 d usage, model, version"| lb["claude-cockpit-lb 192.168.1.246 :80<br/>LAN, VM address only"]
+  vm[claude-vm status line] -->|"POST /api/v1/sessions/claude-vm/&lt;user&gt;<br/>5 h and 7 d usage, model, version"| lb["claude-cockpit-lb 192.168.1.246 :80<br/>LAN, VM address only"]
   lb -->|":8081"| cockpit
 
   classDef new fill:#e4eefb,stroke:#2a78d6,stroke-width:2px,color:#0b0b0b
@@ -387,7 +387,7 @@ flowchart LR
 | Polaris score | `polaris-dashboard` `/results.json` |
 | Pull requests, issues | GitHub search over all repositories of the owner the App is installed on (private ones included), with the cockpit's own one-hour read-only App token (`githubaccesstoken.yaml`, `externalsecret.yaml`) |
 | Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io`, read with the runner's `ghcr-pull` read:packages token (`homeserver-bootc` is a private package) |
-| Claude usage | Pushed by the Claude VM's status line (`statusline-report` in [homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)) to `POST /api/v1/sessions/claude-vm` on `:8081`, kept in memory for 24 hours |
+| Claude usage | Pushed by the Claude VM's status line (`statusline-report` in [homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)) to `POST /api/v1/sessions/claude-vm/<user>` on `:8081`, one slot per Linux user (`claude`, `claude-rc-personal`: each has its own login, so its own limits), kept in memory for 24 hours. The bare `/api/v1/sessions/claude-vm` is the older form of `claude`. A new user needs adding in two places in `redpanda-connect.yaml`: the ingest check and a branch in the status handler |
 
 The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in `192.168.1.138/32` only and the LoadBalancer uses
 `externalTrafficPolicy: Local`, so a spoofed address could only change what the page shows. The one manual step is a Cloudflare `A` record (DNS only)
@@ -397,7 +397,7 @@ Check after Flux applied it:
 
 ```sh
 kubectl -n claude-system get pods -l app=claude-cockpit
-curl -s -XPOST -d '{}' http://cockpit.portableinfo.cloud/api/v1/sessions/claude-vm   # from the VM: {"ok":true}
+curl -s -XPOST -d '{}' http://cockpit.portableinfo.cloud/api/v1/sessions/claude-vm/claude   # from the VM: {"ok":true}
 kubectl -n claude-system port-forward deploy/claude-cockpit 8080:8080                # needs the debug tier
 curl -s localhost:8080/api/v1/status | jq 'keys, .meta'                               # meta.workflow.failed names a source that did not answer
 ```
