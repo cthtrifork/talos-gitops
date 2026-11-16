@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/instance: traefik-traefik-system
     app.kubernetes.io/version: "v3.7.19"
-    helm.sh/chart: traefik-42.3.2
+    helm.sh/chart: traefik-42.4.0
     app.kubernetes.io/managed-by: Helm
   annotations:
 spec:
