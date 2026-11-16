@@ -205,6 +205,7 @@
       "description": "Renovate itself (the renovate_version pin and the renovatebot/github-action) moves in one pull request and automerges for every update type, majors included. Last, so it wins over the rules above.",
       "matchPackageNames": ["renovate", "renovatebot/github-action"],
       "groupName": "renovate",
+      "separateMajorMinor": false,
       "groupSlug": "renovate",
       "automerge": true,
       "automergeType": "pr"
