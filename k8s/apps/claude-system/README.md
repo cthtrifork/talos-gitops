@@ -10,7 +10,7 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | `rbac-elevated.yaml` | The break-glass ClusterRoles `claude-ops`, `claude-debug` and `claude-storage`; nothing binds them by default |
 | `elevate/` | The "Elevate Claude" page (below): a Redpanda Connect pod, its RBAC, limits and admission policies |
 | `networkpolicy.yaml` | Cilium default deny, then DNS, the Kubernetes API and TCP 443 to the hosts Claude Code needs |
-| `github-app.yaml` | CronJob that mints a one-hour GitHub App installation token into `claude-github-token` (scripts in `github-app/`) |
+| `external-secrets.yaml` | External Secrets `GithubAccessToken` generator + ExternalSecret that mint a one-hour GitHub App installation token into `claude-github-token` every 30 minutes |
 | `deployment.yaml` | `claude-rc`: idles until a login exists, then runs `claude remote-control`; non-root, read-only root filesystem |
 | `claude-md/CLAUDE.md` | The only `CLAUDE.md` (user-level and repo notes together), generated into the `claude-md` ConfigMap by `kustomization.yaml` and symlinked to `~/.claude/CLAUDE.md` at pod start. Edit it in Git; the ConfigMap name hash rolls the pod |
 | `claude-md/skills/<name>/SKILL.md` | Task-specific runbooks split out of `CLAUDE.md`, generated into the `claude-skills` ConfigMap and mounted at `/etc/claude-skills` (items map each key to `<name>/SKILL.md`); each is symlinked into `~/.claude/skills/` at pod start |
@@ -32,7 +32,7 @@ The pod reads a token from the Secret `claude-github-token` and hands it to git 
 (the image's `gh` wrapper reads the same file, so the pod can push branches and open PRs; `api.github.com` is in the egress allowlist). A GitHub App keeps that Secret
 fresh, with a token that expires every hour.
 
-`github-app.yaml` runs a CronJob that signs a JWT with the App's private key and exchanges it for a
+`external-secrets.yaml` has External Secrets sign a JWT with the App's private key and exchange it for a
 one-hour installation token, with everything the App was granted on the repositories it is installed on (the request is not narrowed,
 so scope it in the App's settings). The pod holds only that short-lived token.
 
@@ -45,16 +45,15 @@ so scope it in the App's settings). The pod holds only that short-lived token.
    URL, `https://github.com/settings/installations/<id>`).
 3. Create the credentials Secret `claude-github-app` as a SOPS-encrypted file (command and key rotation: "Secrets (SOPS)" in the root `readme.md`).
 
-4. Run the first refresh now instead of waiting for the schedule, and check it:
+4. The first token is created when External Secrets syncs (within a minute of the apps reconciling). Check it:
 
 ```sh
-kubectl -n claude-system create job --from=cronjob/claude-github-token first-token
-kubectl -n claude-system logs job/first-token -c refresh      # "claude-github-token refreshed"
+kubectl -n claude-system get externalsecret claude-github-token   # STATUS SecretSynced, READY True
 kubectl -n claude-system get secret claude-github-token
 ```
 
-If the Job fails, look at `kubectl -n claude-system logs job/first-token -c sign-jwt` and
-`kubectl -n claude-system describe job first-token`. Git pushes fail until the Secret exists (the pod itself starts without it).
+If it is not ready, `kubectl -n claude-system describe externalsecret claude-github-token` shows the error (a wrong App ID,
+installation ID or key, or api.github.com blocked: see the `cilium-drops` skill). Git pushes fail until the Secret exists (the pod itself starts without it).
 
 `claude-github-app` is `claude-github-app.enc.yaml`; add it to `kustomization.yaml` `resources:` the first time.
 

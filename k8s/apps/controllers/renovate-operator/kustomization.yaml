@@ -6,5 +6,5 @@ resources:
   - helm-repository.yaml
   - namespace.yaml
   - networkpolicy.yaml
-  - secrets-job.yaml
+  - external-secrets.yaml
   - ui-service.yaml

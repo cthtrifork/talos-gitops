@@ -8,7 +8,7 @@ resources:
   - networkpolicy.yaml
   - pvc.yaml
   - deployment.yaml
-  - github-app.yaml
+  - external-secrets.yaml
   - claude-github-app.enc.yaml
   - ghcr-pull.enc.yaml
   - usage/usage.yaml
@@ -19,15 +19,6 @@ resources:
   - elevate/deployment.yaml
   - elevate/service.yaml
 configMapGenerator:
-  - name: claude-token-scripts
-    namespace: claude-system
-    options:
-      annotations:
-        # The scripts are shell, not Flux templates: skip postBuild envsubst (strict mode fails on $GITHUB_REPOSITORY)
-        kustomize.toolkit.fluxcd.io/substitute: disabled
-    files:
-      - github-app/sign-jwt.sh
-      - github-app/refresh-token.sh
   - name: claude-usage-connect-config
     namespace: claude-system
     options:

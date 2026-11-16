@@ -18,6 +18,7 @@ spec:
   dependsOn:
     - name: gitops-infra-post
     - name: app-controllers
+    - name: gitops-infra-secret-store
   sourceRef:
     kind: GitRepository
     name: flux-system

@@ -1,0 +1,51 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/helm.toolkit.fluxcd.io/helmrelease_v2.json
+# Generates and copies Secrets inside the cluster (the Kubernetes provider, no external secret manager): see
+# k8s/infra/secret-store/. It replaces the Jobs that used to create Secrets with kubectl.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: external-secrets
+  namespace: external-secrets-system
+spec:
+  interval: 30m
+  timeout: 10m
+  chartRef:
+    kind: OCIRepository
+    name: external-secrets
+  driftDetection:
+    mode: enabled
+  install:
+    strategy:
+      name: RetryOnFailure
+  values:
+    installCRDs: true
+    image:
+      # renovate: datasource=docker depName=ghcr.io/external-secrets/external-secrets versioning=docker
+      tag: v2.15.0@sha256:6888f243e5f8f7592c6d7fae2a5547c9e33531441b47b53807b9093b25a00e31
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        memory: 256Mi
+    webhook:
+      image:
+        # renovate: datasource=docker depName=ghcr.io/external-secrets/external-secrets versioning=docker
+        tag: v2.15.0@sha256:6888f243e5f8f7592c6d7fae2a5547c9e33531441b47b53807b9093b25a00e31
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          memory: 128Mi
+    certController:
+      image:
+        # renovate: datasource=docker depName=ghcr.io/external-secrets/external-secrets versioning=docker
+        tag: v2.15.0@sha256:6888f243e5f8f7592c6d7fae2a5547c9e33531441b47b53807b9093b25a00e31
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          memory: 128Mi

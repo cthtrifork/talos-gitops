@@ -63,16 +63,3 @@ spec:
         - ports:
             - port: "8082"
               protocol: TCP
----
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: fileserver-rotate
-  namespace: fileserver-system
-spec:
-  endpointSelector:
-    matchLabels:
-      app: fileserver-rotate
-  egress:
-    - toEntities:
-        - kube-apiserver

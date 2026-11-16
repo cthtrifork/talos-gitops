@@ -18,6 +18,7 @@ spec:
   dependsOn:
     - name: gitops-infra-bootstrap
     - name: gitops-infra-controllers
+    - name: gitops-infra-secret-store
   sourceRef:
     kind: GitRepository
     name: flux-system

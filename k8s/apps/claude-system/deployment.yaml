@@ -164,7 +164,7 @@ spec:
             claimName: claude-home
         - name: github-token
           secret:
-            secretName: claude-github-token # minted by github-app.yaml
+            secretName: claude-github-token # minted by external-secrets.yaml
             optional: true
             defaultMode: 0400
         - name: registry-auth

@@ -15,6 +15,7 @@ spec:
       name: sops-age
   dependsOn:
     - name: gitops-infra-post
+    - name: gitops-infra-secret-store
   sourceRef:
     kind: GitRepository
     name: flux-system

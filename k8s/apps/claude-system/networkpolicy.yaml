@@ -141,37 +141,6 @@ spec:
             - port: "443"
               protocol: TCP
 ---
-# The token refresher only needs DNS, the Kubernetes API (to write one Secret) and api.github.com.
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: claude-token-refresher-egress
-  namespace: claude-system
-spec:
-  endpointSelector:
-    matchLabels:
-      app: claude-token-refresher
-  egress:
-    - toEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: kube-system
-            k8s:k8s-app: kube-dns
-      toPorts:
-        - ports:
-            - port: "53"
-              protocol: ANY
-          rules:
-            dns:
-              - matchPattern: "*"
-    - toEntities:
-        - kube-apiserver
-    - toFQDNs:
-        - matchName: api.github.com
-      toPorts:
-        - ports:
-            - port: "443"
-              protocol: TCP
----
 # The Omni service exposer runs on the host network: it arrives as host or remote-node.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy

@@ -207,17 +207,3 @@ spec:
               protocol: TCP
             - port: "3903"
               protocol: TCP
----
-# The secrets Job: the Kubernetes API only
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: renovate-secrets
-  namespace: renovate-system
-spec:
-  endpointSelector:
-    matchLabels:
-      batch.kubernetes.io/job-name: renovate-secrets
-  egress:
-    - toEntities:
-        - kube-apiserver

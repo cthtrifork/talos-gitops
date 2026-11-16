@@ -41,11 +41,12 @@ clients reach `trivy-service` (4954).
 
 ## The Dependency-Track KEK
 
-The chart does not generate the key encryption key. `dependency-track/kek-job.yaml` creates the Secret
-`dependency-track-kek` (key `kek`, random 32 bytes) once, if it is missing, and never overwrites it. The key is therefore
+The chart does not generate the key encryption key. External Secrets generates it once in the cluster store
+(`k8s/infra/secret-store/`, never overwritten) and `dependency-track/external-secret-kek.yaml` copies the Secret
+`dependency-track-kek` (key `kek`, 32 random characters, base64) here. The key is therefore
 not in Git: if the Secret is lost, everything Dependency-Track stored encrypted in its database becomes unreadable. Back it
 up (`kubectl -n security-system get secret dependency-track-kek`, needs Secret read access) if that matters.
-Until the Job has run, the api-server pods wait in `CreateContainerConfigError` and then start on their own.
+Until the ExternalSecret has synced, the api-server pods wait in `CreateContainerConfigError` and then start on their own.
 
 ## Access
 
@@ -81,21 +82,20 @@ an unknown one fails the Job. The telemetry default is set with `DT_TELEMETRY_SU
 it only seeds a fresh install. Dependency-Track has no declarative provisioning of the admin, teams or API keys
 ([upstream issue 6193](https://github.com/DependencyTrack/dependency-track/issues/6193)), hence the Job.
 
-On the first run `config-job.yaml` generates a random admin password and stores it in `dependency-track-admin`
-**before** it changes the built-in `admin/admin` (so a crash in between loses nothing), creates the teams, stores their API
-keys and applies the settings above. To use your own password, create the Secret before the first run:
-`kubectl -n security-system create secret generic dependency-track-admin --from-literal=username=admin --from-literal=password=<password>`.
-An existing installation just logs in with the Secret; the password is never reset. If the Secret is missing but the
-password was already changed by hand, the Job deletes the password it just generated and fails with a clear message: create
-the Secret with the current admin password.
+External Secrets generates the admin password once (`k8s/infra/secret-store/`) and `external-secret-admin.yaml` copies it into
+`dependency-track-admin`, so it exists before the Job first runs. On the first run `config-job.yaml` changes the built-in
+`admin/admin` to it, creates the teams, stores their API keys and applies the settings above. To use your own password, change
+the key `password` in the Secret `dependency-track-admin` of the namespace `secret-store`. An existing installation just logs in
+with the Secret; the password is never reset. If the password was already changed by hand, the Job fails with a clear message:
+put the current admin password in the `secret-store` Secret.
 
 | Secret | Keys | Created by | Used by |
 |---|---|---|---|
-| `dependency-track-kek` | `kek` | `kek-job.yaml` | api-server |
-| `dependency-track-admin` | `username`, `password` | `config-job.yaml` (or by hand) | `config-job.yaml` |
+| `dependency-track-kek` | `kek` | `external-secret-kek.yaml` (generated in `secret-store`) | api-server |
+| `dependency-track-admin` | `username`, `password` | `external-secret-admin.yaml` (generated in `secret-store`) | `config-job.yaml` |
 | `dependency-track-api-key` | `api-key` (team `sbom-uploader`) | `config-job.yaml` | `sbom-hook` |
 | `dependency-track-vex-api-key` | `api-key` (team `vex-exporter`) | `config-job.yaml` | `vex-export.yaml` |
-| `dependency-track-vex-github` | `token` | by hand | `vex-export.yaml` |
+| `dependency-track-vex-github` | `token` | `external-secret-vex-github.yaml` (minted from `dependency-track-vex-github-app`) | `vex-export.yaml` |
 
 Teams keep their permissions (`sbom-uploader`: `BOM_UPLOAD`, `PROJECT_CREATION_UPLOAD`; `vex-exporter`: `VIEW_PORTFOLIO`,
 `VULNERABILITY_ANALYSIS_READ`); permissions are only added. A key is created only when its Secret does not exist, and is never
@@ -127,7 +127,8 @@ Without the Secret the Job is a dry run that prints the documents it would write
    (the number at the end of the installation's URL, `https://github.com/settings/installations/<id>`).
 3. Create the Secret `dependency-track-vex-github-app` in `security-system` with the keys `app-id`, `installation-id` and
    `private-key.pem` as a SOPS-encrypted file `dependency-track/vex-github-app.enc.yaml` (same procedure as `claude-github-app`,
-   "Secrets (SOPS)" in the root `readme.md`), and add it to `dependency-track/kustomization.yaml` `resources:`.
+   "Secrets (SOPS)" in the root `readme.md`), and add it to `dependency-track/kustomization.yaml` `resources:`. External Secrets
+   turns it into the one-hour token `dependency-track-vex-github` (`kubectl -n security-system get externalsecret dependency-track-vex-github`).
 4. Run it once instead of waiting for the schedule:
    `kubectl -n security-system create job --from=cronjob/dependency-track-vex-export vex-first` and read its logs.
 
