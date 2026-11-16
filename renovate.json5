@@ -65,20 +65,15 @@
   },
   "packageRules": [
     {
-      "description": "Group every update into one pull request and automerge all update types, majors included; more specific rules below can override (groupName, automerge)",
-      "groupName": "renovate updates",
-      "groupSlug": "all",
+      "description": "Automerge patch and digest updates everywhere; more specific rules below can override",
       "automerge": true,
       "automergeType": "pr",
       "matchUpdateTypes": [
-        "major",
-        "minor",
         "patch",
         "digest"
       ]
     },
     {
-      "groupName": null,
       "automerge": false,
       "matchUpdateTypes": [
         "major",
@@ -195,7 +190,6 @@
         "kubevirt/kubevirt",
         "kubevirt/containerized-data-importer"
       ],
-      "groupName": null,
       "automerge": false
     },
     {
@@ -208,8 +202,10 @@
       "ignoreUnstable": false
     },
     {
-      "description": "Renovate itself (the renovate_version pin and the renovatebot/github-action) automerges for every update type. Last, so it wins over the rules above.",
+      "description": "Renovate itself (the renovate_version pin and the renovatebot/github-action) moves in one pull request and automerges for every update type, majors included. Last, so it wins over the rules above.",
       "matchPackageNames": ["renovate", "renovatebot/github-action"],
+      "groupName": "renovate",
+      "groupSlug": "renovate",
       "automerge": true,
       "automergeType": "pr"
     }
