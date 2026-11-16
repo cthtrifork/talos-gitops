@@ -96,7 +96,9 @@ processor_resources:
               meta content_type = "text/plain"
               root = "ok"
 
-      - check: '@http_server_verb == "POST" && ["claude-vm"].contains(@http_server_request_path.re_find_object("^/api/v1/sessions/(?P<vm>[a-z-]+)$").vm.or(""))'
+      # One slot per Linux user on the VM: each has its own login and so its own limits. The users are listed here and in the sessions
+      # branch of the status handler; the bare path is the older form of `claude`, kept until the VM image posts the new one.
+      - check: '@http_server_verb == "POST" && @http_server_request_path.re_match("^/api/v1/sessions/claude-vm(/(claude|claude-rc-personal))?$")'
         processors:
           - mapping: |
               map pct {
@@ -111,7 +113,8 @@ processor_resources:
                 root = this.string().catch("").re_replace_all("[^A-Za-z0-9._:/@+ -]", "").slice(0, 64).catch("")
               }
               let b = content().parse_json().catch({})
-              meta vm = @http_server_request_path.re_find_object("^/api/v1/sessions/(?P<vm>[a-z-]+)$").vm
+              let u = @http_server_request_path.re_find_object("^/api/v1/sessions/claude-vm(?:/(?P<user>[a-z-]+))?$").user.or("")
+              meta user = if $u == "" { "claude" } else { $u }
               meta session = {
                 "five_hour": {"used_pct": $b.rate_limits.five_hour.used_percentage.apply("pct"), "resets_at": $b.rate_limits.five_hour.resets_at.apply("secs")},
                 "seven_day": {"used_pct": $b.rate_limits.seven_day.used_percentage.apply("pct"), "resets_at": $b.rate_limits.seven_day.resets_at.apply("secs")},
@@ -126,7 +129,7 @@ processor_resources:
                 - cache:
                     resource: state
                     operator: set
-                    key: 'session:${! @vm }'
+                    key: 'session:claude-vm:${! @user }'
                     value: '${! content() }'
           - mapping: 'root = {"ok": true}'
 
@@ -393,16 +396,27 @@ processor_resources:
                 - resource: image_digest
               result_map: 'root.vm_images.homeserver = this'
 
-            sessions:
+            sessions_claude:
               request_map: 'root = ""'
               processors:
                 - cache:
                     resource: state
                     operator: get
-                    key: session:claude-vm
+                    key: session:claude-vm:claude
                 - catch:
                     - mapping: 'root = {}'
-              result_map: 'root.sessions = {"claude-vm": this}'
+              result_map: 'root.sessions."claude-vm".claude = this'
+
+            sessions_claude_rc_personal:
+              request_map: 'root = ""'
+              processors:
+                - cache:
+                    resource: state
+                    operator: get
+                    key: session:claude-vm:claude-rc-personal
+                - catch:
+                    - mapping: 'root = {}'
+              result_map: 'root.sessions."claude-vm"."claude-rc-personal" = this'
 
             renovate:
               request_map: |
