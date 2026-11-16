@@ -191,6 +191,11 @@ spec:
           rules:
             - readinessProbeMissing
             - livenessProbeMissing
+        # trust-manager chart: only a readiness probe value, no liveness probe
+        - controllerNames:
+            - trust-manager
+          rules:
+            - livenessProbeMissing
         # Generated ARC listener and runner pods: no probe values, and the runner needs a writable root filesystem
         - controllerNames:
             - arc-ubuntu
