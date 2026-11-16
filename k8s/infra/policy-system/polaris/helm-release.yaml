@@ -267,3 +267,10 @@ spec:
             - adguard-deployment
           rules:
             - privilegeEscalationAllowed
+        # The renovate-operator's inline env vars named *_SECRET_NAME, *_SECRET_KEY and IMAGE_PULL_SECRETS hold the names of
+        # Secrets and keys, not secret values (the S3 credentials are valueFrom secret references): a keyword match on the name
+        - namespace: renovate-system
+          controllerNames:
+            - renovate-operator
+          rules:
+            - sensitiveContainerEnvVar

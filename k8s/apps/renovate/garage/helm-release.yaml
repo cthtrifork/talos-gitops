@@ -16,6 +16,35 @@ spec:
   values:
     deployment:
       replicaCount: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 512Mi
+    # Garage's admin API answers /health once the node is up and in the layout
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 3903
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 3903
+      initialDelaySeconds: 10
+      periodSeconds: 15
+    # Prometheus scrapes the admin port (3903, /metrics): S3 request counts and block and table metrics
+    commonLabels:
+      prometheus-scrape: "true"
+    monitoring:
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+          labels:
+            release: kube-prometheus-stack
     # The namespace enforces PodSecurity restricted; the chart's defaults lack these two fields
     podSecurityContext:
       seccompProfile:

@@ -22,6 +22,9 @@ spec:
       value: full
     - name: LOG_LEVEL
       value: debug
+    # the root filesystem is read-only below: tools that write under their home (npm, go, pip caches) use the scratch volume
+    - name: HOME
+      value: /tmp
   provider:
     name: github
   skipForks: true
@@ -51,6 +54,21 @@ spec:
       cpu: 100m
       memory: 256Mi
     limits:
-      memory: 1Gi
+      memory: 2Gi
   scratchVolume:
     sizeLimit: 2Gi
+  # Read-only root filesystem (only /tmp, the scratch volume, is writable). The container context is spelled out in full:
+  # it may replace the operator's defaults, and the namespace enforces PodSecurity restricted.
+  securityContext:
+    container:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      privileged: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 12021
+      runAsGroup: 12021
+      seccompProfile:
+        type: RuntimeDefault

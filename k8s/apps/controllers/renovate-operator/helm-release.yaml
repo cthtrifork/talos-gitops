@@ -35,6 +35,14 @@ spec:
         enabled: false
       dataStorage:
         enabled: false
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          memory: 512Mi
+      readinessProbe:
+        enabled: true
     # Renovate's repository cache in Garage (forwarded to the job pods as RENOVATE_S3_URL)
     s3:
       bucket: renovate
