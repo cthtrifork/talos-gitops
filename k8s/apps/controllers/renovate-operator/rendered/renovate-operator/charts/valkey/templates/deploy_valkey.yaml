@@ -24,7 +24,6 @@ spec:
       labels:
         app.kubernetes.io/name: valkey
         app.kubernetes.io/instance: renovate-operator
-        prometheus-scrape: "true"
       annotations:
         checksum/initconfig: 103f096594b116874fd4f89039d6c702
     spec:
@@ -84,6 +83,16 @@ spec:
             initialDelaySeconds: 0
             periodSeconds: 10
             timeoutSeconds: 1
+          readinessProbe:
+            exec:
+              command:
+                - valkey-cli
+                - ping
+            failureThreshold: 3
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
           startupProbe:
             exec:
               command:
@@ -93,43 +102,15 @@ spec:
             initialDelaySeconds: 0
             periodSeconds: 10
             timeoutSeconds: 1
-          resources: {}
+          resources:
+            limits:
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
           volumeMounts:
             - name: valkey-data
               mountPath: /data
-        - name: metrics
-          image: ghcr.io/oliver006/redis_exporter:v1.79.0@sha256:67e175f144212fe5796b3134dae1f3db33782b57dc53f7c6f5d938f8f70d9754
-          imagePullPolicy: "IfNotPresent"
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 1000
-          ports:
-            - name: metrics
-              containerPort: 9121
-          startupProbe:
-            tcpSocket:
-              port: metrics
-          livenessProbe:
-            tcpSocket:
-              port: metrics
-          readinessProbe:
-            httpGet:
-              path: /
-              port: metrics
-          resources:
-            limits:
-              memory: 64Mi
-            requests:
-              cpu: 10m
-              memory: 32Mi
-          env:
-            - name: REDIS_ALIAS
-              value: renovate-operator-valkey
       volumes:
         - name: scripts
           configMap:
