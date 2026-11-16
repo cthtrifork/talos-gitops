@@ -26,6 +26,7 @@ input:
         http_server:
           address: 0.0.0.0:8080
           path: /
+          timeout: 30s
           allowed_verbs:
             - GET
           sync_response:
