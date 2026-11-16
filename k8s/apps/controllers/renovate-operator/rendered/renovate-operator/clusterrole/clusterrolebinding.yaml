@@ -1,0 +1,15 @@
+---
+# Source: renovate-operator/templates/clusterrole/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: renovate-operator
+  namespace: renovate-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: renovate-operator
+subjects:
+  - kind: ServiceAccount
+    name: renovate-operator
+    namespace: renovate-system

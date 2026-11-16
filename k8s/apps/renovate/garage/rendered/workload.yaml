@@ -1,0 +1,99 @@
+---
+# Source: garage/templates/workload.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: garage
+  labels:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/component: garage
+    app.kubernetes.io/version: "v2.5.0"
+    app.kubernetes.io/managed-by: Helm
+  namespace: renovate-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: garage
+      app.kubernetes.io/instance: garage
+      app.kubernetes.io/component: garage
+  replicas: 1
+  serviceName: garage-headless
+  podManagementPolicy: OrderedReady
+  template:
+    metadata:
+      annotations:
+        checksum/config: a8d9136bbdb2c8062b750b9ba1f955db2c11e36cb0a7e7482de9f940df206a4b
+      labels:
+        app.kubernetes.io/name: garage
+        app.kubernetes.io/instance: garage
+        app.kubernetes.io/component: garage
+        app.kubernetes.io/version: "v2.5.0"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      serviceAccountName: garage
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: garage
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          image: "mirror.gcr.io/dxflrs/garage:v2.5.0@sha256:677e5b758e4425a325b811c425c026bf35a4bf42f7ddbaa773de3f4fd779a5a5"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3900
+              name: s3-api
+            - containerPort: 3901
+              name: rpc
+            - containerPort: 3902
+              name: s3-web
+            - containerPort: 3903
+              name: admin
+          env:
+            - name: GARAGE_RPC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: garage-secrets
+                  key: rpcSecret
+            - name: GARAGE_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: garage-secrets
+                  key: adminToken
+          volumeMounts:
+            - name: meta
+              mountPath: /mnt/meta
+            - name: data
+              mountPath: /mnt/data
+            - name: configmap
+              mountPath: /etc/garage.toml
+              subPath: garage.toml
+          resources: {}
+      volumes:
+        - name: configmap
+          configMap:
+            name: garage-config
+  volumeClaimTemplates:
+    - metadata:
+        name: meta
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "local-path"
+        resources:
+          requests:
+            storage: "1Gi"
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "local-path"
+        resources:
+          requests:
+            storage: "10Gi"

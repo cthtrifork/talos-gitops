@@ -1,0 +1,19 @@
+---
+# Source: renovate-operator/templates/serviceMonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: renovate-operator
+  namespace: renovate-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  endpoints:
+    - path: /metrics
+      port: metrics
+  namespaceSelector:
+    matchNames:
+      - renovate-system
+  selector:
+    matchLabels:
+      app: renovate-operator

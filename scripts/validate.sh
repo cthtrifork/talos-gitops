@@ -21,7 +21,8 @@ kustomize_flags=("--load-restrictor=LoadRestrictionsNone")
 kustomize_config="kustomization.yaml"
 
 # skip Kubernetes Secrets due to SOPS fields failing validation
-kubeconform_flags=("-skip=Secret")
+# and RenovateJob: the catalog schema lags the operator's CRD (spec.suspend, spec.renovateConfig are missing)
+kubeconform_flags=("-skip=Secret,RenovateJob")
 # CRD schemas: Flux (downloaded below) plus the community catalog (cert-manager, CNPG, Cilium, ...)
 crd_catalog='https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 kubeconform_config=("-strict" "-ignore-missing-schemas" "-schema-location" "default" "-schema-location" "/tmp/flux-crd-schemas" "-schema-location" "${crd_catalog}" "-verbose")

@@ -209,6 +209,17 @@
       "groupSlug": "renovate",
       "automerge": true,
       "automergeType": "pr"
+    },
+    {
+      "description": "The renovate-operator ships a new major every few weeks (v5 to v6 has a migration guide) and its CRDs run Renovate itself: a major is reviewed, not merged unseen. Last, so it wins over the rules above.",
+      "matchPackageNames": ["ghcr.io/mogenius/helm-charts/renovate-operator"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "Garage v2.5.0 is a one-way upgrade (the data cannot be downgraded) and release notes change bucket permissions: the chart and the image are reviewed, not merged unseen.",
+      "matchPackageNames": ["ghcr.io/datahub-local/garage/garage", "dxflrs/garage"],
+      "automerge": false
     }
   ],
   "customManagers": [

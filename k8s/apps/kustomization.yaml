@@ -7,4 +7,5 @@ resources:
   - adguard/
   - harper-pad/
   - claude-system/
+  - renovate/
   - fileserver/
