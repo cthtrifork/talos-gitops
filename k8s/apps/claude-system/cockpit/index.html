@@ -172,8 +172,8 @@
           <li><span class="l">arc-runner-cert</span><span class="num muted">69 days</span></li>
           <li><span class="l">ExternalSecrets</span><span class="pill ok">3 of 3 synced</span></li>
         </ul>
-        <span class="muted">The Omni key cannot be read from the cluster, so its expiry date is kept in a ConfigMap and updated when the key is renewed.</span>
-        <span class="src">Kubernetes API · certificates, externalsecrets, configmap</span>
+        <span class="muted">The Omni key cannot be read from the cluster, so its expiry date is recorded in a Prometheus rule and updated when the key is renewed.</span>
+        <span class="src">Kubernetes API · certificates, externalsecrets · Prometheus · omni_service_account_key_expiry_timestamp_seconds</span>
       </div>
 
       <div class="panel">
@@ -233,7 +233,7 @@
           <li><span class="l"><strong>homeserver-bootc</strong><br><span class="muted">failed 5 h ago · 3rd run in a row</span></span><span class="pill bad">failed</span></li>
           <li><span class="l"><strong>talos-gitops</strong><br><span class="muted">succeeded 2 h ago · next 18:00</span></span><span class="pill ok">ok</span></li>
         </ul>
-        <span class="src">Kubernetes API · renovatejobs (renovate-operator)</span>
+        <span class="src">Kubernetes API · renovateprojects (status, lastTransition)</span>
       </div>
     </div>
   </section>
