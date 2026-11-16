@@ -356,6 +356,8 @@ Status page for the cluster, GitHub and the homelab (issue #849), behind the Omn
 `GET /api/v1/status` reads every source in parallel, one branch each, so a source that is down only leaves its own panel out. It sends only GETs and keeps
 no state except the VM's session data.
 
+Redpanda Connect is reused rather than a new runtime: the other pages here already run it, it queries Prometheus (`usage/`) and calls the Kubernetes API (`elevate/`), and a status page is a few HTTP reads with a small mapping each. Nothing extra to build, scan or keep pinned.
+
 ```mermaid
 flowchart LR
   you([Browser]) -->|HTTPS, Omni login| omni[Omni exposer]
