@@ -94,6 +94,7 @@ spec:
             readOnlyRootFilesystem: true
           args:
             - "--log-level=info"
+            - "--reload-strategy=annotations"
           resources:
             limits:
               memory: 512Mi

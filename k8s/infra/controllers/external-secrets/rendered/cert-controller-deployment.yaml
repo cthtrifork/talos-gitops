@@ -63,6 +63,15 @@ spec:
             - containerPort: 8081
               protocol: TCP
               name: ready
+          livenessProbe:
+            httpGet:
+              port: 8081
+              path: /healthz
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+            successThreshold: 1
           readinessProbe:
             httpGet:
               port: ready

@@ -49,10 +49,32 @@ spec:
             - --metrics-addr=:8080
             - --loglevel=info
             - --zap-time-encoding=epoch
+            - --live-addr=:8082
           ports:
             - containerPort: 8080
               protocol: TCP
               name: metrics
+            - name: live
+              protocol: TCP
+              containerPort: 8082
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /healthz
+              port: live
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /readyz
+              port: live
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
           resources:
             limits:
               memory: 256Mi

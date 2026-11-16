@@ -60,6 +60,10 @@ data:
         rules:
         - clusterrolePodExecAttach
       - controllerNames:
+        - claude-debug
+        rules:
+        - clusterrolePodExecAttach
+      - controllerNames:
         - cloudnative-pg
         rules:
         - clusterrolebindingPodExecAttach
