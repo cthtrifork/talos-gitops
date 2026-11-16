@@ -202,6 +202,13 @@
       "ignoreUnstable": false
     },
     {
+      "description": "The tools in the Claude runner image move in one pull request, so one image build covers them. Claude Code itself stays out: its patch releases automerge, and the new image tag then reaches the pod through the claude-runner rule above.",
+      "matchFileNames": ["images/claude-runner/Dockerfile"],
+      "excludePackageNames": ["@anthropic-ai/claude-code"],
+      "groupName": "claude-runner tools",
+      "groupSlug": "claude-runner-tools"
+    },
+    {
       "description": "Renovate itself (the renovate_version pin and the renovatebot/github-action) moves in one pull request and automerges for every update type, majors included. Last, so it wins over the rules above.",
       "matchPackageNames": ["renovate", "renovatebot/github-action"],
       "groupName": "renovate",
@@ -276,6 +283,18 @@
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n[A-Z_]+=(?<currentValue>\\S+)"
       ],
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "Tool versions in the images/ Dockerfiles: an ARG under a renovate comment (the dockerfile manager only reads FROM lines). The ARGs are bare versions and the download URLs add the v, so a v prefix on the release tag is dropped.",
+      "managerFilePatterns": [
+        "/^images/[^/]+/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: extractVersion=(?<extractVersion>\\S+))?\\nARG [A-Z_]+=(?<currentValue>\\S+)"
+      ],
+      "extractVersionTemplate": "^v?(?<version>.+)$",
       "versioningTemplate": "semver"
     },
     {
