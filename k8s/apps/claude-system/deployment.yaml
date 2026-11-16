@@ -45,7 +45,7 @@ spec:
       initContainers:
         - name: private-tmp
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.323-20261116.15@sha256:01eb1ef9780a8621b88b9eb1dbb0adf575aef77b59716fccd64fe57ed6058cee
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.324-20261116.17@sha256:4e774c6c8ed5b73578352b9c8ac0c7b3c894fa419548aeec2c1055ae82cac1a1
           command:
             - "/bin/bash"
             - "-c"
@@ -68,7 +68,7 @@ spec:
       containers:
         - name: claude
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.323-20261116.15@sha256:01eb1ef9780a8621b88b9eb1dbb0adf575aef77b59716fccd64fe57ed6058cee
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.324-20261116.17@sha256:4e774c6c8ed5b73578352b9c8ac0c7b3c894fa419548aeec2c1055ae82cac1a1
           command:
             - "/bin/bash"
             - "-c"
