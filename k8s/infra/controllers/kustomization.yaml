@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - cert-manager/
   - trust-manager/
+  - external-secrets/
   - metallb/
   - storage-system/
   - ingress-system/

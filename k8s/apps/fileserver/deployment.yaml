@@ -181,7 +181,7 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: fileserver-data
-        # optional: uploads are refused until the first rotation. Reloader restarts the pod when the Secret changes.
+        # optional: uploads are refused until the first sync. Reloader restarts the pod when the Secret changes.
         - name: token
           secret:
             secretName: fileserver-upload-token

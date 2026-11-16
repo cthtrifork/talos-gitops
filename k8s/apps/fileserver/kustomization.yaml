@@ -4,13 +4,11 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - serviceaccount.yaml
-  - rbac.yaml
-  - token-secret.yaml
+  - external-secrets.yaml
   - pvc.yaml
   - deployment.yaml
   - service.yaml
   - ingressroute.yaml
-  - cronjob.yaml
   - networkpolicy.yaml
   - podmonitor.yaml
   - prometheusrule.yaml

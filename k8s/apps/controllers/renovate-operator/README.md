@@ -25,8 +25,9 @@ Only one Secret is created by hand, in SOPS (`k8s/apps/renovate/github-app-crede
 | `INSTALL_ID` | the installation id on the `cthtrifork` repositories |
 | `PEM` | the App's private key |
 
-The `renovate-secrets` Job creates the rest once, if missing, and never overwrites them: `garage-s3-key`
-(`access-key-id`, `secret-access-key`, used by Garage and the operator) and `garage-secrets` (`rpcSecret`, `adminToken`).
+External Secrets creates the rest once and never overwrites it (generated in the cluster store, `k8s/infra/secret-store/`, copied by
+`external-secrets.yaml`): `garage-s3-key` (`access-key-id`, `secret-access-key`, used by Garage and the operator) and
+`garage-secrets` (`rpcSecret`, `adminToken`).
 Valkey has no password and there is no registry token: a private package on ghcr.io would need a `hostRules` entry
 with a token in the global config of the `RenovateJob`.
 

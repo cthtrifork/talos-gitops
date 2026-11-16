@@ -178,11 +178,10 @@ spec:
 
               - name: RUNNER_UPDATE_CA_CERTS
                 value: "1"
-              # rotated by the CronJob in k8s/apps/fileserver; optional until the first rotation
-
-              # The fileserver upload token, rotated every 30 days by the CronJob in k8s/apps/fileserver (it writes this
-              # Secret too). Read at pod start: the runners are ephemeral, so every job gets the current token. optional:
-              # the runner starts before the first rotation. A job echoing it into its log leaks it: use ::add-mask::.
+              # The fileserver upload token, rotated every 30 days by External Secrets (k8s/infra/secret-store/; an
+              # ExternalSecret in k8s/apps/fileserver copies it here). Read at pod start: the runners are ephemeral, so
+              # every job gets the current token. optional: the runner starts before the first sync. A job echoing it
+              # into its log leaks it: use ::add-mask::.
               - name: FILESERVER_TOKEN
                 valueFrom:
                   secretKeyRef:

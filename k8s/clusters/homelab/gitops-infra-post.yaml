@@ -25,6 +25,7 @@ spec:
     - name: gitops-infra-kube-prometheus-stack
     - name: gitops-infra-policy-system
     - name: gitops-infra-registry-system
+    - name: gitops-infra-secret-store
     - name: gitops-infra-security-system
   sourceRef:
     kind: GitRepository

@@ -1,0 +1,47 @@
+# The identity of the ClusterSecretStore. External Secrets refuses to use its own ServiceAccount for the Kubernetes
+# provider, so this one reads and writes Secrets in secret-store only (the PushSecrets write, the ExternalSecrets read).
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: secret-store
+  namespace: secret-store
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secret-store
+  namespace: secret-store
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - "secrets"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+      - "create"
+      - "update"
+      - "patch"
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - "selfsubjectrulesreviews"
+    verbs:
+      - "create"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: secret-store
+  namespace: secret-store
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: secret-store
+subjects:
+  - kind: ServiceAccount
+    name: secret-store
+    namespace: secret-store

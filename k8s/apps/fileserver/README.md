@@ -10,15 +10,17 @@ Public downloads, an admin page and a CI upload API in one pod. The app: `images
 
 ## Upload token
 
-Git creates two empty `fileserver-upload-token` Secrets (`token-secret.yaml`: here and in `arc-runners-system`). On the 1st of
-each month the CronJob writes a new token into both (a few lines of `curl` in `cronjob.yaml`; its RBAC is `patch` on that Secret
-only) and Reloader restarts the fileserver. The runners read `FILESERVER_TOKEN` when they start; an upload that is running during
+External Secrets generates the token (`k8s/infra/secret-store/generated-secrets.yaml`, a Password generator and a PushSecret
+that replaces it every 30 days) in the namespace `secret-store`. An ExternalSecret in `fileserver-system` and one in
+`arc-runners-system` (`external-secrets.yaml`) copy it into the Secret `fileserver-upload-token` within 15 minutes, and Reloader
+restarts the fileserver. The runners read `FILESERVER_TOKEN` when they start; an upload that is running during
 a rotation fails and is retried. The admin page shows the token.
 
 ## First deploy
 
 1. Cloudflare Zero Trust > Networks > Tunnels > the Traefik tunnel > Public hostname: `files.portableinfo.cloud` to `HTTP localhost:8000`.
-2. Fill the token once: `kubectl -n fileserver-system create job --from=cronjob/fileserver-rotate rotate-first`.
+2. The token needs no action: External Secrets creates it on the first sync. To rotate it now, delete the key `current`
+   in the Secret `secret-store/fileserver-upload-token`, or wait for the next 30 days.
 
 ## Upload from a workflow
 

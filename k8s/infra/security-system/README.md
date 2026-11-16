@@ -41,11 +41,12 @@ clients reach `trivy-service` (4954).
 
 ## The Dependency-Track KEK
 
-The chart does not generate the key encryption key. `dependency-track/kek-job.yaml` creates the Secret
-`dependency-track-kek` (key `kek`, random 32 bytes) once, if it is missing, and never overwrites it. The key is therefore
+The chart does not generate the key encryption key. External Secrets generates it once in the cluster store
+(`k8s/infra/secret-store/`, never overwritten) and `dependency-track/external-secret-kek.yaml` copies the Secret
+`dependency-track-kek` (key `kek`, 32 random characters, base64) here. The key is therefore
 not in Git: if the Secret is lost, everything Dependency-Track stored encrypted in its database becomes unreadable. Back it
 up (`kubectl -n security-system get secret dependency-track-kek`, needs Secret read access) if that matters.
-Until the Job has run, the api-server pods wait in `CreateContainerConfigError` and then start on their own.
+Until the ExternalSecret has synced, the api-server pods wait in `CreateContainerConfigError` and then start on their own.
 
 ## Access
 
@@ -91,7 +92,7 @@ the Secret with the current admin password.
 
 | Secret | Keys | Created by | Used by |
 |---|---|---|---|
-| `dependency-track-kek` | `kek` | `kek-job.yaml` | api-server |
+| `dependency-track-kek` | `kek` | `external-secret-kek.yaml` (generated in `secret-store`) | api-server |
 | `dependency-track-admin` | `username`, `password` | `config-job.yaml` (or by hand) | `config-job.yaml` |
 | `dependency-track-api-key` | `api-key` (team `sbom-uploader`) | `config-job.yaml` | `sbom-hook` |
 | `dependency-track-vex-api-key` | `api-key` (team `vex-exporter`) | `config-job.yaml` | `vex-export.yaml` |

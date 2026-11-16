@@ -18,7 +18,7 @@ spec:
             severity: warning
           annotations:
             summary: The fileserver upload token has not rotated for over 32 days
-            description: The rotation CronJob (fileserver-system/fileserver-rotate) should rotate it every 30 days. Check its last Job.
+            description: "The PushSecret secret-store/fileserver-upload-token should rotate it every 30 days: kubectl -n secret-store describe pushsecret fileserver-upload-token"
         - alert: FileserverNoToken
           expr: max(fileserver_token_rotated_timestamp_seconds) == 0
           for: 1d
@@ -26,15 +26,7 @@ spec:
             severity: warning
           annotations:
             summary: The fileserver has no upload token, so every upload is refused
-            description: "Run the rotation once: kubectl -n fileserver-system create job --from=cronjob/fileserver-rotate rotate-first"
-        - alert: FileserverRotationJobFailed
-          expr: kube_job_status_failed{namespace="fileserver-system", job_name=~"fileserver-rotate.*"} > 0
-          for: 5m
-          labels:
-            severity: warning
-          annotations:
-            summary: A fileserver token rotation Job failed
-            description: kubectl -n fileserver-system logs job/{{ $labels.job_name }}
+            description: "The ExternalSecret fileserver-upload-token has not created the Secret: kubectl -n fileserver-system describe externalsecret fileserver-upload-token"
         - alert: FileserverDiskLow
           # an 8 GiB file plus a temporary copy
           expr: max(fileserver_disk_free_bytes) < 9 * 1024 * 1024 * 1024
