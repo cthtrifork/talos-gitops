@@ -199,22 +199,29 @@ processor_resources:
       verb: GET
       timeout: 10s
 
+  # Same states as the Flux Operator web UI: Ready=True is ready, Ready=False with DependencyNotReady is progressing (it waits), any other False is
+  # failed, Ready=Unknown is progressing unless its reason says otherwise, and suspended wins over all of them.
   - label: flux_summary
     mapping: |
-      let items = this.items.or([]).map_each(i -> {
-        "name": i.metadata.name,
-        "namespace": i.metadata.namespace,
-        "suspended": i.spec.suspend.or(false),
-        "ready": i.status.conditions.or([]).filter(c -> c.type == "Ready").map_each(c -> c.status).index(0).catch("Unknown"),
-        "reconciling": i.status.conditions.or([]).filter(c -> c.type == "Reconciling" && c.status == "True").length() > 0,
-        "message": i.status.conditions.or([]).filter(c -> c.type == "Ready").map_each(c -> c.message).index(0).catch("").slice(0, 160)
-      }).map_each(i -> i.merge({"state": if i.suspended { "suspended" } else if i.ready == "True" { "ready" } else if i.reconciling || i.ready == "Unknown" { "reconciling" } else { "failed" }}))
+      map state {
+        let c = this.status.conditions.or([]).filter(c -> c.type == "Ready").index(0).catch({})
+        let s = $c.status.or("")
+        let r = $c.reason.or("")
+        root.message = $c.message.or("").slice(0, 160)
+        root.state = if this.spec.suspend.or(false) || this.metadata.annotations."fluxcd.io/reconcile".or("") == "disabled" { "suspended" }
+          else if $s == "True" { "ready" }
+          else if $s == "False" { if $r == "DependencyNotReady" { "progressing" } else { "failed" } }
+          else if $s == "Unknown" { if $r == "" || $r == "Progressing" || $r == "Reconciling" { "progressing" } else { "unknown" } }
+          else { "unknown" }
+      }
+      let items = this.items.or([]).map_each(i -> i.apply("state").merge({"name": i.metadata.name, "namespace": i.metadata.namespace}))
       root.total = $items.length()
       root.ready = $items.filter(i -> i.state == "ready").length()
-      root.reconciling = $items.filter(i -> i.state == "reconciling").length()
+      root.progressing = $items.filter(i -> i.state == "progressing").length()
       root.suspended = $items.filter(i -> i.state == "suspended").length()
       root.failed = $items.filter(i -> i.state == "failed").length()
-      root.problems = $items.filter(i -> i.state == "failed" || i.state == "reconciling").sort_by(i -> i.state + i.namespace + i.name).slice(0, 8).map_each(i -> {"namespace": i.namespace, "name": i.name, "state": i.state, "message": i.message})
+      root.unknown = $items.filter(i -> i.state == "unknown").length()
+      root.problems = $items.filter(i -> i.state == "failed" || i.state == "unknown" || i.state == "progressing").sort_by(i -> (if i.state == "failed" { "0" } else if i.state == "unknown" { "1" } else { "2" }) + i.namespace + i.name).slice(0, 8).map_each(i -> {"namespace": i.namespace, "name": i.name, "state": i.state, "message": i.message})
 
   # a failed branch is left out and named in meta.workflow.failed; the catch clears the error flag so the rest is still answered
   - label: status

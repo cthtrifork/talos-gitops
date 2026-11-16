@@ -226,9 +226,9 @@
 
   function fluxTotals(d) {
     var parts = [d.flux_ks, d.flux_hr].filter(Boolean);
-    var t = { total: 0, ready: 0, reconciling: 0, suspended: 0, failed: 0, problems: [] };
+    var t = { total: 0, ready: 0, progressing: 0, suspended: 0, failed: 0, unknown: 0, problems: [] };
     parts.forEach(function (x) {
-      t.total += x.total; t.ready += x.ready; t.reconciling += x.reconciling; t.suspended += x.suspended; t.failed += x.failed;
+      t.total += x.total; t.ready += x.ready; t.progressing += x.progressing; t.suspended += x.suspended; t.failed += x.failed; t.unknown += x.unknown;
       t.problems = t.problems.concat(x.problems || []);
     });
     t.complete = parts.length === 2;
@@ -238,23 +238,23 @@
     var title = "Flux reconciliation";
     var t = fluxTotals(d);
     if (!d.flux_ks && !d.flux_hr) return unavailable(title, "Kubernetes API · kustomizations, helmreleases");
-    var notReady = t.failed + t.reconciling;
-    var state = t.failed ? "bad" : t.reconciling ? "warn" : "ok";
-    var p = panel(head(title, state, notReady ? notReady + " not ready" : "all ready"));
+    var state = t.failed ? "bad" : t.unknown ? "warn" : t.progressing ? "none" : "ok";
+    var label = t.failed ? t.failed + " failed" : t.unknown ? t.unknown + " unknown" : t.progressing ? t.progressing + " progressing" : "all ready";
+    var p = panel(head(title, state, label));
     var pct = function (n) { return t.total ? n / t.total * 100 : 0; };
     p.appendChild(bar(t.ready + " of " + t.total + " ready", [
-      { pct: pct(t.ready), color: "var(--ok)" }, { pct: pct(t.reconciling), color: "var(--accent)" },
-      { pct: pct(t.failed), color: "var(--bad)" }, { pct: pct(t.suspended), color: "var(--muted)" }
+      { pct: pct(t.ready), color: "var(--ok)" }, { pct: pct(t.progressing), color: "var(--accent)" },
+      { pct: pct(t.failed), color: "var(--bad)" }, { pct: pct(t.unknown), color: "var(--warn)" }, { pct: pct(t.suspended), color: "var(--muted)" }
     ]));
     var lg = el("div", "legend");
-    [["var(--ok)", t.ready + " ready"], ["var(--accent)", t.reconciling + " reconciling"], ["var(--bad)", t.failed + " failed"], ["var(--muted)", t.suspended + " suspended"]].forEach(function (x) {
+    [["var(--ok)", t.ready + " ready"], ["var(--accent)", t.progressing + " progressing"], ["var(--bad)", t.failed + " failed"], ["var(--warn)", t.unknown + " unknown"], ["var(--muted)", t.suspended + " suspended"]].forEach(function (x) {
       var s = el("span"); var dot = el("span", "dot"); dot.style.background = x[0];
       s.appendChild(dot); s.appendChild(document.createTextNode(x[1])); lg.appendChild(s);
     });
     p.appendChild(lg);
     var probs = t.problems.slice(0, 5);
     if (probs.length) p.appendChild(rows(probs.map(function (x) {
-      return { title: x.namespace + "/" + x.name, sub: x.message, right: pill(x.state === "failed" ? "bad" : "warn", x.state) };
+      return { title: x.namespace + "/" + x.name, sub: x.message, right: pill(x.state === "failed" ? "bad" : x.state === "unknown" ? "warn" : "none", x.state) };
     })));
     if (!t.complete) p.appendChild(el("span", "muted", "One of the two lists did not answer, so the counts are partial."));
     p.appendChild(src("Kubernetes API · kustomizations, helmreleases"));
@@ -426,7 +426,7 @@
       chips.push(d.alerts.length ? [crit ? "bad" : "warn", d.alerts.length + (d.alerts.length === 1 ? " alert firing" : " alerts firing")] : ["ok", "No alerts firing"]);
     }
     var t = fluxTotals(d);
-    if (d.flux_ks || d.flux_hr) chips.push(t.failed ? ["bad", "Flux: " + t.failed + " failed"] : t.reconciling ? ["warn", "Flux: " + t.reconciling + " reconciling"] : ["ok", "Flux ready"]);
+    if (d.flux_ks || d.flux_hr) chips.push(t.failed ? ["bad", "Flux: " + t.failed + " failed"] : t.unknown ? ["warn", "Flux: " + t.unknown + " unknown"] : t.progressing ? ["none", "Flux: " + t.progressing + " progressing"] : ["ok", "Flux ready"]);
     if (d.polaris) chips.push([d.polaris.score >= 90 ? "ok" : d.polaris.score >= 75 ? "warn" : "bad", "Polaris " + d.polaris.score + "%"]);
     if (d.disk && d.disk.length) {
       var m = d.disk.reduce(function (a, n) { return Math.max(a, n.used_pct); }, 0);
@@ -448,7 +448,7 @@
       var w7 = us.seven_day && us.seven_day.used_pct;
       if (w7 !== null && w7 !== undefined && !(us.seven_day.resets_at && us.seven_day.resets_at < Math.round(Date.now() / 1000))) chips.push([w7 >= 90 ? "bad" : w7 >= 75 ? "warn" : "ok", "Claude 7-day " + w7 + "%"]);
     }
-    var order = { bad: 0, warn: 1, ok: 2 };
+    var order = { bad: 0, warn: 1, none: 2, ok: 3 };
     chips.sort(function (a, b) { return order[a[0]] - order[b[0]]; });
     return chips;
   }
