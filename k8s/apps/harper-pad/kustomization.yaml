@@ -6,12 +6,14 @@ resources:
   - github-auth.enc.yaml
   - namespace.yaml
   - serviceaccount.yaml
-  - postgres-certificates.yaml
+  - certificate.yaml
+  - issuer.yaml
   - postgres-cluster.yaml
   - postgres-database.yaml
   - sync-deployment.yaml
   - sync-service.yaml
   - ingressroute.yaml
+  - middleware.yaml
   - admin-deployment.yaml
   - networkpolicy.yaml
   - podmonitor.yaml

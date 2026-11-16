@@ -4,6 +4,8 @@ kind: Kustomization
 resources:
   - helm-release.yaml
   - helm-release-podman.yaml
+  - configmap.yaml
+  - pvc.yaml
   - helm-repository.yaml
   - namespace.yaml
   - networkpolicy.yaml

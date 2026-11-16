@@ -199,7 +199,7 @@ spec:
             claimName: claude-home
         - name: github-token
           secret:
-            secretName: claude-github-token # minted by external-secrets.yaml
+            secretName: claude-github-token # minted by externalsecret.yaml
             optional: true
             defaultMode: 0400
         - name: registry-auth

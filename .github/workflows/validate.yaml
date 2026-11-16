@@ -33,6 +33,10 @@ jobs:
           yamllint --strict -c .yamllint.yaml k8s scripts bootstrap.yaml images .github/dependabot.yml
         env:
           YAMLLINT_VERSION: "1.38.0" # renovate: datasource=pypi depName=yamllint
+      - name: Manifest filenames
+        run: |
+          python3 -m unittest discover -s scripts/ci -p 'test_check_manifest_filenames.py'
+          python3 scripts/ci/check_manifest_filenames.py
       - name: No YAML anchors
         run: python3 scripts/ci/check-no-yaml-anchors.py
       - name: shellcheck
