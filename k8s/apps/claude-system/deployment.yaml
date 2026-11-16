@@ -215,6 +215,8 @@ spec:
                 path: bandwidth-test/SKILL.md
               - key: ci-k8s-reference.md
                 path: ci-k8s-reference/SKILL.md
+              - key: urlshare.md
+                path: urlshare/SKILL.md
         # A plain PVC, so clones survive pod restarts (a per-pod ephemeral volume was wiped by every rollout).
         # local-path does not enforce the size: clean up old clones.
         - name: workspace

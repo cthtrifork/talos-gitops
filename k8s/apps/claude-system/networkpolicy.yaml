@@ -71,6 +71,14 @@ spec:
         - ports:
             - port: "4195"
               protocol: TCP
+    # URL sharing (asking for a page: GET /?url=...); the pod behind urlshare.portableinfo.cloud, which only lists and returns what the owner approved
+    - toEndpoints:
+        - matchLabels:
+            k8s:app: claude-urlshare
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
     # Usage API (the page and /api/v1)
     - toEndpoints:
         - matchLabels:
@@ -263,3 +271,71 @@ spec:
               protocol: ANY
     - toEntities:
         - kube-apiserver
+---
+# URL sharing. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node); the API (8081) by
+# claude-rc and the LAN (192.168.1.0/24, through claude-urlshare-lb). It can only record a request: the owner's approval happens on 8080.
+# Egress decides which pages can be fetched, and it does so on the address that is really connected to, so it also holds after DNS
+# resolution and for redirects (the app cannot check that): TCP 80 and 443 to addresses outside the private, loopback, link-local and other
+# special-purpose ranges. Cluster pods and nodes are not CIDR identities and the whole of 10/8, 172.16/12 and 192.168/16 is excepted as well.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-urlshare
+  namespace: claude-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: claude-urlshare
+  ingress:
+    - fromEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:app: claude-rc
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
+    - fromCIDR:
+        - 192.168.1.0/24
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toCIDRSet:
+        - cidr: 0.0.0.0/0
+          except:
+            - 0.0.0.0/8
+            - 10.0.0.0/8
+            - 100.64.0.0/10
+            - 127.0.0.0/8
+            - 169.254.0.0/16
+            - 172.16.0.0/12
+            - 192.0.0.0/24
+            - 192.0.2.0/24
+            - 192.168.0.0/16
+            - 198.18.0.0/15
+            - 198.51.100.0/24
+            - 203.0.113.0/24
+            - 224.0.0.0/4
+            - 240.0.0.0/4
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+            - port: "443"
+              protocol: TCP

@@ -1,0 +1,135 @@
+---
+# URL sharing with approval (see urlshare/redpanda-connect.yaml and the README). The pod holds the requests and the fetched pages in memory.
+# Its egress is the only thing that decides where pages can be fetched from: see CiliumNetworkPolicy/claude-urlshare.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-urlshare
+  namespace: claude-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: claude-urlshare
+  template:
+    metadata:
+      labels:
+        app: claude-urlshare
+        prometheus-scrape: "true"
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: connect
+          image: mirror.gcr.io/redpandadata/connect:4.117.0@sha256:b6df7ca0c506578c8cc8b0cd223c117366bbeac84365f95944d339f0165b551c # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
+          args:
+            - -c
+            - /etc/connect/redpanda-connect.yaml
+            - --disable-telemetry
+          env:
+            - name: GOMEMLIMIT
+              value: 300MiB # about 80% of the limit: Go does not read the cgroup limit
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: api
+              containerPort: 8081
+            - name: metrics
+              containerPort: 4195
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: metrics
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: config
+              mountPath: /etc/connect
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: claude-urlshare-connect-config
+---
+# The approval page, through the Omni service exposer (Omni login).
+apiVersion: v1
+kind: Service
+metadata:
+  name: claude-urlshare
+  namespace: claude-system
+  annotations:
+    omni-kube-service-exposer.sidero.dev/label: "Share URLs"
+    omni-kube-service-exposer.sidero.dev/port: "50094"
+    omni-kube-service-exposer.sidero.dev/prefix: urlshare
+spec:
+  type: ClusterIP
+  selector:
+    app: claude-urlshare
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: metrics
+      port: 4195
+      targetPort: metrics
+---
+# Where Claude asks for a page, plain HTTP on the LAN: http://urlshare.portableinfo.cloud/?url=<URL-encoded URL>. The Cloudflare A record
+# urlshare.portableinfo.cloud -> 192.168.1.245 (DNS only, added by hand, like vm-upgrade and otel) points at it. This listener cannot approve
+# anything. Only claude-rc and the LAN are let in, by the CiliumNetworkPolicy. externalTrafficPolicy Local keeps the client address, so the LAN rule
+# sees the client and not the node. 192.168.1.245 is free in the MetalLB pool (192.168.1.221-254).
+apiVersion: v1
+kind: Service
+metadata:
+  name: claude-urlshare-lb
+  namespace: claude-system
+  annotations:
+    metallb.io/loadBalancerIPs: 192.168.1.245
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector:
+    app: claude-urlshare
+  ports:
+    - name: api
+      port: 80
+      targetPort: api
+      protocol: TCP
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/monitoring.coreos.com/podmonitor_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: claude-urlshare
+  namespace: claude-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: claude-urlshare
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics

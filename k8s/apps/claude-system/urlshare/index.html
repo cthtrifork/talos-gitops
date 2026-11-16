@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Share URLs</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --page: #f4f4f1; --card: #ffffff; --ink: #141413; --ink-2: #55534e; --line: #e3e2da;
+    --accent: #2a78d6; --on-accent: #ffffff; --ok: #1a7f4b; --warn: #b4690e; --bad: #c0392b;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --card: #1a1a19; --ink: #f0efec; --ink-2: #b4b2a9; --line: #2c2c2a;
+      --accent: #3987e5; --ok: #3cc58a; --warn: #e0a040; --bad: #ef6a5b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 var(--font);
+         padding: 24px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); display: flex; justify-content: center; }
+  main { width: 100%; max-width: 640px; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  h2 { font-size: 16px; margin: 22px 0 10px; }
+  .sub { margin: 0 0 16px; color: var(--ink-2); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  .host { font-weight: 700; font-size: 17px; overflow-wrap: anywhere; }
+  .url { font-family: var(--mono); font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; margin: 4px 0 8px; }
+  .meta { font-size: 13px; color: var(--ink-2); }
+  .meta.bad { color: var(--bad); }
+  .tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); margin-right: 6px; }
+  .tag.approved { color: var(--ok); } .tag.rejected, .tag.failed { color: var(--bad); } .tag.pending, .tag.fetching { color: var(--warn); }
+  .row { display: flex; gap: 10px; margin-top: 12px; }
+  button { font: inherit; font-weight: 600; flex: 1; min-height: 44px; padding: 10px 16px; border: 0; border-radius: 10px;
+           background: var(--accent); color: var(--on-accent); cursor: pointer; }
+  button.no { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: .55; cursor: default; }
+  .hint { margin: 10px 0 0; font-size: 13px; color: var(--warn); min-height: 1.5em; }
+  .empty { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Share URLs</h1>
+  <p class="sub">Claude asked for these pages. Approving fetches exactly the address shown, once, and keeps the page for 24 hours.</p>
+  <h2>Waiting for you</h2>
+  <div id="pending"></div>
+  <h2>Answered</h2>
+  <div id="done"></div>
+  <p id="error" class="hint" role="status"></p>
+</main>
+
+<script>
+(function () {
+  var busy = {};   // id -> true while a click is in flight
+
+  function ago(t, now) {
+    var s = Math.max(0, now - t);
+    return s < 90 ? s + ' s ago' : s < 5400 ? Math.round(s / 60) + ' min ago' : Math.round(s / 3600) + ' h ago';
+  }
+
+  function act(r, action, card) {
+    busy[r.id] = true;
+    card.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+    fetch('api/v1/requests/' + r.id + '/' + action, { method: 'POST', headers: { 'X-Requested-With': 'urlshare-approval' } })
+      .then(function (res) { return res.json().then(function (b) { return { ok: res.ok, body: b }; }); })
+      .then(function (x) { document.getElementById('error').textContent = x.ok ? '' : (x.body.error || 'The fetch failed.'); })
+      .catch(function () { document.getElementById('error').textContent = 'Could not reach the page.'; })
+      .then(function () { delete busy[r.id]; refresh(); });
+  }
+
+  function card(r, now) {
+    var el = document.createElement('section'), host = '', u = r.url;
+    el.className = 'card';
+    try { host = new URL(u).host; } catch (e) { host = ''; }
+    var h = document.createElement('div'); h.className = 'host'; h.textContent = host; el.appendChild(h);
+    var p = document.createElement('div'); p.className = 'url'; p.textContent = u; el.appendChild(p);
+    var m = document.createElement('div'); m.className = 'meta';
+    var tag = document.createElement('span'); tag.className = 'tag ' + r.status; tag.textContent = r.status; m.appendChild(tag);
+    var t = document.createElement('span');
+    t.textContent = 'asked ' + ago(r.requested_at, now) + (r.status === 'approved' ? ', ' + Math.round((r.size || 0) / 1024) + ' KiB ' + (r.content_type || '') : '');
+    m.appendChild(t); el.appendChild(m);
+    if (r.status === 'failed' && r.error) {
+      var e = document.createElement('div'); e.className = 'meta bad'; e.textContent = r.error; el.appendChild(e);
+    }
+    if (r.status !== 'approved' && r.status !== 'fetching') {
+      var row = document.createElement('div'); row.className = 'row';
+      var yes = document.createElement('button'); yes.type = 'button';
+      yes.textContent = r.status === 'pending' ? 'Approve and fetch' : 'Approve and fetch again';
+      var no = document.createElement('button'); no.type = 'button'; no.className = 'no'; no.textContent = 'Reject';
+      yes.disabled = no.disabled = !!busy[r.id];
+      yes.addEventListener('click', function () { act(r, 'approve', el); });
+      no.addEventListener('click', function () { act(r, 'reject', el); });
+      if (r.status === 'rejected') row.appendChild(yes); else { row.appendChild(yes); row.appendChild(no); }
+      el.appendChild(row);
+    }
+    return el;
+  }
+
+  function fill(id, list, now, empty) {
+    var box = document.getElementById(id);
+    box.textContent = '';
+    if (!list.length) { var p = document.createElement('p'); p.className = 'empty'; p.textContent = empty; box.appendChild(p); return; }
+    list.forEach(function (r) { box.appendChild(card(r, now)); });
+  }
+
+  function refresh() {
+    fetch('api/v1/requests', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+      var waiting = d.requests.filter(function (r) { return r.status === 'pending'; });
+      var rest = d.requests.filter(function (r) { return r.status !== 'pending'; });
+      fill('pending', waiting, d.now, 'Nothing is waiting.');
+      fill('done', rest, d.now, 'Nothing yet.');
+    }).catch(function () { document.getElementById('error').textContent = 'The list is unavailable.'; });
+  }
+
+  refresh();
+  setInterval(function () { if (!Object.keys(busy).length) refresh(); }, 5000);
+})();
+</script>
+</body>
+</html>

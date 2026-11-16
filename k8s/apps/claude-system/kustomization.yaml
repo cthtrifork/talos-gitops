@@ -14,6 +14,7 @@ resources:
   - claude-cloudflare.enc.yaml
   - usage/usage.yaml
   - vm-upgrade/vm-upgrade.yaml
+  - urlshare/urlshare.yaml
   - elevate/rbac.yaml
   - elevate/state.yaml
   - elevate/admission.yaml
@@ -38,6 +39,15 @@ configMapGenerator:
     files:
       - vm-upgrade/redpanda-connect.yaml
       - vm-upgrade/index.html
+  - name: claude-urlshare-connect-config
+    namespace: claude-system
+    options:
+      annotations:
+        # Redpanda Connect interpolations and a web page, not Flux variables: skip postBuild envsubst
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+    files:
+      - urlshare/redpanda-connect.yaml
+      - urlshare/index.html
   - name: claude-elevate-connect-config
     namespace: claude-system
     options:
@@ -69,3 +79,4 @@ configMapGenerator:
       - image-inspect.md=claude-md/skills/image-inspect/SKILL.md
       - bandwidth-test.md=claude-md/skills/bandwidth-test/SKILL.md
       - ci-k8s-reference.md=claude-md/skills/ci-k8s-reference/SKILL.md
+      - urlshare.md=claude-md/skills/urlshare/SKILL.md
