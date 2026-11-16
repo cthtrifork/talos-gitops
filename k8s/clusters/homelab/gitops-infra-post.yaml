@@ -26,7 +26,6 @@ spec:
     - name: gitops-infra-policy-system
     - name: gitops-infra-registry-system
     - name: gitops-infra-security-system
-    - name: gitops-infra-external-dns
   sourceRef:
     kind: GitRepository
     name: flux-system
