@@ -102,7 +102,7 @@
 
   <div class="strip" role="status" aria-label="Overall status">
     <span class="pill bad">2 alerts firing</span>
-    <span class="pill bad">Renovate: 1 failed</span>
+    <span class="pill warn">Renovate: 3 need approval</span>
     <span class="pill warn">Flux: 1 not ready</span>
     <span class="pill warn">Disk 78%</span>
     <span class="pill warn">12 open PRs</span>
@@ -215,12 +215,15 @@
       </div>
 
       <div class="panel">
-        <div class="panel-head"><h3>Renovate runs</h3><span class="pill bad">1 failed</span></div>
+        <div class="panel-head"><h3>Renovate runs</h3><span class="pill warn">3 need approval</span></div>
         <ul class="rows">
-          <li><span class="l"><strong>homeserver-bootc</strong><br><span class="muted">failed 5 h ago · 3rd run in a row</span></span><span class="pill bad">failed</span></li>
-          <li><span class="l"><strong>talos-gitops</strong><br><span class="muted">succeeded 2 h ago · next 18:00</span></span><span class="pill ok">ok</span></li>
+          <li><span class="l"><strong>homeserver-bootc</strong><br><span class="muted">started 2 min ago · 2 automerged, 4 unchanged</span></span><span class="pill warn">running</span></li>
+          <li><span class="l"><strong>kglance</strong><br><span class="muted">took 41 s · 2 need approval</span></span><span class="pill ok">completed</span></li>
+          <li><span class="l"><strong>harper-pad</strong><br><span class="muted">took 45 s · 2 need approval, 1 unchanged</span></span><span class="pill ok">completed</span></li>
+          <li><span class="l"><strong>talos-gitops</strong><br><span class="muted">took 1 min 3 s · 2 unchanged</span></span><span class="pill ok">completed</span></li>
         </ul>
-        <span class="src">Kubernetes API · renovateprojects (status, lastTransition)</span>
+        <span class="muted">A failed run is an alert, so it shows under Firing alerts.</span>
+        <span class="src">Kubernetes API · renovateprojects (status, duration, prActivity)</span>
       </div>
     </div>
   </section>
