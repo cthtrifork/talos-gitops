@@ -14,6 +14,7 @@ resources:
   - ghcr-pull.enc.yaml
   - claude-cloudflare.enc.yaml
   - omni-service-account.enc.yaml
+  - prometheusrule.yaml
   - usage/deployment.yaml
   - usage/service.yaml
   - usage/podmonitor.yaml
