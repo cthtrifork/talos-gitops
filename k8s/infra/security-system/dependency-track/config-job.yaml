@@ -2,11 +2,10 @@
 # The desired state is data in the ConfigMap below (teams.json, properties.json, extensions.json); the script is a generic
 # loop over it. A CronJob that is safe to run repeatedly (every 20 minutes, which also bootstraps a fresh install and
 # repairs drift):
-#  1. Admin: the built-in admin/admin must change its password on first login. If the Secret dependency-track-admin does
-#     not exist the Job generates a random password and stores it there BEFORE it is set in Dependency-Track, so a crash in
-#     between loses nothing. It then logs in with the Secret, or sets the password on a fresh install. To use your own
-#     password create the Secret first:
-#     kubectl -n security-system create secret generic dependency-track-admin --from-literal=username=admin --from-literal=password=<password>
+#  1. Admin: the built-in admin/admin must change its password on first login. The password is generated once by External
+#     Secrets (k8s/infra/secret-store/) and copied into the Secret dependency-track-admin (external-secret-admin.yaml), so
+#     it exists before this Job first runs. The Job logs in with it, or sets it on a fresh install. To use your own
+#     password, replace the key `password` in the Secret dependency-track-admin of the namespace secret-store.
 #  2. Teams from teams.json (`sbom-uploader`: key in dependency-track-api-key, used by sbom-hook; `vex-exporter`: key in
 #     dependency-track-vex-api-key, used by vex-export.yaml). Permissions are only added, never removed. A key is only
 #     created if its Secret does not exist yet, stored as `api-key`, never printed, and an existing Secret is never touched.
@@ -104,14 +103,6 @@ rules:
       - "dependency-track-vex-api-key"
     verbs:
       - "get"
-  - apiGroups:
-      - ""
-    resources:
-      - "secrets"
-    resourceNames:
-      - "dependency-track-admin"
-    verbs:
-      - "delete" # only to undo a password generated in the same run when admin/admin turns out not to be active
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -173,28 +164,16 @@ spec:
 
                   curl -sf -o /dev/null "$DT_URL/api/version" || { echo "api-server not reachable yet" >&2; exit 1; }
 
-                  # 0. fresh install: keep a generated admin password before it is set in Dependency-Track
-                  admin_secret=$(kubectl get secret dependency-track-admin --ignore-not-found -o name)
-                  generated=0
-                  if [ -z "$admin_secret" ]; then
-                    generated=1
-                    kubectl create secret generic dependency-track-admin \
-                      --from-literal=username=admin \
-                      --from-literal=password="$(head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)"
-                    echo "created Secret dependency-track-admin"
-                  fi
-
-                  # 1. admin password
+                  # 1. admin password, from the Secret External Secrets keeps in sync (it may not exist for a minute on a fresh install)
                   pw=$(kubectl get secret dependency-track-admin -o jsonpath='{.data.password}' | base64 -d)
+                  [ -n "$pw" ] || { echo "Secret dependency-track-admin is not synced yet (kubectl -n security-system describe externalsecret dependency-track-admin)" >&2; exit 1; }
                   if [ "$(login "$pw")" != 200 ]; then
                     # first start: the built-in admin/admin must be changed to the seeded password
                     code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$DT_URL/api/v1/user/forceChangePassword" \
                       --data-urlencode username=admin --data-urlencode password=admin \
                       --data-urlencode "newPassword=$pw" --data-urlencode "confirmPassword=$pw")
                     if [ "$code" != 200 ]; then
-                      # a password generated in this run was never set: drop it so it cannot be mistaken for the real one
-                      [ "$generated" = 1 ] && kubectl delete secret dependency-track-admin
-                      echo "cannot log in as admin and the default password is not accepted ($code): create the Secret dependency-track-admin with the current admin password" >&2
+                      echo "cannot log in as admin and the default password is not accepted ($code): put the current admin password in the Secret dependency-track-admin of the namespace secret-store" >&2
                       exit 1
                     fi
                     [ "$(login "$pw")" = 200 ] || { echo "login as admin failed after the password change" >&2; exit 1; }
