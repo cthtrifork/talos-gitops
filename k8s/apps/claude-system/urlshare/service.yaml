@@ -8,7 +8,7 @@ metadata:
   annotations:
     omni-kube-service-exposer.sidero.dev/label: "Share URLs"
     omni-kube-service-exposer.sidero.dev/port: "50096"
-    omni-kube-service-exposer.sidero.dev/prefix: urlshare
+    omni-kube-service-exposer.sidero.dev/prefix: claudeurlshare
 spec:
   type: ClusterIP
   selector:
