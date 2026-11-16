@@ -268,6 +268,28 @@ Kubernetes API with the pod's own token; the steps and the API are in `elevate/r
 
 `urlshare/` lets Claude read an article without a wider egress allowlist. Claude asks, the owner approves the exact URL, the pod fetches it once.
 
+```mermaid
+flowchart LR
+    CL["claude-rc<br/>or a LAN host"] -->|"GET /?url=… via MetalLB 192.168.1.245"| API
+    API -->|"202 pending, 200 page, 403, 502, 410"| CL
+    YOU["You<br/>Omni login"] -->|"approve or reject the exact URL"| UI
+    subgraph POD["Pod claude-urlshare (Redpanda Connect)"]
+        API[":8081 api<br/>only records a request"]
+        UI[":8080 page"]
+        MEM[("memory cache, 24 h TTL<br/>index + body per id")]
+        FETCH["fetch once<br/>10 s, html or text, 2 MiB"]
+    end
+    API -->|"new URL: pending, not fetched"| MEM
+    MEM -->|"approved: stored page"| API
+    UI -->|"list, set status"| MEM
+    UI -->|"approve"| FETCH
+    FETCH -->|"store page"| MEM
+    FETCH -->|"Cilium egress: public IPs, TCP 80 and 443"| NET["public sites"]
+    FETCH -.->|"private, loopback, link-local: dropped"| BLOCK["10/8, 172.16/12, 192.168/16, 127/8, 169.254/16"]
+```
+
+A request is `pending` until you decide, then `approved`, `failed` (approve again to retry) or `rejected`. Every state is forgotten after 24 h.
+
 | Listener | Reached through | Endpoints |
 |---|---|---|
 | `:8081` api | MetalLB `claude-urlshare-lb`, 192.168.1.245, plain HTTP, only from `claude-rc` and 192.168.1.0/24 | `GET /?url=<URL-encoded URL>` (or `/<id>`): `200` the stored page, `202` pending (nothing fetched), `403` rejected, `502` fetch failed (`error` says why), `410` expired, `400` not an acceptable URL, `429` too many waiting |
