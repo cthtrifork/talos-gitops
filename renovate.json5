@@ -203,6 +203,12 @@
       "ignoreUnstable": false
     },
     {
+      "description": "The fileserver image has two tag schemes: the old v0.x.y releases, which sort above everything and would read as an upgrade, and the current 0.0.0-<date>.<run>. Only the current one is offered.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/cthtrifork/talos-gitops/fileserver"],
+      "allowedVersions": "/^0\\.0\\.0-/"
+    },
+    {
       "description": "The tools in the Claude runner image move in one pull request, so one image build covers them. Claude Code itself stays out: its patch releases automerge, and the new image tag then reaches the pod through the claude-runner rule above.",
       "matchFileNames": ["images/claude-runner/Dockerfile"],
       "matchPackageNames": ["!@anthropic-ai/claude-code"],
