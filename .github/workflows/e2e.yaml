@@ -136,7 +136,7 @@ jobs:
 
       - name: Suspend workload Kustomizations
         run: |
-          for ks in app-controllers app; do
+          for ks in app-controllers app renovate; do
             flux suspend kustomization "${ks}"
           done
       - name: Reconcile bootstrap

@@ -10,6 +10,9 @@ The GitHub Actions workflow (`.github/workflows/renovate.yaml`) stays as the fal
 | Garage (one node, `local-path`) | `k8s/apps/renovate/garage/` |
 | The `RenovateJob` (suspended) | `k8s/apps/renovate/renovatejob.yaml` |
 
+`k8s/apps/renovate/` has its own Flux Kustomization, `renovate` (`k8s/clusters/homelab/renovate.yaml`, after `app-controllers`), so
+the `RenovateJob` waiting for the CRDs on the first reconcile does not hold back `app`.
+
 ## Secrets
 
 Only one Secret is created by hand, in SOPS (`k8s/apps/renovate/github-app-credentials.enc.yaml`, add it to
@@ -29,7 +32,7 @@ with a token in the global config of the `RenovateJob`.
 
 ## Turn it on
 
-1. Merge, check that `app-controllers` and `app` reconcile and that the operator, Valkey and Garage pods are Ready and the
+1. Merge, check that `app-controllers` and `renovate` reconcile and that the operator, Valkey and Garage pods are Ready and the
    Garage configure Job completed (bucket `renovate`). The UI: `kubectl -n renovate-system port-forward svc/renovate-operator 8081`.
 2. Dry run: add `extraEnv` `RENOVATE_DRY_RUN=full` to the `RenovateJob`, set `suspend: false`, and compare the report with the last
    Actions run. Check that a second run is faster (Valkey keys, objects under `renovate-cache/` in Garage) and that the
