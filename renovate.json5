@@ -204,7 +204,7 @@
     {
       "description": "The tools in the Claude runner image move in one pull request, so one image build covers them. Claude Code itself stays out: its patch releases automerge, and the new image tag then reaches the pod through the claude-runner rule above.",
       "matchFileNames": ["images/claude-runner/Dockerfile"],
-      "excludePackageNames": ["@anthropic-ai/claude-code"],
+      "matchPackageNames": ["!@anthropic-ai/claude-code"],
       "groupName": "claude-runner tools",
       "groupSlug": "claude-runner-tools"
     },
@@ -294,7 +294,7 @@
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: extractVersion=(?<extractVersion>\\S+))?\\nARG [A-Z_]+=(?<currentValue>\\S+)"
       ],
-      "extractVersionTemplate": "^v?(?<version>.+)$",
+      "extractVersionTemplate": "{{#if extractVersion}}{{{extractVersion}}}{{else}}^v?(?<version>.+)${{/if}}",
       "versioningTemplate": "semver"
     },
     {
