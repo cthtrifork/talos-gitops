@@ -8,11 +8,12 @@
 # It touches nothing outside vex/, never pushes to main, and only deletes documents whose author is Dependency-Track.
 # Statements are only exported for components that have a PURL (a statement without a subcomponent would cover the whole image).
 #
-# Needs two Secrets: dependency-track-vex-api-key (key api-key, created by config-job.yaml) and dependency-track-vex-github
-# (key token), seeded by hand: a fine-grained personal access token or GitHub App installation token for this repository
-# only, with Contents and Pull requests read/write. It is not in Git.
-# Dry run (exit 0, nothing pushed): without the GitHub token the Job still exports and converts, and prints the documents it
-# would write; without the API key it only says so.
+# Needs two Secrets: dependency-track-vex-api-key (key api-key, created by config-job.yaml) and dependency-track-vex-github-app
+# (keys app-id, installation-id, private-key.pem), the credentials of a GitHub App installed on this repository only with
+# Contents and Pull requests read/write; SOPS-encrypted, see README.md. Each run signs a JWT with the App's key and trades it
+# for a one-hour installation token narrowed to this repository, so no long-lived token is stored.
+# Dry run (exit 0, nothing pushed): without the App credentials the Job still exports and converts, and prints the documents
+# it would write; without the API key it only says so.
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -39,6 +40,7 @@ spec:
             runAsNonRoot: true
             runAsUser: 65532
             runAsGroup: 65532
+            fsGroup: 65532 # lets the Job read the App's private key (mode 0440)
             seccompProfile:
               type: RuntimeDefault
           containers:
@@ -54,7 +56,20 @@ spec:
                     exit 0
                   fi
                   cd /work
-                  if [ -n "$${GITHUB_TOKEN:-}" ]; then
+                  GITHUB_TOKEN=
+                  if [ -s /app/private-key.pem ]; then
+                    b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+                    iat=$(date +%s)
+                    jwt="$(printf '{"alg":"RS256","typ":"JWT"}' | b64url).$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' \
+                      $((iat - 60)) $((iat + 540)) "$(tr -d '\n' </app/app-id)" | b64url)"
+                    jwt="$jwt.$(printf '%s' "$jwt" | openssl dgst -sha256 -sign /app/private-key.pem | b64url)"
+                    response=$(jq -nc --arg r "$(basename "$REPO")" '{repositories: [$r], permissions: {contents: "write", pull_requests: "write"}}' |
+                      curl -fsS -X POST -H "Authorization: Bearer $jwt" -H "Accept: application/vnd.github+json" \
+                        -H "X-GitHub-Api-Version: 2022-11-28" -d @- \
+                        "$GITHUB_API/app/installations/$(tr -d '\n' </app/installation-id)/access_tokens")
+                    GITHUB_TOKEN=$(printf '%s' "$response" | jq -er .token)
+                  fi
+                  if [ -n "$GITHUB_TOKEN" ]; then
                     # the token goes to git through the environment, not the command line
                     export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" \
                       GIT_CONFIG_VALUE_0="Authorization: Basic $(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
@@ -139,12 +154,12 @@ spec:
                   done
 
                   # 3. index, commit only vex/, push, pull request
-                  if [ -z "$${GITHUB_TOKEN:-}" ]; then
-                    echo "DRY RUN: Secret dependency-track-vex-github (key token) is not seeded, nothing is pushed. Would write:"
+                  if [ -z "$GITHUB_TOKEN" ]; then
+                    echo "DRY RUN: Secret dependency-track-vex-github-app is not seeded, nothing is pushed. Would write:"
                     for doc in $(find vex/pkg/oci -name oci.openvex.json 2>/dev/null | sort); do
                       echo "  $doc ($(jq '.statements | length' "$doc") statements)"
                     done
-                    echo "Seed it with: kubectl -n security-system create secret generic dependency-track-vex-github --from-literal=token=<token>"
+                    echo "Seed it as described in k8s/infra/security-system/README.md (GitHub App)"
                     exit 0
                   fi
                   if [ -z "$(git status --porcelain vex)" ]; then echo "VEX documents are up to date"; exit 0; fi
@@ -181,13 +196,10 @@ spec:
                       name: dependency-track-vex-api-key
                       key: api-key
                       optional: true
-                - name: GITHUB_TOKEN
-                  valueFrom:
-                    secretKeyRef:
-                      name: dependency-track-vex-github
-                      key: token
-                      optional: true
               volumeMounts:
+                - name: app
+                  mountPath: /app
+                  readOnly: true
                 - name: work
                   mountPath: /work
               resources:
@@ -203,6 +215,11 @@ spec:
                   drop:
                     - ALL
           volumes:
+            - name: app
+              secret:
+                secretName: dependency-track-vex-github-app
+                defaultMode: 0440
+                optional: true
             - name: work
               emptyDir:
                 sizeLimit: 256Mi
