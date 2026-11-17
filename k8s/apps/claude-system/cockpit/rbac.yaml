@@ -29,6 +29,7 @@ rules:
       - renovate-operator.mogenius.com
     resources:
       - renovateprojects
+      - renovatejobs
     verbs:
       - get
       - list

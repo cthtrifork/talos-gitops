@@ -386,6 +386,30 @@
     var p = ghPanel("Open issues", "issues", d, "No open issues.", function (n) { return n ? "warn" : "ok"; });
     return p;
   }
+  // Next time a 5-field cron expression (UTC) fires after `from`; supports *, lists, ranges and steps. null if none within a year.
+  function cronNext(expr, from) {
+    var f = expr.trim().split(/\s+/);
+    if (f.length !== 5) return null;
+    var lim = [[0, 59], [0, 23], [1, 31], [1, 12], [0, 6]];
+    var sets = f.map(function (part, i) {
+      var set = {};
+      part.split(",").forEach(function (t) {
+        var m = /^(\*|\d+(?:-\d+)?)(?:\/(\d+))?$/.exec(t);
+        if (!m) return;
+        var lo = lim[i][0], hi = lim[i][1], step = m[2] ? +m[2] : 1;
+        if (m[1] !== "*") { var r = m[1].split("-"); lo = +r[0]; hi = r[1] ? +r[1] : (m[2] ? hi : lo); }
+        for (var v = lo; v <= hi; v += step) set[i === 4 && v === 7 ? 0 : v] = true;
+      });
+      return { any: part === "*", set: set };
+    });
+    var t = new Date(from); t.setUTCSeconds(0, 0); t.setUTCMinutes(t.getUTCMinutes() + 1);
+    for (var n = 0; n < 527040; n++, t.setUTCMinutes(t.getUTCMinutes() + 1)) {
+      var dom = sets[2].set[t.getUTCDate()], dow = sets[4].set[t.getUTCDay()];
+      var day = sets[2].any || sets[4].any ? dom && dow : dom || dow;
+      if (sets[0].set[t.getUTCMinutes()] && sets[1].set[t.getUTCHours()] && sets[3].set[t.getUTCMonth() + 1] && day) return t.getTime();
+    }
+    return null;
+  }
   function renovateRunsPanel(d) {
     var title = "Renovate runs";
     if (!d.renovate) return unavailable(title, "Kubernetes API · renovateprojects");
@@ -395,6 +419,8 @@
     var p = panel(head(title, bad.length ? "bad" : approval ? "warn" : "ok", bad.length ? bad.length + " failed" : approval ? approval + " need approval" : "all done"));
     p.appendChild(rows(ps.map(function (x) {
       var bits = [];
+      var lt = Date.parse(x.last_transition);
+      if (lt) bits.push("last run " + ago(Math.max(0, Math.round((Date.now() - lt) / 1000))) + " ago");
       if (x.duration) bits.push("took " + x.duration);
       if (x.needs_approval) bits.push(x.needs_approval + " need approval");
       if (x.automerged) bits.push(x.automerged + " automerged");
@@ -404,6 +430,11 @@
       var dash = "https://github.com/search?type=issues&q=" + encodeURIComponent("repo:cthtrifork/" + x.project + ' is:issue is:open "Dependency Dashboard" in:title');
       return { title: x.project, href: dash, sub: bits.join(" · ") || "no changes", right: pill(st, x.status) };
     })));
+    var jobs = d.renovate_jobs || [];
+    var live = jobs.filter(function (j) { return !j.suspend; });
+    var nexts = live.map(function (j) { return cronNext(j.schedule, Date.now()); }).filter(Boolean);
+    var next = jobs.length ? (nexts.length ? "Next run in " + until(Math.round((Math.min.apply(null, nexts) - Date.now()) / 1000)) + "." : live.length ? "" : "Scheduled runs are suspended.") : "";
+    if (next) p.appendChild(el("span", "muted", next));
     return p;
   }
 

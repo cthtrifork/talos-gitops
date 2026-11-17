@@ -439,6 +439,20 @@ processor_resources:
                       "unchanged": i.status.prActivity.unchanged.or(0)
                     }).sort_by(p -> p.project)
               result_map: 'root.renovate = this'
+
+            renovate_jobs:
+              request_map: |
+                meta path = "/apis/renovate-operator.mogenius.com/v1alpha1/renovatejobs"
+                root = ""
+              processors:
+                - resource: login
+                - resource: kube_get
+                - mapping: |
+                    root.jobs = this.items.or([]).map_each(i -> {
+                      "schedule": i.spec.schedule.or(""),
+                      "suspend": i.spec.suspend.or(false)
+                    })
+              result_map: 'root.renovate_jobs = this.jobs'
       - catch:
           - log:
               level: WARN
