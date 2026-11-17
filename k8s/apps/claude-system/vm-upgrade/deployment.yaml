@@ -63,9 +63,20 @@ spec:
             - name: config
               mountPath: /etc/connect
               readOnly: true
+            - name: registry-auth
+              mountPath: /etc/registry-auth
+              readOnly: true
       volumes:
         - name: tmp
           emptyDir: {}
         - name: config
           configMap:
             name: claude-vm-upgrade-connect-config
+        - name: registry-auth
+          secret:
+            secretName: ghcr-pull # the runner's read:packages token; homeserver-bootc is a private package
+            optional: true
+            defaultMode: 0440
+            items:
+              - key: .dockerconfigjson
+                path: config.json

@@ -4,10 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Update VMs</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231a7f4b'/%3E%3Cpath d='M16 24V9M9.5 15.5L16 9l6.5 6.5' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M9 24h14' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
   :root {
     color-scheme: light dark;
-    --page: #f4f4f1; --card: #ffffff; --ink: #141413; --ink-2: #55534e; --line: #e3e2da;
+    --page: #f4f4f1; --card: #ffffff; --ink: #141413; --ink-2: #4a4843; --line: #e3e2da;
     --accent: #2a78d6; --on-accent: #ffffff; --ok: #1a7f4b; --warn: #b4690e; --bad: #c0392b;
     --warn-bg: #fff4d6; --danger: #c0392b;
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -15,37 +16,42 @@
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --page: #0d0d0d; --card: #1a1a19; --ink: #f0efec; --ink-2: #b4b2a9; --line: #2c2c2a;
+      --page: #0d0d0d; --card: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --line: #2c2c2a;
       --accent: #3987e5; --ok: #3cc58a; --warn: #e0a040; --bad: #ef6a5b; --warn-bg: #3a2f10; --danger: #ef6a5b;
     }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 var(--font);
+  body { margin: 0; background: var(--page); color: var(--ink); font: 16px/1.5 var(--font);
          padding: 24px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); display: flex; justify-content: center; }
-  main { width: 100%; max-width: 440px; }
-  h1 { font-size: 20px; margin: 0 0 2px; }
-  h2 { font-size: 16px; margin: 0 0 10px; }
+  main { width: 100%; max-width: 480px; }
+  h1 { font-size: 24px; margin: 0 0 2px; }
+  h2 { font-size: 18px; margin: 0 0 12px; }
   .sub { margin: 0 0 16px; color: var(--ink-2); }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
-  .health { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  .health { display: flex; align-items: center; gap: 10px; font-weight: 600; flex-wrap: wrap; }
   .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-2); flex: none; }
   .health.ok .dot { background: var(--ok); }
   .health.stale .dot { background: var(--bad); }
-  .health small { font-weight: 400; color: var(--ink-2); margin-left: auto; }
-  dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
-  dt { color: var(--ink-2); }
-  dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  .mono { font-family: var(--mono); font-size: 13px; }
-  .note { display: block; font-size: 12px; color: var(--warn); }
-  .actions { margin-top: 16px; }
+  .health.behind .dot { background: var(--warn); }
+  .health small { font-weight: 400; font-size: 14px; color: var(--ink-2); margin-left: auto; }
+  dl { display: grid; grid-template-columns: 5.5em 1fr; gap: 14px 12px; margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+  dt { color: var(--ink-2); font-size: 14px; padding-top: 1px; }
+  dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  dd .mono { display: block; font-weight: 400; color: var(--ink-2); }
+  dd.behind { color: var(--warn); }
+  dd.current { color: var(--ok); }
+  .mono { font-family: var(--mono); font-size: 14px; }
+  .note { display: block; font-size: 14px; font-weight: 400; color: var(--warn); }
+  .actions { margin-top: 18px; }
   button { font: inherit; font-weight: 600; width: 100%; min-height: 48px; padding: 12px 20px; border: 0; border-radius: 10px;
            background: var(--accent); color: var(--on-accent); cursor: pointer; }
   button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   button:disabled { opacity: .55; cursor: default; }
   button.danger { background: var(--danger); }
   .link { background: none; color: var(--ink-2); font-weight: 400; min-height: 40px; margin-top: 4px; text-decoration: underline; }
-  .confirm { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg); font-size: 14px; }
-  .hint { margin: 10px 0 0; font-size: 13px; color: var(--ink-2); min-height: 1.5em; }
+  .confirm { margin: 0 0 12px; padding: 12px 14px; border-radius: 10px; background: var(--warn-bg); font-size: 15px; }
+  .hint { margin: 12px 0 0; font-size: 14px; color: var(--ink-2); }
+  .hint:empty { display: none; }
   .hint.warn { color: var(--warn); }
   [hidden] { display: none !important; }
 </style>
@@ -65,6 +71,7 @@
     <dl>
       <dt>Running</dt><dd class="booted">…</dd>
       <dt>Staged</dt><dd class="staged">…</dd>
+      <dt>Latest</dt><dd class="latest">…</dd>
     </dl>
     <div class="actions">
       <p class="confirm" hidden></p>
@@ -146,6 +153,20 @@
       var note = document.createElement('span');
       note.className = 'note'; note.textContent = 'applies on the next reboot';
       staged.appendChild(note);
+    }
+    // The registry's latest image: "" when the registry did not answer. Staged means it is already downloaded, so only the rest is news.
+    var latest = s.latest_digest || '', lat = el.querySelector('.latest');
+    var behind = known && !!latest && !!vm.booted_digest && latest.indexOf(vm.booted_digest.slice(0, 12)) !== 0 && !vm.staged_version;
+    lat.textContent = !latest ? 'unknown' : (behind ? 'Newer image available' : (vm.staged_version ? 'Staged, reboot to apply' : 'Up to date'));
+    lat.className = 'latest ' + (behind ? 'behind' : (latest && !vm.staged_version ? 'current' : ''));
+    if (latest) {
+      var ld = document.createElement('span');
+      ld.className = 'mono'; ld.textContent = ' ' + latest;
+      lat.appendChild(ld);
+    }
+    if (behind && c.online) {
+      el.querySelector('.health').className = 'health behind';
+      el.querySelector('.health-text').textContent = 'Update available';
     }
     if (!c.pending && c.hint.textContent.indexOf('Queued') === 0) { c.hint.textContent = ''; }
     render(c);

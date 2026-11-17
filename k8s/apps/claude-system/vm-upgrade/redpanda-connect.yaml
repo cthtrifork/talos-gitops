@@ -5,7 +5,7 @@
 #   :8081  poll  the VMs ask "upgrade now?"    MetalLB, LAN only, the NetworkPolicy lets in the VMs' IPs only
 #
 # ui   GET  /                          the page
-#      GET  /api/v1/status             per VM: is a click queued, when did it last poll, what does it run
+#      GET  /api/v1/status             per VM: is a click queued, when did it last poll, what does it run, what is the latest image
 #      POST /api/v1/vms/<vm>/upgrade   queue a click (needs the header X-Requested-With: vm-upgrade-button)
 # poll POST /api/v1/vms/<vm>/report    the VM says what it runs (booted and staged ostree deployment); also counts as a poll
 #      POST /api/v1/vms/<vm>/claim     {"upgrade": true} once per click, then false
@@ -14,6 +14,8 @@
 # first claim clears it, so one click is at most one upgrade. A pod restart drops an unclaimed click.
 # The poll listener cannot tell the VMs apart (both sit behind the same NetworkPolicy), so a VM that names another could claim its click;
 # the names are a convenience, not a security boundary.
+# The latest image of a VM is looked up in ghcr.io (cached 5 minutes), like the cockpit page does, with the read:packages token of the
+# Secret ghcr-pull, because the homeserver-bootc packages are private. Without the Secret the page just does not show a newer image.
 # Not a Flux template (configMapGenerator disables postBuild envsubst).
 http:
   enabled: true
@@ -22,6 +24,11 @@ http:
 
 # --- state, keyed "<vm>:pending" and "<vm>:last_poll" ({"at": <unix seconds>}) and "<vm>:vm" (what the VM last reported) ---
 cache_resources:
+  # Docker config of the Secret ghcr-pull (optional): the file config.json
+  - label: registryauth
+    file:
+      directory: /etc/registry-auth
+
   - label: state
     memory:
       default_ttl: 10m
@@ -135,6 +142,89 @@ processor_resources:
             - mapping: 'root = {}'
       result_map: 'meta vm_status = this'
 
+  # The digest of the latest image of the metadata field `image`: the sha256 of the manifest is its digest (the same as the cockpit page).
+  - label: image_digest
+    processors:
+      - branch:
+          request_map: 'root = ""'
+          processors:
+            - cache:
+                resource: registryauth
+                operator: get
+                key: config.json
+            - mapping: 'root = content().string().parse_json().catch({}).auths."ghcr.io".auth.or("")'
+          result_map: 'meta registry_auth = content().string()'
+      # Without the Secret (or a credential for ghcr.io) the token is anonymous: enough for a public package such as claude-vm-bootc, a 401 on the manifest
+      # for a private one such as homeserver-bootc.
+      - catch:
+          - mapping: 'meta registry_auth = ""'
+      - branch:
+          request_map: 'root = ""'
+          processors:
+            - switch:
+                - check: '@registry_auth != ""'
+                  processors:
+                    - http:
+                        url: 'https://ghcr.io/token?service=ghcr.io&scope=repository:cthtrifork/homeserver-bootc/${! @image }:pull'
+                        verb: GET
+                        headers:
+                          Authorization: 'Basic ${! @registry_auth }'
+                        timeout: 10s
+                - processors:
+                    - http:
+                        url: 'https://ghcr.io/token?service=ghcr.io&scope=repository:cthtrifork/homeserver-bootc/${! @image }:pull'
+                        verb: GET
+                        timeout: 10s
+          result_map: 'meta registry_token = this.token'
+      - http:
+          url: 'https://ghcr.io/v2/cthtrifork/homeserver-bootc/${! @image }/manifests/latest'
+          verb: GET
+          headers:
+            Authorization: 'Bearer ${! @registry_token }'
+            Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json
+          timeout: 10s
+      - mapping: 'root = {"digest": content().hash("sha256").encode("hex").slice(0, 12)}'
+
+  # Looks the digest up in the registry and keeps the answer for 5 minutes, a failed lookup ("") for 1 minute. A branch, because inside `catch` the
+  # message still counts as failed and `try` would skip it; the branch starts from a clean message.
+  - label: fetch_latest_digest
+    branch:
+      request_map: 'root = ""'
+      processors:
+        - try:
+            - resource: image_digest
+            - cache:
+                resource: state
+                operator: set
+                key: '${! @vm }:latest'
+                value: '${! content() }'
+                ttl: 5m
+        - catch:
+            - mapping: 'root = {"digest": ""}'
+            - cache:
+                resource: state
+                operator: set
+                key: '${! @vm }:latest'
+                value: '${! content() }'
+                ttl: 1m
+      result_map: 'root = this'
+
+  # Reads the digest of the latest image of the VM `vm` into the metadata field `latest_digest` ("" when the registry did not answer).
+  # The page asks every 5 seconds, so the answer comes from the cache most of the time.
+  - label: read_latest_digest
+    branch:
+      request_map: |
+        meta image = @vm + "-bootc"
+        root = ""
+      processors:
+        - cache:
+            resource: state
+            operator: get
+            key: '${! @vm }:latest'
+        - catch:
+            - resource: fetch_latest_digest
+      result_map: 'meta latest_digest = this.digest'
+
   # Everything the page shows about the VM `vm`, as the metadata field `vm_state`.
   - label: read_vm_state
     processors:
@@ -144,12 +234,14 @@ processor_resources:
       - mapping: 'meta flag = @vm + ":last_poll"'
       - resource: read_flag
       - resource: read_vm_status
+      - resource: read_latest_digest
       - mapping: |
           meta vm_state = {
             "pending": @pending_at > 0,
             "pending_at": @pending_at,
             "last_poll_at": @flag_at,
-            "vm": @vm_status
+            "vm": @vm_status,
+            "latest_digest": @latest_digest
           }
 
   # ------------------------------------------------------------------------------------------------
