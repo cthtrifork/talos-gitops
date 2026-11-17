@@ -83,8 +83,6 @@ configMapGenerator:
     files:
       - cockpit/redpanda-connect.yaml
       - cockpit/index.html
-      - cockpit/vendor/htm-preact.js
-      - cockpit/vendor/croner.js
   - name: claude-md
     namespace: claude-system
     options:

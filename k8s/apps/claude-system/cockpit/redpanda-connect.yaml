@@ -69,13 +69,6 @@ pipeline:
                 meta content_type = "text/html; charset=utf-8"
                 root = file("/etc/connect/index.html")
 
-        # The vendored libraries the page imports (htm + Preact, Croner): only these two files, never a path taken from the request
-        - check: '@http_server_request_path == "/vendor/htm-preact.js" || @http_server_request_path == "/vendor/croner.js"'
-          processors:
-            - mapping: |
-                meta content_type = "text/javascript; charset=utf-8"
-                root = file("/etc/connect/" + @http_server_request_path.replace("/vendor/", ""))
-
         - check: '@http_server_request_path == "/healthz"'
           processors:
             - mapping: |
