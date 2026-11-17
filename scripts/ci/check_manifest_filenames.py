@@ -7,6 +7,16 @@ import sys
 import yaml
 
 APP_ROOT = Path("k8s/apps")
+INFRA_ROOT = Path("k8s/infra")
+# Generated, not hand-written: scripts/ci/update-kubevirt-operators.sh rewrites these vendored release bundles (CRDs, RBAC,
+# Deployment) as one file, and nothing deploys them yet (k8s/infra/kubevirt/kustomization.yaml). Every other infra file must conform.
+GENERATED_INFRA_FILES = frozenset(
+    Path(name)
+    for name in (
+        "k8s/infra/kubevirt/cdi-operator.yaml",
+        "k8s/infra/kubevirt/kubevirt-operator.yaml",
+    )
+)
 ALIASES = {
     "CiliumNetworkPolicy": {"networkpolicy"},
     "OCIRepository": {"helm-repository"},
@@ -75,7 +85,9 @@ def check_file(path: Path) -> list[str]:
 
 def main() -> int:
     failed = False
-    for path in manifest_files(APP_ROOT):
+    paths = [*manifest_files(APP_ROOT)]
+    paths += [path for path in manifest_files(INFRA_ROOT) if path not in GENERATED_INFRA_FILES]
+    for path in paths:
         mismatched_kinds = check_file(path)
         if mismatched_kinds:
             if len(mismatched_kinds) > 1:

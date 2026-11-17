@@ -70,7 +70,7 @@ Random secrets that must not be in Git (the Garage keys, the Dependency-Track KE
 External Secrets (`k8s/infra/controllers/external-secrets/`) into a cluster store: the namespace `secret-store`, exposed as the
 `ClusterSecretStore` `secret-store` (Kubernetes provider, `k8s/infra/secret-store/`). A Password generator and a PushSecret write each value
 once (`updatePolicy: IfNotExists`, only the fileserver token is replaced every 30 days), and an ExternalSecret in the namespace that
-needs it copies it into a normal Secret. To add one: a generator and a PushSecret in `generated-secrets.yaml`, an ExternalSecret next
+needs it copies it into a normal Secret. To add one: a generator in `password.yaml` and a PushSecret in `pushsecret.yaml`, an ExternalSecret next
 to the workload, and the workload's namespace in the `conditions` of the ClusterSecretStore. To read one: `kubectl -n secret-store get secret <name>`
 (needs Secret read access). To regenerate one, delete the key in `secret-store`; the copies follow within the refresh interval.
 

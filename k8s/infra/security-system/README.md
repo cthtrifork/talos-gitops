@@ -62,7 +62,7 @@ not routed through Traefik). Check the address is free in the pool (`192.168.1.2
 
 Trivy itself has no KEV data, and trivy-operator reports (and its metrics) only carry severity/CVSS. KEV enrichment
 comes from Dependency-Track 5, which has two relevant pieces. Both are stored in its database, so Helm values cannot set
-them; `dependency-track/config-job.yaml` (a CronJob every 20 minutes) applies them through the REST API:
+them; `dependency-track/config-cronjob.yaml` (a CronJob every 20 minutes) applies them through the REST API:
 
 1. **KEV data sources**: CISA KEV and ENISA KEV are enabled. Dependency-Track then flags findings whose CVE (or alias) is
    known exploited, with the required action and a known-ransomware flag. It needs egress to `www.cisa.gov` and
@@ -83,7 +83,7 @@ it only seeds a fresh install. Dependency-Track has no declarative provisioning 
 ([upstream issue 6193](https://github.com/DependencyTrack/dependency-track/issues/6193)), hence the Job.
 
 External Secrets generates the admin password once (`k8s/infra/secret-store/`) and `external-secret-admin.yaml` copies it into
-`dependency-track-admin`, so it exists before the Job first runs. On the first run `config-job.yaml` changes the built-in
+`dependency-track-admin`, so it exists before the Job first runs. On the first run `config-cronjob.yaml` changes the built-in
 `admin/admin` to it, creates the teams, stores their API keys and applies the settings above. To use your own password, change
 the key `password` in the Secret `dependency-track-admin` of the namespace `secret-store`. An existing installation just logs in
 with the Secret; the password is never reset. If the password was already changed by hand, the Job fails with a clear message:
@@ -92,10 +92,10 @@ put the current admin password in the `secret-store` Secret.
 | Secret | Keys | Created by | Used by |
 |---|---|---|---|
 | `dependency-track-kek` | `kek` | `external-secret-kek.yaml` (generated in `secret-store`) | api-server |
-| `dependency-track-admin` | `username`, `password` | `external-secret-admin.yaml` (generated in `secret-store`) | `config-job.yaml` |
-| `dependency-track-api-key` | `api-key` (team `sbom-uploader`) | `config-job.yaml` | `sbom-hook` |
-| `dependency-track-vex-api-key` | `api-key` (team `vex-exporter`) | `config-job.yaml` | `vex-export.yaml` |
-| `dependency-track-vex-github` | `token` | `external-secret-vex-github.yaml` (minted from `dependency-track-vex-github-app`) | `vex-export.yaml` |
+| `dependency-track-admin` | `username`, `password` | `external-secret-admin.yaml` (generated in `secret-store`) | `config-cronjob.yaml` |
+| `dependency-track-api-key` | `api-key` (team `sbom-uploader`) | `config-cronjob.yaml` | `sbom-hook` |
+| `dependency-track-vex-api-key` | `api-key` (team `vex-exporter`) | `config-cronjob.yaml` | `vex-export-cronjob.yaml` |
+| `dependency-track-vex-github` | `token` | `external-secret-vex-github.yaml` (minted from `dependency-track-vex-github-app`) | `vex-export-cronjob.yaml` |
 
 Teams keep their permissions (`sbom-uploader`: `BOM_UPLOAD`, `PROJECT_CREATION_UPLOAD`; `vex-exporter`: `VIEW_PORTFOLIO`,
 `VULNERABILITY_ANALYSIS_READ`); permissions are only added. A key is created only when its Secret does not exist, and is never
@@ -110,7 +110,7 @@ A lost admin Secret is recovered by seeding it with the current admin password.
 
 ## Exporting Dependency-Track decisions to the VEX repository
 
-`dependency-track/vex-export.yaml` is a daily CronJob that turns the analysis decisions made in Dependency-Track (state
+`dependency-track/vex-export-cronjob.yaml` is a daily CronJob that turns the analysis decisions made in Dependency-Track (state
 *not affected*, *false positive* or *resolved* on a finding) into OpenVEX documents in `vex/pkg/oci/<registry>/<repository>/`
 of this repository, regenerates `vex/index.json` and opens a pull request from the branch `dependency-track/vex-export`.
 Merge it and the `vex-cache` image is rebuilt from `vex/`; the next scan job hides those findings. It only changes files under `vex/`, never pushes to `main`,
@@ -132,7 +132,7 @@ Without the Secret the Job is a dry run that prints the documents it would write
 4. Run it once instead of waiting for the schedule:
    `kubectl -n security-system create job --from=cronjob/dependency-track-vex-export vex-first` and read its logs.
 
-The API key comes from `config-job.yaml` (team `vex-exporter`). Trivy identifies a scanned image by the PURL
+The API key comes from `config-cronjob.yaml` (team `vex-exporter`). Trivy identifies a scanned image by the PURL
 `pkg:oci/<name>@<digest>?repository_url=<registry>/<repository>` and matches a statement only if the version is the same, so
 `sbom-hook/` versions each Dependency-Track project by the image digest, not the tag. The export skips projects whose
 version is not a digest. Decisions made on projects created before
@@ -142,7 +142,7 @@ delete the old projects. A moved tag creates a new project per digest, so old on
 Findings come from the projects/SBOMs uploaded to Dependency-Track. `sbom-hook/` (Redpanda Connect) receives every
 `SbomReport` that trivy-operator produces or regenerates through its webhook (`operator.webhookBroadcastURL`) and uploads
 it, one project per image; reports are regenerated after `scannerReportTTL`, so nothing needs a second upload path. It
-uses the API key created by `config-job.yaml`; until the Secret exists its uploads fail with a 401.
+uses the API key created by `config-cronjob.yaml`; until the Secret exists its uploads fail with a 401.
 
 The default-deny network policies allow Dependency-Track to Postgres (5432),
 trivy-service (4954), and the vulnerability feeds; allow `sbom-hook`, `dependency-track-config` and
