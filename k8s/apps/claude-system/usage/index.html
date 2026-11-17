@@ -101,6 +101,7 @@
   svg .seg-fill { stroke: var(--surface); stroke-width: 2; }
   svg text.inbar { font-weight: 600; }
 
+  usage-app, usage-tooltip { display: block; }
   .tip { position: fixed; z-index: 5; pointer-events: none; background: var(--ink); color: var(--page); border-radius: 8px; padding: 8px 10px; font-size: var(--fs-sm); line-height: 1.5; box-shadow: 0 4px 16px rgba(0,0,0,.25); max-width: 16rem; }
   .tip b { display: block; margin-bottom: 2px; }
   .tip .r { display: flex; justify-content: space-between; gap: 16px; }
@@ -129,10 +130,23 @@
 </style>
 </head>
 <body>
-<div id="app"></div>
+<usage-app></usage-app>
+<usage-tooltip></usage-tooltip>
+<!-- Lit comes from jsDelivr as plain ES modules, every package pinned to an exact version. Bump the versions here. -->
+<script type="importmap">
+{
+  "imports": {
+    "lit": "https://cdn.jsdelivr.net/npm/lit@3.3.3/index.js",
+    "lit-element/": "https://cdn.jsdelivr.net/npm/lit-element@4.2.2/",
+    "lit-html": "https://cdn.jsdelivr.net/npm/lit-html@3.3.3/lit-html.js",
+    "lit-html/": "https://cdn.jsdelivr.net/npm/lit-html@3.3.3/",
+    "@lit/reactive-element": "https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.1.2/reactive-element.js",
+    "@lit/reactive-element/": "https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.1.2/"
+  }
+}
+</script>
 <script type="module">
-// htm + Preact (templates) come from jsDelivr, pinned to an exact version. Bump the version here.
-import { html, render, useState, useEffect, useRef, useLayoutEffect } from "https://cdn.jsdelivr.net/npm/htm@3.1.1/preact/standalone.module.js";
+import { LitElement, html, svg, nothing } from "lit";
 
 const TOKENS = [
   { k: "input", label: "Input", v: "--tok-input", on: "--on-tok-input" },
@@ -167,35 +181,8 @@ async function get(path) {
   return r.json();
 }
 
-// The data of one period: the summary and the daily series cover 30 days, the breakdown and the decisions are per period.
-// A load that is overtaken by a newer one (a quick switch of period) is dropped. A failed load keeps the last data.
-function useUsage(period) {
-  const [data, setData] = useState({ summary: null, daily: null, breakdown: null, decisions: null, period: null });
-  const [error, setError] = useState(null);
-  useEffect(() => {
-    let latest = 0;
-    const load = async () => {
-      const seq = ++latest;
-      try {
-        const [summary, daily, breakdown, decisions] = await Promise.all([
-          get("api/v1/summary"), get("api/v1/daily?days=30"), get("api/v1/breakdown?window=" + period), get("api/v1/decisions?window=" + period),
-        ]);
-        if (seq !== latest) return;
-        setData({ summary, daily, breakdown, decisions, period });
-        setError(null);
-      } catch (e) {
-        if (seq === latest) setError(e.message);
-      }
-    };
-    load();
-    const timer = setInterval(load, REFRESH_MS);
-    return () => { latest = Infinity; clearInterval(timer); };
-  }, [period]);
-  return { data, error };
-}
-
 // What the page shows for the chosen environment and period, derived from the data.
-function useView(data, ui) {
+function view(data, ui) {
   const { summary, daily, breakdown, decisions } = data;
   // Environments get the validated colour slots in sorted order; a third one falls back to grey.
   const envs = daily && summary ? [...new Set([...daily.environments, ...Object.keys(summary.windows["30d"].environments)])].sort() : [];
@@ -220,50 +207,29 @@ function useView(data, ui) {
   };
 }
 
-// ---- Tooltip: its own state, so moving over a chart does not re-render the page ----
+// ---- Tooltip: its own element, so moving over a chart does not re-render the page ----
+// Charts announce what to show with a bubbling "usage-tip" event (detail null hides it); <usage-tooltip> listens on the document.
 
-const tooltip = { set: () => {} };
-const showTip = (ev, title, lines) => tooltip.set({ x: ev.clientX, y: ev.clientY, title, lines });
-const hideTip = () => tooltip.set(null);
+const tipEvent = (ev, detail) => ev.currentTarget.dispatchEvent(new CustomEvent("usage-tip", { bubbles: true, detail }));
+const showTip = (ev, title, lines) => tipEvent(ev, { x: ev.clientX, y: ev.clientY, title, lines });
+const hideTip = (ev) => tipEvent(ev, null);
 
-const Tooltip = () => {
-  const [tip, setTip] = useState(null);
-  tooltip.set = setTip;
-  const box = useRef(null);
-  useLayoutEffect(() => {
-    if (!tip) return;
-    const el = box.current;
-    el.style.left = Math.min(tip.x + 14, innerWidth - el.offsetWidth - 8) + "px";
-    el.style.top = Math.max(8, Math.min(tip.y - el.offsetHeight - 10, innerHeight - el.offsetHeight - 8)) + "px";
-  }, [tip]);
-  return html`<div class="tip" id="tip" ref=${box} hidden=${!tip}>
-    ${tip && html`<b>${tip.title}</b>${tip.lines.map(([dot, name, val]) => html`<div class="r">
-      <span>${dot && html`<span class="dot" style=${{ background: css(dot) }}></span>`}${name}</span><span>${val}</span>
-    </div>`)}`}
-  </div>`;
-};
 
 // ---- Building blocks ----
 
-const Empty = ({ children }) => html`<div class="empty">${children}</div>`;
-const Dot = ({ color }) => html`<span class="dot" style=${{ background: css(color) }}></span>`;
+const Empty = (children) => html`<div class="empty">${children}</div>`;
+const Dot = (color) => html`<span class="dot" style="background: ${css(color)}"></span>`;
 
-// A segmented control; `attr` is the data attribute that names each button (data-e, data-p, data-m).
-const Segmented = ({ label, id, attr, options, value, onPick }) => html`<div class="seg" role="group" aria-label=${label} id=${id}>
-  ${options.map(([v, text]) => html`<button ...${{ ["data-" + attr]: v }} aria-pressed=${String(value === v)} onClick=${() => onPick(v)}>${text}</button>`)}
-</div>`;
+// A segmented control; each button carries its value in data-value.
+const Segmented = ({ label, id, options, value, onPick }) => html`<div class="seg" role="group" aria-label=${label} id=${id}>${options.map(([v, text]) => html`<button data-value=${v} aria-pressed=${String(value === v)} @click=${() => onPick(v)}>${text}</button>`)}</div>`;
 
-const Table = ({ id, head, rows, foot }) => html`<table id=${id}>
-  <tr>${head}</tr>
-  ${rows}
-  ${foot && html`<tfoot>${foot}</tfoot>`}
-</table>`;
+const Table = ({ id, head, rows, foot }) => html`<table id=${id}><thead><tr>${head}</tr></thead><tbody>${rows}</tbody>${foot ? html`<tfoot>${foot}</tfoot>` : nothing}</table>`;
 
 // ---- Sections ----
 
-const Tiles = ({ v }) => {
+const Tiles = (v) => {
   const t = v.totals;
-  if (!t) return html`<section class="tiles" id="tiles" aria-label="Totals"><${Empty}>No data for this selection yet.<//></section>`;
+  if (!t) return html`<section class="tiles" id="tiles" aria-label="Totals">${Empty("No data for this selection yet.")}</section>`;
   const days = PERIOD_DAYS[v.period];
   const tile = (k, value, sub, src, hero) => ({ k, value, sub, src, hero });
   const items = [
@@ -276,14 +242,10 @@ const Tiles = ({ v }) => {
     tile("Lines changed", compact(t.lines.added + t.lines.removed), `+${compact(t.lines.added)} −${compact(t.lines.removed)}`, "lines_of_code_count{type}"),
     tile("Active time", t.active_hours.toFixed(1) + " h", "across all sessions", "active_time_total"),
   ];
-  return html`<section class="tiles" id="tiles" aria-label="Totals">
-    ${items.map((i) => html`<div class=${i.hero ? "tile hero" : "tile"} key=${i.k}>
-      <div class="k">${i.k}</div><div class="v">${i.value}</div><div class="s">${i.sub}</div><span class="src">${"claude_code_" + i.src}</span>
-    </div>`)}
-  </section>`;
+  return html`<section class="tiles" id="tiles" aria-label="Totals">${items.map((i) => html`<div class=${i.hero ? "tile hero" : "tile"}><div class="k">${i.k}</div><div class="v">${i.value}</div><div class="s">${i.sub}</div><span class="src">${"claude_code_" + i.src}</span></div>`)}</section>`;
 };
 
-// Stacked columns per day, one segment per environment.
+// Stacked columns per day, one segment per environment. The pieces inside the <svg> use the svg tag, so they get the SVG namespace.
 const DailyChart = ({ days, v, metric }) => {
   const envs = v.shownEnvs;
   const key = metric === "cost" ? "cost_usd" : metric;
@@ -303,30 +265,29 @@ const DailyChart = ({ days, v, metric }) => {
   return html`<svg id="daily" viewBox="0 0 720 240" role="img" aria-label=${label}>
     ${[0, 0.5, 1].map((f) => {
       const y = T + ph * (1 - f);
-      return html`<line x1=${L} x2=${W - R} y1=${y} y2=${y} class=${f ? "grid" : "axis"} /><text x=${L - 6} y=${y + 4} text-anchor="end">${fmt(max * f)}</text>`;
+      return svg`<line x1=${L} x2=${W - R} y1=${y} y2=${y} class=${f ? "grid" : "axis"} /><text x=${L - 6} y=${y + 4} text-anchor="end">${fmt(max * f)}</text>`;
     })}
     ${days.map((d, i) => {
       const x = L + i * pw + pw * 0.14;
       const w = pw * 0.72;
       let acc = 0;
       const lines = [...envs.map((e) => [v.envColor(e), e, fmt(val(d, e))]), ...(envs.length > 1 ? [[null, "Total", fmt(perDay[i])]] : [])];
-      return html`<g class="col" key=${d.date} onPointerMove=${(ev) => showTip(ev, d.date, lines)} onPointerLeave=${hideTip}>
+      return svg`<g class="col" @pointermove=${(ev) => showTip(ev, d.date, lines)} @pointerleave=${hideTip}>
         <rect x=${L + i * pw} y=${T} width=${pw} height=${ph} class="hit" />
         ${envs.map((e) => {
           const value = val(d, e);
           const h = (value / max) * ph;
           const y = T + ph - (acc / max) * ph - h;
           acc += value;
-          return h > 0 && html`<rect x=${x} y=${y} width=${w} height=${h} rx="3" fill=${css(v.envColor(e))} class="seg-fill" />`;
+          return h > 0 ? svg`<rect x=${x} y=${y} width=${w} height=${h} rx="3" fill=${css(v.envColor(e))} class="seg-fill" />` : nothing;
         })}
-      </g>
-      ${(days.length <= 8 || i % Math.ceil(days.length / 8) === 0 || i === days.length - 1) && html`<text x=${x + w / 2} y=${H - 6} text-anchor="middle">${d.date.slice(5)}</text>`}`;
+      </g>${days.length <= 8 || i % Math.ceil(days.length / 8) === 0 || i === days.length - 1 ? svg`<text x=${x + w / 2} y=${H - 6} text-anchor="middle">${d.date.slice(5)}</text>` : nothing}`;
     })}
     ${envs.map((e) => {
       const value = val(last, e);
       const mid = T + ph - ((stacked + value / 2) / max) * ph;
       stacked += value;
-      return html`<text x=${W - R + 8} y=${mid + 4}>${e}</text>`;
+      return svg`<text x=${W - R + 8} y=${mid + 4}>${e}</text>`;
     })}
   </svg>`;
 };
@@ -342,134 +303,208 @@ const PerDay = ({ data, v, metric, setMetric }) => {
   return html`<section class="panel">
     <div class="panel-head">
       <h2>Per day</h2>
-      <${Segmented} label="Metric" id="metricSeg" attr="m" options=${METRICS} value=${metric} onPick=${setMetric} />
+      ${Segmented({ label: "Metric", id: "metricSeg", options: METRICS, value: metric, onPick: setMetric })}
     </div>
-    <div class="legend" id="envLegend">${envs.map((e) => html`<span key=${e}><i style=${{ background: css(v.envColor(e)) }}></i>${e}</span>`)}</div>
-    <${DailyChart} days=${days} v=${v} metric=${metric} />
+    <div class="legend" id="envLegend">${envs.map((e) => html`<span><i style="background: ${css(v.envColor(e))}"></i>${e}</span>`)}</div>
+    ${DailyChart({ days, v, metric })}
     <details><summary>View as table</summary><div class="scroll">
-      <${Table} id="dailyTable"
-        head=${html`<th>Day (UTC)</th>${envs.map((e) => html`<th>${e}</th>`)}${envs.length > 1 && html`<th>Total</th>`}`}
-        rows=${[...days].reverse().map((d) => html`<tr key=${d.date}><td>${d.date}</td>${envs.map((e) => html`<td>${fmt(val(d, e))}</td>`)}${envs.length > 1 && html`<td>${fmt(totalOf(d))}</td>`}</tr>`)} />
+      ${Table({
+        id: "dailyTable",
+        head: html`<th>Day (UTC)</th>${envs.map((e) => html`<th>${e}</th>`)}${envs.length > 1 ? html`<th>Total</th>` : nothing}`,
+        rows: [...days].reverse().map((d) => html`<tr><td>${d.date}</td>${envs.map((e) => html`<td>${fmt(val(d, e))}</td>`)}${envs.length > 1 ? html`<td>${fmt(totalOf(d))}</td>` : nothing}</tr>`),
+      })}
     </div></details>
     <div class="src" id="dailySrc">${DAILY_SOURCE[metric]}</div>
   </section>`;
 };
 
-const ModelCost = ({ v }) => {
-  if (!v.models.length) return html`<div id="modelCost"><${Empty}>No model usage in this period yet.<//></div>`;
+const ModelCost = (v) => {
+  if (!v.models.length) return html`<div id="modelCost">${Empty("No model usage in this period yet.")}</div>`;
   const total = sum(v.models.map(([, m]) => m.cost));
   const max = Math.max(v.models[0][1].cost, 0.0001);
-  return html`<div id="modelCost">${v.models.map(([name, m]) => html`<div class="row" key=${name}>
+  return html`<div id="modelCost">${v.models.map(([name, m]) => html`<div class="row">
     <div class="name">${name}<small>${(total ? (m.cost / total) * 100 : 0).toFixed(0)}% of cost</small></div>
-    <div class="track"><div class="seg-b neutral" style=${{ width: Math.max((m.cost / max) * 100, 2) + "%" }}></div></div>
+    <div class="track"><div class="seg-b neutral" style="width: ${Math.max((m.cost / max) * 100, 2)}%"></div></div>
     <div class="val">${usd(m.cost)}</div>
   </div>`)}</div>`;
 };
 
-const TokenMix = ({ v }) => {
-  if (!v.models.length) return html`<div class="legend" id="tokLegend"></div><div id="tokMix"><${Empty}>No model usage in this period yet.<//></div>`;
-  return html`<div class="legend" id="tokLegend">${TOKENS.map((t) => html`<span key=${t.k}><i style=${{ background: css(t.v) }}></i>${t.label}</span>`)}</div>
+const TokenMix = (v) => {
+  if (!v.models.length) return html`<div class="legend" id="tokLegend"></div><div id="tokMix">${Empty("No model usage in this period yet.")}</div>`;
+  return html`<div class="legend" id="tokLegend">${TOKENS.map((t) => html`<span><i style="background: ${css(t.v)}"></i>${t.label}</span>`)}</div>
     <div id="tokMix">${v.models.map(([name, m]) => {
       const total = Math.max(sum(Object.values(m.tokens)), 1);
-      return html`<div class="row" key=${name}>
+      return html`<div class="row">
         <div class="name">${name}<small>${compact(total)} tokens</small></div>
         <div class="track">${TOKENS.map((t) => {
           const share = (m.tokens[t.k] / total) * 100;
-          return html`<div class="seg-b" key=${t.k} style=${{ width: share + "%", flex: "0 0 auto", background: css(t.v), color: css(t.on) }}
-            onPointerMove=${(ev) => showTip(ev, name, [[t.v, t.label, compact(m.tokens[t.k]) + " · " + share.toFixed(1) + "%"]])} onPointerLeave=${hideTip}>${share >= 9 && share.toFixed(0) + "%"}</div>`;
+          return html`<div class="seg-b" style="width: ${share}%; flex: 0 0 auto; background: ${css(t.v)}; color: ${css(t.on)}"
+            @pointermove=${(ev) => showTip(ev, name, [[t.v, t.label, compact(m.tokens[t.k]) + " · " + share.toFixed(1) + "%"]])} @pointerleave=${hideTip}>${share >= 9 ? share.toFixed(0) + "%" : nothing}</div>`;
         })}</div>
         <div class="val">${(cacheHit(m.tokens) * 100).toFixed(0)}% hit</div>
       </div>`;
     })}</div>`;
 };
 
-const th = (text, cls) => html`<th class=${cls}>${text}</th>`;
-const ModelTable = ({ v }) => html`<${Table} id="modelTable"
-  head=${html`<th>Environment</th><th class="l">Model</th>${["Cost", "Input", "Output", "Cache read", "Cache write", "Lines"].map((x) => html`<th>${x}</th>`)}`}
-  rows=${v.modelRows.map((o, i) => html`<tr key=${i}>
-    <td><${Dot} color=${v.envColor(o.environment)} />${o.environment || "–"}</td><td class="l">${o.model || "–"}</td><td>${usd(o.cost_usd)}</td>
+const th = (text, cls) => html`<th class=${cls ?? nothing}>${text}</th>`;
+const ModelTable = (v) => Table({
+  id: "modelTable",
+  head: html`<th>Environment</th><th class="l">Model</th>${["Cost", "Input", "Output", "Cache read", "Cache write", "Lines"].map((x) => html`<th>${x}</th>`)}`,
+  rows: v.modelRows.map((o) => html`<tr>
+    <td>${Dot(v.envColor(o.environment))}${o.environment || "–"}</td><td class="l">${o.model || "–"}</td><td>${usd(o.cost_usd)}</td>
     <td>${num(o.tokens.input)}</td><td>${num(o.tokens.output)}</td><td>${num(o.tokens.cacheRead)}</td><td>${num(o.tokens.cacheCreation)}</td>
     <td>${"+" + num(o.lines.added) + " −" + num(o.lines.removed)}</td>
-  </tr>`)} />`;
+  </tr>`),
+});
 
-const ActivityTable = ({ v }) => {
-  const row = (label, color, x) => html`<tr key=${label}>
-    <td>${color && html`<${Dot} color=${color} />`}${label}</td><td>${num(x.sessions)}</td><td>${x.active_hours.toFixed(1)} h</td>
+const ActivityTable = (v) => {
+  const row = (label, color, x) => html`<tr>
+    <td>${color ? Dot(color) : nothing}${label}</td><td>${num(x.sessions)}</td><td>${x.active_hours.toFixed(1)} h</td>
     <td>${"+" + num(x.lines.added) + " −" + num(x.lines.removed)}</td><td>${num(x.commits)}</td><td>${num(x.pull_requests)}</td>
     <td>${x.commits ? usd(x.cost_usd / x.commits) : "–"}</td><td>${x.pull_requests ? usd(x.cost_usd / x.pull_requests) : "–"}</td>
   </tr>`;
   const envs = v.shownEnvs;
-  return html`<${Table} id="actTable"
-    head=${["Environment", "Sessions", "Active", "Lines", "Commits", "Pull requests", "Cost per commit", "Cost per PR"].map((x) => html`<th>${x}</th>`)}
-    rows=${envs.map((e) => v.win?.environments[e] && row(e, v.envColor(e), v.win.environments[e]))}
-    foot=${envs.length > 1 && v.win && row("Total", null, v.win.total)} />`;
+  return Table({
+    id: "actTable",
+    head: ["Environment", "Sessions", "Active", "Lines", "Commits", "Pull requests", "Cost per commit", "Cost per PR"].map((x) => html`<th>${x}</th>`),
+    rows: envs.map((e) => (v.win?.environments[e] ? row(e, v.envColor(e), v.win.environments[e]) : nothing)),
+    foot: envs.length > 1 && v.win ? row("Total", null, v.win.total) : null,
+  });
 };
 
-const DecisionTable = ({ v }) => html`<${Table} id="editTable"
-  head=${["Environment", "Tool", "Decision", "Language", "Source", "Count"].map((x, i) => th(x, i < 5 ? "l" : undefined))}
-  rows=${v.decisionRows.length
-    ? v.decisionRows.map((r, i) => html`<tr key=${i}><td class="l">${r.environment}</td><td class="l">${r.tool}</td><td class="l">${r.decision}</td><td class="l">${r.language}</td><td class="l">${r.source}</td><td>${num(r.count)}</td></tr>`)
-    : html`<tr><td colspan="6">No edit decisions in this period yet</td></tr>`} />`;
+const DecisionTable = (v) => Table({
+  id: "editTable",
+  head: ["Environment", "Tool", "Decision", "Language", "Source", "Count"].map((x, i) => th(x, i < 5 ? "l" : undefined)),
+  rows: v.decisionRows.length
+    ? v.decisionRows.map((r) => html`<tr><td class="l">${r.environment}</td><td class="l">${r.tool}</td><td class="l">${r.decision}</td><td class="l">${r.language}</td><td class="l">${r.source}</td><td>${num(r.count)}</td></tr>`)
+    : html`<tr><td colspan="6">No edit decisions in this period yet</td></tr>`,
+});
 
 // ---- The page ----
 
-const App = () => {
-  const [ui, setUi] = useState({ env: "all", period: "7d", metric: "cost" });
-  const set = (key) => (value) => setUi((s) => ({ ...s, [key]: value }));
-  const { data, error } = useUsage(ui.period);
-  const v = useView(data, ui);
-  const days = data.daily?.days;
-  const range = days?.length
-    ? `${days[Math.max(0, days.length - (v.period === "30d" ? 30 : 7))].date} to ${days[days.length - 1].date} · UTC days · from Prometheus`
-    : "UTC days · from Prometheus";
-  return html`<main>
-    <p id="error" role="alert" hidden=${!error}>${error && `Could not load usage: ${error}. Showing the last data received.`}</p>
-    <header class="bar">
-      <div><h1>Claude usage</h1><div class="sub" id="range">${range}</div></div>
-      <div class="group">
-        <${Segmented} label="Environment" id="envSeg" attr="e" options=${["all", ...v.envs].map((e) => [e, e === "all" ? "All" : e])} value=${v.env} onPick=${set("env")} />
-        <${Segmented} label="Period" id="periodSeg" attr="p" options=${PERIODS} value=${ui.period} onPick=${set("period")} />
+
+// ---- The elements. Both render into themselves (no shadow root), so the page's stylesheet applies. ----
+
+class UsageTooltip extends LitElement {
+  static properties = { tip: { state: true } };
+  constructor() {
+    super();
+    this.tip = null;
+    this._on = (e) => { this.tip = e.detail; };
+  }
+  createRenderRoot() { return this; }
+  connectedCallback() { super.connectedCallback(); document.addEventListener("usage-tip", this._on); }
+  disconnectedCallback() { document.removeEventListener("usage-tip", this._on); super.disconnectedCallback(); }
+  updated() {
+    if (!this.tip) return;
+    const el = this.querySelector("#tip");
+    el.style.left = Math.min(this.tip.x + 14, innerWidth - el.offsetWidth - 8) + "px";
+    el.style.top = Math.max(8, Math.min(this.tip.y - el.offsetHeight - 10, innerHeight - el.offsetHeight - 8)) + "px";
+  }
+  render() {
+    const tip = this.tip;
+    return html`<div class="tip" id="tip" ?hidden=${!tip}>${tip ? html`<b>${tip.title}</b>${tip.lines.map(([dot, name, val]) => html`<div class="r"><span>${dot ? html`<span class="dot" style="background: ${css(dot)}"></span>` : nothing}${name}</span><span>${val}</span></div>`)}` : nothing}</div>`;
+  }
+}
+
+// The page. Assigning to ui, data or error re-renders it; nothing calls a render by hand.
+class UsageApp extends LitElement {
+  static properties = { ui: { state: true }, data: { state: true }, error: { state: true } };
+  constructor() {
+    super();
+    this.ui = { env: "all", period: "7d", metric: "cost" };
+    this.data = { summary: null, daily: null, breakdown: null, decisions: null, period: null };
+    this.error = null;
+    this._period = null;
+    this._stop = () => {};
+    this.pick = (key) => (value) => { this.ui = { ...this.ui, [key]: value }; };
+  }
+  createRenderRoot() { return this; }
+  disconnectedCallback() { this._stop(); this._period = null; super.disconnectedCallback(); }
+  // Polling follows the chosen period: a new period restarts it.
+  willUpdate() {
+    if (this.ui.period === this._period) return;
+    this._period = this.ui.period;
+    this._poll(this._period);
+  }
+  // The data of one period: the summary and the daily series cover 30 days, the breakdown and the decisions are per period.
+  // A load that is overtaken by a newer one (a quick switch of period) is dropped. A failed load keeps the last data.
+  _poll(period) {
+    this._stop();
+    let latest = 0;
+    const load = async () => {
+      const seq = ++latest;
+      try {
+        const [summary, daily, breakdown, decisions] = await Promise.all([
+          get("api/v1/summary"), get("api/v1/daily?days=30"), get("api/v1/breakdown?window=" + period), get("api/v1/decisions?window=" + period),
+        ]);
+        if (seq !== latest) return;
+        this.data = { summary, daily, breakdown, decisions, period };
+        this.error = null;
+      } catch (e) {
+        if (seq === latest) this.error = e.message;
+      }
+    };
+    load();
+    const timer = setInterval(load, REFRESH_MS);
+    this._stop = () => { latest = Infinity; clearInterval(timer); };
+  }
+  render() {
+    const { ui, data, error } = this;
+    const v = view(data, ui);
+    const days = data.daily?.days;
+    const range = days?.length
+      ? `${days[Math.max(0, days.length - (v.period === "30d" ? 30 : 7))].date} to ${days[days.length - 1].date} · UTC days · from Prometheus`
+      : "UTC days · from Prometheus";
+
+    return html`<main>
+      <p id="error" role="alert" ?hidden=${!error}>${error ? `Could not load usage: ${error}. Showing the last data received.` : nothing}</p>
+      <header class="bar">
+        <div><h1>Claude usage</h1><div class="sub" id="range">${range}</div></div>
+        <div class="group">
+          ${Segmented({ label: "Environment", id: "envSeg", options: ["all", ...v.envs].map((e) => [e, e === "all" ? "All" : e]), value: v.env, onPick: this.pick("env") })}
+          ${Segmented({ label: "Period", id: "periodSeg", options: PERIODS, value: ui.period, onPick: this.pick("period") })}
+        </div>
+      </header>
+
+      ${Tiles(v)}
+      ${PerDay({ data, v, metric: ui.metric, setMetric: this.pick("metric") })}
+
+      <div class="cols">
+        <section class="panel">
+          <div class="panel-head"><h2>Cost by model</h2><span class="src">claude_code_cost_usage{model}</span></div>
+          ${ModelCost(v)}
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Token mix by model</h2><span class="src">claude_code_token_usage{model,type}</span></div>
+          ${TokenMix(v)}
+          <div class="sub" style="margin-top:8px">Cache hit = cache read ÷ (input + cache read + cache write).</div>
+        </section>
       </div>
-    </header>
 
-    <${Tiles} v=${v} />
-    <${PerDay} data=${data} v=${v} metric=${ui.metric} setMetric=${set("metric")} />
-
-    <div class="cols">
       <section class="panel">
-        <div class="panel-head"><h2>Cost by model</h2><span class="src">claude_code_cost_usage{model}</span></div>
-        <${ModelCost} v=${v} />
+        <div class="panel-head"><h2>By model and environment</h2><span class="src">tokens, cost and lines carry both labels</span></div>
+        <div class="scroll">${ModelTable(v)}</div>
       </section>
-      <section class="panel">
-        <div class="panel-head"><h2>Token mix by model</h2><span class="src">claude_code_token_usage{model,type}</span></div>
-        <${TokenMix} v=${v} />
-        <div class="sub" style="margin-top:8px">Cache hit = cache read ÷ (input + cache read + cache write).</div>
-      </section>
-    </div>
 
-    <section class="panel">
-      <div class="panel-head"><h2>By model and environment</h2><span class="src">tokens, cost and lines carry both labels</span></div>
-      <div class="scroll"><${ModelTable} v=${v} /></div>
-    </section>
+      <div class="cols">
+        <section class="panel">
+          <div class="panel-head"><h2>Output by environment</h2><span class="src">commit_count and pull_request_count have no model label</span></div>
+          <div class="scroll">${ActivityTable(v)}</div>
+          <div class="sub" style="margin-top:8px">Cost per commit and per pull request divide the environment's whole cost by its commits or pull requests, so sessions that only read code count against them.</div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Edit tool decisions</h2><span class="src">claude_code_code_edit_tool_decision</span></div>
+          <div class="scroll">${DecisionTable(v)}</div>
+        </section>
+      </div>
 
-    <div class="cols">
-      <section class="panel">
-        <div class="panel-head"><h2>Output by environment</h2><span class="src">commit_count and pull_request_count have no model label</span></div>
-        <div class="scroll"><${ActivityTable} v=${v} /></div>
-        <div class="sub" style="margin-top:8px">Cost per commit and per pull request divide the environment's whole cost by its commits or pull requests, so sessions that only read code count against them.</div>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><h2>Edit tool decisions</h2><span class="src">claude_code_code_edit_tool_decision</span></div>
-        <div class="scroll"><${DecisionTable} v=${v} /></div>
-      </section>
-    </div>
-
-    <p class="sub" id="gen">Counts come from <code>increase()</code> of the collector's counters; the first export of a new model or environment is not counted.</p>
-  </main>
-  <${Tooltip} />`;
-};
-
-render(html`<${App} />`, document.getElementById("app"));
+      <p class="sub" id="gen">Counts come from <code>increase()</code> of the collector's counters; the first export of a new model or environment is not counted.</p>
+    </main>`;
+  }
+}
+customElements.define("usage-tooltip", UsageTooltip);
+customElements.define("usage-app", UsageApp);
 </script>
 </body>
 </html>
