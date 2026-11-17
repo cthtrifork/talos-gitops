@@ -95,8 +95,6 @@ spec:
         # repo is served from codecs.fedoraproject.org.
         - matchName: mirrors.dotsrc.org
         - matchName: mirrors.fedoraproject.org
-        # Fedora's CDN (CloudFront): the ISO build of github-runner-bootc (bootc-image-builder, metalink) downloads its RPMs from it
-        - matchName: d2lzkl7pfhq30w.cloudfront.net
         - matchName: codecs.fedoraproject.org
         - matchName: download1.rpmfusion.org
         - matchName: download.copr.fedorainfracloud.org

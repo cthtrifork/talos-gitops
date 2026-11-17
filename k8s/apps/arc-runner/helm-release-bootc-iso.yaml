@@ -9,7 +9,8 @@
 # (branch main). Pull request builds of that repository stay on GitHub's runners.
 #
 # Select it with `runs-on: arc-iso-bootc`. minRunners is 0, so it costs nothing while unused. Egress: the ISO build downloads
-# its RPMs from Fedora's CDN (networkpolicy.yaml).
+# its RPMs from mirrors.dotsrc.org: github-runner.containerfile pins the Fedora repos there (FEDORA_MIRROR), like the
+# homeserver-bootc Containerfiles, so the egress policy needs no CDN entry. Keep the two in step.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
