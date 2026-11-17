@@ -59,7 +59,7 @@
   .ok::before, .none::before { display: none; }
   /* Columns, not a grid or flex row: cards are packed top to bottom and the browser balances the columns, so a short card
      (no alerts, a score) never sits in a row next to a tall list and never gets stretched into a mostly empty box.
-     The worst cards come first, so they land at the top of the first columns. */
+     Cards keep a fixed order. */
   .band { column-width: 300px; column-gap: 12px; }
   .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; break-inside: avoid; margin-bottom: 12px; }
   .panel.compact { padding: 10px 16px; gap: 4px; }
@@ -528,11 +528,6 @@
     return chips;
   }
 
-  var SEV = { bad: 0, warn: 1, none: 2, ok: 3 };
-  function sev(p) {
-    var h = p.querySelector(".panel-head");
-    return h && h.dataset.state in SEV ? SEV[h.dataset.state] : 2;
-  }
   function slug(t) { return "p-" + t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
   // Swap a container's contents in one go. A refresh must not drop keyboard focus, so a focused link is found again by its href.
   function swap(box, node) {
@@ -545,10 +540,9 @@
       return true;
     });
   }
-  // Panels are built off-screen, worst first (failing, warning, neutral, healthy), so a problem is never below the fold.
+  // Panels are built off-screen and keep the order they are listed in, so each one stays where it was last time.
   function fill(id, fns, d) {
-    var ps = fns.map(function (fn, i) { var p = fn(d); p._i = i; p.id = slug(p.querySelector("h3").textContent); return p; });
-    ps.sort(function (x, y) { return sev(x) - sev(y) || x._i - y._i; });
+    var ps = fns.map(function (fn, i) { var p = fn(d); p.id = slug(p.querySelector("h3").textContent); return p; });
     var f = document.createDocumentFragment();
     ps.forEach(function (p) { f.appendChild(p); });
     swap(document.getElementById(id), f);
