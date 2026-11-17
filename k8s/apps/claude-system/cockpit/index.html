@@ -470,7 +470,7 @@ const VersionsPanel = ({ d }) => {
 
 // The usage of one Linux user: a bar for the window closer to its limit, the other as a line.
 const UsageBlock = ({ s, b, now }) => {
-  const notes = [b.stale && "reported " + ago(b.age) + " ago", s.model, s.version && "Claude Code " + s.version].filter(Boolean);
+  const notes = [`Updated ${ago(b.age)} ago`, s.model, s.version && "Claude Code " + s.version].filter(Boolean);
   return html`<div class="limit">
       ${b.windows.map((w, i) => {
         const suffix = w.resets_at && !w.over ? " · resets in " + until(w.resets_at - now) : w.over ? " · window has reset" : "";
@@ -481,7 +481,7 @@ const UsageBlock = ({ s, b, now }) => {
           ${i === b.main && html`<${Bar} label=${`${w.name}, ${w.used === null ? "no data" : w.used + " percent used"}`} parts=${w.used === null ? [] : [{ pct: w.used, color: usedColor(w.used, 90) }]} />`}`;
       })}
     </div>
-    ${notes.length > 0 && html`<${Muted}>${notes.join(" · ") + (b.stale ? ". Older than 6 hours, so the VM may be idle." : "")}<//>`}`;
+    <${Muted}>${notes.join(" · ") + (b.stale ? ". Older than 6 hours, so the VM may be idle." : "")}<//>`;
 };
 const UsagePanel = ({ d }) => {
   const title = "Claude usage";
