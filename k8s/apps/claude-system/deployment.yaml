@@ -200,9 +200,6 @@ spec:
           image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.325-20261116.19@sha256:65115338778d5b30efada33c76e5ec492e96f90a5a40e5ce866eb5b4387003e4
           command:
             - "/etc/claude-usage-poller/poll-usage"
-          env:
-            - name: COCKPIT_USER
-              value: claude-k8s-helper # the slot on the cockpit page; the VM's users are claude and claude-rc-personal
           resources:
             requests:
               cpu: 10m

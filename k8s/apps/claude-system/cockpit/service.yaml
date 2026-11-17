@@ -19,22 +19,3 @@ spec:
     - name: metrics
       port: 4195
       targetPort: metrics
----
-# externalTrafficPolicy Local keeps the VM's address, which the NetworkPolicy checks. Check 192.168.1.246 is free before the first apply.
-apiVersion: v1
-kind: Service
-metadata:
-  name: claude-cockpit-lb
-  namespace: claude-system
-  annotations:
-    metallb.io/loadBalancerIPs: 192.168.1.246
-spec:
-  type: LoadBalancer
-  externalTrafficPolicy: Local
-  selector:
-    app: claude-cockpit
-  ports:
-    - name: ingest
-      port: 80
-      targetPort: ingest
-      protocol: TCP
