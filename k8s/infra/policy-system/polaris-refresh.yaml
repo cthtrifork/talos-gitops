@@ -1,10 +1,10 @@
 # The Polaris dashboard audits the cluster once, on its first request, and then serves that result from memory; the chart has
-# no refresh option (helm-release.yaml), so the score goes stale. This CronJob follows Flux: it reads the revision that the
-# Flux Kustomizations last applied and, when it has changed and all of them are Ready (or after 24 hours), deletes the
-# dashboard pod and requests /results.json from the new one, which runs the audit. Flux itself cannot start a Job (a Receiver
-# only reconciles Flux objects, an Alert only sends events out), so the CronJob polls the status that Flux publishes.
-# Deleting the pod, not "kubectl rollout restart", leaves the Deployment unchanged, so Helm drift detection has nothing to
-# correct. The last revision is kept in the ConfigMap polaris-refresh-state, which the Job creates (not part of the manifests).
+# no refresh option (helm-release.yaml), so the score goes stale. The Flux Operator re-runs a Job for every new commit on
+# main: the ResourceSetInputProvider exports the branch's sha, and the ResourceSet renders one Job per sha (a Job spec is
+# immutable, so a new name is how it runs again; Flux prunes the old one). The Job waits until all Flux Kustomizations have applied that sha and
+# are Ready, deletes the dashboard pod and requests /results.json from the new one, which runs the audit. Deleting the pod,
+# not "kubectl rollout restart", leaves the Deployment unchanged, so Helm drift detection has nothing to correct.
+# https://fluxoperator.dev/docs/resourcesets/staged-jobs/
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -28,14 +28,6 @@ rules:
       - list
       - watch
       - delete
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - get
-      - create
-      - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -117,67 +109,85 @@ spec:
             - port: "8080"
               protocol: TCP
 ---
-apiVersion: batch/v1
-kind: CronJob
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/fluxcd.controlplane.io/resourcesetinputprovider_v1.json
+apiVersion: fluxcd.controlplane.io/v1
+kind: ResourceSetInputProvider
+metadata:
+  name: polaris-refresh-main
+  namespace: policy-system
+  annotations:
+    fluxcd.controlplane.io/reconcileEvery: "5m"
+spec:
+  type: GitHubBranch
+  url: https://github.com/cthtrifork/talos-gitops
+  filter:
+    includeBranch: ^main$
+---
+apiVersion: fluxcd.controlplane.io/v1
+kind: ResourceSet
 metadata:
   name: polaris-refresh
   namespace: policy-system
 spec:
-  schedule: "*/10 * * * *"
-  concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 3
-  jobTemplate:
-    spec:
-      backoffLimit: 0
-      activeDeadlineSeconds: 300
-      template:
-        metadata:
-          labels:
-            app.kubernetes.io/name: polaris-refresh # selected by the network policy
-        spec:
-          restartPolicy: Never
-          serviceAccountName: polaris-refresh
-          automountServiceAccountToken: true # the ServiceAccount default is false
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 65532
-            runAsGroup: 65532
-            seccompProfile:
-              type: RuntimeDefault
-          containers:
-            - name: refresh
-              image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
-              command:
-                - bash
-                - -eu
-                - -c
-                - |
-                  # all Kustomizations must be Ready, otherwise Flux is still applying
-                  pending=$(kubectl get kustomization -A -o json | jq '[.items[] | select(any(.status.conditions[]?; .type == "Ready" and .status == "True") | not)] | length')
-                  if [ "$pending" != "0" ]; then echo "$pending Kustomization(s) not Ready, try again later"; exit 0; fi
-                  rev=$(kubectl get kustomization -A -o json | jq -r '[.items[].status.lastAppliedRevision] | unique | join(",")')
-                  kubectl get configmap polaris-refresh-state -n policy-system >/dev/null 2>&1 || kubectl create configmap polaris-refresh-state -n policy-system --from-literal=revision= --from-literal=at=0
-                  last=$(kubectl get configmap polaris-refresh-state -n policy-system -o jsonpath='{.data.revision}')
-                  at=$(kubectl get configmap polaris-refresh-state -n policy-system -o jsonpath='{.data.at}')
-                  now=$(date +%s)
-                  if [ "$rev" = "$last" ] && [ $((now - at)) -lt 86400 ]; then echo "Flux revision unchanged ($rev), nothing to do"; exit 0; fi
-                  echo "refreshing the Polaris dashboard: Flux revision $last -> $rev"
-                  kubectl delete pod -n policy-system -l app=polaris,component=dashboard --wait=false
-                  sleep 5
-                  kubectl wait pod -n policy-system -l app=polaris,component=dashboard --for=condition=Ready --timeout=120s
-                  # the first request runs the audit
-                  curl -fsS -o /dev/null --max-time 120 http://polaris-dashboard.policy-system.svc.cluster.local/results.json
-                  kubectl patch configmap polaris-refresh-state -n policy-system --type merge -p "{\"data\":{\"revision\":\"$rev\",\"at\":\"$now\"}}"
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                capabilities:
-                  drop:
-                    - "ALL"
-              resources:
-                requests:
-                  cpu: 10m
-                  memory: 32Mi
-                limits:
-                  memory: 128Mi
+  inputsFrom:
+    - apiVersion: fluxcd.controlplane.io/v1
+      kind: ResourceSetInputProvider
+      name: polaris-refresh-main
+  resources:
+    - apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: polaris-refresh-<< inputs.sha >>
+        namespace: policy-system
+      spec:
+        backoffLimit: 0
+        activeDeadlineSeconds: 900
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/name: polaris-refresh # selected by the network policy
+          spec:
+            restartPolicy: Never
+            serviceAccountName: polaris-refresh
+            automountServiceAccountToken: true # the ServiceAccount default is false
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65532
+              runAsGroup: 65532
+              seccompProfile:
+                type: RuntimeDefault
+            containers:
+              - name: refresh
+                image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
+                env:
+                  - name: SHA
+                    value: << inputs.sha >>
+                command:
+                  - bash
+                  - -eu
+                  - -c
+                  - |
+                    # wait until every Kustomization has applied this commit and is Ready; a newer commit makes this Job time out and Flux replaces it
+                    not_done='[.items[] | select(((.status.lastAppliedRevision // "") | endswith($sha) | not) or (any(.status.conditions[]?; .type == "Ready" and .status == "True") | not))] | length'
+                    until [ "$(kubectl get kustomization -A -o json | jq --arg sha "$SHA" "$not_done")" = "0" ]; do
+                      echo "waiting for Flux to apply $SHA"
+                      sleep 10
+                    done
+                    echo "refreshing the Polaris dashboard for $SHA"
+                    kubectl delete pod -n policy-system -l app=polaris,component=dashboard --wait=false
+                    sleep 5
+                    kubectl wait pod -n policy-system -l app=polaris,component=dashboard --for=condition=Ready --timeout=120s
+                    # the first request runs the audit
+                    curl -fsS -o /dev/null --max-time 120 http://polaris-dashboard.policy-system.svc.cluster.local/results.json
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  capabilities:
+                    drop:
+                      - "ALL"
+                resources:
+                  requests:
+                    cpu: 10m
+                    memory: 32Mi
+                  limits:
+                    memory: 128Mi
