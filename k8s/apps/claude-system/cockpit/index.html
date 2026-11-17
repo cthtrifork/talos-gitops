@@ -73,8 +73,9 @@
   .big { font-size: 30px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
   .big small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
   ul.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-  ul.rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; padding: 7px 0; border-top: 1px solid var(--grid); }
-  ul.rows li:first-child { border-top: 0; }
+  ul.rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--grid); }
+  ul.rows li:first-child { border-top: 0; padding-top: 0; }
+  ul.rows li:last-child { padding-bottom: 0; }
   ul.rows .l { flex: 1 1 12em; min-width: 0; overflow-wrap: anywhere; }
   /* The right-hand value (time, count, version) keeps its natural width and drops below the text as a whole when the row is tight.
      It only wraps when it is wider than the row itself. */
