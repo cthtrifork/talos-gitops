@@ -241,6 +241,17 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
+          # lets Cilium learn the addresses behind ghcr.io for the FQDN rule below
+          rules:
+            dns:
+              - matchPattern: "*"
+    # the registry: the digest of the latest VM images (token and manifest only, no layers)
+    - toFQDNs:
+        - matchName: ghcr.io
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
 ---
 # Elevate Claude. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node).
 # claude-rc has no ingress rule here: it receives the rights the page grants, so it cannot reach the page. Prometheus reaches only the metrics port

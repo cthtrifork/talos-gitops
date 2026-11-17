@@ -208,7 +208,9 @@ From `claude-rc`: `curl -s http://claude-usage.claude-system.svc/api/v1/summary`
 
 `vm-upgrade/` holds a Redpanda Connect with one in-memory flag per VM (`claude-vm`, `homeserver`) and two listeners. Each VM polls its flag and
 runs `bootc upgrade --apply` itself (units in [homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)); the cluster never connects to
-a VM and never sends it a command.
+a VM and never sends it a command. The page also shows the digest of each VM's latest image in `ghcr.io` (cached 5 minutes, read with the `ghcr-pull`
+read:packages token like the cockpit page, egress to `ghcr.io` only) and marks a VM "Update available" when it runs an older one; without the Secret
+the Latest row says "unknown".
 
 ```mermaid
 sequenceDiagram
