@@ -114,8 +114,8 @@
 <body>
 <div id="app"></div>
 <script type="module">
-// htm + Preact (templates) and Croner (cron schedules) come from jsDelivr, pinned to exact versions. Bump the versions here.
-import { html, render, useState, useEffect, useRef } from "https://cdn.jsdelivr.net/npm/htm@3.1.1/preact/standalone.module.js";
+// lit-html (templates) and Croner (cron schedules) come from jsDelivr, pinned to exact versions. Bump the versions here.
+import { html, nothing, render } from "https://cdn.jsdelivr.net/npm/lit-html@3.3.3/lit-html.js";
 import { Cron } from "https://cdn.jsdelivr.net/npm/croner@11.0.1/dist/croner.js";
 
 const REFRESH_MS = 60000;
@@ -251,46 +251,44 @@ function stripChips(d) {
 }
 const polarisState = (score) => (score >= 90 ? "ok" : score >= 75 ? "warn" : "bad");
 
+
 // ---- Building blocks. Text goes in as text, never as markup, so nothing in the data can inject HTML. ----
+// Components are plain functions that return a template. lit-html renders `nothing`, null and undefined as empty but prints `false`,
+// so an optional part is written `cond ? html`...` : nothing`, never `cond && html`...``. The pieces inside an <svg> would need the
+// svg tag; only the sparkline draws SVG and its whole tree is one static template.
 
-const Pill = ({ state, children }) => html`<span class=${"pill " + state}>${children}</span>`;
+const Pill = (state, children) => html`<span class=${"pill " + state}>${children}</span>`;
 
-const Panel = ({ title, state, text, compact, d, children }) => {
+const Panel = ({ title, state, text, compact, d }, children) => {
   const id = slug(title);
   const open = openLink(id, d);
   return html`<div class=${compact ? "panel compact" : "panel"} id=${id}>
     <div class="panel-head" data-state=${state}>
       <h3>${title}</h3>
-      ${state !== "ok" && html`<${Pill} state=${state}>${text}<//>`}
+      ${state !== "ok" ? Pill(state, text) : nothing}
     </div>
     ${children}
-    ${open && html`<a class="open" href=${open.href} rel="noopener noreferrer" target="_blank">${open.label} →</a>`}
+    ${open ? html`<a class="open" href=${open.href} rel="noopener noreferrer" target="_blank">${open.label} →</a>` : nothing}
   </div>`;
 };
 // A failed source keeps its own visible line, because there the name is what the reader needs.
 const Unavailable = ({ title, source, d }) =>
-  html`<${Panel} title=${title} state="none" text="unavailable" d=${d}><span class="src">No answer from ${source}</span><//>`;
+  Panel({ title, state: "none", text: "unavailable", d }, html`<span class="src">No answer from ${source}</span>`);
 
-const Muted = ({ children }) => html`<span class="muted">${children}</span>`;
+const Muted = (children) => html`<span class="muted">${children}</span>`;
 
-const Bar = ({ label, parts }) => html`<div class="bar" role="img" aria-label=${label}>
-  ${parts.filter((p) => p.pct).map((p) => html`<i style=${{ width: p.pct + "%", minWidth: "4px" /* a lone failure among many stays visible */, background: p.color }} />`)}
-</div>`;
+// A lone failure among many stays visible (min-width).
+const Bar = ({ label, parts }) => html`<div class="bar" role="img" aria-label=${label}>${parts.filter((p) => p.pct).map((p) => html`<i style="width: ${p.pct}%; min-width: 4px; background: ${p.color}"></i>`)}</div>`;
 
 // Each item: { title, href?, state?, sub?, right? }. Only GitHub links are made clickable.
-const Rows = ({ items }) => html`<ul class="rows">
-  ${items.map((it, i) => html`<li key=${i}>
-    <span class="l">
-      ${it.href?.startsWith("https://github.com/")
-        ? html`<a href=${it.href} rel="noopener noreferrer" target="_blank">${it.title}</a>`
-        : html`<strong ...${it.state ? { class: "row-st", "data-st": it.state } : {}}>${it.title}</strong>`}
-      ${it.sub && html`<br /><${Muted}>${it.sub}<//>`}
-    </span>
-    ${it.right}
-  </li>`)}
-</ul>`;
+const Rows = (items) => html`<ul class="rows">${items.map((it) => html`<li>
+    <span class="l">${it.href?.startsWith("https://github.com/")
+      ? html`<a href=${it.href} rel="noopener noreferrer" target="_blank">${it.title}</a>`
+      : html`<strong class=${it.state ? "row-st" : nothing} data-st=${it.state ?? nothing}>${it.title}</strong>`}${it.sub ? html`<br />${Muted(it.sub)}` : nothing}</span>
+    ${it.right ?? nothing}
+  </li>`)}</ul>`;
 
-const Sparkline = ({ series }) => {
+const Sparkline = (series) => {
   const max = Math.max(...series, 1);
   const pts = series.map((v, i) => `${((i / (series.length - 1)) * 240).toFixed(1)} ${(40 - (v / max) * 34).toFixed(1)}`);
   const line = "M" + pts.join(" L");
@@ -303,39 +301,37 @@ const Sparkline = ({ series }) => {
 
 // ---- Panels: each takes the status data `d` and renders one card ----
 
-const DropsPanel = ({ d }) => {
+const DropsPanel = (d) => {
   const title = "Dropped traffic, last hour";
-  if (d.drops_total === undefined) return html`<${Unavailable} title=${title} source="Prometheus · hubble_drop_total · POLICY_DENIED" d=${d} />`;
+  if (d.drops_total === undefined) return Unavailable({ title, source: "Prometheus · hubble_drop_total · POLICY_DENIED", d });
   const total = d.drops_total;
   const series = d.drops_series || [];
   const top = d.drops_top || [];
-  return html`<${Panel} title=${title} state=${total > 0 ? "warn" : "ok"} text=${total > 0 ? "denied" : "none"} compact=${total === 0} d=${d}>
+  return Panel({ title, state: total > 0 ? "warn" : "ok", text: total > 0 ? "denied" : "none", compact: total === 0, d }, html`
     <div class="big num">${total}<small> packets denied</small></div>
-    ${series.length > 1 && total !== 0 && html`<${Sparkline} series=${series} />`}
-    ${top.length > 0 && html`<${Rows} items=${top.map((t) => ({ title: `${t.source} → ${t.destination}`, right: html`<span class="num muted">${t.count}</span>` }))} />`}
-  <//>`;
+    ${series.length > 1 && total !== 0 ? Sparkline(series) : nothing}
+    ${top.length > 0 ? Rows(top.map((t) => ({ title: `${t.source} → ${t.destination}`, right: html`<span class="num muted">${t.count}</span>` }))) : nothing}`);
 };
 
-const AlertsPanel = ({ d }) => {
+const AlertsPanel = (d) => {
   const title = "Firing alerts";
-  if (!d.alerts) return html`<${Unavailable} title=${title} source="Prometheus · /api/v1/alerts" d=${d} />`;
+  if (!d.alerts) return Unavailable({ title, source: "Prometheus · /api/v1/alerts", d });
   const n = d.alerts.length;
   // Critical first, then by name; a long incident list is capped so it cannot push every other panel off the screen.
   const sorted = [...d.alerts].sort((a, b) => Number(!isCritical(a)) - Number(!isCritical(b)) || compare(a.name, b.name));
   const hiddenCritical = sorted.slice(MAX_ROWS).filter(isCritical).length;
-  return html`<${Panel} title=${title} state=${n === 0 ? "ok" : d.alerts.some(isCritical) ? "bad" : "warn"} text=${n === 0 ? "none" : String(n)} compact=${n === 0} d=${d}>
+  return Panel({ title, state: n === 0 ? "ok" : d.alerts.some(isCritical) ? "bad" : "warn", text: n === 0 ? "none" : String(n), compact: n === 0, d }, html`
     ${n === 0
-      ? html`<${Muted}>Nothing is firing.<//>`
-      : html`<${Rows} items=${sorted.slice(0, MAX_ROWS).map((a) => ({ title: a.name, sub: a.summary, right: html`<${Pill} state=${isCritical(a) ? "bad" : "warn"}>${a.severity}<//>` }))} />`}
-    ${n > MAX_ROWS && html`<${Muted}>and ${n - MAX_ROWS} more${hiddenCritical ? `, ${hiddenCritical} of them critical` : ""}<//>`}
-  <//>`;
+      ? Muted("Nothing is firing.")
+      : Rows(sorted.slice(0, MAX_ROWS).map((a) => ({ title: a.name, sub: a.summary, right: Pill(isCritical(a) ? "bad" : "warn", a.severity) })))}
+    ${n > MAX_ROWS ? Muted(`and ${n - MAX_ROWS} more${hiddenCritical ? `, ${hiddenCritical} of them critical` : ""}`) : nothing}`);
 };
 
 const FLUX_STATE_PILL = { failed: "bad", unknown: "warn", progressing: "none" };
 const FLUX_ORDER = { failed: 0, unknown: 1, progressing: 2 };
-const FluxPanel = ({ d }) => {
+const FluxPanel = (d) => {
   const title = "Flux reconciliation";
-  if (!d.flux_ks && !d.flux_hr) return html`<${Unavailable} title=${title} source="Kubernetes API · kustomizations, helmreleases" d=${d} />`;
+  if (!d.flux_ks && !d.flux_hr) return Unavailable({ title, source: "Kubernetes API · kustomizations, helmreleases", d });
   const t = fluxTotals(d);
   const state = t.failed ? "bad" : t.unknown ? "warn" : t.progressing ? "none" : "ok";
   const label = t.failed ? t.failed + " failed" : t.unknown ? t.unknown + " unknown" : t.progressing ? t.progressing + " progressing" : "all ready";
@@ -348,62 +344,55 @@ const FluxPanel = ({ d }) => {
     .sort((a, b) => FLUX_ORDER[a.state] - FLUX_ORDER[b.state] || compare(`${a.namespace}/${a.name}`, `${b.namespace}/${b.name}`))
     .slice(0, MAX_ROWS);
   const hidden = t.failed + t.unknown + t.progressing - problems.length;
-  return html`<${Panel} title=${title} state=${state} text=${label} d=${d}>
-    <${Bar} label=${`${t.ready} of ${t.total} ready`} parts=${segments.map(([color, n]) => ({ pct: pct(n), color }))} />
-    <div class="legend">${segments.map(([color, n, name]) => html`<span><span class="dot" style=${{ background: color }}></span>${n} ${name}</span>`)}</div>
-    ${problems.length > 0 && html`<${Rows} items=${problems.map((x) => ({ title: `${x.namespace}/${x.name}`, sub: x.message, right: html`<${Pill} state=${FLUX_STATE_PILL[x.state] || "warn"}>${x.state}<//>` }))} />`}
-    ${hidden > 0 && html`<${Muted}>and ${hidden} more not listed<//>`}
-    ${!t.complete && html`<${Muted}>One of the two lists did not answer, so the counts are partial.<//>`}
-  <//>`;
+  return Panel({ title, state, text: label, d }, html`
+    ${Bar({ label: `${t.ready} of ${t.total} ready`, parts: segments.map(([color, n]) => ({ pct: pct(n), color })) })}
+    <div class="legend">${segments.map(([color, n, name]) => html`<span><span class="dot" style="background: ${color}"></span>${n} ${name}</span>`)}</div>
+    ${problems.length > 0 ? Rows(problems.map((x) => ({ title: `${x.namespace}/${x.name}`, sub: x.message, right: Pill(FLUX_STATE_PILL[x.state] || "warn", x.state) }))) : nothing}
+    ${hidden > 0 ? Muted(`and ${hidden} more not listed`) : nothing}
+    ${!t.complete ? Muted("One of the two lists did not answer, so the counts are partial.") : nothing}`);
 };
 
-const PolarisPanel = ({ d }) => {
+const PolarisPanel = (d) => {
   const title = "Polaris score";
   const x = d.polaris;
-  if (!x) return html`<${Unavailable} title=${title} source="polaris-dashboard · /results.json" d=${d} />`;
-  return html`<${Panel} title=${title} state=${polarisState(x.score)} text=${x.danger ? x.danger + " danger" : "no danger"} compact d=${d}>
+  if (!x) return Unavailable({ title, source: "polaris-dashboard · /results.json", d });
+  return Panel({ title, state: polarisState(x.score), text: x.danger ? x.danger + " danger" : "no danger", compact: true, d }, html`
     <div class="num"><strong>${x.score} / 100</strong> · ${x.danger} danger · ${x.warning} warning</div>
-    <${Muted}>Audited ${String(x.audit_time).replace("T", " ").replace("Z", " UTC")}<//>
-  <//>`;
+    ${Muted(`Audited ${String(x.audit_time).replace("T", " ").replace("Z", " UTC")}`)}`);
 };
 
 const DISK_SHOW = 60; // nodes under this percentage are only counted
-const DiskPanel = ({ d }) => {
+const DiskPanel = (d) => {
   const title = "Disk, local-path volumes";
-  if (!d.disk) return html`<${Unavailable} title=${title} source="Prometheus · node_filesystem_*" d=${d} />`;
+  if (!d.disk) return Unavailable({ title, source: "Prometheus · node_filesystem_*", d });
   const max = Math.max(0, ...d.disk.map((n) => n.used_pct));
   const hot = d.disk.filter((n) => n.used_pct >= DISK_SHOW).sort((a, b) => b.used_pct - a.used_pct);
   const rest = d.disk.length - hot.length;
   const nodes = (n) => n + (n === 1 ? " node" : " nodes");
-  return html`<${Panel} title=${title} state=${usedState(max, 85)} text=${max >= 75 ? "node over " + (max >= 85 ? 85 : 75) + "%" : "ok"} compact=${!hot.length} d=${d}>
+  return Panel({ title, state: usedState(max, 85), text: max >= 75 ? "node over " + (max >= 85 ? 85 : 75) + "%" : "ok", compact: !hot.length, d }, html`
     ${!hot.length
-      ? html`<${Muted}>${d.disk.length ? `All ${nodes(d.disk.length)} under ${DISK_SHOW}%, highest ${max}%` : "No nodes reported."}<//>`
-      : html`<div class="limit">
-          ${hot.map((n) => html`<div class="limit-row" key=${n.node}><span>${n.node}</span><span class="num"><strong>${n.used_pct}%</strong> used</span></div>
-            <${Bar} label=${`${n.node}, ${n.used_pct} percent used`} parts=${[{ pct: n.used_pct, color: usedColor(n.used_pct, 85) }]} />`)}
-        </div>
-        ${rest > 0 && html`<${Muted}>${rest} ${rest === 1 ? "other node" : "other nodes"} under ${DISK_SHOW}%<//>`}`}
-  <//>`;
+      ? Muted(d.disk.length ? `All ${nodes(d.disk.length)} under ${DISK_SHOW}%, highest ${max}%` : "No nodes reported.")
+      : html`<div class="limit">${hot.map((n) => html`<div class="limit-row"><span>${n.node}</span><span class="num"><strong>${n.used_pct}%</strong> used</span></div>${Bar({ label: `${n.node}, ${n.used_pct} percent used`, parts: [{ pct: n.used_pct, color: usedColor(n.used_pct, 85) }] })}`)}</div>
+        ${rest > 0 ? Muted(`${rest} ${rest === 1 ? "other node" : "other nodes"} under ${DISK_SHOW}%`) : nothing}`}`);
 };
 
-const PrRows = ({ items }) =>
-  html`<${Rows} items=${items.map((i) => ({ title: `${i.repo}#${i.number}`, href: i.url, sub: `${i.title} · ${i.author}`, right: html`<span class="muted num">${ago(secondsSince(Date.parse(i.updated)))}</span>` }))} />`;
+const PrRows = (items) =>
+  Rows(items.map((i) => ({ title: `${i.repo}#${i.number}`, href: i.url, sub: `${i.title} · ${i.author}`, right: html`<span class="muted num">${ago(secondsSince(Date.parse(i.updated)))}</span>` })));
 
 const GitHubPanel = ({ title, group, d, empty, stateOf }) => {
   const g = d.github?.[group];
-  if (!g) return html`<${Unavailable} title=${title} source="GitHub API · search/issues" d=${d} />`;
-  return html`<${Panel} title=${title} state=${stateOf(g.count)} text=${g.count + " open"} compact=${g.count === 0} d=${d}>
-    ${g.count === 0 ? html`<${Muted}>${empty}<//>` : html`<${PrRows} items=${g.items} />`}
-    ${d.github.truncated && html`<${Muted}>More than 100 are open, so the counts are a lower bound.<//>`}
-  <//>`;
+  if (!g) return Unavailable({ title, source: "GitHub API · search/issues", d });
+  return Panel({ title, state: stateOf(g.count), text: g.count + " open", compact: g.count === 0, d }, html`
+    ${g.count === 0 ? Muted(empty) : PrRows(g.items)}
+    ${d.github.truncated ? Muted("More than 100 are open, so the counts are a lower bound.") : nothing}`);
 };
-const PrsPanel = ({ d }) => html`<${GitHubPanel} title="Pull requests" group="other" d=${d} empty="No open pull requests." stateOf=${(n) => (n ? "warn" : "ok")} />`;
-const RenovatePrsPanel = ({ d }) => html`<${GitHubPanel} title="Renovate pull requests" group="renovate" d=${d} empty="No open Renovate pull requests." stateOf=${(n) => (n === 0 ? "ok" : n > 10 ? "warn" : "none")} />`;
-const IssuesPanel = ({ d }) => html`<${GitHubPanel} title="Open issues" group="issues" d=${d} empty="No open issues." stateOf=${(n) => (n ? "warn" : "ok")} />`;
+const PrsPanel = (d) => GitHubPanel({ title: "Pull requests", group: "other", d, empty: "No open pull requests.", stateOf: (n) => (n ? "warn" : "ok") });
+const RenovatePrsPanel = (d) => GitHubPanel({ title: "Renovate pull requests", group: "renovate", d, empty: "No open Renovate pull requests.", stateOf: (n) => (n === 0 ? "ok" : n > 10 ? "warn" : "none") });
+const IssuesPanel = (d) => GitHubPanel({ title: "Open issues", group: "issues", d, empty: "No open issues.", stateOf: (n) => (n ? "warn" : "ok") });
 
-const RenovateRunsPanel = ({ d }) => {
+const RenovateRunsPanel = (d) => {
   const title = "Renovate runs";
-  if (!d.renovate) return html`<${Unavailable} title=${title} source="Kubernetes API · renovateprojects" d=${d} />`;
+  if (!d.renovate) return Unavailable({ title, source: "Kubernetes API · renovateprojects", d });
   const ps = d.renovate.projects;
   const approval = ps.reduce((n, x) => n + x.needs_approval, 0);
   const failed = ps.filter(isFailed).length;
@@ -413,47 +402,39 @@ const RenovateRunsPanel = ({ d }) => {
   const nexts = live.map((j) => cronNext(j.schedule)).filter(Boolean);
   const next = nexts.length ? Math.min(...nexts) : 0;
   const showHeadline = jobs.length > 0 && (next > 0 || live.length === 0);
-  return html`<${Panel} title=${title} state=${failed ? "bad" : approval ? "warn" : "ok"} text=${failed ? failed + " failed" : approval ? approval + " need approval" : "all done"} d=${d}>
-    ${showHeadline && html`<div class="num" style="margin-bottom: 10px" ...${next ? { title: "Schedule (UTC): " + live.map((j) => j.schedule).join(", ") } : {}}>
-      ${next ? html`Next run in <strong>${until(Math.round((next - Date.now()) / 1000))}</strong>` : html`<${Muted}>No run is scheduled<//>`}
-    </div>`}
-    <ul class="rows">
-      ${ps.map((x) => {
-        const bits = [
-          x.duration && "took " + x.duration,
-          x.needs_approval && x.needs_approval + " need approval",
-          x.automerged && x.automerged + " automerged",
-          x.unchanged && x.unchanged + " unchanged",
-        ].filter(Boolean);
-        const lastRun = Date.parse(x.last_transition);
-        // The Dependency Dashboard issue of the repo, found by search because the issue number is not in the data.
-        const dashboard = "https://github.com/search?type=issues&q=" + encodeURIComponent(`repo:cthtrifork/${x.project} is:issue is:open "Dependency Dashboard" in:title`);
-        return html`<li key=${x.project}>
-          <span class="l"><a href=${dashboard} rel="noopener noreferrer" target="_blank">${x.project}</a><br /><${Muted}>${bits.join(" · ") || "no changes"}<//></span>
-          <span class="run-st">
-            <${Pill} state=${isFailed(x) ? "bad" : x.status === "completed" ? "ok" : "warn"}>${x.status}<//>
-            ${lastRun > 0 && html`<span class="muted num">${ago(secondsSince(lastRun))} ago</span>`}
-          </span>
-        </li>`;
-      })}
-    </ul>
-  <//>`;
+  return Panel({ title, state: failed ? "bad" : approval ? "warn" : "ok", text: failed ? failed + " failed" : approval ? approval + " need approval" : "all done", d }, html`
+    ${showHeadline ? html`<div class="num" style="margin-bottom: 10px" title=${next ? "Schedule (UTC): " + live.map((j) => j.schedule).join(", ") : nothing}>${next ? html`Next run in <strong>${until(Math.round((next - Date.now()) / 1000))}</strong>` : Muted("No run is scheduled")}</div>` : nothing}
+    <ul class="rows">${ps.map((x) => {
+      const bits = [
+        x.duration && "took " + x.duration,
+        x.needs_approval && x.needs_approval + " need approval",
+        x.automerged && x.automerged + " automerged",
+        x.unchanged && x.unchanged + " unchanged",
+      ].filter(Boolean);
+      const lastRun = Date.parse(x.last_transition);
+      // The Dependency Dashboard issue of the repo, found by search because the issue number is not in the data.
+      const dashboard = "https://github.com/search?type=issues&q=" + encodeURIComponent(`repo:cthtrifork/${x.project} is:issue is:open "Dependency Dashboard" in:title`);
+      return html`<li>
+        <span class="l"><a href=${dashboard} rel="noopener noreferrer" target="_blank">${x.project}</a><br />${Muted(bits.join(" · ") || "no changes")}</span>
+        <span class="run-st">${Pill(isFailed(x) ? "bad" : x.status === "completed" ? "ok" : "warn", x.status)}${lastRun > 0 ? html`<span class="muted num">${ago(secondsSince(lastRun))} ago</span>` : nothing}</span>
+      </li>`;
+    })}</ul>`);
 };
 
 const VM_NAMES = { "claude-vm": "Claude VM", homeserver: "Home server" };
 // One VM as on the Update VMs page: a name with its health, then Running / Staged / Latest, each a value with its digest below.
 const VmBlock = ({ name, state, health, running, digest, staged, latest }) => html`<div class="vm">
-  <div class="vm-head"><strong class="row-st" data-st=${state}>${name}</strong><${Muted}>${health}<//></div>
+  <div class="vm-head"><strong class="row-st" data-st=${state}>${name}</strong>${Muted(health)}</div>
   <dl>
-    <dt>Running</dt><dd>${running}${digest && html` <span class="mono">${digest}</span>`}</dd>
-    ${staged && html`<dt>Staged</dt><dd>${staged}</dd>`}
-    <dt>Latest</dt><dd class=${latest.cls}>${latest.text}</dd>
+    <dt>Running</dt><dd>${running}${digest ? html` <span class="mono">${digest}</span>` : nothing}</dd>
+    ${staged ? html`<dt>Staged</dt><dd>${staged}</dd>` : nothing}
+    <dt>Latest</dt><dd class=${latest.cls ?? nothing}>${latest.text}</dd>
   </dl>
 </div>`;
-const VersionsPanel = ({ d }) => {
+const VersionsPanel = (d) => {
   const title = "Running versions";
   const vms = d.vm_upgrade?.vms;
-  if (!vms) return html`<${Unavailable} title=${title} source="claude-vm-upgrade · /api/v1/status" d=${d} />`;
+  if (!vms) return Unavailable({ title, source: "claude-vm-upgrade · /api/v1/status", d });
   const now = d.vm_upgrade.now || Math.round(Date.now() / 1000);
   let worst = "ok";
   let label = "reporting";
@@ -477,39 +458,33 @@ const VersionsPanel = ({ d }) => {
       latest: !latest ? { text: "unknown" } : behind ? { text: "Newer image", cls: "warn" } : { text: "Up to date", cls: "ok" },
     };
   });
-  return html`<${Panel} title=${title} state=${worst} text=${label} d=${d}>
-    ${blocks.map((b) => html`<${VmBlock} key=${b.name} ...${b} />`)}
-    ${!d.vm_images && html`<${Muted}>The registry did not answer, so newer images are not shown.<//>`}
-  <//>`;
+  return Panel({ title, state: worst, text: label, d }, html`
+    ${blocks.map(VmBlock)}
+    ${!d.vm_images ? Muted("The registry did not answer, so newer images are not shown.") : nothing}`);
 };
 
 // The usage: a bar for the window closer to its limit, the other as a line.
-const UsageBlock = ({ s, b, now }) => {
+const UsageBlock = (b, now) => {
   const notes = [`Updated ${ago(b.age)} ago`];
-  return html`<div class="limit">
-      ${b.windows.map((w, i) => {
-        const suffix = w.resets_at && !w.over ? " · resets in " + until(w.resets_at - now) : w.over ? " · window has reset" : "";
-        return html`<div class=${i === b.main ? "limit-row" : "limit-row muted"} key=${w.name}>
-            <span>${w.name}</span>
-            <span class="num">${w.used === null ? "no data" : html`<strong>${w.used}%</strong>${" used" + suffix}`}</span>
-          </div>
-          ${i === b.main && html`<${Bar} label=${`${w.name}, ${w.used === null ? "no data" : w.used + " percent used"}`} parts=${w.used === null ? [] : [{ pct: w.used, color: usedColor(w.used, 90) }]} />`}`;
-      })}
-    </div>
-    <${Muted}>${notes.join(" · ") + (b.stale ? ". Older than 6 hours, so the poller may be failing." : "")}<//>`;
+  return html`<div class="limit">${b.windows.map((w, i) => {
+      const suffix = w.resets_at && !w.over ? " · resets in " + until(w.resets_at - now) : w.over ? " · window has reset" : "";
+      return html`<div class=${i === b.main ? "limit-row" : "limit-row muted"}>
+          <span>${w.name}</span>
+          <span class="num">${w.used === null ? "no data" : html`<strong>${w.used}%</strong>${" used" + suffix}`}</span>
+        </div>${i === b.main ? Bar({ label: `${w.name}, ${w.used === null ? "no data" : w.used + " percent used"}`, parts: w.used === null ? [] : [{ pct: w.used, color: usedColor(w.used, 90) }] }) : nothing}`;
+    })}</div>
+    ${Muted(notes.join(" · ") + (b.stale ? ". Older than 6 hours, so the poller may be failing." : ""))}`;
 };
-const UsagePanel = ({ d }) => {
+const UsagePanel = (d) => {
   const title = "Claude usage";
-  if (!d.usage) return html`<${Unavailable} title=${title} source="usage-poller → cockpit" d=${d} />`;
+  if (!d.usage) return Unavailable({ title, source: "usage-poller → cockpit", d });
   const s = usageSession(d);
   if (!s) {
-    return html`<${Panel} title=${title} state="none" text="no data" d=${d}><${Muted}>Nothing received in the last 24 hours. The usage-poller container of claude-rc sends it every 5 minutes.<//><//>`;
+    return Panel({ title, state: "none", text: "no data", d }, Muted("Nothing received in the last 24 hours. The usage-poller container of claude-rc sends it every 5 minutes."));
   }
   const now = Math.round(Date.now() / 1000);
   const b = usageBlock(s, now);
-  return html`<${Panel} title=${title} state=${b.stale ? "none" : usedState(b.worst, 90)} text=${b.stale ? "stale" : `peak ${b.worst}%`} d=${d}>
-    <${UsageBlock} s=${s} b=${b} now=${now} />
-  <//>`;
+  return Panel({ title, state: b.stale ? "none" : usedState(b.worst, 90), text: b.stale ? "stale" : `peak ${b.worst}%`, d }, UsageBlock(b, now));
 };
 
 // ---- The page ----
@@ -517,61 +492,58 @@ const UsagePanel = ({ d }) => {
 const Chip = ({ state, text, href }) =>
   href ? html`<a class=${"pill " + state} href=${"#" + href}>${text}</a>` : html`<span class=${"pill " + state}>${text}</span>`;
 
-const Strip = ({ d }) => {
+const Strip = (d) => {
   const all = stripChips(d);
   const shown = all.filter((c) => c.state !== "ok");
   const healthy = all.length - shown.length;
-  return html`<nav class="strip" aria-label="Overall status, each item jumps to its panel">
-    ${shown.map((c) => html`<${Chip} key=${c.text} ...${c} />`)}
-    ${healthy > 0 && html`<${Chip} state="ok" text=${shown.length ? healthy + " healthy" : "All healthy"} />`}
-  </nav>`;
+  return html`<nav class="strip" aria-label="Overall status, each item jumps to its panel">${shown.map(Chip)}${healthy > 0 ? Chip({ state: "ok", text: shown.length ? healthy + " healthy" : "All healthy" }) : nothing}</nav>`;
 };
 
-const Section = ({ id, title, children }) => html`<section aria-labelledby=${"h-" + id}>
+const Section = ({ id, title }, children) => html`<section aria-labelledby=${"h-" + id}>
   <h2 id=${"h-" + id}>${title}</h2>
   <div class="band">${children}</div>
 </section>`;
 
-// One request at a time: a refresh while one is in flight, or one that hangs, replaces it instead of stacking up.
-// A hidden tab does not poll; coming back refreshes at once if the data is older than the interval.
-function useStatus() {
-  const [state, setState] = useState({ d: null, loadedAt: 0, error: null });
-  const load = useRef(() => {});
-  useEffect(() => {
-    let inflight = null;
-    let loadedAt = 0;
-    load.current = async () => {
-      inflight?.abort();
-      const ctl = (inflight = new AbortController());
-      const timer = setTimeout(() => ctl.abort(), 20000);
-      try {
-        const r = await fetch("api/v1/status", { signal: ctl.signal });
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        const d = await r.json();
-        loadedAt = Date.now();
-        setState({ d, loadedAt, error: null });
-      } catch (e) {
-        if (inflight === ctl) setState((s) => ({ ...s, error: e.name === "AbortError" ? "timed out" : e.message })); // not superseded by a newer request
-      } finally {
-        clearTimeout(timer);
-        if (inflight === ctl) inflight = null;
-      }
-    };
-    const onVisible = () => { if (!document.hidden && Date.now() - loadedAt >= REFRESH_MS) load.current(); };
-    const poll = setInterval(() => { if (!document.hidden) load.current(); }, REFRESH_MS);
-    document.addEventListener("visibilitychange", onVisible);
-    load.current();
-    return () => {
-      clearInterval(poll);
-      document.removeEventListener("visibilitychange", onVisible);
-      inflight?.abort();
-    };
-  }, []);
-  return { ...state, reload: () => load.current() };
+// ---- State, and a render that is batched into one microtask per burst of changes ----
+
+const state = { d: null, loadedAt: 0, error: null };
+let queued = false;
+function update() {
+  if (queued) return;
+  queued = true;
+  queueMicrotask(() => {
+    queued = false;
+    render(App(), document.getElementById("app"));
+  });
 }
 
+// One request at a time: a refresh while one is in flight, or one that hangs, replaces it instead of stacking up.
+// A hidden tab does not poll; coming back refreshes at once if the data is older than the interval.
+let inflight = null;
+async function load() {
+  inflight?.abort();
+  const ctl = (inflight = new AbortController());
+  const timer = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const r = await fetch("api/v1/status", { signal: ctl.signal });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    state.d = d;
+    state.loadedAt = Date.now();
+    state.error = null;
+  } catch (e) {
+    if (inflight === ctl) state.error = e.name === "AbortError" ? "timed out" : e.message; // not superseded by a newer request
+  } finally {
+    clearTimeout(timer);
+    if (inflight === ctl) inflight = null;
+  }
+  update();
+}
+setInterval(() => { if (!document.hidden) load(); }, REFRESH_MS);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - state.loadedAt >= REFRESH_MS) load(); });
+
 const App = () => {
-  const { d, loadedAt, error, reload } = useStatus();
+  const { d, loadedAt, error } = state;
   const failedSources = Object.keys(d?.meta?.workflow?.failed || {});
   const banner = error
     ? `The cockpit could not be reached (${error}). Showing the last data, if any.`
@@ -582,26 +554,21 @@ const App = () => {
     : html`<span class="muted" id="updated">${d ? "Updated " + new Date(loadedAt).toLocaleTimeString() : "Loading…"}</span>`;
   // Nothing below the header is shown until the first data arrives (see `main:not(.ready)`): content that appears after the fetch
   // would push the page down.
-  return html`<main class=${d ? "ready" : undefined}>
+  return html`<main class=${d ? "ready" : nothing}>
     <header>
       <h1>Cockpit</h1>
-      <div class="hdr-r">${updated}<button type="button" id="refresh" onClick=${reload}>Refresh now</button></div>
+      <div class="hdr-r">${updated}<button type="button" id="refresh" @click=${load}>Refresh now</button></div>
     </header>
-    <div id="banner" class="banner bad" role="alert" hidden=${!banner}>${banner}</div>
-    ${d && html`<${Strip} d=${d} />
-      <${Section} id="cluster" title="Cluster">
-        <${DropsPanel} d=${d} /><${AlertsPanel} d=${d} /><${FluxPanel} d=${d} /><${PolarisPanel} d=${d} /><${DiskPanel} d=${d} />
-      <//>
-      <${Section} id="gh" title="GitHub">
-        <${PrsPanel} d=${d} /><${RenovatePrsPanel} d=${d} /><${IssuesPanel} d=${d} /><${RenovateRunsPanel} d=${d} />
-      <//>
-      <${Section} id="home" title="Homelab">
-        <${VersionsPanel} d=${d} /><${UsagePanel} d=${d} />
-      <//>`}
+    <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
+    ${d ? html`${Strip(d)}
+      ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${DiskPanel(d)}`)}
+      ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}
+      ${Section({ id: "home", title: "Homelab" }, html`${VersionsPanel(d)}${UsagePanel(d)}`)}` : nothing}
   </main>`;
 };
 
-render(html`<${App} />`, document.getElementById("app"));
+load();
+update();
 </script>
 </body>
 </html>
