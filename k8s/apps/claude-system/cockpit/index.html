@@ -388,7 +388,9 @@
       if (x.automerged) bits.push(x.automerged + " automerged");
       if (x.unchanged) bits.push(x.unchanged + " unchanged");
       var st = /fail|error/i.test(x.status + " " + x.result) ? "bad" : x.status === "completed" ? "ok" : "warn";
-      return { title: x.project, sub: bits.join(" · ") || "no changes", right: pill(st, x.status) };
+      // The Dependency Dashboard issue of the repo, found by search because the issue number is not in the data.
+      var dash = "https://github.com/search?type=issues&q=" + encodeURIComponent("repo:cthtrifork/" + x.project + ' is:issue is:open "Dependency Dashboard" in:title');
+      return { title: x.project, href: dash, sub: bits.join(" · ") || "no changes", right: pill(st, x.status) };
     })));
     return p;
   }
