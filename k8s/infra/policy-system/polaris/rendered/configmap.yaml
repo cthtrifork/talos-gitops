@@ -102,7 +102,7 @@ data:
         rules:
         - hostPathSet
       - controllerNames:
-        - arc-ubuntu-runner
+        - arc-ubuntu
         namespace: arc-runners-system
         rules:
         - runAsPrivileged
@@ -206,6 +206,49 @@ data:
         - memoryLimitsMissing
         - livenessProbeMissing
         - readinessProbeMissing
+      - controllerNames:
+        - zot
+        namespace: registry-system
+        rules:
+        - privilegeEscalationAllowed
+        - insecureCapabilities
+        - notReadOnlyRootFilesystem
+      - controllerNames:
+        - spegel-cleanup
+        namespace: registry-system
+        rules:
+        - cpuRequestsMissing
+        - memoryRequestsMissing
+        - memoryLimitsMissing
+        - livenessProbeMissing
+        - readinessProbeMissing
+      - controllerNames:
+        - garage-configure
+        namespace: renovate-system
+        rules:
+        - cpuRequestsMissing
+        - memoryRequestsMissing
+        - memoryLimitsMissing
+      - controllerNames:
+        - kubevirt-operator
+        rules:
+        - clusterrolePodExecAttach
+        - clusterrolebindingPodExecAttach
+      - controllerNames:
+        - cdi-operator
+        - virt-operator
+        rules:
+        - memoryLimitsMissing
+        - notReadOnlyRootFilesystem
+      - controllerNames:
+        - metrics-server:system:auth-delegator
+        - metrics-server-auth-reader
+        namespace: kube-system
+        rules:
+        - clusterrolebindingClusterAdmin
+        - clusterrolebindingPodExecAttach
+        - rolebindingClusterAdminRole
+        - rolebindingRolePodExecAttach
       - controllerNames:
         - adguard-deployment
         rules:
