@@ -35,6 +35,7 @@ resources:
   - cockpit/githubaccesstoken.yaml
   - cockpit/externalsecret.yaml
   - cockpit/deployment.yaml
+  - cockpit/pdb.yaml
   - cockpit/service.yaml
   - cockpit/service-ingest.yaml
   - cockpit/podmonitor.yaml
