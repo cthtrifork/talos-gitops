@@ -389,11 +389,22 @@ flowchart LR
 | Polaris score | `polaris-dashboard` `/results.json` |
 | Pull requests, issues | GitHub search over all repositories of the owner the App is installed on (private ones included), with the cockpit's own one-hour read-only App token (`githubaccesstoken.yaml`, `externalsecret.yaml`) |
 | Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io`, read with the runner's `ghcr-pull` read:packages token (`homeserver-bootc` is a private package) |
-| Claude usage | Pushed by the Claude VM's status line (`statusline-report` in [homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)) to `POST /api/v1/sessions/claude-vm/<user>` on `:8081`, one slot per Linux user (`claude`, `claude-rc-personal`: each has its own login, so its own limits), kept in memory for 24 hours. The bare `/api/v1/sessions/claude-vm` is the older form of `claude`. A new user needs adding in two places in `redpanda-connect.yaml`: the ingest check and a branch in the status handler |
+| Claude usage | Pushed by the Claude VM's status line (`statusline-report` in [homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)) to `POST /api/v1/sessions/claude-vm/<user>` on `:8081`, one slot per Linux user (`claude`, `claude-rc-personal`: each has its own login, so its own limits), kept in memory for 24 hours. The bare `/api/v1/sessions/claude-vm` is the older form of `claude`. The `claude-rc` pod posts as `claude-k8s-helper` from its `statusline` container (see "Claude usage from the pod"). A new user needs adding in two places in `redpanda-connect.yaml`: the ingest check and a branch in the status handler |
 
 The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in `192.168.1.138/32` only and the LoadBalancer uses
 `externalTrafficPolicy: Local`, so a spoofed address could only change what the page shows. The one manual step is a Cloudflare `A` record (DNS only)
 `cockpit` -> `192.168.1.246`; check that address is free first. Until it exists the page shows "no data" for usage.
+
+### Claude usage from the pod
+
+`claude remote-control` is a server without a terminal UI, so its sessions never run a `statusLine`. The `statusline` container of `claude-rc` does what
+`claude-statusline@.service` does on the Claude VM ([homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)): an interactive
+`claude --model haiku` in a detached tmux that gets `/clear` and `ok` every 10 minutes (`STATUSLINE_PING_INTERVAL`), because the plan limits only refresh
+on an API reply. It shares the `claude-home` login, so it reports the limits of the same account. At start it sets `statusLine` in `~/.claude/settings.json`
+(the rest of the file stays) to `statusline/statusline-report`, which prints `5h 24% · 7d 41%` and, at most once a minute, posts the limits, model,
+version and context use to `http://claude-cockpit-ingest.claude-system.svc:8081/api/v1/sessions/claude-vm/claude-k8s-helper`. The scripts come from the
+`claude-statusline` ConfigMap, tmux from the image. `CiliumNetworkPolicy/claude-cockpit` lets only `app=claude-rc` in on `:8081`. The container waits for tmux
+and for the login, so it idles until both exist. Telemetry is off in it, so its pings add no OpenTelemetry series.
 
 Check after Flux applied it:
 

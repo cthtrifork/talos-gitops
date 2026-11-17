@@ -1,0 +1,17 @@
+---
+# In-cluster ingest for the claude-rc pod's status line: the :8081 listener, POST only in practice, reached by
+# CiliumNetworkPolicy/claude-cockpit from app=claude-rc only. Not on claude-cockpit, whose Omni exposer annotation publishes it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: claude-cockpit-ingest
+  namespace: claude-system
+spec:
+  type: ClusterIP
+  selector:
+    app: claude-cockpit
+  ports:
+    - name: ingest
+      port: 8081
+      targetPort: ingest
+      protocol: TCP

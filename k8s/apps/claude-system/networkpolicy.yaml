@@ -79,6 +79,14 @@ spec:
         - ports:
             - port: "8081"
               protocol: TCP
+    # Cockpit ingest (the statusline container posts the plan limits to :8081)
+    - toEndpoints:
+        - matchLabels:
+            k8s:app: claude-cockpit
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
     # Usage API (the page and /api/v1)
     - toEndpoints:
         - matchLabels:
@@ -386,6 +394,14 @@ spec:
       toPorts:
         - ports:
             - port: "4195"
+              protocol: TCP
+    # the claude-rc pod's status line (statusline container), through claude-cockpit-ingest
+    - fromEndpoints:
+        - matchLabels:
+            k8s:app: claude-rc
+      toPorts:
+        - ports:
+            - port: "8081"
               protocol: TCP
     # the Claude VM status line, through claude-cockpit-lb; the address is the only check
     - fromCIDR:
