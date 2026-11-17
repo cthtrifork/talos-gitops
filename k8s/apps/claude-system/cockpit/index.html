@@ -76,6 +76,8 @@
   ul.rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--grid); }
   ul.rows li:first-child { border-top: 0; padding-top: 0; }
   ul.rows li:last-child { padding-bottom: 0; }
+  .big + ul.rows { margin-top: 14px; }
+  .run-st { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 13px; }
   ul.rows .l { flex: 1 1 12em; min-width: 0; overflow-wrap: anywhere; }
   /* The right-hand value (time, count, version) keeps its natural width and drops below the text as a whole when the row is tight.
      It only wraps when it is wider than the row itself. */
@@ -417,10 +419,18 @@
     var approval = ps.reduce(function (n, x) { return n + x.needs_approval; }, 0);
     var bad = ps.filter(function (x) { return /fail|error/i.test(x.status + " " + x.result); });
     var p = panel(head(title, bad.length ? "bad" : approval ? "warn" : "ok", bad.length ? bad.length + " failed" : approval ? approval + " need approval" : "all done"));
+    // Headline: time to the next scheduled run, like the other panels' big number.
+    var jobs = d.renovate_jobs || [];
+    var live = jobs.filter(function (j) { return !j.suspend; });
+    var nexts = live.map(function (j) { return cronNext(j.schedule, Date.now()); }).filter(Boolean);
+    if (jobs.length && (nexts.length || !live.length)) {
+      var big = el("div", "big num", nexts.length ? until(Math.round((Math.min.apply(null, nexts) - Date.now()) / 1000)) : "suspended");
+      big.appendChild(el("small", null, nexts.length ? " until the next run" : " no run is scheduled"));
+      if (nexts.length) big.title = "Schedule (UTC): " + live.map(function (j) { return j.schedule; }).join(", ");
+      p.appendChild(big);
+    }
     p.appendChild(rows(ps.map(function (x) {
       var bits = [];
-      var lt = Date.parse(x.last_transition);
-      if (lt) bits.push("last run " + ago(Math.max(0, Math.round((Date.now() - lt) / 1000))) + " ago");
       if (x.duration) bits.push("took " + x.duration);
       if (x.needs_approval) bits.push(x.needs_approval + " need approval");
       if (x.automerged) bits.push(x.automerged + " automerged");
@@ -428,13 +438,13 @@
       var st = /fail|error/i.test(x.status + " " + x.result) ? "bad" : x.status === "completed" ? "ok" : "warn";
       // The Dependency Dashboard issue of the repo, found by search because the issue number is not in the data.
       var dash = "https://github.com/search?type=issues&q=" + encodeURIComponent("repo:cthtrifork/" + x.project + ' is:issue is:open "Dependency Dashboard" in:title');
-      return { title: x.project, href: dash, sub: bits.join(" · ") || "no changes", right: pill(st, x.status) };
+      // Status and the age of the last run, stacked on the right.
+      var right = el("span", "run-st");
+      right.appendChild(pill(st, x.status));
+      var lt = Date.parse(x.last_transition);
+      if (lt) right.appendChild(el("span", "muted num", ago(Math.max(0, Math.round((Date.now() - lt) / 1000))) + " ago"));
+      return { title: x.project, href: dash, sub: bits.join(" · ") || "no changes", right: right };
     })));
-    var jobs = d.renovate_jobs || [];
-    var live = jobs.filter(function (j) { return !j.suspend; });
-    var nexts = live.map(function (j) { return cronNext(j.schedule, Date.now()); }).filter(Boolean);
-    var next = jobs.length ? (nexts.length ? "Next run in " + until(Math.round((Math.min.apply(null, nexts) - Date.now()) / 1000)) + "." : live.length ? "" : "Scheduled runs are suspended.") : "";
-    if (next) p.appendChild(el("span", "muted", next));
     return p;
   }
 

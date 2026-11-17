@@ -80,6 +80,8 @@
   ul.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
   ul.rows li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-top: 1px solid var(--grid); }
   ul.rows li:first-child { border-top: 0; }
+  .big + ul.rows { margin-top: 14px; }
+  .run-st { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 13px; }
   ul.rows .l { min-width: 0; overflow-wrap: anywhere; }
 
   .bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; display: flex; }
@@ -216,13 +218,13 @@
 
       <div class="panel">
         <div class="panel-head"><h3>Renovate runs</h3><span class="pill warn">3 need approval</span></div>
+        <div class="big num">18 min<small> until the next run</small></div>
         <ul class="rows">
-          <li><span class="l"><strong>homeserver-bootc</strong><br><span class="muted">started 2 min ago · last run 32 min ago · 2 automerged, 4 unchanged</span></span><span class="pill warn">running</span></li>
-          <li><span class="l"><strong>kglance</strong><br><span class="muted">last run 12 min ago · took 41 s · 2 need approval</span></span><span class="pill ok">completed</span></li>
-          <li><span class="l"><strong>harper-pad</strong><br><span class="muted">last run 12 min ago · took 45 s · 2 need approval, 1 unchanged</span></span><span class="pill ok">completed</span></li>
-          <li><span class="l"><strong>talos-gitops</strong><br><span class="muted">last run 12 min ago · took 1 min 3 s · 2 unchanged</span></span><span class="pill ok">completed</span></li>
+          <li><span class="l"><strong>homeserver-bootc</strong><br><span class="muted">started 2 min ago · 2 automerged, 4 unchanged</span></span><span class="run-st"><span class="pill warn">running</span><span class="muted num">2 min ago</span></span></li>
+          <li><span class="l"><strong>kglance</strong><br><span class="muted">took 41 s · 2 need approval</span></span><span class="run-st"><span class="pill ok">completed</span><span class="muted num">12 min ago</span></span></li>
+          <li><span class="l"><strong>harper-pad</strong><br><span class="muted">took 45 s · 2 need approval, 1 unchanged</span></span><span class="run-st"><span class="pill ok">completed</span><span class="muted num">12 min ago</span></span></li>
+          <li><span class="l"><strong>talos-gitops</strong><br><span class="muted">took 1 min 3 s · 2 unchanged</span></span><span class="run-st"><span class="pill ok">completed</span><span class="muted num">12 min ago</span></span></li>
         </ul>
-        <span class="muted">Next run in 18 min.</span>
         <span class="muted">A failed run is an alert, so it shows under Firing alerts.</span>
         <span class="src">Kubernetes API · renovateprojects (status, duration, prActivity)</span>
       </div>
