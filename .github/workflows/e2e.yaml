@@ -35,11 +35,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup yq
-        uses: fluxcd/pkg/actions/yq@5e6f942cdd300f4092c0be92c7ef54c72af65476 # main
+        uses: fluxcd/pkg/actions/yq@f3c539541e5a704a2dd0f8d562fc2f5e747d0467 # main
       - name: Setup kubeconform
-        uses: fluxcd/pkg/actions/kubeconform@5e6f942cdd300f4092c0be92c7ef54c72af65476 # main
+        uses: fluxcd/pkg/actions/kubeconform@f3c539541e5a704a2dd0f8d562fc2f5e747d0467 # main
       - name: Setup kustomize
-        uses: fluxcd/pkg/actions/kustomize@5e6f942cdd300f4092c0be92c7ef54c72af65476 # main
+        uses: fluxcd/pkg/actions/kustomize@f3c539541e5a704a2dd0f8d562fc2f5e747d0467 # main
       - name: Build Flux Kustomization paths
         timeout-minutes: 3
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
