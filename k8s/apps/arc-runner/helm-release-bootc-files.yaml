@@ -1,0 +1,95 @@
+---
+# Upload-only scale set for cthtrifork/github-runner-bootc: its disk image and ISO workflows hand the built file to the
+# fileserver (Cloudflare R2 serves it) from here, because the upload API is cluster-internal. The workflow builds on
+# GitHub's runners and only the `upload` job runs here, so the build steps, PR-modified actions and third-party actions
+# never see FILESERVER_TOKEN.
+#
+# Every job on this scale set can read the token. github-runner-bootc is a public repository, so restrict the
+# runner group of this scale set to that repository's `main` branch (GitHub > Settings > Actions > Runner groups > Selected
+# workflows), and keep `environment: file-upload` (deployment branch `main`) on the job.
+#
+# Select it with `runs-on: arc-files-bootc`. minRunners is 0, so it costs nothing while unused. Needs the repository on
+# the installation behind the Secret github-auth.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: arc-runners-bootc-files
+  namespace: arc-runners-system
+spec:
+  interval: 30m
+  releaseName: arc-runners-bootc-files
+  chartRef:
+    kind: OCIRepository
+    name: arc-runners-system
+  install:
+    createNamespace: false
+
+  # https://github.com/actions/actions-runner-controller/blob/master/charts/gha-runner-scale-set/values.yaml
+  values:
+    controllerServiceAccount:
+      name: gha-runner-scale-set-controller-gha-rs-controller
+      namespace: arc-controller-system
+
+    githubConfigUrl: https://github.com/cthtrifork/github-runner-bootc
+    runnerScaleSetName: arc-files-bootc # runs-on: arc-files-bootc
+    scaleSetLabels:
+      - arc-files-bootc
+
+    maxRunners: 1
+    minRunners: 0
+
+    githubConfigSecret: github-auth
+    containerMode: {}
+    template:
+      spec:
+        containers:
+          - name: runner
+            # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+            imagePullPolicy: IfNotPresent
+            command:
+              - "/home/runner/run.sh"
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+            # Not privileged: the job only runs curl and sha256sum on a downloaded file.
+            securityContext:
+              runAsUser: 1001
+              runAsGroup: 1001
+              runAsNonRoot: true
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - ALL
+            env:
+              # Rotated every 30 days by External Secrets (see k8s/apps/fileserver); read at pod start. optional: the
+              # runner starts before the first sync. A job echoing it into its log leaks it: use ::add-mask::.
+              - name: FILESERVER_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: fileserver-upload-token
+                    key: current
+                    optional: true
+              - name: FILESERVER_URL
+                value: http://fileserver-upload.fileserver-system.svc:8082
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+              - name: tmp
+                mountPath: /tmp
+        imagePullSecrets:
+          - name: github-auth
+        securityContext:
+          fsGroup: 1001
+        volumes:
+          # a disk image is several GiB, so not in memory
+          - name: work
+            emptyDir:
+              sizeLimit: 40Gi
+          - name: tmp
+            emptyDir:
+              medium: Memory
+              sizeLimit: 128Mi
