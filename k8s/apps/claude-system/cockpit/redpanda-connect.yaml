@@ -351,7 +351,7 @@ processor_resources:
                       "repo": i.repository_url.or("unknown").split("/").index(-1),
                       "updated": i.updated_at.or(""),
                       "pr": i.pull_request != null,
-                      "renovate": i.user.login.or("").lowercase().contains("renovate")
+                      "renovate": i.user.login.or("") == "${RENOVATE_APP}[bot]"
                     })
                     let other = $items.filter(i -> i.pr && !i.renovate)
                     let renovate = $items.filter(i -> i.pr && i.renovate)
