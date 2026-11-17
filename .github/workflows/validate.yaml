@@ -83,3 +83,28 @@ jobs:
         uses: fluxcd/pkg/actions/kustomize@be6534365d43f25d916e07e35cdaf8bc17042b30 # main
       - name: Build Flux Kustomization paths
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
+  polaris:
+    # The in-cluster Polaris dashboard only sees a change after it is merged and applied; this audits the manifests in the PR
+    # with the same version and config (k8s/infra/policy-system/polaris/helm-release.yaml).
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup yq
+        uses: fluxcd/pkg/actions/yq@be6534365d43f25d916e07e35cdaf8bc17042b30 # main
+      - name: Setup kustomize
+        uses: fluxcd/pkg/actions/kustomize@be6534365d43f25d916e07e35cdaf8bc17042b30 # main
+      - name: Install Polaris
+        run: |
+          # the version Renovate keeps current for the dashboard image; releases are tagged 10.1.8 or v10.2.6
+          version="$(yq e '.spec.values.image.tag' k8s/infra/policy-system/polaris/helm-release.yaml | cut -d@ -f1)"
+          for tag in "$version" "v$version"; do
+            base="https://github.com/FairwindsOps/polaris/releases/download/${tag}"
+            curl -fsSL -o polaris.tar.gz "${base}/polaris_linux_amd64.tar.gz" && curl -fsSL -o checksums.txt "${base}/checksums.txt" && break
+          done
+          grep ' polaris_linux_amd64.tar.gz$' checksums.txt | sed 's/ polaris_linux_amd64.tar.gz$/ polaris.tar.gz/' | sha256sum -c -
+          tar -xzf polaris.tar.gz polaris
+          sudo install polaris /usr/local/bin/polaris
+          polaris version
+      - name: Polaris audit
+        run: ./scripts/ci/polaris-audit.sh k8s/clusters/homelab
