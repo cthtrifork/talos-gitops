@@ -25,7 +25,7 @@ pipeline:
           root = deleted()
         } else {
           # one Dependency-Track project per image: <registry>/<repository>, version = digest (the tag only if there is
-          # none). Trivy identifies an image by its digest, so the VEX statements exported by vex-export.yaml only match
+          # none). Trivy identifies an image by its digest, so the VEX statements exported by vex-export-cronjob.yaml only match
           # with it.
           let server = this.report.registry.server.or("")
           let repo = this.report.artifact.repository

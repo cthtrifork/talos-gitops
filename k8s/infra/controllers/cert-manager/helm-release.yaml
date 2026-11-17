@@ -22,7 +22,7 @@ spec:
       tag: v1.21.3@sha256:9f4f96a33c7774cef24466fcd85031997531a03a8d117f151126baa8d1290dcc
     crds:
       enabled: true
-    # Metrics (9402) are scraped by label, see k8s/infra/kube-prometheus-stack/networkpolicy.yaml
+    # Metrics (9402) are scraped by label, see k8s/infra/kube-prometheus-stack/cilium-clusterwide-networkpolicy.yaml
     podLabels:
       prometheus-scrape: "true"
     resources:

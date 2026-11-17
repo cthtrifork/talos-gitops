@@ -2,14 +2,17 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  #- cilium/l2announcement.yaml
+  #- cilium/cilium-loadbalancer-ip-pool.yaml
+  #- cilium/cilium-l2-announcement-policy.yaml
   - cert-manager/
   - trust-manager/
   #- kubevirt/kubevirt.yaml
   #- kubevirt/cdi.yaml
-  - metallb/l2announcement.yaml
+  - metallb/ipaddresspool.yaml
+  - metallb/l2advertisement.yaml
   # resources that use CRDs installed by the HelmReleases in k8s/infra (cert-manager, CloudNativePG, Traefik)
   - flux-system/ingressroute.yaml
+  - flux-system/middleware.yaml
   - registry-system/zot-certificate.yaml
   - security-system/dependency-track-postgres-cluster.yaml
   - security-system/dependency-track-ingressroute.yaml

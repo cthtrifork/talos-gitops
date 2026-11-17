@@ -358,7 +358,7 @@
   // The same filter the cockpit uses, as a GitHub search, so "more on GitHub" opens the whole list.
   function ghSearch(group, d) {
     var q = "is:open archived:false user:cthtrifork";
-    var bot = d.github.renovate && d.github.renovate.items[0] && d.github.renovate.items[0].author;
+    var bot = d.github && d.github.renovate && d.github.renovate.items[0] && d.github.renovate.items[0].author;
     var app = bot ? "author:app/" + bot.replace(/\[bot\]$/, "") : null;
     if (group === "issues") q += ' is:issue NOT "Dependency Dashboard" in:title';
     else q += " is:pr -is:draft" + (group === "renovate" ? (app ? " " + app : " renovate") : app ? " -" + app : "");
@@ -560,14 +560,14 @@
     "p-dropped-traffic-last-hour": ["Open Hubble", "hubble"],
     "p-flux-reconciliation": ["Open Flux", "flux"],
     "p-polaris-score": ["Open Polaris", "polaris"],
-    "p-renovate-pull-requests": ["Open Renovate", "renovate"],
     "p-renovate-runs": ["Open Renovate", "renovate"]
   };
-  function withLink(p) {
-    var o = OPEN[p.id];
+  function withLink(p, d) {
+    // The Renovate pull requests panel links to the pull requests on GitHub, not to the Renovate UI.
+    var o = p.id === "p-renovate-pull-requests" ? ["Open pull requests", null] : OPEN[p.id];
     if (!o) return p;
     var a = el("a", "open", o[0] + " \u2192");
-    a.href = OMNI.replace("%s", o[1]);
+    a.href = o[1] ? OMNI.replace("%s", o[1]) : ghSearch("renovate", d);
     a.rel = "noopener noreferrer";
     a.target = "_blank";
     p.appendChild(a);
@@ -575,7 +575,7 @@
   }
   // Panels are built off-screen and keep the order they are listed in, so each one stays where it was last time.
   function fill(id, fns, d) {
-    var ps = fns.map(function (fn, i) { var p = fn(d); p.id = slug(p.querySelector("h3").textContent); return withLink(p); });
+    var ps = fns.map(function (fn, i) { var p = fn(d); p.id = slug(p.querySelector("h3").textContent); return withLink(p, d); });
     var f = document.createDocumentFragment();
     ps.forEach(function (p) { f.appendChild(p); });
     swap(document.getElementById(id), f);

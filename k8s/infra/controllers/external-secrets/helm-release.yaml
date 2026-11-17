@@ -20,7 +20,7 @@ spec:
       name: RetryOnFailure
   values:
     installCRDs: true
-    # Metrics (8080) are scraped by label, see k8s/infra/kube-prometheus-stack/networkpolicy.yaml
+    # Metrics (8080) are scraped by label, see k8s/infra/kube-prometheus-stack/cilium-clusterwide-networkpolicy.yaml
     podLabels:
       prometheus-scrape: "true"
     serviceMonitor:

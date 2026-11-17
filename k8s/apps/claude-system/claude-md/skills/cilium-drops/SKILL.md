@@ -18,7 +18,7 @@ wait a few minutes before reading the drops.
 - Gotchas: the Omni service exposer runs on the host network, so a service with an `omni-kube-service-exposer.sidero.dev/*`
   annotation needs ingress from the `host` and `remote-node` entities. Kubelet probes need no rule.
 - Prometheus scraping is opt-in by label: a pod carrying `prometheus-scrape: "true"` is reachable from Prometheus on the
-  metrics ports of the cluster-wide policy `prometheus-scrape` (`k8s/infra/kube-prometheus-stack/networkpolicy.yaml`). For a
+  metrics ports of the cluster-wide policy `prometheus-scrape` (`k8s/infra/kube-prometheus-stack/cilium-clusterwide-networkpolicy.yaml`). For a
   new scraped workload add the label (chart `podLabels`) and, if its port is not in that list, add the port there, instead of a
   new rule in the workload's namespace. Prometheus's own egress to the targets is the `prometheus` policy in the same file.
 - My own denied traffic: `scripts/claude-drops.sh [window]` (default 24h) lists what `claude-rc` was denied with a reverse

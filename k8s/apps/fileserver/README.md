@@ -26,7 +26,7 @@ the pod, Traefik or the node disk. It stays idle until the Secret `fileserver-r2
 
 ## Upload token
 
-External Secrets generates the token (`k8s/infra/secret-store/generated-secrets.yaml`, a Password generator and a PushSecret
+External Secrets generates the token (`k8s/infra/secret-store/password.yaml` and `pushsecret.yaml`, a Password generator and a PushSecret
 that replaces it every 30 days) in the namespace `secret-store`. An ExternalSecret in `fileserver-system` and one in
 `arc-runners-system` (`external-secrets.yaml`) copy it into the Secret `fileserver-upload-token` within 15 minutes, and Reloader
 restarts the fileserver. The runners read `FILESERVER_TOKEN` when they start; an upload that is running during
