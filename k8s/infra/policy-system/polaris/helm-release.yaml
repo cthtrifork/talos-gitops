@@ -163,10 +163,11 @@ spec:
             - spegel
           rules:
             - hostPathSet
-        # Docker-in-Docker CI runner: privileged and root by design, isolated to its own namespace
+        # Docker-in-Docker CI runner: privileged and root by design, isolated to its own namespace. arc-ubuntu is also the
+        # AutoscalingRunnerSet that the CI audit reads from k8s/apps/arc-runner/rendered; the pods it creates are arc-ubuntu-runner-*
         - namespace: arc-runners-system
           controllerNames:
-            - arc-ubuntu-runner
+            - arc-ubuntu
           rules:
             - runAsPrivileged
             - runAsRootAllowed
@@ -292,6 +293,61 @@ spec:
             - memoryLimitsMissing
             - livenessProbeMissing
             - readinessProbeMissing
+        # The next four exemptions are for objects that the CI audit (.github/workflows/validate.yaml) reads from files in k8s/ but
+        # that are not running pods in the cluster, so they only matter there.
+        # zot: the CI audit reads the chart output in zot/rendered, which lacks the container securityContext that the second
+        # postRenderers entry in zot/helm-release.yaml adds (the render script applies only the first entry). The running
+        # StatefulSet drops all capabilities, forbids privilege escalation and has a read-only root filesystem.
+        - namespace: registry-system
+          controllerNames:
+            - zot
+          rules:
+            - privilegeEscalationAllowed
+            - insecureCapabilities
+            - notReadOnlyRootFilesystem
+        # Helm hooks of the spegel and garage charts (spegel-cleanup runs only on uninstall, garage-configure is a Job with
+        # ttlSecondsAfterFinished 300): they are in rendered/ because helm template includes hooks, and the charts set no resources or probes
+        - namespace: registry-system
+          controllerNames:
+            - spegel-cleanup
+          rules:
+            - cpuRequestsMissing
+            - memoryRequestsMissing
+            - memoryLimitsMissing
+            - livenessProbeMissing
+            - readinessProbeMissing
+        - namespace: renovate-system
+          controllerNames:
+            - garage-configure
+          rules:
+            - cpuRequestsMissing
+            - memoryRequestsMissing
+            - memoryLimitsMissing
+        # The upstream KubeVirt and CDI operator bundles in k8s/infra/kubevirt are not deployed (kustomization.yaml has no resources).
+        # The operator ClusterRole execs into pods by design. Revisit when they are deployed.
+        - controllerNames:
+            - kubevirt-operator
+          rules:
+            - clusterrolePodExecAttach
+            - clusterrolebindingPodExecAttach
+        - controllerNames:
+            - cdi-operator
+            - virt-operator
+          rules:
+            - memoryLimitsMissing
+            - notReadOnlyRootFilesystem
+        # metrics-server binds the built-in roles system:auth-delegator (create tokenreviews and subjectaccessreviews, nothing
+        # else) and extension-apiserver-authentication-reader. The CI audit does not have those roles and reports the bindings
+        # as cluster-admin with pod exec.
+        - namespace: kube-system
+          controllerNames:
+            - metrics-server:system:auth-delegator
+            - metrics-server-auth-reader
+          rules:
+            - clusterrolebindingClusterAdmin
+            - clusterrolebindingPodExecAttach
+            - rolebindingClusterAdminRole
+            - rolebindingRolePodExecAttach
         # adguard-home runs non-root with only NET_BIND_SERVICE, but its binary's file capability needs
         # allowPrivilegeEscalation (no_new_privs off) to take effect; see the comment in its Deployment
         - controllerNames:

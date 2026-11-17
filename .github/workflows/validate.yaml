@@ -107,12 +107,12 @@ jobs:
           sudo install polaris /usr/local/bin/polaris
           polaris version
       - name: Polaris audit
-        # The dashboard's config (same checks and exemptions), applied to every manifest in k8s/. The baseline is 98; a
-        # workload with a privileged container or hostNetwork lowers it to 97.
+        # The dashboard's config (same checks and exemptions), applied to every manifest in k8s/. The score is 100, so any new
+        # finding fails; fix it or add an exemption with a comment in polaris/helm-release.yaml.
         run: |
           yq e '.spec.values.config' k8s/infra/policy-system/polaris/helm-release.yaml > polaris-config.yaml
           polaris audit --config polaris-config.yaml --merge-config --audit-path k8s/ \
-            --format json --output-file polaris-report.json --set-exit-code-below-score 98
+            --format json --output-file polaris-report.json --set-exit-code-below-score 100
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
