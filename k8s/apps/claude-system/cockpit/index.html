@@ -124,6 +124,7 @@ const STALE_AFTER = 150; // seconds without a poll before a VM counts as not res
 const MAX_ROWS = 5; // longest list shown in any panel; the rest is a count
 // The pages behind a panel, served by the Omni service exposer. A panel with an entry gets an "Open" link at its foot.
 const OMNI = "https://%s-portableinfo.workload.eu-central-1.omni.siderolabs.io/";
+const GITHUB_PANELS = { "p-pull-requests": ["other", "Open pull requests"], "p-renovate-pull-requests": ["renovate", "Open pull requests"], "p-open-issues": ["issues", "Open issues"] };
 const OPEN = {
   "p-running-versions": ["Open Update VMs", "claudevmupgrade"],
   "p-dropped-traffic-last-hour": ["Open Hubble", "hubble"],
@@ -163,7 +164,7 @@ function cronNext(expr) {
     return null;
   }
 }
-// The same filter the cockpit uses, as a GitHub search, so "more on GitHub" opens the whole list.
+// The same filter the cockpit uses, as a GitHub search, so the "Open" link opens the whole list.
 function ghSearch(group, d) {
   const bot = d.github?.renovate?.items[0]?.author;
   const app = bot ? "author:app/" + bot.replace(/\[bot\]$/, "") : null;
@@ -173,9 +174,13 @@ function ghSearch(group, d) {
   return "https://github.com/search?type=issues&s=updated&o=desc&q=" + encodeURIComponent(q);
 }
 function openLink(id, d) {
-  // The Renovate pull requests panel links to the pull requests on GitHub, not to the Renovate UI.
-  if (id === "p-renovate-pull-requests") return { label: "Open pull requests", href: ghSearch("renovate", d) };
-  if (id === "p-pull-requests") return { label: "Open pull requests", href: ghSearch("other", d) };
+  // The GitHub panels link to the whole list on GitHub (the Renovate one too, not to the Renovate UI), and say how many the panel leaves out.
+  const gh = GITHUB_PANELS[id];
+  if (gh) {
+    const g = d.github?.[gh[0]];
+    const more = g && g.count > g.items.length ? ` (${g.count - g.items.length} more)` : "";
+    return { label: gh[1] + more, href: ghSearch(gh[0], d) };
+  }
   const o = OPEN[id];
   return o && { label: o[0], href: OMNI.replace("%s", o[1]) };
 }
@@ -391,7 +396,6 @@ const GitHubPanel = ({ title, group, d, empty, stateOf }) => {
   if (!g) return html`<${Unavailable} title=${title} source="GitHub API · search/issues" d=${d} />`;
   return html`<${Panel} title=${title} state=${stateOf(g.count)} text=${g.count + " open"} compact=${g.count === 0} d=${d}>
     ${g.count === 0 ? html`<${Muted}>${empty}<//>` : html`<${PrRows} items=${g.items} />`}
-    ${g.count > g.items.length && html`<a href=${ghSearch(group, d)} rel="noopener noreferrer" target="_blank">${g.count - g.items.length} more on GitHub</a>`}
     ${d.github.truncated && html`<${Muted}>More than 100 are open, so the counts are a lower bound.<//>`}
   <//>`;
 };
