@@ -1,0 +1,39 @@
+# Service account and RBAC of the Polaris refresh Job (polaris-refresh-resourceset.yaml)
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: polaris-refresh
+  namespace: policy-system
+automountServiceAccountToken: false
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: polaris-refresh
+  namespace: policy-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - delete
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: polaris-refresh
+  namespace: policy-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: polaris-refresh
+subjects:
+  - kind: ServiceAccount
+    name: polaris-refresh
+    namespace: policy-system

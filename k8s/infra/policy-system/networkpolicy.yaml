@@ -66,3 +66,43 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
+---
+# The Job asks the dashboard for /results.json (the new pod audits on that first request)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: polaris-refresh
+  namespace: policy-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: polaris-refresh
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app: polaris
+            component: dashboard
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: polaris-dashboard-ingress-refresh
+  namespace: policy-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: polaris
+      component: dashboard
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: polaris-refresh
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
