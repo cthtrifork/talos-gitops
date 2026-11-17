@@ -101,14 +101,13 @@
   /* Nothing below the header is shown until the first data arrives: content that appears after the fetch would
      push the footer down (a layout shift of about 0.8 on the default throttled load). */
   main:not(.ready) > nav, main:not(.ready) > section, main:not(.ready) > footer { display: none; }
-  .vm { padding-top: 14px; border-top: 1px solid var(--grid); }
+  .vm { padding-top: 10px; border-top: 1px solid var(--grid); }
   .vm:first-of-type { padding-top: 0; border-top: 0; }
   .vm-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
-  .vm dl { display: grid; grid-template-columns: 5em 1fr; gap: 12px; margin: 12px 0 0; }
+  .vm dl { display: grid; grid-template-columns: 5em 1fr; gap: 6px 12px; margin: 8px 0 0; }
   .vm dt { color: var(--ink-2); }
   .vm dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  .vm dd .mono { display: block; font-weight: 400; color: var(--ink-2); }
-  .vm dd .note { display: block; font-weight: 400; color: var(--warn); }
+  .vm dd .mono { font-weight: 400; color: var(--ink-2); }
   .banner.bad { background: var(--bad-bg); }
   .banner { padding: 12px 14px; border-radius: 10px; font-size: var(--fs-md); }
 </style>
@@ -440,12 +439,12 @@ const RenovateRunsPanel = ({ d }) => {
 
 const VM_NAMES = { "claude-vm": "Claude VM", homeserver: "Home server" };
 // One VM as on the Update VMs page: a name with its health, then Running / Staged / Latest, each a value with its digest below.
-const VmBlock = ({ name, state, health, running, digest, staged, latest, latestDigest }) => html`<div class="vm">
+const VmBlock = ({ name, state, health, running, digest, staged, latest }) => html`<div class="vm">
   <div class="vm-head"><strong class="row-st" data-st=${state}>${name}</strong><${Muted}>${health}<//></div>
   <dl>
-    <dt>Running</dt><dd>${running}${digest && html`<span class="mono">${digest}</span>`}</dd>
-    <dt>Staged</dt><dd>${staged}</dd>
-    <dt>Latest</dt><dd class=${latest.cls}>${latest.text}${latestDigest && html`<span class="mono">${latestDigest}</span>`}</dd>
+    <dt>Running</dt><dd>${running}${digest && html` <span class="mono">${digest}</span>`}</dd>
+    ${staged && html`<dt>Staged</dt><dd>${staged}</dd>`}
+    <dt>Latest</dt><dd class=${latest.cls}>${latest.text}</dd>
   </dl>
 </div>`;
 const VersionsPanel = ({ d }) => {
@@ -471,9 +470,8 @@ const VersionsPanel = ({ d }) => {
       health,
       running: vm.booted_version || "unknown",
       digest: vm.booted_digest?.slice(0, 12),
-      staged: vm.staged_version ? html`${vm.staged_version}<span class="note">applies on the next reboot</span>` : "none",
+      staged: vm.staged_version,
       latest: !latest ? { text: "unknown" } : behind ? { text: "Newer image", cls: "warn" } : { text: "Up to date", cls: "ok" },
-      latestDigest: latest?.slice(0, 12),
     };
   });
   return html`<${Panel} title=${title} state=${worst} text=${label} d=${d}>
