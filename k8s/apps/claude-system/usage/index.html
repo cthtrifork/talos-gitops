@@ -129,101 +129,37 @@
 </style>
 </head>
 <body>
-<main>
-  <p id="error" role="alert" hidden></p>
-  <header class="bar">
-    <div>
-      <h1>Claude usage</h1>
-      <div class="sub" id="range">UTC days · from Prometheus</div>
-    </div>
-    <div class="group">
-      <div class="seg" role="group" aria-label="Environment" id="envSeg"></div>
-      <div class="seg" role="group" aria-label="Period" id="periodSeg">
-        <button data-p="today" aria-pressed="false">Today</button>
-        <button data-p="7d" aria-pressed="true">7 days</button>
-        <button data-p="30d" aria-pressed="false">30 days</button>
-      </div>
-    </div>
-  </header>
+<div id="app"></div>
+<script type="module">
+// htm + Preact (templates) come from jsDelivr, pinned to an exact version. Bump the version here.
+import { html, render, useState, useEffect, useRef, useLayoutEffect } from "https://cdn.jsdelivr.net/npm/htm@3.1.1/preact/standalone.module.js";
 
-  <section class="tiles" id="tiles" aria-label="Totals"></section>
-
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Per day</h2>
-      <div class="seg" role="group" aria-label="Metric" id="metricSeg">
-        <button data-m="cost" aria-pressed="true">Cost</button>
-        <button data-m="tokens" aria-pressed="false">Tokens</button>
-        <button data-m="sessions" aria-pressed="false">Sessions</button>
-        <button data-m="commits" aria-pressed="false">Commits</button>
-        <button data-m="pull_requests" aria-pressed="false">Pull requests</button>
-      </div>
-    </div>
-    <div class="legend" id="envLegend"></div>
-    <svg id="daily" viewBox="0 0 720 240" role="img" aria-label="Stacked columns per day by environment"></svg>
-    <details><summary>View as table</summary><div class="scroll"><table id="dailyTable"></table></div></details>
-    <div class="src" id="dailySrc"></div>
-  </section>
-
-  <div class="cols">
-    <section class="panel">
-      <div class="panel-head"><h2>Cost by model</h2><span class="src">claude_code_cost_usage{model}</span></div>
-      <div id="modelCost"></div>
-    </section>
-    <section class="panel">
-      <div class="panel-head"><h2>Token mix by model</h2><span class="src">claude_code_token_usage{model,type}</span></div>
-      <div class="legend" id="tokLegend"></div>
-      <div id="tokMix"></div>
-      <div class="sub" style="margin-top:8px">Cache hit = cache read ÷ (input + cache read + cache write).</div>
-    </section>
-  </div>
-
-  <section class="panel">
-    <div class="panel-head"><h2>By model and environment</h2><span class="src">tokens, cost and lines carry both labels</span></div>
-    <div class="scroll"><table id="modelTable"></table></div>
-  </section>
-
-  <div class="cols">
-    <section class="panel">
-      <div class="panel-head"><h2>Output by environment</h2><span class="src">commit_count and pull_request_count have no model label</span></div>
-      <div class="scroll"><table id="actTable"></table></div>
-      <div class="sub" style="margin-top:8px">Cost per commit and per pull request divide the environment's whole cost by its commits or pull requests, so sessions that only read code count against them.</div>
-    </section>
-    <section class="panel">
-      <div class="panel-head"><h2>Edit tool decisions</h2><span class="src">claude_code_code_edit_tool_decision</span></div>
-      <div class="scroll"><table id="editTable"></table></div>
-    </section>
-  </div>
-
-  <p class="sub" id="gen">Counts come from <code>increase()</code> of the collector's counters; the first export of a new model or environment is not counted.</p>
-</main>
-<div class="tip" id="tip" hidden></div>
-
-<script>
-"use strict";
-const TOK = [
+const TOKENS = [
   { k: "input", label: "Input", v: "--tok-input", on: "--on-tok-input" },
   { k: "output", label: "Output", v: "--tok-output", on: "--on-tok-output" },
   { k: "cacheRead", label: "Cache read", v: "--tok-cread", on: "--on-tok-cread" },
   { k: "cacheCreation", label: "Cache write", v: "--tok-cwrite", on: "--on-tok-cwrite" },
 ];
 const PERIOD_DAYS = { today: 1, "7d": 7, "30d": 30 };
-const state = { env: "all", period: "7d", metric: "cost", summary: null, daily: null, breakdown: null, decisions: null };
-const $ = (id) => document.getElementById(id);
+const PERIODS = [["today", "Today"], ["7d", "7 days"], ["30d", "30 days"]];
+const METRICS = [["cost", "Cost"], ["tokens", "Tokens"], ["sessions", "Sessions"], ["commits", "Commits"], ["pull_requests", "Pull requests"]];
+const DAILY_SOURCE = {
+  cost: "claude_code_cost_usage{environment}",
+  tokens: "claude_code_token_usage{environment}",
+  sessions: "claude_code_session_count{environment}",
+  commits: "claude_code_commit_count{environment}",
+  pull_requests: "claude_code_pull_request_count{environment}",
+};
+const REFRESH_MS = 60000;
+
+// ---- Formatting and data helpers ----
+
 const css = (v) => `var(${v})`;
 const usd = (v) => "$" + (v >= 1000 ? Math.round(v).toLocaleString() : v >= 100 ? v.toFixed(0) : v.toFixed(2));
 const compact = (v) => new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: v >= 1e7 ? 0 : 1 }).format(v);
 const num = (v) => Math.round(v).toLocaleString("en");
 const sum = (a) => a.reduce((x, y) => x + y, 0);
-function el(tag, attrs, text) { const e = document.createElement(tag); for (const k in attrs || {}) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; }
-function sv(tag, attrs, text) { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs || {}) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; }
-const setPressed = (id, key, val) => { for (const b of $(id).querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset[key] === String(val))); };
-
-// environments get the validated slots in sorted order; a third one falls back to grey
-let ENVS = [];
-const envVar = (e) => ["--env-rc", "--env-vm"][ENVS.indexOf(e)] || "--env-other";
-const shownEnvs = () => (state.env === "all" ? ENVS : ENVS.filter((e) => e === state.env));
-const emptyBlock = (text) => el("div", { class: "empty" }, text);
+const cacheHit = (t) => t.cacheRead / Math.max(t.input + t.cacheRead + t.cacheCreation, 1);
 
 async function get(path) {
   const r = await fetch(path, { headers: { accept: "application/json" } });
@@ -231,179 +167,309 @@ async function get(path) {
   return r.json();
 }
 
-const tip = $("tip");
-function showTip(ev, title, lines) {
-  tip.replaceChildren(el("b", {}, title));
-  for (const [dot, name, val] of lines) {
-    const r = el("div", { class: "r" });
-    const l = el("span"); if (dot) { const d = el("span", { class: "dot" }); d.style.background = css(dot); l.append(d); } l.append(name);
-    r.append(l, el("span", {}, val)); tip.append(r);
+// The data of one period: the summary and the daily series cover 30 days, the breakdown and the decisions are per period.
+// A load that is overtaken by a newer one (a quick switch of period) is dropped. A failed load keeps the last data.
+function useUsage(period) {
+  const [data, setData] = useState({ summary: null, daily: null, breakdown: null, decisions: null, period: null });
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    let latest = 0;
+    const load = async () => {
+      const seq = ++latest;
+      try {
+        const [summary, daily, breakdown, decisions] = await Promise.all([
+          get("api/v1/summary"), get("api/v1/daily?days=30"), get("api/v1/breakdown?window=" + period), get("api/v1/decisions?window=" + period),
+        ]);
+        if (seq !== latest) return;
+        setData({ summary, daily, breakdown, decisions, period });
+        setError(null);
+      } catch (e) {
+        if (seq === latest) setError(e.message);
+      }
+    };
+    load();
+    const timer = setInterval(load, REFRESH_MS);
+    return () => { latest = Infinity; clearInterval(timer); };
+  }, [period]);
+  return { data, error };
+}
+
+// What the page shows for the chosen environment and period, derived from the data.
+function useView(data, ui) {
+  const { summary, daily, breakdown, decisions } = data;
+  // Environments get the validated colour slots in sorted order; a third one falls back to grey.
+  const envs = daily && summary ? [...new Set([...daily.environments, ...Object.keys(summary.windows["30d"].environments)])].sort() : [];
+  const env = ui.env === "all" || envs.includes(ui.env) ? ui.env : "all";
+  const period = data.period || ui.period;
+  const win = summary?.windows[period];
+  const envColor = (e) => ["--env-rc", "--env-vm"][envs.indexOf(e)] || "--env-other";
+  const shownEnvs = env === "all" ? envs : envs.filter((e) => e === env);
+  const inEnv = (r) => env === "all" || r.environment === env;
+  const byModel = {};
+  for (const r of (breakdown?.rows || []).filter(inEnv)) {
+    const o = (byModel[r.model] ||= { cost: 0, tokens: { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 } });
+    o.cost += r.cost_usd;
+    for (const k in o.tokens) o.tokens[k] += r.tokens[k];
   }
-  tip.hidden = false;
-  const w = tip.offsetWidth, h = tip.offsetHeight;
-  tip.style.left = Math.min(ev.clientX + 14, innerWidth - w - 8) + "px";
-  tip.style.top = Math.max(8, Math.min(ev.clientY - h - 10, innerHeight - h - 8)) + "px";
-}
-const hideTip = () => { tip.hidden = true; };
-
-const windowData = () => state.summary && state.summary.windows[state.period];
-function totals() {
-  const w = windowData(); if (!w) return null;
-  if (state.env === "all") return w.total;
-  return w.environments[state.env] || null;
-}
-function modelRows() { return (state.breakdown ? state.breakdown.rows : []).filter((r) => state.env === "all" || r.environment === state.env); }
-function byModel() {
-  const out = {};
-  for (const r of modelRows()) {
-    const o = out[r.model] || (out[r.model] = { cost: 0, tokens: { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 } });
-    o.cost += r.cost_usd; for (const k in o.tokens) o.tokens[k] += r.tokens[k];
-  }
-  return Object.entries(out).sort((a, b) => b[1].cost - a[1].cost);
-}
-
-function renderControls() {
-  const seg = $("envSeg"); seg.replaceChildren();
-  for (const e of ["all", ...ENVS]) { const b = el("button", { "data-e": e, "aria-pressed": String(state.env === e) }, e === "all" ? "All" : e); seg.append(b); }
-}
-
-function renderTiles() {
-  const t = totals(), box = $("tiles"); box.replaceChildren();
-  if (!t) { box.append(emptyBlock("No data for this selection yet.")); return; }
-  const days = PERIOD_DAYS[state.period];
-  const hit = t.tokens.cacheRead / Math.max(t.tokens.input + t.tokens.cacheRead + t.tokens.cacheCreation, 1);
-  const items = [
-    { k: "Cost", v: usd(t.cost_usd), s: state.period === "today" ? "since 00:00 UTC" : usd(t.cost_usd / days) + " per day", src: "cost_usage", hero: true },
-    { k: "Tokens", v: compact(t.tokens.total), s: "out " + compact(t.tokens.output) + " · in " + compact(t.tokens.input), src: "token_usage" },
-    { k: "Cache hit", v: (hit * 100).toFixed(1) + "%", s: "derived from tokens by type", src: "token_usage{type}" },
-    { k: "Sessions", v: num(t.sessions), s: t.sessions ? usd(t.cost_usd / t.sessions) + " per session" : "no sessions", src: "session_count" },
-    { k: "Commits", v: num(t.commits), s: t.pull_requests ? num(t.pull_requests) + " pull request" + (t.pull_requests > 1 ? "s" : "") : "no pull requests", src: "commit_count" },
-    { k: "Cost per commit", v: t.commits ? usd(t.cost_usd / t.commits) : "–", s: t.pull_requests ? usd(t.cost_usd / t.pull_requests) + " per pull request" : "derived", src: "cost_usage ÷ commit_count" },
-    { k: "Lines changed", v: compact(t.lines.added + t.lines.removed), s: "+" + compact(t.lines.added) + " −" + compact(t.lines.removed), src: "lines_of_code_count{type}" },
-    { k: "Active time", v: t.active_hours.toFixed(1) + " h", s: "across all sessions", src: "active_time_total" },
-  ];
-  box.replaceChildren(...items.map((i) => { const d = el("div", { class: "tile" + (i.hero ? " hero" : "") }); d.append(el("div", { class: "k" }, i.k), el("div", { class: "v" }, i.v), el("div", { class: "s" }, i.s), el("span", { class: "src" }, "claude_code_" + i.src)); return d; }));
-}
-
-function renderDaily() {
-  const svg = $("daily"); svg.replaceChildren();
-  const envs = shownEnvs(), m = state.metric;
-  const all = state.daily ? state.daily.days : [];
-  const ds = all.slice(-(state.period === "30d" ? 30 : 7));
-  const key = m === "cost" ? "cost_usd" : m;
-  const val = (d, e) => (d.environments[e] ? d.environments[e][key] : 0);
-  const fmt = m === "cost" ? usd : m === "tokens" ? compact : num;
-  $("envLegend").replaceChildren(...envs.map((e) => { const s = el("span"); const i = el("i"); i.style.background = css(envVar(e)); s.append(i, e); return s; }));
-  $("dailySrc").textContent = { cost: "claude_code_cost_usage{environment}", tokens: "claude_code_token_usage{environment}", sessions: "claude_code_session_count{environment}", commits: "claude_code_commit_count{environment}", pull_requests: "claude_code_pull_request_count{environment}" }[m];
-  const t = $("dailyTable"); t.replaceChildren();
-  const totalsPerDay = ds.map((d) => sum(envs.map((e) => val(d, e))));
-  if (!ds.length || !envs.length || Math.max(0, ...totalsPerDay) === 0) {
-    svg.append(sv("text", { x: 360, y: 120, "text-anchor": "middle" }, "No usage in this period yet"));
-  } else {
-    const max = Math.max(...totalsPerDay) * 1.08;
-    const L = 44, R = 78, T = 8, B = 24, W = 720, H = 240, pw = (W - L - R) / ds.length, ph = H - T - B;
-    for (const f of [0, 0.5, 1]) {
-      const y = T + ph * (1 - f);
-      svg.append(sv("line", { x1: L, x2: W - R, y1: y, y2: y, class: f ? "grid" : "axis" }), sv("text", { x: L - 6, y: y + 4, "text-anchor": "end" }, fmt(max * f)));
-    }
-    ds.forEach((d, i) => {
-      const g = sv("g", { class: "col" }), x = L + i * pw + pw * 0.14, w = pw * 0.72;
-      g.append(sv("rect", { x: L + i * pw, y: T, width: pw, height: ph, class: "hit" }));
-      let acc = 0;
-      envs.forEach((e) => {
-        const v = val(d, e), h = v / max * ph;
-        if (h > 0) g.append(sv("rect", { x, y: T + ph - (acc / max * ph) - h, width: w, height: h, rx: 3, fill: css(envVar(e)), class: "seg-fill" }));
-        acc += v;
-      });
-      g.addEventListener("pointermove", (ev) => showTip(ev, d.date, [...envs.map((e) => [envVar(e), e, fmt(val(d, e))]), ...(envs.length > 1 ? [[null, "Total", fmt(totalsPerDay[i])]] : [])]));
-      g.addEventListener("pointerleave", hideTip);
-      svg.append(g);
-      if (ds.length <= 8 || i % Math.ceil(ds.length / 8) === 0 || i === ds.length - 1) svg.append(sv("text", { x: x + w / 2, y: H - 6, "text-anchor": "middle" }, d.date.slice(5)));
-    });
-    const last = ds[ds.length - 1]; let acc = 0;
-    envs.forEach((e) => { const v = val(last, e); const mid = T + ph - (acc + v / 2) / max * ph; acc += v; svg.append(sv("text", { x: W - R + 8, y: mid + 4 }, e)); });
-  }
-  const hr = el("tr"); hr.append(el("th", {}, "Day (UTC)"), ...envs.map((e) => el("th", {}, e)), ...(envs.length > 1 ? [el("th", {}, "Total")] : [])); t.append(hr);
-  [...ds].reverse().forEach((d) => { const r = el("tr"); r.append(el("td", {}, d.date), ...envs.map((e) => el("td", {}, fmt(val(d, e)))), ...(envs.length > 1 ? [el("td", {}, fmt(totalsPerDay[ds.indexOf(d)]))] : [])); t.append(r); });
-}
-
-function renderModels() {
-  const bm = byModel();
-  if (!bm.length) { for (const id of ["modelCost", "tokMix"]) $(id).replaceChildren(emptyBlock("No model usage in this period yet.")); $("tokLegend").replaceChildren(); return; }
-  const total = sum(bm.map(([, v]) => v.cost)), max = Math.max(bm[0][1].cost, 0.0001);
-  $("modelCost").replaceChildren(...bm.map(([m, v]) => {
-    const r = el("div", { class: "row" }), tr = el("div", { class: "track" }), b = el("div", { class: "seg-b neutral" });
-    b.style.width = Math.max(v.cost / max * 100, 2) + "%"; tr.append(b);
-    const nm = el("div", { class: "name" }, m); nm.append(el("small", {}, (total ? v.cost / total * 100 : 0).toFixed(0) + "% of cost"));
-    r.append(nm, tr, el("div", { class: "val" }, usd(v.cost))); return r;
-  }));
-  $("tokLegend").replaceChildren(...TOK.map((t) => { const s = el("span"); const i = el("i"); i.style.background = css(t.v); s.append(i, t.label); return s; }));
-  $("tokMix").replaceChildren(...bm.map(([m, v]) => {
-    const tt = Math.max(sum(Object.values(v.tokens)), 1), r = el("div", { class: "row" }), tr = el("div", { class: "track" });
-    for (const t of TOK) {
-      const share = v.tokens[t.k] / tt * 100, b = el("div", { class: "seg-b" });
-      b.style.cssText = `width:${share}%;flex:0 0 auto;background:${css(t.v)};color:${css(t.on)}`;
-      if (share >= 9) b.textContent = share.toFixed(0) + "%";
-      b.addEventListener("pointermove", (ev) => showTip(ev, m, [[t.v, t.label, compact(v.tokens[t.k]) + " · " + share.toFixed(1) + "%"]]));
-      b.addEventListener("pointerleave", hideTip);
-      tr.append(b);
-    }
-    const hit = v.tokens.cacheRead / Math.max(v.tokens.input + v.tokens.cacheRead + v.tokens.cacheCreation, 1);
-    const nm = el("div", { class: "name" }, m); nm.append(el("small", {}, compact(tt) + " tokens"));
-    r.append(nm, tr, el("div", { class: "val" }, (hit * 100).toFixed(0) + "% hit")); return r;
-  }));
-}
-
-function renderTables() {
-  const mt = $("modelTable"); mt.replaceChildren();
-  const h = el("tr"); h.append(el("th", {}, "Environment"), el("th", { class: "l" }, "Model"), ...["Cost", "Input", "Output", "Cache read", "Cache write", "Lines"].map((x) => el("th", {}, x))); mt.append(h);
-  for (const o of modelRows()) {
-    const tr = el("tr"), c = el("td"), d = el("span", { class: "dot" }); d.style.background = css(envVar(o.environment)); c.append(d, o.environment || "–");
-    tr.append(c, el("td", { class: "l" }, o.model || "–"), el("td", {}, usd(o.cost_usd)), el("td", {}, num(o.tokens.input)), el("td", {}, num(o.tokens.output)), el("td", {}, num(o.tokens.cacheRead)), el("td", {}, num(o.tokens.cacheCreation)), el("td", {}, "+" + num(o.lines.added) + " −" + num(o.lines.removed))); mt.append(tr);
-  }
-  const at = $("actTable"); at.replaceChildren();
-  const ah = el("tr"); ah.append(el("th", {}, "Environment"), ...["Sessions", "Active", "Lines", "Commits", "Pull requests", "Cost per commit", "Cost per PR"].map((x) => el("th", {}, x))); at.append(ah);
-  const w = windowData(), envs = shownEnvs();
-  const line = (label, dot, v) => {
-    const tr = el("tr"), c = el("td"); if (dot) { const d = el("span", { class: "dot" }); d.style.background = css(dot); c.append(d); } c.append(label);
-    tr.append(c, el("td", {}, num(v.sessions)), el("td", {}, v.active_hours.toFixed(1) + " h"), el("td", {}, "+" + num(v.lines.added) + " −" + num(v.lines.removed)), el("td", {}, num(v.commits)), el("td", {}, num(v.pull_requests)),
-      el("td", {}, v.commits ? usd(v.cost_usd / v.commits) : "–"), el("td", {}, v.pull_requests ? usd(v.cost_usd / v.pull_requests) : "–"));
-    return tr;
+  return {
+    envs, env, period, win, envColor, shownEnvs,
+    totals: win ? (env === "all" ? win.total : win.environments[env] || null) : null,
+    modelRows: (breakdown?.rows || []).filter(inEnv),
+    decisionRows: (decisions?.rows || []).filter(inEnv),
+    models: Object.entries(byModel).sort((a, b) => b[1].cost - a[1].cost),
   };
-  for (const e of envs) { const v = w && w.environments[e]; if (v) at.append(line(e, envVar(e), v)); }
-  if (envs.length > 1 && w) { const f = el("tfoot"); f.append(line("Total", null, w.total)); at.append(f); }
-
-  const et = $("editTable"); et.replaceChildren();
-  const eh = el("tr"); eh.append(...["Environment", "Tool", "Decision", "Language", "Source", "Count"].map((x, i) => el("th", { class: i < 5 ? "l" : "" }, x))); et.append(eh);
-  const dr = (state.decisions ? state.decisions.rows : []).filter((r) => state.env === "all" || r.environment === state.env);
-  if (!dr.length) { const tr = el("tr"), c = el("td", {}, "No edit decisions in this period yet"); c.colSpan = 6; tr.append(c); et.append(tr); }
-  for (const r of dr) { const tr = el("tr"); tr.append(el("td", { class: "l" }, r.environment), el("td", { class: "l" }, r.tool), el("td", { class: "l" }, r.decision), el("td", { class: "l" }, r.language), el("td", { class: "l" }, r.source), el("td", {}, num(r.count))); et.append(tr); }
 }
 
-function render() {
-  renderControls(); renderTiles(); renderDaily(); renderModels(); renderTables();
-  const d = state.daily && state.daily.days; if (d && d.length) $("range").textContent = `${d[Math.max(0, d.length - (state.period === "30d" ? 30 : 7))].date} to ${d[d.length - 1].date} · UTC days · from Prometheus`;
-}
+// ---- Tooltip: its own state, so moving over a chart does not re-render the page ----
 
-async function load() {
-  try {
-    const [s, d, b, x] = await Promise.all([get("api/v1/summary"), get("api/v1/daily?days=30"), get("api/v1/breakdown?window=" + state.period), get("api/v1/decisions?window=" + state.period)]);
-    Object.assign(state, { summary: s, daily: d, breakdown: b, decisions: x });
-    ENVS = [...new Set([...d.environments, ...Object.keys(s.windows["30d"].environments)])].sort();
-    if (state.env !== "all" && !ENVS.includes(state.env)) state.env = "all";
-    $("error").hidden = true;
-  } catch (e) {
-    $("error").textContent = "Could not load usage: " + e.message + ". Showing the last data received.";
-    $("error").hidden = false;
+const tooltip = { set: () => {} };
+const showTip = (ev, title, lines) => tooltip.set({ x: ev.clientX, y: ev.clientY, title, lines });
+const hideTip = () => tooltip.set(null);
+
+const Tooltip = () => {
+  const [tip, setTip] = useState(null);
+  tooltip.set = setTip;
+  const box = useRef(null);
+  useLayoutEffect(() => {
+    if (!tip) return;
+    const el = box.current;
+    el.style.left = Math.min(tip.x + 14, innerWidth - el.offsetWidth - 8) + "px";
+    el.style.top = Math.max(8, Math.min(tip.y - el.offsetHeight - 10, innerHeight - el.offsetHeight - 8)) + "px";
+  }, [tip]);
+  return html`<div class="tip" id="tip" ref=${box} hidden=${!tip}>
+    ${tip && html`<b>${tip.title}</b>${tip.lines.map(([dot, name, val]) => html`<div class="r">
+      <span>${dot && html`<span class="dot" style=${{ background: css(dot) }}></span>`}${name}</span><span>${val}</span>
+    </div>`)}`}
+  </div>`;
+};
+
+// ---- Building blocks ----
+
+const Empty = ({ children }) => html`<div class="empty">${children}</div>`;
+const Dot = ({ color }) => html`<span class="dot" style=${{ background: css(color) }}></span>`;
+
+// A segmented control; `attr` is the data attribute that names each button (data-e, data-p, data-m).
+const Segmented = ({ label, id, attr, options, value, onPick }) => html`<div class="seg" role="group" aria-label=${label} id=${id}>
+  ${options.map(([v, text]) => html`<button ...${{ ["data-" + attr]: v }} aria-pressed=${String(value === v)} onClick=${() => onPick(v)}>${text}</button>`)}
+</div>`;
+
+const Table = ({ id, head, rows, foot }) => html`<table id=${id}>
+  <tr>${head}</tr>
+  ${rows}
+  ${foot && html`<tfoot>${foot}</tfoot>`}
+</table>`;
+
+// ---- Sections ----
+
+const Tiles = ({ v }) => {
+  const t = v.totals;
+  if (!t) return html`<section class="tiles" id="tiles" aria-label="Totals"><${Empty}>No data for this selection yet.<//></section>`;
+  const days = PERIOD_DAYS[v.period];
+  const tile = (k, value, sub, src, hero) => ({ k, value, sub, src, hero });
+  const items = [
+    tile("Cost", usd(t.cost_usd), v.period === "today" ? "since 00:00 UTC" : usd(t.cost_usd / days) + " per day", "cost_usage", true),
+    tile("Tokens", compact(t.tokens.total), `out ${compact(t.tokens.output)} · in ${compact(t.tokens.input)}`, "token_usage"),
+    tile("Cache hit", (cacheHit(t.tokens) * 100).toFixed(1) + "%", "derived from tokens by type", "token_usage{type}"),
+    tile("Sessions", num(t.sessions), t.sessions ? usd(t.cost_usd / t.sessions) + " per session" : "no sessions", "session_count"),
+    tile("Commits", num(t.commits), t.pull_requests ? num(t.pull_requests) + " pull request" + (t.pull_requests > 1 ? "s" : "") : "no pull requests", "commit_count"),
+    tile("Cost per commit", t.commits ? usd(t.cost_usd / t.commits) : "–", t.pull_requests ? usd(t.cost_usd / t.pull_requests) + " per pull request" : "derived", "cost_usage ÷ commit_count"),
+    tile("Lines changed", compact(t.lines.added + t.lines.removed), `+${compact(t.lines.added)} −${compact(t.lines.removed)}`, "lines_of_code_count{type}"),
+    tile("Active time", t.active_hours.toFixed(1) + " h", "across all sessions", "active_time_total"),
+  ];
+  return html`<section class="tiles" id="tiles" aria-label="Totals">
+    ${items.map((i) => html`<div class=${i.hero ? "tile hero" : "tile"} key=${i.k}>
+      <div class="k">${i.k}</div><div class="v">${i.value}</div><div class="s">${i.sub}</div><span class="src">${"claude_code_" + i.src}</span>
+    </div>`)}
+  </section>`;
+};
+
+// Stacked columns per day, one segment per environment.
+const DailyChart = ({ days, v, metric }) => {
+  const envs = v.shownEnvs;
+  const key = metric === "cost" ? "cost_usd" : metric;
+  const val = (d, e) => (d.environments[e] ? d.environments[e][key] : 0);
+  const fmt = metric === "cost" ? usd : metric === "tokens" ? compact : num;
+  const perDay = days.map((d) => sum(envs.map((e) => val(d, e))));
+  const label = "Stacked columns per day by environment";
+  if (!days.length || !envs.length || Math.max(0, ...perDay) === 0) {
+    return html`<svg id="daily" viewBox="0 0 720 240" role="img" aria-label=${label}><text x="360" y="120" text-anchor="middle">No usage in this period yet</text></svg>`;
   }
-  render();
-}
+  const max = Math.max(...perDay) * 1.08;
+  const L = 44, R = 78, T = 8, B = 24, W = 720, H = 240;
+  const pw = (W - L - R) / days.length;
+  const ph = H - T - B;
+  const last = days[days.length - 1];
+  let stacked = 0;
+  return html`<svg id="daily" viewBox="0 0 720 240" role="img" aria-label=${label}>
+    ${[0, 0.5, 1].map((f) => {
+      const y = T + ph * (1 - f);
+      return html`<line x1=${L} x2=${W - R} y1=${y} y2=${y} class=${f ? "grid" : "axis"} /><text x=${L - 6} y=${y + 4} text-anchor="end">${fmt(max * f)}</text>`;
+    })}
+    ${days.map((d, i) => {
+      const x = L + i * pw + pw * 0.14;
+      const w = pw * 0.72;
+      let acc = 0;
+      const lines = [...envs.map((e) => [v.envColor(e), e, fmt(val(d, e))]), ...(envs.length > 1 ? [[null, "Total", fmt(perDay[i])]] : [])];
+      return html`<g class="col" key=${d.date} onPointerMove=${(ev) => showTip(ev, d.date, lines)} onPointerLeave=${hideTip}>
+        <rect x=${L + i * pw} y=${T} width=${pw} height=${ph} class="hit" />
+        ${envs.map((e) => {
+          const value = val(d, e);
+          const h = (value / max) * ph;
+          const y = T + ph - (acc / max) * ph - h;
+          acc += value;
+          return h > 0 && html`<rect x=${x} y=${y} width=${w} height=${h} rx="3" fill=${css(v.envColor(e))} class="seg-fill" />`;
+        })}
+      </g>
+      ${(days.length <= 8 || i % Math.ceil(days.length / 8) === 0 || i === days.length - 1) && html`<text x=${x + w / 2} y=${H - 6} text-anchor="middle">${d.date.slice(5)}</text>`}`;
+    })}
+    ${envs.map((e) => {
+      const value = val(last, e);
+      const mid = T + ph - ((stacked + value / 2) / max) * ph;
+      stacked += value;
+      return html`<text x=${W - R + 8} y=${mid + 4}>${e}</text>`;
+    })}
+  </svg>`;
+};
 
-$("envSeg").addEventListener("click", (e) => { const v = e.target.dataset && e.target.dataset.e; if (v) { state.env = v; render(); } });
-$("periodSeg").addEventListener("click", (e) => { const v = e.target.dataset && e.target.dataset.p; if (v) { state.period = v; setPressed("periodSeg", "p", v); load(); } });
-$("metricSeg").addEventListener("click", (e) => { const v = e.target.dataset && e.target.dataset.m; if (v) { state.metric = v; setPressed("metricSeg", "m", v); renderDaily(); } });
-load();
-setInterval(load, 60000);
+const PerDay = ({ data, v, metric, setMetric }) => {
+  const all = data.daily ? data.daily.days : [];
+  const days = all.slice(-(v.period === "30d" ? 30 : 7));
+  const key = metric === "cost" ? "cost_usd" : metric;
+  const fmt = metric === "cost" ? usd : metric === "tokens" ? compact : num;
+  const val = (d, e) => (d.environments[e] ? d.environments[e][key] : 0);
+  const envs = v.shownEnvs;
+  const totalOf = (d) => sum(envs.map((e) => val(d, e)));
+  return html`<section class="panel">
+    <div class="panel-head">
+      <h2>Per day</h2>
+      <${Segmented} label="Metric" id="metricSeg" attr="m" options=${METRICS} value=${metric} onPick=${setMetric} />
+    </div>
+    <div class="legend" id="envLegend">${envs.map((e) => html`<span key=${e}><i style=${{ background: css(v.envColor(e)) }}></i>${e}</span>`)}</div>
+    <${DailyChart} days=${days} v=${v} metric=${metric} />
+    <details><summary>View as table</summary><div class="scroll">
+      <${Table} id="dailyTable"
+        head=${html`<th>Day (UTC)</th>${envs.map((e) => html`<th>${e}</th>`)}${envs.length > 1 && html`<th>Total</th>`}`}
+        rows=${[...days].reverse().map((d) => html`<tr key=${d.date}><td>${d.date}</td>${envs.map((e) => html`<td>${fmt(val(d, e))}</td>`)}${envs.length > 1 && html`<td>${fmt(totalOf(d))}</td>`}</tr>`)} />
+    </div></details>
+    <div class="src" id="dailySrc">${DAILY_SOURCE[metric]}</div>
+  </section>`;
+};
+
+const ModelCost = ({ v }) => {
+  if (!v.models.length) return html`<div id="modelCost"><${Empty}>No model usage in this period yet.<//></div>`;
+  const total = sum(v.models.map(([, m]) => m.cost));
+  const max = Math.max(v.models[0][1].cost, 0.0001);
+  return html`<div id="modelCost">${v.models.map(([name, m]) => html`<div class="row" key=${name}>
+    <div class="name">${name}<small>${(total ? (m.cost / total) * 100 : 0).toFixed(0)}% of cost</small></div>
+    <div class="track"><div class="seg-b neutral" style=${{ width: Math.max((m.cost / max) * 100, 2) + "%" }}></div></div>
+    <div class="val">${usd(m.cost)}</div>
+  </div>`)}</div>`;
+};
+
+const TokenMix = ({ v }) => {
+  if (!v.models.length) return html`<div class="legend" id="tokLegend"></div><div id="tokMix"><${Empty}>No model usage in this period yet.<//></div>`;
+  return html`<div class="legend" id="tokLegend">${TOKENS.map((t) => html`<span key=${t.k}><i style=${{ background: css(t.v) }}></i>${t.label}</span>`)}</div>
+    <div id="tokMix">${v.models.map(([name, m]) => {
+      const total = Math.max(sum(Object.values(m.tokens)), 1);
+      return html`<div class="row" key=${name}>
+        <div class="name">${name}<small>${compact(total)} tokens</small></div>
+        <div class="track">${TOKENS.map((t) => {
+          const share = (m.tokens[t.k] / total) * 100;
+          return html`<div class="seg-b" key=${t.k} style=${{ width: share + "%", flex: "0 0 auto", background: css(t.v), color: css(t.on) }}
+            onPointerMove=${(ev) => showTip(ev, name, [[t.v, t.label, compact(m.tokens[t.k]) + " · " + share.toFixed(1) + "%"]])} onPointerLeave=${hideTip}>${share >= 9 && share.toFixed(0) + "%"}</div>`;
+        })}</div>
+        <div class="val">${(cacheHit(m.tokens) * 100).toFixed(0)}% hit</div>
+      </div>`;
+    })}</div>`;
+};
+
+const th = (text, cls) => html`<th class=${cls}>${text}</th>`;
+const ModelTable = ({ v }) => html`<${Table} id="modelTable"
+  head=${html`<th>Environment</th><th class="l">Model</th>${["Cost", "Input", "Output", "Cache read", "Cache write", "Lines"].map((x) => html`<th>${x}</th>`)}`}
+  rows=${v.modelRows.map((o, i) => html`<tr key=${i}>
+    <td><${Dot} color=${v.envColor(o.environment)} />${o.environment || "–"}</td><td class="l">${o.model || "–"}</td><td>${usd(o.cost_usd)}</td>
+    <td>${num(o.tokens.input)}</td><td>${num(o.tokens.output)}</td><td>${num(o.tokens.cacheRead)}</td><td>${num(o.tokens.cacheCreation)}</td>
+    <td>${"+" + num(o.lines.added) + " −" + num(o.lines.removed)}</td>
+  </tr>`)} />`;
+
+const ActivityTable = ({ v }) => {
+  const row = (label, color, x) => html`<tr key=${label}>
+    <td>${color && html`<${Dot} color=${color} />`}${label}</td><td>${num(x.sessions)}</td><td>${x.active_hours.toFixed(1)} h</td>
+    <td>${"+" + num(x.lines.added) + " −" + num(x.lines.removed)}</td><td>${num(x.commits)}</td><td>${num(x.pull_requests)}</td>
+    <td>${x.commits ? usd(x.cost_usd / x.commits) : "–"}</td><td>${x.pull_requests ? usd(x.cost_usd / x.pull_requests) : "–"}</td>
+  </tr>`;
+  const envs = v.shownEnvs;
+  return html`<${Table} id="actTable"
+    head=${["Environment", "Sessions", "Active", "Lines", "Commits", "Pull requests", "Cost per commit", "Cost per PR"].map((x) => html`<th>${x}</th>`)}
+    rows=${envs.map((e) => v.win?.environments[e] && row(e, v.envColor(e), v.win.environments[e]))}
+    foot=${envs.length > 1 && v.win && row("Total", null, v.win.total)} />`;
+};
+
+const DecisionTable = ({ v }) => html`<${Table} id="editTable"
+  head=${["Environment", "Tool", "Decision", "Language", "Source", "Count"].map((x, i) => th(x, i < 5 ? "l" : undefined))}
+  rows=${v.decisionRows.length
+    ? v.decisionRows.map((r, i) => html`<tr key=${i}><td class="l">${r.environment}</td><td class="l">${r.tool}</td><td class="l">${r.decision}</td><td class="l">${r.language}</td><td class="l">${r.source}</td><td>${num(r.count)}</td></tr>`)
+    : html`<tr><td colspan="6">No edit decisions in this period yet</td></tr>`} />`;
+
+// ---- The page ----
+
+const App = () => {
+  const [ui, setUi] = useState({ env: "all", period: "7d", metric: "cost" });
+  const set = (key) => (value) => setUi((s) => ({ ...s, [key]: value }));
+  const { data, error } = useUsage(ui.period);
+  const v = useView(data, ui);
+  const days = data.daily?.days;
+  const range = days?.length
+    ? `${days[Math.max(0, days.length - (v.period === "30d" ? 30 : 7))].date} to ${days[days.length - 1].date} · UTC days · from Prometheus`
+    : "UTC days · from Prometheus";
+  return html`<main>
+    <p id="error" role="alert" hidden=${!error}>${error && `Could not load usage: ${error}. Showing the last data received.`}</p>
+    <header class="bar">
+      <div><h1>Claude usage</h1><div class="sub" id="range">${range}</div></div>
+      <div class="group">
+        <${Segmented} label="Environment" id="envSeg" attr="e" options=${["all", ...v.envs].map((e) => [e, e === "all" ? "All" : e])} value=${v.env} onPick=${set("env")} />
+        <${Segmented} label="Period" id="periodSeg" attr="p" options=${PERIODS} value=${ui.period} onPick=${set("period")} />
+      </div>
+    </header>
+
+    <${Tiles} v=${v} />
+    <${PerDay} data=${data} v=${v} metric=${ui.metric} setMetric=${set("metric")} />
+
+    <div class="cols">
+      <section class="panel">
+        <div class="panel-head"><h2>Cost by model</h2><span class="src">claude_code_cost_usage{model}</span></div>
+        <${ModelCost} v=${v} />
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Token mix by model</h2><span class="src">claude_code_token_usage{model,type}</span></div>
+        <${TokenMix} v=${v} />
+        <div class="sub" style="margin-top:8px">Cache hit = cache read ÷ (input + cache read + cache write).</div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head"><h2>By model and environment</h2><span class="src">tokens, cost and lines carry both labels</span></div>
+      <div class="scroll"><${ModelTable} v=${v} /></div>
+    </section>
+
+    <div class="cols">
+      <section class="panel">
+        <div class="panel-head"><h2>Output by environment</h2><span class="src">commit_count and pull_request_count have no model label</span></div>
+        <div class="scroll"><${ActivityTable} v=${v} /></div>
+        <div class="sub" style="margin-top:8px">Cost per commit and per pull request divide the environment's whole cost by its commits or pull requests, so sessions that only read code count against them.</div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Edit tool decisions</h2><span class="src">claude_code_code_edit_tool_decision</span></div>
+        <div class="scroll"><${DecisionTable} v=${v} /></div>
+      </section>
+    </div>
+
+    <p class="sub" id="gen">Counts come from <code>increase()</code> of the collector's counters; the first export of a new model or environment is not counted.</p>
+  </main>
+  <${Tooltip} />`;
+};
+
+render(html`<${App} />`, document.getElementById("app"));
 </script>
 </body>
 </html>
