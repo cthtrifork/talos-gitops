@@ -10,61 +10,61 @@
 <style>
   :root {
     color-scheme: light;
-    --page: #f4f4f1; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6b6963;
-    --grid: #e1e0d9; --ring: rgba(11, 11, 11, 0.10); --accent: #1f63b5;
-    --calm: #77756f; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
+    --page: #f4f4f1; --surface: #ffffff; --ink: #141413; --ink-2: #4a4843; --muted: #6b6963;
+    --grid: #e3e2da; --ring: rgba(11, 11, 11, 0.10); --accent: #1f63b5;
+    --calm: #77756f; --ok: #1a7f4b; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --muted: #898781;
       --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
-      --calm: #8d8b85; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+      --calm: #8d8b85; --ok: #3cc58a; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --muted: #898781;
     --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
-    --calm: #8d8b85; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+    --calm: #8d8b85; --ok: #3cc58a; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 var(--font);
-    padding-block: 20px 48px;
+    margin: 0; background: var(--page); color: var(--ink); font: 16px/1.5 var(--font);
+    padding-block: 24px 48px;
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
-  main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
-  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
-  h2 { font-size: 11px; margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-  h3 { font-size: 13px; margin: 0; font-weight: 600; }
+  main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+  h1 { font-size: 24px; margin: 0; }
+  h2 { font-size: 18px; margin: 0 0 12px; font-weight: 600; }
+  h3 { font-size: 18px; margin: 0; font-weight: 600; }
   a { color: var(--accent); text-decoration: none; overflow-wrap: anywhere; }
   a:hover { text-decoration: underline; }
   a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
-  button { font: inherit; color: var(--accent); background: none; border: 1px solid var(--accent); border-radius: 6px; min-height: 32px; padding: 4px 12px; cursor: pointer; }
+  button { font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 10px; min-height: 44px; padding: 8px 18px; cursor: pointer; }
   button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
   .num { font-variant-numeric: tabular-nums; }
   .muted { color: var(--muted); }
   header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
   .strip { display: flex; flex-wrap: wrap; gap: 8px; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-  .warn { color: var(--warn); background: var(--warn-bg); }
-  .bad { color: var(--bad); background: var(--bad-bg); }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .pill::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
+  .warn { color: var(--warn); }
+  .bad { color: var(--bad); }
   /* Healthy and neutral look the same: colour is kept for what needs a look, so a problem stands out. */
-  .ok, .none { color: var(--ink-2); background: var(--grid); }
-  .ok::before, .none::before { display: none; }
+  .ok { color: var(--ok); }
+  .none { color: var(--ink-2); }
   /* Columns, not a grid or flex row: cards are packed top to bottom and the browser balances the columns, so a short card
      (no alerts, a score) never sits in a row next to a tall list and never gets stretched into a mostly empty box.
      Cards keep a fixed order. */
-  .band { column-width: 300px; column-gap: 12px; }
-  .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; break-inside: avoid; margin-bottom: 12px; }
-  .panel.compact { padding: 10px 16px; gap: 4px; }
-  .panel:target { box-shadow: 0 0 0 2px var(--accent); }
-  a.pill:hover { text-decoration: none; filter: brightness(0.94); }
+  .band { column-width: 320px; column-gap: 16px; }
+  .panel { background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; scroll-margin-top: 12px; break-inside: avoid; margin-bottom: 16px; }
+  .panel.compact { padding: 12px 18px; gap: 4px; }
+  .panel:target { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  a.pill:hover { text-decoration: underline; }
   a.pill:focus-visible { outline-offset: 1px; border-radius: 999px; }
   .hdr-r { display: flex; align-items: center; gap: 12px; }
   footer p { margin: 0 0 8px; }
@@ -85,11 +85,12 @@
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
   .limit { display: flex; flex-direction: column; gap: 6px; }
   .limit-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13px; }
-  .src { font-size: 11px; color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
+  .src { font-size: 12px; color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
   /* Nothing below the header is shown until the first data arrives: content that appears after the fetch would
      push the footer down (a layout shift of about 0.8 on the default throttled load). */
   main:not(.ready) > nav, main:not(.ready) > section, main:not(.ready) > footer { display: none; }
-  .banner { padding: 8px 12px; border-radius: 4px; font-size: 13px; }
+  .banner.bad { background: var(--bad-bg); }
+  .banner { padding: 12px 14px; border-radius: 10px; font-size: 15px; }
 </style>
 </head>
 <body>
