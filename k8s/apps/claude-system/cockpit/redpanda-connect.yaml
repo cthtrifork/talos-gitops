@@ -98,7 +98,7 @@ processor_resources:
 
       # One slot per Linux user on the VM: each has its own login and so its own limits. The users are listed here and in the sessions
       # branch of the status handler; the bare path is the older form of `claude`, kept until the VM image posts the new one.
-      - check: '@http_server_verb == "POST" && @http_server_request_path.re_match("^/api/v1/sessions/claude-vm(/(claude|claude-rc-personal))?$")'
+      - check: '@http_server_verb == "POST" && @http_server_request_path.re_match("^/api/v1/sessions/claude-vm(/(claude|claude-rc-personal|claude-k8s-helper))?$")'
         processors:
           - mapping: |
               map pct {
@@ -417,6 +417,17 @@ processor_resources:
                 - catch:
                     - mapping: 'root = {}'
               result_map: 'root.sessions."claude-vm"."claude-rc-personal" = this'
+
+            sessions_claude_k8s_helper:
+              request_map: 'root = ""'
+              processors:
+                - cache:
+                    resource: state
+                    operator: get
+                    key: session:claude-vm:claude-k8s-helper
+                - catch:
+                    - mapping: 'root = {}'
+              result_map: 'root.sessions."claude-vm"."claude-k8s-helper" = this'
 
             renovate:
               request_map: |

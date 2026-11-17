@@ -36,6 +36,7 @@ resources:
   - cockpit/externalsecret.yaml
   - cockpit/deployment.yaml
   - cockpit/service.yaml
+  - cockpit/service-ingest.yaml
   - cockpit/podmonitor.yaml
 configMapGenerator:
   - name: claude-usage-connect-config
@@ -91,6 +92,15 @@ configMapGenerator:
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - claude-md/CLAUDE.md
+  - name: claude-statusline
+    namespace: claude-system
+    options:
+      annotations:
+        # Shell scripts, not Flux templates: skip postBuild envsubst
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+    files:
+      - statusline/statusline-report
+      - statusline/run-statusline-session
   - name: claude-skills
     namespace: claude-system
     options:
