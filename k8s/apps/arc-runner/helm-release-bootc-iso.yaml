@@ -122,23 +122,12 @@ spec:
               - name: ca-certs
                 mountPath: /usr/local/share/ca-certificates/private-ca.crt
                 subPath: ca.crt
-              # Persistent rootful Podman/Buildah storage (the image build).
+              # Persistent rootful Podman storage: the OS image and bootc-image-builder, and the container it runs.
               - name: container-storage-rootful
                 mountPath: /var/lib/containers/storage
               # Job workspace: node-local ephemeral storage.
               - name: work
                 mountPath: /home/runner/_work
-              # Persistent rootless storage (Run on PR and Trivy pull and scan PR images rootless).
-              - name: container-rootless-storage
-                mountPath: /home/runner/.local/share/containers/storage
-              # Persistent DNF caches.
-              - name: dnf-cache
-                mountPath: /var/cache/dnf
-              - name: dnf-cache
-                mountPath: /home/runner/.cache/dnf
-              # Downloaded release binaries and the like, shared between builds.
-              - name: cross-run-cache
-                mountPath: /home/runner/.cache/tmp
               # Scratch space. Not persistent, so leftovers cannot pile up between builds.
               - name: tmp
                 mountPath: /tmp
@@ -186,15 +175,16 @@ spec:
             hostPath:
               path: /dev
               type: Directory
+          # sized for an ISO build: the checkout and the finished ISO (up to about 10 GiB for the offline image)
           - name: work
             emptyDir:
-              sizeLimit: 32Gi
+              sizeLimit: 16Gi
           - name: tmp
             emptyDir:
-              sizeLimit: 20Gi
+              sizeLimit: 10Gi
           - name: var-tmp
             emptyDir:
-              sizeLimit: 30Gi
+              sizeLimit: 20Gi
           - name: container-storage-rootful
             ephemeral:
               volumeClaimTemplate:
@@ -203,34 +193,7 @@ spec:
                     - ReadWriteOnce
                   resources:
                     requests:
-                      storage: 32Gi
-          - name: container-rootless-storage
-            ephemeral:
-              volumeClaimTemplate:
-                spec:
-                  accessModes:
-                    - ReadWriteOnce
-                  resources:
-                    requests:
-                      storage: 32Gi
-          - name: dnf-cache
-            ephemeral:
-              volumeClaimTemplate:
-                spec:
-                  accessModes:
-                    - ReadWriteOnce
-                  resources:
-                    requests:
-                      storage: 25Gi
-          - name: cross-run-cache
-            ephemeral:
-              volumeClaimTemplate:
-                spec:
-                  accessModes:
-                    - ReadWriteOnce
-                  resources:
-                    requests:
-                      storage: 5Gi
+                      storage: 48Gi # the OS image (up to about 8 GiB unpacked), bootc-image-builder and its osbuild store
     listenerTemplate:
       spec:
         securityContext:
