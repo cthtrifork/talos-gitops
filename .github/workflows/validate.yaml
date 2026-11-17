@@ -26,7 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup yq
-        uses: fluxcd/pkg/actions/yq@788e904c855afe0d3e000f479a17e217bf489172 # main
+        uses: fluxcd/pkg/actions/yq@be6534365d43f25d916e07e35cdaf8bc17042b30 # main
       - name: yamllint
         run: |
           pip install --quiet "yamllint==${YAMLLINT_VERSION}"
@@ -55,11 +55,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup yq
-        uses: fluxcd/pkg/actions/yq@788e904c855afe0d3e000f479a17e217bf489172 # main
+        uses: fluxcd/pkg/actions/yq@be6534365d43f25d916e07e35cdaf8bc17042b30 # main
       - name: Setup kubeconform
-        uses: fluxcd/pkg/actions/kubeconform@788e904c855afe0d3e000f479a17e217bf489172 # main
+        uses: fluxcd/pkg/actions/kubeconform@be6534365d43f25d916e07e35cdaf8bc17042b30 # main
       - name: Setup kustomize
-        uses: fluxcd/pkg/actions/kustomize@788e904c855afe0d3e000f479a17e217bf489172 # main
+        uses: fluxcd/pkg/actions/kustomize@be6534365d43f25d916e07e35cdaf8bc17042b30 # main
       # The directory is relative to the repository root; a bare "apps" matched nothing and validated nothing.
       - name: Validate manifests -- /apps
         run: ./scripts/validate.sh --dir k8s/apps
@@ -76,10 +76,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup yq
-        uses: fluxcd/pkg/actions/yq@788e904c855afe0d3e000f479a17e217bf489172 # main
+        uses: fluxcd/pkg/actions/yq@be6534365d43f25d916e07e35cdaf8bc17042b30 # main
       - name: Setup kubeconform
-        uses: fluxcd/pkg/actions/kubeconform@788e904c855afe0d3e000f479a17e217bf489172 # main
+        uses: fluxcd/pkg/actions/kubeconform@be6534365d43f25d916e07e35cdaf8bc17042b30 # main
       - name: Setup kustomize
-        uses: fluxcd/pkg/actions/kustomize@788e904c855afe0d3e000f479a17e217bf489172 # main
+        uses: fluxcd/pkg/actions/kustomize@be6534365d43f25d916e07e35cdaf8bc17042b30 # main
       - name: Build Flux Kustomization paths
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
