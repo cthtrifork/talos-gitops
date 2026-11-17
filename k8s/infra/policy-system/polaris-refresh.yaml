@@ -1,0 +1,83 @@
+# The Polaris dashboard audits the cluster once and then serves that result from memory, and the chart has no refresh option
+# (helm-release.yaml), so the score gets stale. This Job deletes the dashboard pod every day; the Deployment starts a new one,
+# which audits the cluster again on its first request. Deleting the pod, not "kubectl rollout restart", leaves the Deployment
+# unchanged, so Helm drift detection has nothing to correct.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: polaris-refresh
+  namespace: policy-system
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: polaris-refresh
+  namespace: policy-system
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: polaris-refresh
+  namespace: policy-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: polaris-refresh
+subjects:
+  - kind: ServiceAccount
+    name: polaris-refresh
+    namespace: policy-system
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: polaris-refresh
+  namespace: policy-system
+spec:
+  schedule: "17 4 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: polaris-refresh
+          automountServiceAccountToken: true # the ServiceAccount default is false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: refresh
+              image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
+              command:
+                - bash
+                - -eu
+                - -c
+                - |
+                  kubectl delete pod -n policy-system -l app=polaris,component=dashboard --wait=false
+                  kubectl wait pod -n policy-system -l app=polaris,component=dashboard --for=condition=Ready --timeout=120s
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - "ALL"
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 128Mi
