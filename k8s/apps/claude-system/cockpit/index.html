@@ -404,8 +404,8 @@ const RenovateRunsPanel = ({ d }) => {
   const next = nexts.length ? Math.min(...nexts) : 0;
   const showHeadline = jobs.length > 0 && (next > 0 || live.length === 0);
   return html`<${Panel} title=${title} state=${failed ? "bad" : approval ? "warn" : "ok"} text=${failed ? failed + " failed" : approval ? approval + " need approval" : "all done"} d=${d}>
-    ${showHeadline && html`<div class="big num" ...${next ? { title: "Schedule (UTC): " + live.map((j) => j.schedule).join(", ") } : {}}>
-      ${next ? until(Math.round((next - Date.now()) / 1000)) : "suspended"}<small>${next ? " until the next run" : " no run is scheduled"}</small>
+    ${showHeadline && html`<div class="num" style="margin-bottom: 10px" ...${next ? { title: "Schedule (UTC): " + live.map((j) => j.schedule).join(", ") } : {}}>
+      ${next ? html`Next run in <strong>${until(Math.round((next - Date.now()) / 1000))}</strong>` : html`<${Muted}>No run is scheduled<//>`}
     </div>`}
     <ul class="rows">
       ${ps.map((x) => {
