@@ -7,6 +7,26 @@ import sys
 import yaml
 
 APP_ROOT = Path("k8s/apps")
+INFRA_ROOT = Path("k8s/infra")
+# Files in k8s/infra that existed before the check covered it: vendored operator bundles and files that pair two kinds.
+# Do not add to this list: split a new file by kind instead.
+LEGACY_INFRA_FILES = frozenset(
+    Path(name)
+    for name in (
+        "k8s/infra/kube-prometheus-stack/networkpolicy.yaml",
+        "k8s/infra/kubevirt/cdi-operator.yaml",
+        "k8s/infra/kubevirt/kubevirt-operator.yaml",
+        "k8s/infra/post/cert-manager/certificate-cluster-issuer.yaml",
+        "k8s/infra/post/cilium/l2announcement.yaml",
+        "k8s/infra/post/flux-system/ingressroute.yaml",
+        "k8s/infra/post/metallb/l2announcement.yaml",
+        "k8s/infra/secret-store/generated-secrets.yaml",
+        "k8s/infra/security-system/dependency-track/config-job.yaml",
+        "k8s/infra/security-system/dependency-track/external-secret-vex-github.yaml",
+        "k8s/infra/security-system/dependency-track/vex-export.yaml",
+        "k8s/infra/security-system/trivy-operator/rbac-extra.yaml",
+    )
+)
 ALIASES = {
     "CiliumNetworkPolicy": {"networkpolicy"},
     "OCIRepository": {"helm-repository"},
@@ -75,7 +95,9 @@ def check_file(path: Path) -> list[str]:
 
 def main() -> int:
     failed = False
-    for path in manifest_files(APP_ROOT):
+    paths = [*manifest_files(APP_ROOT)]
+    paths += [path for path in manifest_files(INFRA_ROOT) if path not in LEGACY_INFRA_FILES]
+    for path in paths:
         mismatched_kinds = check_file(path)
         if mismatched_kinds:
             if len(mismatched_kinds) > 1:
