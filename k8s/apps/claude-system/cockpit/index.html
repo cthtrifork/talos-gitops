@@ -495,9 +495,7 @@
     }
     if (d.renovate) {
       var bad = d.renovate.projects.filter(function (x) { return /fail|error/i.test(x.status + " " + x.result); }).length;
-      var na = d.renovate.projects.reduce(function (n, x) { return n + x.needs_approval; }, 0);
       if (bad) chips.push(["bad", "Renovate: " + bad + " failed", "p-renovate-runs"]);
-      else if (na) chips.push(["warn", "Renovate: " + na + " need approval", "p-renovate-runs"]);
     }
     var nowS = Math.round(Date.now() / 1000), usage = usageUsers(d), top = null;
     usage.forEach(function (u) {
