@@ -101,6 +101,14 @@
   /* Nothing below the header is shown until the first data arrives: content that appears after the fetch would
      push the footer down (a layout shift of about 0.8 on the default throttled load). */
   main:not(.ready) > nav, main:not(.ready) > section, main:not(.ready) > footer { display: none; }
+  .vm { padding-top: 14px; border-top: 1px solid var(--grid); }
+  .vm:first-of-type { padding-top: 0; border-top: 0; }
+  .vm-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
+  .vm dl { display: grid; grid-template-columns: 5em 1fr; gap: 12px; margin: 12px 0 0; }
+  .vm dt { color: var(--ink-2); }
+  .vm dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .vm dd .mono { display: block; font-weight: 400; color: var(--ink-2); }
+  .vm dd .note { display: block; font-weight: 400; color: var(--warn); }
   .banner.bad { background: var(--bad-bg); }
   .banner { padding: 12px 14px; border-radius: 10px; font-size: var(--fs-md); }
 </style>
@@ -431,6 +439,15 @@ const RenovateRunsPanel = ({ d }) => {
 };
 
 const VM_NAMES = { "claude-vm": "Claude VM", homeserver: "Home server" };
+// One VM as on the Update VMs page: a name with its health, then Running / Staged / Latest, each a value with its digest below.
+const VmBlock = ({ name, state, health, running, digest, staged, latest, latestDigest }) => html`<div class="vm">
+  <div class="vm-head"><strong class="row-st" data-st=${state}>${name}</strong><${Muted}>${health}<//></div>
+  <dl>
+    <dt>Running</dt><dd>${running}${digest && html`<span class="mono">${digest}</span>`}</dd>
+    <dt>Staged</dt><dd>${staged}</dd>
+    <dt>Latest</dt><dd class=${latest.cls}>${latest.text}${latestDigest && html`<span class="mono">${latestDigest}</span>`}</dd>
+  </dl>
+</div>`;
 const VersionsPanel = ({ d }) => {
   const title = "Running versions";
   const vms = d.vm_upgrade?.vms;
@@ -438,26 +455,29 @@ const VersionsPanel = ({ d }) => {
   const now = d.vm_upgrade.now || Math.round(Date.now() / 1000);
   let worst = "ok";
   let label = "reporting";
-  const items = ["claude-vm", "homeserver"].map((name) => {
+  const blocks = ["claude-vm", "homeserver"].map((name) => {
     const x = vms[name] || {};
     const vm = x.vm || {};
     const age = x.last_poll_at ? now - x.last_poll_at : null;
     const latest = d.vm_images?.[name]?.digest;
-    const behind = latest && vm.booted_digest && latest !== vm.booted_digest;
+    const behind = latest && vm.booted_digest && latest !== vm.booted_digest && !vm.staged_version;
     const state = age === null || age > STALE_AFTER ? "bad" : vm.staged_version || behind ? "warn" : "ok";
     if (state === "bad") { worst = "bad"; label = "not responding"; }
     else if (state === "warn" && worst !== "bad") { worst = "warn"; label = vm.staged_version ? "Reboot pending" : "Update available"; }
-    const bits = [];
-    if (age === null) bits.push("has not reported");
-    else if (age > STALE_AFTER) bits.push(`last poll ${ago(age)} ago`);
-    if (vm.staged_version) bits.push("staged " + vm.staged_version);
-    else if (behind) bits.push("newer image");
-    else if (latest) bits.push("Up to date");
-    const booted = vm.booted_version ? vm.booted_version + (vm.booted_digest ? " · " + vm.booted_digest.slice(0, 12) : "") : "unknown";
-    return { title: VM_NAMES[name] || name, state, sub: bits.join(" · "), right: html`<span class="muted num mono">${booted}</span>` };
+    const health = age === null ? "has not reported" : age > STALE_AFTER ? `last poll ${ago(age)} ago` : `polled ${ago(age)} ago`;
+    return {
+      name: VM_NAMES[name] || name,
+      state,
+      health,
+      running: vm.booted_version || "unknown",
+      digest: vm.booted_digest?.slice(0, 12),
+      staged: vm.staged_version ? html`${vm.staged_version}<span class="note">applies on the next reboot</span>` : "none",
+      latest: !latest ? { text: "unknown" } : behind ? { text: "Newer image", cls: "warn" } : { text: "Up to date", cls: "ok" },
+      latestDigest: latest?.slice(0, 12),
+    };
   });
   return html`<${Panel} title=${title} state=${worst} text=${label} d=${d}>
-    <${Rows} items=${items} />
+    ${blocks.map((b) => html`<${VmBlock} key=${b.name} ...${b} />`)}
     ${!d.vm_images && html`<${Muted}>The registry did not answer, so newer images are not shown.<//>`}
   <//>`;
 };
