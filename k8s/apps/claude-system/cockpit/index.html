@@ -180,12 +180,9 @@ function fluxTotals(d) {
   }
   return t;
 }
-// The Linux users that reported anything in the last 24 hours, as [name, session].
-function usageUsers(d) {
-  const m = d.sessions?.["claude-vm"] || {};
-  return Object.keys(m).sort().filter((k) => m[k]?.received_at).map((k) => [k, m[k]]);
-}
-// The usage of one Linux user: both windows, and which of them is closer to its limit (that one gets a bar).
+// The usage the claude-rc pod reported in the last 24 hours, or nothing.
+const usageSession = (d) => (d.usage?.received_at ? d.usage : null);
+// The usage: both windows, and which of them is closer to its limit (that one gets a bar).
 function usageBlock(s, now) {
   const age = now - s.received_at;
   const windows = [["5-hour window", s.five_hour], ["7-day window", s.seven_day]].map(([name, w]) => {
@@ -231,16 +228,13 @@ function stripChips(d) {
   }
   const failed = d.renovate?.projects.filter(isFailed).length;
   if (failed) add("bad", `Renovate: ${failed} failed`, "p-renovate-runs");
-  // The highest 7-day usage among the users whose numbers are fresh and not past their reset.
+  // The 7-day usage, unless it is stale or past its reset.
   const now = Math.round(Date.now() / 1000);
-  const users = usageUsers(d);
-  let top = null;
-  for (const [name, s] of users) {
-    const w = s.seven_day?.used_pct;
-    if (now - s.received_at > 6 * 3600 || w === null || w === undefined || (s.seven_day.resets_at && s.seven_day.resets_at < now)) continue;
-    if (!top || w > top.w) top = { w, name };
+  const u = usageSession(d);
+  const w = u?.seven_day?.used_pct;
+  if (u && now - u.received_at <= 6 * 3600 && w !== null && w !== undefined && !(u.seven_day.resets_at && u.seven_day.resets_at < now)) {
+    add(usedState(w, 90), `Claude 7-day ${w}%`, "p-claude-usage");
   }
-  if (top) add(usedState(top.w, 90), `Claude 7-day ${top.w}%` + (users.length > 1 ? ` (${top.name})` : ""), "p-claude-usage");
   const order = { bad: 0, warn: 1, none: 2, ok: 3 };
   return chips.sort((a, b) => order[a.state] - order[b.state]);
 }
@@ -468,9 +462,9 @@ const VersionsPanel = ({ d }) => {
   <//>`;
 };
 
-// The usage of one Linux user: a bar for the window closer to its limit, the other as a line.
+// The usage: a bar for the window closer to its limit, the other as a line.
 const UsageBlock = ({ s, b, now }) => {
-  const notes = [`Updated ${ago(b.age)} ago`, s.model, s.version && "Claude Code " + s.version].filter(Boolean);
+  const notes = [`Updated ${ago(b.age)} ago`];
   return html`<div class="limit">
       ${b.windows.map((w, i) => {
         const suffix = w.resets_at && !w.over ? " · resets in " + until(w.resets_at - now) : w.over ? " · window has reset" : "";
@@ -481,23 +475,19 @@ const UsageBlock = ({ s, b, now }) => {
           ${i === b.main && html`<${Bar} label=${`${w.name}, ${w.used === null ? "no data" : w.used + " percent used"}`} parts=${w.used === null ? [] : [{ pct: w.used, color: usedColor(w.used, 90) }]} />`}`;
       })}
     </div>
-    <${Muted}>${notes.join(" · ") + (b.stale ? ". Older than 6 hours, so the VM may be idle." : "")}<//>`;
+    <${Muted}>${notes.join(" · ") + (b.stale ? ". Older than 6 hours, so the poller may be failing." : "")}<//>`;
 };
 const UsagePanel = ({ d }) => {
   const title = "Claude usage";
-  if (!d.sessions) return html`<${Unavailable} title=${title} source="claude-vm status line → cockpit" d=${d} />`;
-  const users = usageUsers(d);
-  if (!users.length) {
-    return html`<${Panel} title=${title} state="none" text="no data" d=${d}><${Muted}>Nothing received in the last 24 hours. The Claude VM sends it while Claude Code is in use.<//><//>`;
+  if (!d.usage) return html`<${Unavailable} title=${title} source="usage-poller → cockpit" d=${d} />`;
+  const s = usageSession(d);
+  if (!s) {
+    return html`<${Panel} title=${title} state="none" text="no data" d=${d}><${Muted}>Nothing received in the last 24 hours. The usage-poller container of claude-rc sends it every 5 minutes.<//><//>`;
   }
   const now = Math.round(Date.now() / 1000);
-  const blocks = users.map(([, s]) => usageBlock(s, now));
-  const live = blocks.filter((b) => !b.stale);
-  const worst = Math.max(0, ...live.map((b) => b.worst));
-  return html`<${Panel} title=${title} state=${!live.length ? "none" : usedState(worst, 90)} text=${!live.length ? "stale" : `peak ${worst}%`} d=${d}>
-    ${users.map(([name, s], i) => html`
-      ${/* with several users each block is named; with one the panel reads as before */ users.length > 1 && html`<strong>${name}</strong>`}
-      <${UsageBlock} s=${s} b=${blocks[i]} now=${now} />`)}
+  const b = usageBlock(s, now);
+  return html`<${Panel} title=${title} state=${b.stale ? "none" : usedState(b.worst, 90)} text=${b.stale ? "stale" : `peak ${b.worst}%`} d=${d}>
+    <${UsageBlock} s=${s} b=${b} now=${now} />
   <//>`;
 };
 

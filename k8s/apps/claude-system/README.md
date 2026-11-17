@@ -375,8 +375,8 @@ flowchart LR
 
   cockpit -->|"GET /api/v1/status"| vmup[claude-vm-upgrade]
   cockpit -->|"latest image digest"| ghcr[ghcr.io :443]
-  vm[claude-vm status line] -->|"POST /api/v1/sessions/claude-vm/&lt;user&gt;<br/>5 h and 7 d usage, model, version"| lb["claude-cockpit-lb 192.168.1.246 :80<br/>LAN, VM address only"]
-  lb -->|":8081"| cockpit
+  poller["claude-rc usage-poller"] -->|"POST /api/v1/usage<br/>5 h and 7 d usage"| ingest["claude-cockpit-ingest :8081<br/>claude-rc pod only"]
+  ingest --> cockpit
 
   classDef new fill:#e4eefb,stroke:#2a78d6,stroke-width:2px,color:#0b0b0b
   class cockpit new
@@ -389,19 +389,17 @@ flowchart LR
 | Polaris score | `polaris-dashboard` `/results.json` |
 | Pull requests, issues | GitHub search over all repositories of the owner the App is installed on (private ones included), with the cockpit's own one-hour read-only App token (`githubaccesstoken.yaml`, `externalsecret.yaml`) |
 | Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io`, read with the runner's `ghcr-pull` read:packages token (`homeserver-bootc` is a private package) |
-| Claude usage | Pushed by the Claude VM's status line (`statusline-report` in [homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)) to `POST /api/v1/sessions/claude-vm/<user>` on `:8081`, one slot per Linux user (`claude`, `claude-rc-personal`: each has its own login, so its own limits), kept in memory for 24 hours. The bare `/api/v1/sessions/claude-vm` is the older form of `claude`. The `claude-rc` pod posts as `claude-k8s-helper` from its `statusline` container (see "Claude usage from the pod"). A new user needs adding in two places in `redpanda-connect.yaml`: the ingest check and a branch in the status handler |
+| Claude usage | Pushed every 5 minutes by the `usage-poller` container of `claude-rc` (see "Claude usage from the pod") to `POST /api/v1/usage` on `:8081`, one value kept in memory for 24 hours |
 
-The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in `192.168.1.138/32` only and the LoadBalancer uses
-`externalTrafficPolicy: Local`, so a spoofed address could only change what the page shows. The one manual step is a Cloudflare `A` record (DNS only)
-`cockpit` -> `192.168.1.246`; check that address is free first. Until it exists the page shows "no data" for usage.
+The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in the `app=claude-rc` pod only, through the ClusterIP Service
+`claude-cockpit-ingest`, so a spoofed sender could only change what the page shows.
 
 ### Claude usage from the pod
 
-`claude remote-control` is a server without a terminal UI, so its sessions never run a `statusLine` (the Claude VM works around that with an interactive
-claude in tmux, see `claude-statusline@.service` in [homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)). The `usage-poller` container of
+`claude remote-control` is a server without a terminal UI, so its sessions never run a `statusLine`. The `usage-poller` container of
 `claude-rc` instead asks `GET https://api.anthropic.com/api/oauth/usage`, the endpoint behind Claude Code's `/usage`, every 5 minutes (`POLL_INTERVAL`)
 with the login on `claude-home`, mounted read-only. It posts the two windows (percentage and reset time in epoch seconds) to
-`http://claude-cockpit-ingest.claude-system.svc:8081/api/v1/sessions/claude-vm/claude-k8s-helper`; model and version stay empty. The script comes from the
+`http://claude-cockpit-ingest.claude-system.svc:8081/api/v1/usage`. The script comes from the
 `claude-usage-poller` ConfigMap and only logs when a poll fails. `CiliumNetworkPolicy/claude-cockpit` lets only `app=claude-rc` in on `:8081`.
 
 Caveats: the endpoint is undocumented (its `anthropic-beta` header is an internal detail) and can change. A long-lived `claude setup-token` token answers
@@ -412,7 +410,7 @@ Check after Flux applied it:
 
 ```sh
 kubectl -n claude-system get pods -l app=claude-cockpit
-curl -s -XPOST -d '{}' http://cockpit.portableinfo.cloud/api/v1/sessions/claude-vm/claude   # from the VM: {"ok":true}
+kubectl -n claude-system logs deploy/claude-rc -c usage-poller --tail=3                 # "posted" every 5 minutes
 kubectl -n claude-system port-forward deploy/claude-cockpit 8080:8080                # needs the debug tier
 curl -s localhost:8080/api/v1/status | jq 'keys, .meta'                               # meta.workflow.failed names a source that did not answer
 ```

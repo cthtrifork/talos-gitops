@@ -9,7 +9,7 @@ set -u
 creds="$HOME/.claude/.credentials.json"
 interval="${POLL_INTERVAL:-300}"
 usage_url=https://api.anthropic.com/api/oauth/usage
-cockpit_url="${COCKPIT_URL:-http://claude-cockpit-ingest.claude-system.svc:8081/api/v1/sessions/claude-vm/${COCKPIT_USER:-claude-k8s-helper}}"
+cockpit_url="${COCKPIT_URL:-http://claude-cockpit-ingest.claude-system.svc:8081/api/v1/usage}"
 
 poll() {
     local tok reply code body payload

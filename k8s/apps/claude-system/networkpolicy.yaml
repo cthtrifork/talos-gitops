@@ -369,7 +369,7 @@ spec:
             - port: "443"
               protocol: TCP
 ---
-# Cockpit: the Omni exposer (host, remote-node) on 8080, Prometheus on the metrics port only, the Claude VM on 8081.
+# Cockpit: the Omni exposer (host, remote-node) on 8080, Prometheus on the metrics port only, the claude-rc pod on 8081.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -399,13 +399,6 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:app: claude-rc
-      toPorts:
-        - ports:
-            - port: "8081"
-              protocol: TCP
-    # the Claude VM status line, through claude-cockpit-lb; the address is the only check
-    - fromCIDR:
-        - 192.168.1.138/32 # claude-vm
       toPorts:
         - ports:
             - port: "8081"
