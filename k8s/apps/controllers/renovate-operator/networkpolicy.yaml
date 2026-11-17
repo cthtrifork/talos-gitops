@@ -102,6 +102,8 @@ spec:
         - matchName: mcr.microsoft.com
         - matchName: cgr.dev
         - matchName: registry.access.redhat.com
+        # cthtrifork/kglance builds in registry.fedoraproject.org/fedora
+        - matchName: registry.fedoraproject.org
         - matchName: registry.k8s.io
         - matchName: cdn.registry.k8s.io
         # registry.k8s.io redirects image requests to Artifact Registry (europe-west4-docker.pkg.dev, ...)
