@@ -239,6 +239,17 @@
   "customManagers": [
     {
       "customType": "regex",
+      "description": "npm packages the cockpit page imports from jsDelivr (cdn.jsdelivr.net/npm/<package>@<version>/...)",
+      "managerFilePatterns": [
+        "/^k8s/apps/claude-system/cockpit/index\\.html$/"
+      ],
+      "matchStrings": [
+        "https://cdn\\.jsdelivr\\.net/npm/(?<depName>(?:@[^/@\"'\\s]+/)?[^/@\"'\\s]+)@(?<currentValue>[^/\"'\\s]+)/"
+      ],
+      "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
       "description": "Catch image references with renovate comment",
       "managerFilePatterns": [
         "/.*\\.ya?ml$/"
