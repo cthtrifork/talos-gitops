@@ -273,6 +273,25 @@ spec:
             - linuxHardening
             - insecureCapabilities
             - notReadOnlyRootFilesystem
+        # The pods local-path-provisioner starts per PVC (helper-pod-create-pvc-<uid>, helper-pod-delete-pvc-<uid>): an untagged
+        # busybox from its helperPod template that mkdirs and chmods the host path, as root, without probes or resources.
+        # They live for seconds, but a dashboard audit that lands on one (Trivy scans create a PVC each) fails on all of these.
+        - namespace: local-path-storage
+          controllerNames:
+            - helper-pod-
+          rules:
+            - runAsRootAllowed
+            - privilegeEscalationAllowed
+            - linuxHardening
+            - insecureCapabilities
+            - notReadOnlyRootFilesystem
+            - tagNotSpecified
+            - hostPathSet
+            - cpuRequestsMissing
+            - memoryRequestsMissing
+            - memoryLimitsMissing
+            - livenessProbeMissing
+            - readinessProbeMissing
         # adguard-home runs non-root with only NET_BIND_SERVICE, but its binary's file capability needs
         # allowPrivilegeEscalation (no_new_privs off) to take effect; see the comment in its Deployment
         - controllerNames:
