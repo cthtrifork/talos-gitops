@@ -4,9 +4,9 @@
 # GitHub's runners and only the `upload` job runs here, so the build steps, PR-modified actions and third-party actions
 # never see FILESERVER_TOKEN.
 #
-# Every job on this scale set can read the token. github-runner-bootc is a public repository, so restrict the
-# runner group of this scale set to that repository's `main` branch (GitHub > Settings > Actions > Runner groups > Selected
-# workflows), and keep `environment: file-upload` (deployment branch `main`) on the job.
+# Every job on this scale set can read the token. github-runner-bootc is a public repository under a personal account (no
+# runner groups), so the repository-level registration is the boundary: keep write access to that repository to yourself,
+# require approval for outside collaborators' workflow runs, and keep `environment: file-upload` (branch main) on the job.
 #
 # Select it with `runs-on: arc-files-bootc`. minRunners is 0, so it costs nothing while unused. Needs the Secret github-auth-bootc-files
 # (bootc-files-auth.enc.yaml).
