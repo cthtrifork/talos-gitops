@@ -1,7 +1,10 @@
-# The Polaris dashboard audits the cluster once and then serves that result from memory, and the chart has no refresh option
-# (helm-release.yaml), so the score gets stale. This Job deletes the dashboard pod every day; the Deployment starts a new one,
-# which audits the cluster again on its first request. Deleting the pod, not "kubectl rollout restart", leaves the Deployment
-# unchanged, so Helm drift detection has nothing to correct.
+# The Polaris dashboard audits the cluster once, on its first request, and then serves that result from memory; the chart has
+# no refresh option (helm-release.yaml), so the score goes stale. This CronJob follows Flux: it reads the revision that the
+# Flux Kustomizations last applied and, when it has changed and all of them are Ready (or after 24 hours), deletes the
+# dashboard pod and requests /results.json from the new one, which runs the audit. Flux itself cannot start a Job (a Receiver
+# only reconciles Flux objects, an Alert only sends events out), so the CronJob polls the status that Flux publishes.
+# Deleting the pod, not "kubectl rollout restart", leaves the Deployment unchanged, so Helm drift detection has nothing to
+# correct. The last revision is kept in the ConfigMap polaris-refresh-state, which the Job creates (not part of the manifests).
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -16,9 +19,23 @@ metadata:
   name: polaris-refresh
   namespace: policy-system
 rules:
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+      - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -34,21 +51,90 @@ subjects:
     name: polaris-refresh
     namespace: policy-system
 ---
+# Read the Flux Kustomizations' status
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: polaris-refresh-flux-read
+rules:
+  - apiGroups:
+      - kustomize.toolkit.fluxcd.io
+    resources:
+      - kustomizations
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: polaris-refresh-flux-read
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: polaris-refresh-flux-read
+subjects:
+  - kind: ServiceAccount
+    name: polaris-refresh
+    namespace: policy-system
+---
+# The Job asks the dashboard for /results.json (the new pod audits on that first request)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: polaris-refresh
+  namespace: policy-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: polaris-refresh
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app: polaris
+            component: dashboard
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: polaris-dashboard-ingress-refresh
+  namespace: policy-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: polaris
+      component: dashboard
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: polaris-refresh
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: polaris-refresh
   namespace: policy-system
 spec:
-  schedule: "17 4 * * *"
+  schedule: "*/10 * * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      backoffLimit: 2
+      backoffLimit: 0
       activeDeadlineSeconds: 300
       template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: polaris-refresh # selected by the network policy
         spec:
           restartPolicy: Never
           serviceAccountName: polaris-refresh
@@ -67,8 +153,22 @@ spec:
                 - -eu
                 - -c
                 - |
+                  # all Kustomizations must be Ready, otherwise Flux is still applying
+                  pending=$(kubectl get kustomization -A -o json | jq '[.items[] | select(any(.status.conditions[]?; .type == "Ready" and .status == "True") | not)] | length')
+                  if [ "$pending" != "0" ]; then echo "$pending Kustomization(s) not Ready, try again later"; exit 0; fi
+                  rev=$(kubectl get kustomization -A -o json | jq -r '[.items[].status.lastAppliedRevision] | unique | join(",")')
+                  kubectl get configmap polaris-refresh-state -n policy-system >/dev/null 2>&1 || kubectl create configmap polaris-refresh-state -n policy-system --from-literal=revision= --from-literal=at=0
+                  last=$(kubectl get configmap polaris-refresh-state -n policy-system -o jsonpath='{.data.revision}')
+                  at=$(kubectl get configmap polaris-refresh-state -n policy-system -o jsonpath='{.data.at}')
+                  now=$(date +%s)
+                  if [ "$rev" = "$last" ] && [ $((now - at)) -lt 86400 ]; then echo "Flux revision unchanged ($rev), nothing to do"; exit 0; fi
+                  echo "refreshing the Polaris dashboard: Flux revision $last -> $rev"
                   kubectl delete pod -n policy-system -l app=polaris,component=dashboard --wait=false
+                  sleep 5
                   kubectl wait pod -n policy-system -l app=polaris,component=dashboard --for=condition=Ready --timeout=120s
+                  # the first request runs the audit
+                  curl -fsS -o /dev/null --max-time 120 http://polaris-dashboard.policy-system.svc.cluster.local/results.json
+                  kubectl patch configmap polaris-refresh-state -n policy-system --type merge -p "{\"data\":{\"revision\":\"$rev\",\"at\":\"$now\"}}"
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
