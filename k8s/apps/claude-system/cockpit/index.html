@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <title>Cockpit</title>
+<meta name="description" content="Read-only status of the homelab cluster: traffic, alerts, Flux, GitHub and Renovate.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f63b5'/%3E%3Cpath d='M7 21a9 9 0 0 1 18 0' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M16 21l5-7' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='21' r='2' fill='%23fff'/%3E%3C/svg%3E">
 <style>
   :root {
     color-scheme: light;
@@ -35,7 +37,7 @@
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
-  main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+  main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
   h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
   h2 { font-size: 11px; margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
   h3 { font-size: 13px; margin: 0; font-weight: 600; }
@@ -55,17 +57,17 @@
   /* Healthy and neutral look the same: colour is kept for what needs a look, so a problem stands out. */
   .ok, .none { color: var(--ink-2); background: var(--grid); }
   .ok::before, .none::before { display: none; }
-  /* Wrapping flex, not a grid: the last row stretches to the full width instead of leaving an empty slot. */
-  .band { display: flex; flex-wrap: wrap; gap: 12px; }
-  .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1 1 min(100%, 300px); scroll-margin-top: 12px; }
+  /* Columns, not a grid or flex row: cards are packed top to bottom and the browser balances the columns, so a short card
+     (no alerts, a score) never sits in a row next to a tall list and never gets stretched into a mostly empty box.
+     Cards keep a fixed order. */
+  .band { column-width: 300px; column-gap: 12px; }
+  .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; break-inside: avoid; margin-bottom: 12px; }
   .panel.compact { padding: 10px 16px; gap: 4px; }
   .panel:target { box-shadow: 0 0 0 2px var(--accent); }
   a.pill:hover { text-decoration: none; filter: brightness(0.94); }
   a.pill:focus-visible { outline-offset: 1px; border-radius: 999px; }
   .hdr-r { display: flex; align-items: center; gap: 12px; }
   footer p { margin: 0 0 8px; }
-  .sources summary { cursor: pointer; color: var(--ink-2); }
-  .sources ul { margin-top: 6px; }
   .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .big { font-size: 30px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
   .big small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
@@ -112,7 +114,6 @@
   </section>
   <footer class="muted">
     <p>Reads only, nothing on this page changes the cluster.</p>
-    <details class="sources"><summary>Data sources</summary><ul class="rows" id="source-list"></ul></details>
   </footer>
 </main>
 <script>
@@ -137,10 +138,7 @@
     if (state !== "ok") h.appendChild(pill(state, text)); // a healthy panel stays quiet: the strip counts it
     return h;
   }
-  // A source line on every card was repeated noise: the cards stay clean and the footer lists each source once.
   // A failed source keeps its own visible line, because there the name is what the reader needs.
-  var sources = {};
-  function src(text) { sources[text] = 1; return document.createDocumentFragment(); }
   function panel() {
     var p = el("div", "panel");
     for (var i = 0; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]);
@@ -230,7 +228,6 @@
         return { title: t.source + " → " + t.destination, right: el("span", "num muted", t.count) };
       })));
     }
-    p.appendChild(src("Prometheus · hubble_drop_total · POLICY_DENIED"));
     return p;
   }
 
@@ -254,7 +251,6 @@
         p.appendChild(el("span", "muted", "and " + (n - MAX_ROWS) + " more" + (hiddenCrit ? ", " + hiddenCrit + " of them critical" : "")));
       }
     }
-    p.appendChild(src("Prometheus · /api/v1/alerts · state firing"));
     return p;
   }
 
@@ -297,7 +293,6 @@
     })));
     if (hidden > 0) p.appendChild(el("span", "muted", "and " + hidden + " more not listed"));
     if (!t.complete) p.appendChild(el("span", "muted", "One of the two lists did not answer, so the counts are partial."));
-    p.appendChild(src("Kubernetes API · kustomizations, helmreleases"));
     return p;
   }
 
@@ -313,7 +308,6 @@
     line.appendChild(document.createTextNode(" · " + x.danger + " danger · " + x.warning + " warning"));
     p.appendChild(line);
     p.appendChild(el("span", "muted", "Audited " + String(x.audit_time).replace("T", " ").replace("Z", " UTC")));
-    p.appendChild(src("polaris-dashboard · /results.json"));
     return p;
   }
 
@@ -341,7 +335,6 @@
       var rest = d.disk.length - hot.length;
       if (rest) p.appendChild(el("span", "muted", rest + (rest === 1 ? " other node" : " other nodes") + " under " + SHOW + "%"));
     }
-    p.appendChild(src("Prometheus · node_filesystem_* · /var/mnt/local-path-provisioner"));
     return p;
   }
 
@@ -350,15 +343,29 @@
       return { title: i.repo + "#" + i.number, href: i.url, sub: i.title + " · " + i.author, right: el("span", "muted num", ago(Math.max(0, Math.round((Date.now() - Date.parse(i.updated)) / 1000)))) };
     }));
   }
+  // The same filter the cockpit uses, as a GitHub search, so "more on GitHub" opens the whole list.
+  function ghSearch(group, d) {
+    var q = "is:open archived:false user:cthtrifork";
+    var bot = d.github.renovate && d.github.renovate.items[0] && d.github.renovate.items[0].author;
+    var app = bot ? "author:app/" + bot.replace(/\[bot\]$/, "") : null;
+    if (group === "issues") q += ' is:issue NOT "Dependency Dashboard" in:title';
+    else q += " is:pr -is:draft" + (group === "renovate" ? (app ? " " + app : " renovate") : app ? " -" + app : "");
+    return "https://github.com/search?type=issues&s=updated&o=desc&q=" + encodeURIComponent(q);
+  }
   function ghPanel(title, group, d, emptyText, state) {
     var g = d.github && d.github[group];
     if (!g) return unavailable(title, "GitHub API · search/issues");
     var p = panel(head(title, state(g.count), g.count + " open"));
     if (g.count === 0) { p.classList.add("compact"); p.appendChild(el("span", "muted", emptyText)); }
     else p.appendChild(prRows(g.items));
-    if (g.count > g.items.length) p.appendChild(el("span", "muted", g.count - g.items.length + " more on GitHub"));
+    if (g.count > g.items.length) {
+      var more = el("a", null, g.count - g.items.length + " more on GitHub");
+      more.href = ghSearch(group, d);
+      more.rel = "noopener noreferrer";
+      more.target = "_blank";
+      p.appendChild(more);
+    }
     if (d.github.truncated) p.appendChild(el("span", "muted", "More than 100 are open, so the counts are a lower bound."));
-    p.appendChild(src("GitHub API · search/issues"));
     return p;
   }
   function prsPanel(d) { return ghPanel("Pull requests", "other", d, "No open pull requests.", function (n) { return n ? "warn" : "ok"; }); }
@@ -381,9 +388,10 @@
       if (x.automerged) bits.push(x.automerged + " automerged");
       if (x.unchanged) bits.push(x.unchanged + " unchanged");
       var st = /fail|error/i.test(x.status + " " + x.result) ? "bad" : x.status === "completed" ? "ok" : "warn";
-      return { title: x.project, sub: bits.join(" · ") || "no changes", right: pill(st, x.status) };
+      // The Dependency Dashboard issue of the repo, found by search because the issue number is not in the data.
+      var dash = "https://github.com/search?type=issues&q=" + encodeURIComponent("repo:cthtrifork/" + x.project + ' is:issue is:open "Dependency Dashboard" in:title');
+      return { title: x.project, href: dash, sub: bits.join(" · ") || "no changes", right: pill(st, x.status) };
     })));
-    p.appendChild(src("Kubernetes API · renovateprojects (status, duration, prActivity)"));
     return p;
   }
 
@@ -420,7 +428,6 @@
     var p = panel(head(title, worst, label));
     p.appendChild(rows(items));
     if (!d.vm_images) p.appendChild(el("span", "muted", "The registry did not answer, so newer images are not shown."));
-    p.appendChild(src("claude-vm-upgrade · /api/v1/status · ghcr.io latest digest"));
     return p;
   }
   function usagePanel(d) {
@@ -430,7 +437,6 @@
     if (!users.length) {
       var e = panel(head(title, "none", "no data"));
       e.appendChild(el("span", "muted", "Nothing received in the last 24 hours. The Claude VM sends it while Claude Code is in use."));
-      e.appendChild(src("claude-vm status line → cockpit · rate_limits"));
       return e;
     }
     var now = Math.round(Date.now() / 1000);
@@ -445,7 +451,6 @@
       p.appendChild(b.box);
       if (b.note) p.appendChild(b.note);
     });
-    p.appendChild(src("claude-vm status line → cockpit · rate_limits"));
     return p;
   }
   // The usage of one Linux user: a bar for the window closer to its limit, the other as a line.
@@ -509,9 +514,7 @@
     }
     if (d.renovate) {
       var bad = d.renovate.projects.filter(function (x) { return /fail|error/i.test(x.status + " " + x.result); }).length;
-      var na = d.renovate.projects.reduce(function (n, x) { return n + x.needs_approval; }, 0);
       if (bad) chips.push(["bad", "Renovate: " + bad + " failed", "p-renovate-runs"]);
-      else if (na) chips.push(["warn", "Renovate: " + na + " need approval", "p-renovate-runs"]);
     }
     var nowS = Math.round(Date.now() / 1000), usage = usageUsers(d), top = null;
     usage.forEach(function (u) {
@@ -525,11 +528,6 @@
     return chips;
   }
 
-  var SEV = { bad: 0, warn: 1, none: 2, ok: 3 };
-  function sev(p) {
-    var h = p.querySelector(".panel-head");
-    return h && h.dataset.state in SEV ? SEV[h.dataset.state] : 2;
-  }
   function slug(t) { return "p-" + t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
   // Swap a container's contents in one go. A refresh must not drop keyboard focus, so a focused link is found again by its href.
   function swap(box, node) {
@@ -542,10 +540,9 @@
       return true;
     });
   }
-  // Panels are built off-screen, worst first (failing, warning, neutral, healthy), so a problem is never below the fold.
+  // Panels are built off-screen and keep the order they are listed in, so each one stays where it was last time.
   function fill(id, fns, d) {
-    var ps = fns.map(function (fn, i) { var p = fn(d); p._i = i; p.id = slug(p.querySelector("h3").textContent); return p; });
-    ps.sort(function (x, y) { return sev(x) - sev(y) || x._i - y._i; });
+    var ps = fns.map(function (fn, i) { var p = fn(d); p.id = slug(p.querySelector("h3").textContent); return p; });
     var f = document.createDocumentFragment();
     ps.forEach(function (p) { f.appendChild(p); });
     swap(document.getElementById(id), f);
@@ -556,7 +553,6 @@
     return a;
   }
   function render(d) {
-    sources = {};
     var strip = document.createDocumentFragment();
     var all = stripChips(d);
     var shown = all.filter(function (c) { return c[0] !== "ok"; });
@@ -567,9 +563,6 @@
     fill("cluster", [dropsPanel, alertsPanel, fluxPanel, polarisPanel, diskPanel], d);
     fill("homelab", [versionsPanel, usagePanel], d);
     fill("github", [prsPanel, renovatePrsPanel, issuesPanel, renovateRunsPanel], d);
-    var sl = document.createDocumentFragment();
-    Object.keys(sources).forEach(function (t) { var li = el("li"); li.appendChild(el("span", "src", t)); sl.appendChild(li); });
-    document.getElementById("source-list").replaceChildren(sl);
     var failed = (d.meta && d.meta.workflow && d.meta.workflow.failed) || {};
     var names = Object.keys(failed);
     var banner = document.getElementById("banner");
