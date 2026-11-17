@@ -191,6 +191,22 @@ data:
         - insecureCapabilities
         - notReadOnlyRootFilesystem
       - controllerNames:
+        - helper-pod-
+        namespace: local-path-storage
+        rules:
+        - runAsRootAllowed
+        - privilegeEscalationAllowed
+        - linuxHardening
+        - insecureCapabilities
+        - notReadOnlyRootFilesystem
+        - tagNotSpecified
+        - hostPathSet
+        - cpuRequestsMissing
+        - memoryRequestsMissing
+        - memoryLimitsMissing
+        - livenessProbeMissing
+        - readinessProbeMissing
+      - controllerNames:
         - adguard-deployment
         rules:
         - privilegeEscalationAllowed
