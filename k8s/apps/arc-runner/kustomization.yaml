@@ -11,4 +11,5 @@ resources:
   - namespace.yaml
   - networkpolicy.yaml
   - secret.enc.yaml
+  - bootc-files-auth.enc.yaml
   - certificate.yaml
