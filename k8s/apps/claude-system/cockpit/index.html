@@ -35,7 +35,7 @@
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
-  main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+  main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
   h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
   h2 { font-size: 11px; margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
   h3 { font-size: 13px; margin: 0; font-weight: 600; }
@@ -55,9 +55,11 @@
   /* Healthy and neutral look the same: colour is kept for what needs a look, so a problem stands out. */
   .ok, .none { color: var(--ink-2); background: var(--grid); }
   .ok::before, .none::before { display: none; }
-  /* Wrapping flex, not a grid: the last row stretches to the full width instead of leaving an empty slot. */
-  .band { display: flex; flex-wrap: wrap; gap: 12px; }
-  .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1 1 min(100%, 300px); scroll-margin-top: 12px; }
+  /* Columns, not a grid or flex row: cards are packed top to bottom and the browser balances the columns, so a short card
+     (no alerts, a score) never sits in a row next to a tall list and never gets stretched into a mostly empty box.
+     The worst cards come first, so they land at the top of the first columns. */
+  .band { column-width: 300px; column-gap: 12px; }
+  .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; break-inside: avoid; margin-bottom: 12px; }
   .panel.compact { padding: 10px 16px; gap: 4px; }
   .panel:target { box-shadow: 0 0 0 2px var(--accent); }
   a.pill:hover { text-decoration: none; filter: brightness(0.94); }
