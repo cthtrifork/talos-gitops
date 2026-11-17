@@ -216,6 +216,13 @@
       "groupSlug": "claude-runner-tools"
     },
     {
+      "description": "Lit is loaded through an import map in the cockpit and usage pages: lit, lit-html, lit-element and @lit/reactive-element have to move together, or a page can end up with a lit-element that needs a newer lit-html than the map names.",
+      "matchFileNames": ["k8s/apps/claude-system/cockpit/index.html", "k8s/apps/claude-system/usage/index.html"],
+      "matchPackageNames": ["lit", "lit-html", "lit-element", "@lit/reactive-element"],
+      "groupName": "lit",
+      "groupSlug": "lit"
+    },
+    {
       "description": "Renovate itself (the renovate_version pin and the renovatebot/github-action) moves in one pull request and automerges for every update type, majors included. Last, so it wins over the rules above.",
       "matchPackageNames": ["renovate", "renovatebot/github-action"],
       "groupName": "renovate",
@@ -239,9 +246,9 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "npm packages the cockpit page imports from jsDelivr (cdn.jsdelivr.net/npm/<package>@<version>/...)",
+      "description": "npm packages the cockpit and usage pages load from jsDelivr, in their import map or an import (cdn.jsdelivr.net/npm/<package>@<version>/...)",
       "managerFilePatterns": [
-        "/^k8s/apps/claude-system/cockpit/index\\.html$/"
+        "/^k8s/apps/claude-system/(cockpit|usage)/index\\.html$/"
       ],
       "matchStrings": [
         "https://cdn\\.jsdelivr\\.net/npm/(?<depName>(?:@[^/@\"'\\s]+/)?[^/@\"'\\s]+)@(?<currentValue>[^/\"'\\s]+)/"
