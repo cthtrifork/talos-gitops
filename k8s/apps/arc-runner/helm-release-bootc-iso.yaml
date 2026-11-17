@@ -48,6 +48,18 @@ spec:
     containerMode: {} # no dind, no kubernetes mode
     template:
       spec:
+        # Same node as the fileserver pod: the ISO is uploaded to its upload API, and a pod-to-pod transfer between two nodes
+        # ran at 3 to 5 MB/s, against 87 MB/s on one node. The fileserver's volume is node-local (local-path), so it never
+        # moves. If that node has no room for a runner the job waits; loosen this to `preferred` if that bites.
+        affinity:
+          podAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                namespaces:
+                  - fileserver-system
+                labelSelector:
+                  matchLabels:
+                    app: fileserver
         containers:
           - name: runner
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
