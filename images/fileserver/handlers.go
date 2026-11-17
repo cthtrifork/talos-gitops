@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-//go:embed web/index.html
+//go:embed web/index.html web/htm-preact.js
 var webFS embed.FS
 
 // downloadHeaders makes every file a download, so an uploaded HTML or SVG never runs on this origin.
@@ -138,6 +138,14 @@ func adminHandler(s *Store, a *TokenAuth, max int64, cfg adminConfig) http.Handl
 		b, _ := webFS.ReadFile("web/index.html")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		_, _ = w.Write(b)
+	})
+	// The page imports htm and Preact (web/htm-preact.js, htm 3.1.1 with its bundled Preact) from this origin, so the page's CSP
+	// stays script-src 'self'. A module script cannot send X-Requested-With, so this route is not guarded; it is a static file.
+	mux.HandleFunc("GET /htm-preact.js", func(w http.ResponseWriter, r *http.Request) {
+		b, _ := webFS.ReadFile("web/htm-preact.js")
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		_, _ = w.Write(b)
 	})

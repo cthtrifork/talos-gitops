@@ -166,321 +166,401 @@
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
 </svg>
-<main>
-  <h1>Fileserver</h1>
-  <p class="sub">Public files are downloadable from the internet. Private files are only here.</p>
+<div id="app"></div>
+<script type="module">
+// htm + Preact (templates), served by the fileserver itself from web/htm-preact.js so the page's CSP stays script-src 'self'.
+import { html, render, useState, useEffect, useRef, useLayoutEffect } from "./htm-preact.js";
 
-  <section class="kpis" aria-label="Overview">
-    <div class="card wide" id="k-disk">
-      <div class="label">Disk space</div>
-      <div class="value" id="dk-val">&nbsp;</div>
-      <div class="seg" id="dk-seg" role="group" aria-label="Disk usage by public files, private files, other use and free space"></div>
-      <div class="legend" id="dk-legend"></div>
-      <div class="note" id="dk-note"></div>
+const REQUEST_HEADERS = { "X-Requested-With": "fileserver" };
+const FILTERS = [["all", "All"], ["public", "Public"], ["private", "Private"]];
+const SORTS = [
+  ["modified:-1", "Newest first"], ["modified:1", "Oldest first"], ["size:-1", "Largest first"], ["size:1", "Smallest first"],
+  ["name:1", "Name A to Z"], ["name:-1", "Name Z to A"], ["visibility:1", "Visibility"],
+];
+const COLUMNS = [["name", "Name"], ["visibility", "Visibility"], ["size", "Size", "num"], ["modified", "Modified", "hide"]];
+
+// ---- Formatting helpers ----
+
+const fmtBytes = (n) => n >= 2 ** 30 ? (n / 2 ** 30).toFixed(n >= 10 * 2 ** 30 ? 1 : 2) + " GiB" : n >= 2 ** 20 ? (n / 2 ** 20).toFixed(1) + " MiB" : n >= 1024 ? (n / 1024).toFixed(0) + " KiB" : n + " B";
+function ago(d) {
+  const s = (Date.now() - new Date(d)) / 1000;
+  if (s < 90) return "just now";
+  const m = s / 60;
+  if (m < 90) return Math.round(m) + " min ago";
+  const h = m / 60;
+  if (h < 36) return Math.round(h) + " h ago";
+  return Math.round(h / 24) + " days ago";
+}
+const mask = (t) => (t ? t.slice(0, 3) + "•".repeat(12) + t.slice(-4) : "none");
+const downloadUrl = (f) => `download/${f.visibility}/${encodeURIComponent(f.name)}`;
+
+async function call(url, opts) {
+  const r = await fetch(url, { ...opts, headers: { ...REQUEST_HEADERS, ...opts?.headers } });
+  if (!r.ok) throw new Error((await r.text()).trim() || r.statusText);
+  return r;
+}
+
+// ---- Toasts and the bar tooltip: each keeps its own state, so showing one does not re-render the page ----
+
+const toastBus = { add: () => {} };
+const toast = (text, err) => toastBus.add(text, err);
+
+const ToastHost = () => {
+  const [toasts, setToasts] = useState([]);
+  const next = useRef(0);
+  toastBus.add = (text, err) => {
+    const id = next.current++;
+    setToasts((t) => [...t, { id, text, err }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), err ? 6000 : 2500);
+  };
+  return html`<div id="toast" role="status" aria-live="polite">${toasts.map((t) => html`<div key=${t.id} ...${t.err ? { class: "err" } : {}}>${t.text}</div>`)}</div>`;
+};
+
+const tipBus = { set: () => {} };
+// A bar segment shows its tooltip under the segment, at the pointer (or the segment's middle for keyboard focus).
+const tipEvents = (lines) => {
+  const show = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    tipBus.set({ left: e.clientX || r.left + r.width / 2, top: r.bottom + 8, lines });
+  };
+  return { onPointerMove: show, onFocus: show, onPointerLeave: () => tipBus.set(null), onBlur: () => tipBus.set(null) };
+};
+const Tooltip = () => {
+  const [tip, setTip] = useState(null);
+  tipBus.set = setTip;
+  return html`<div id="tip" role="tooltip" style=${{ display: tip ? "block" : "none", left: tip ? tip.left + "px" : undefined, top: tip ? tip.top + "px" : undefined }}>
+    ${tip && html`<b>${tip.lines[0]}</b><br />${tip.lines[1]}`}
+  </div>`;
+};
+
+// ---- Buttons ----
+
+const Icon = ({ id }) => html`<svg class="i" aria-hidden="true"><use href=${"#i-" + id} /></svg>`;
+
+// A button that confirms itself for 1.5 s: its icon becomes a check mark and its label the confirmation.
+function useFlash() {
+  const [text, setText] = useState(null);
+  const timer = useRef(0);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return [text, (t) => { setText(t); clearTimeout(timer.current); timer.current = setTimeout(() => setText(null), 1500); }];
+}
+// The clipboard API needs https; the textarea fallback covers plain http.
+function copy(text, done) {
+  const fallback = () => {
+    const t = Object.assign(document.createElement("textarea"), { value: text });
+    t.setAttribute("readonly", "");
+    t.style.cssText = "position:fixed;opacity:0";
+    document.body.append(t);
+    t.select();
+    const ok = document.execCommand("copy");
+    t.remove();
+    return ok;
+  };
+  const ok = () => done("Copied");
+  const bad = () => toast("Copy failed", true);
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok, () => (fallback() ? ok() : bad()));
+  else fallback() ? ok() : bad();
+}
+
+const TokenButton = ({ icon, label, onClick, children, ...rest }) => {
+  const [flash, setFlash] = useFlash();
+  return html`<button type="button" ...${rest} class=${flash ? "ok" : undefined} onClick=${(e) => onClick(setFlash, e)}>
+    <${Icon} id=${flash ? "check" : icon} /><span class="t">${flash || label}</span>
+  </button>`;
+};
+
+// A row action: an icon button whose text shows on phones. `action(flash)` may confirm itself through `flash`.
+const RowButton = ({ icon, label, cls, action, ariaLabel }) => {
+  const [flash, setFlash] = useFlash();
+  const [busy, setBusy] = useState(false);
+  const click = async () => {
+    setBusy(true);
+    try { await action(setFlash); } finally { setBusy(false); }
+  };
+  return html`<button type="button" class=${`icon has-label ${cls}${flash ? " ok" : ""}`} title=${label} aria-label=${ariaLabel || label} disabled=${busy}
+    ...${busy ? { "aria-busy": "true" } : {}} onClick=${click}><${Icon} id=${flash ? "check" : icon} /><span class="lbl">${flash || label}</span></button>`;
+};
+
+// Delete takes two clicks: the first arms the button; it disarms after 4 s, on Esc or on blur.
+const DeleteButton = ({ file, onDelete }) => {
+  const [armed, setArmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const timer = setTimeout(() => setArmed(false), 4000);
+    const onKey = (e) => { if (e.key === "Escape") setArmed(false); };
+    document.addEventListener("keydown", onKey);
+    return () => { clearTimeout(timer); document.removeEventListener("keydown", onKey); };
+  }, [armed]);
+  const click = async () => {
+    if (!armed) return setArmed(true);
+    setArmed(false);
+    setBusy(true);
+    try { await onDelete(); } finally { setBusy(false); }
+  };
+  return html`<button type="button" class=${`icon has-label ${armed ? "danger danger-solid armed" : "ghost danger"}`} title="Delete" data-name=${file.name}
+    aria-label=${armed ? `Confirm: delete ${file.name}` : "Delete " + file.name} disabled=${busy} ...${busy ? { "aria-busy": "true" } : {}}
+    ...${armed ? { "data-armed": "1" } : {}} onClick=${click} onBlur=${() => setArmed(false)}>
+    <${Icon} id="trash" /><span class="lbl">${armed ? "Confirm delete" : "Delete"}</span>
+  </button>`;
+};
+
+// ---- Disk space and the upload token ----
+
+// The segments print their size inside only when it fits: the width of a segment follows from the bar's width.
+function useWidth(ref) {
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    setWidth(el.clientWidth);
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return width;
+}
+// The text width of each label in a segment's own style, measured on hidden `.seg > span` elements.
+function textWidths(labels) {
+  const box = document.createElement("div");
+  box.className = "seg";
+  box.style.cssText = "position:absolute;visibility:hidden;left:-9999px;width:max-content";
+  const spans = labels.map((t) => box.appendChild(Object.assign(document.createElement("span"), { textContent: t })));
+  document.body.append(box);
+  const widths = spans.map((sp) => {
+    const range = document.createRange();
+    range.selectNodeContents(sp);
+    return range.getBoundingClientRect().width;
+  });
+  box.remove();
+  return widths;
+}
+
+const DiskCard = ({ files, info, loaded }) => {
+  const { capacityBytes: cap = 0, freeBytes: free = 0 } = info;
+  const used = Math.max(0, cap - free);
+  const pct = cap ? (used / cap) * 100 : 0;
+  const by = (v) => files.filter((f) => f.visibility === v);
+  const sum = (v) => by(v).reduce((a, f) => a + f.size, 0);
+  const pub = sum("public");
+  const priv = sum("private");
+  const other = Math.max(0, used - pub - priv);
+  const sev = pct >= 92 ? "crit" : pct >= 80 ? "warn" : "";
+  const freeShare = cap ? (free / cap) * 100 : 0;
+  const freePct = freeShare > 0 && freeShare < 1 ? "<1%" : Math.round(freeShare) + "%";
+  const parts = [
+    ["pub", "Public", pub, `${by("public").length} files`],
+    ["priv", "Private", priv, `${by("private").length} files`],
+    ["oth", "Other use", other, "filesystem overhead and other data on the volume"],
+    ["free " + sev, "Free", free, freePct + " of the volume"],
+  ];
+  const shown = parts.filter((p) => p[2]);
+  const bar = useRef(null);
+  const width = useWidth(bar);
+  const room = width - 2 * Math.max(0, shown.length - 1);
+  const total = sum2(shown);
+  const labels = shown.map(([, name, bytes]) => (name === "Free" ? `${fmtBytes(bytes)} · ${freePct}` : fmtBytes(bytes)));
+  const widths = loaded ? textWidths(labels) : [];
+  const status = sev === "crit" ? ["crit", "⚠", "Almost full. Uploads will be refused."] : sev === "warn" ? ["warn", "⚠", "Getting full."] : ["ok", "✓", "Plenty of room."];
+  return html`<div class="card wide" id="k-disk">
+    <div class="label">Disk space</div>
+    <div class="value" id="dk-val">${loaded ? html`${fmtBytes(free) + " "}<small>remaining of ${fmtBytes(cap)}</small>` : " "}</div>
+    <div class="seg" id="dk-seg" role="group" aria-label="Disk usage by public files, private files, other use and free space" ref=${bar}>
+      ${loaded && shown.map(([cls, name, bytes, what], i) => {
+        const label = labels[i];
+        return html`<span key=${name} class=${cls.trim()} tabindex="0" role="img" style=${{ flex: String(bytes) }} aria-label=${`${name}: ${fmtBytes(bytes)}, ${what}`}
+          ...${tipEvents([name, `${fmtBytes(bytes)} · ${what}`])}>${total && widths[i] + 16 <= (room * bytes) / total ? label : ""}</span>`;
+      })}
     </div>
-    <div class="card" id="k-token">
-      <div class="label">Upload token <span class="sr">(internal upload API only)</span></div>
-      <div class="tok"><code id="tok-val">hidden</code></div>
-      <div class="tok">
-        <button id="tok-show" type="button" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-eye"/></svg><span class="t">Show</span></button>
-        <button id="tok-copy" type="button"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg><span class="t">Copy</span></button>
-        <button id="tok-curl" type="button" title="Copy a ready-to-run curl command"><svg class="i" aria-hidden="true"><use href="#i-terminal"/></svg><span class="t">Copy curl</span></button>
+    <div class="legend" id="dk-legend">${loaded && parts.filter(([cls, , bytes]) => !(cls === "oth" && !bytes)).map(([cls, name, bytes]) =>
+      html`<span key=${name}><i class=${"sw " + cls.split(" ")[0]}></i>${name === "Free" ? `${name} ${freePct}` : `${name} ${fmtBytes(bytes)}`}</span>`)}</div>
+    <div class="note" id="dk-note">${loaded && html`<span class=${"st st-" + status[0]}>${status[1] + " " + status[2]}</span>${`${files.length} files · ${Math.round(pct)}% used`}`}</div>
+  </div>`;
+};
+const sum2 = (parts) => parts.reduce((a, p) => a + p[2], 0);
+
+const TokenCard = ({ token, info, loaded }) => {
+  const [revealed, setRevealed] = useState(false);
+  const t = token;
+  const overdue = t.current && (Date.now() - new Date(t.rotatedAt)) / 864e5 > 35; // rotated monthly
+  return html`<div class="card" id="k-token">
+    <div class="label">Upload token <span class="sr">(internal upload API only)</span></div>
+    <div class="tok"><code id="tok-val">${revealed ? t.current || "none" : loaded ? mask(t.current) : "hidden"}</code></div>
+    <div class="tok">
+      <button id="tok-show" type="button" aria-pressed=${String(revealed)} onClick=${() => setRevealed(!revealed)}>
+        <${Icon} id=${revealed ? "eye-off" : "eye"} /><span class="t">${revealed ? "Hide" : "Show"}</span>
+      </button>
+      <${TokenButton} id="tok-copy" icon="copy" label="Copy" onClick=${(flash) => copy(t.current || "", flash)} />
+      <${TokenButton} id="tok-curl" icon="terminal" label="Copy curl" title="Copy a ready-to-run curl command" ...${t.current && !info.uploadUrl ? { style: { display: "none" } } : {}}
+        onClick=${(flash) => copy(`curl --fail -T FILE -H "Authorization: Bearer ${t.current}" "${info.uploadUrl}/v1/files/NAME?visibility=private"`, flash)} />
+    </div>
+    <div class="note" id="tok-note">${!loaded ? null : !t.current
+      ? html`<span class="st st-warn">⚠ No token yet. The rotation job has not run.</span>`
+      : html`<span class=${"st " + (overdue ? "st-crit" : "st-ok")}>${overdue ? "⚠ Rotation overdue" : "✓ Rotating normally"}</span>${`Rotated ${ago(t.rotatedAt)}`}`}</div>
+  </div>`;
+};
+
+// ---- Upload: one file at a time, with progress, speed and cancel ----
+
+function useUploads(onDone) {
+  const [progress, setProgress] = useState(null); // null while idle
+  const [over, setOver] = useState(false);
+  const [vis, setVis] = useState("private");
+  const queue = useRef([]);
+  const xhr = useRef(null);
+  const visRef = useRef(vis);
+  visRef.current = vis;
+  const next = () => {
+    const f = queue.current.shift();
+    if (!f) { setProgress(null); return onDone(); }
+    const visibility = visRef.current;
+    setProgress({ text: `Uploading ${f.name} (${visibility})`, sub: "", pct: 0 });
+    const fd = new FormData();
+    fd.append("file", f);
+    const x = (xhr.current = new XMLHttpRequest());
+    const t0 = Date.now();
+    x.open("POST", "api/files?visibility=" + visibility);
+    x.setRequestHeader("X-Requested-With", "fileserver");
+    x.upload.onprogress = (p) => {
+      const pct = p.lengthComputable ? (p.loaded / p.total) * 100 : 0;
+      const rate = p.loaded / Math.max(0.5, (Date.now() - t0) / 1000);
+      const queued = queue.current.length;
+      setProgress({ text: `Uploading ${f.name} (${visibility})`, pct, sub: `${Math.round(pct)}% · ${fmtBytes(p.loaded)} of ${fmtBytes(p.total)} · ${fmtBytes(rate)}/s` + (queued ? ` · ${queued} more queued` : "") });
+    };
+    x.onload = () => {
+      if (x.status === 201) toast("Uploaded " + f.name);
+      else toast(`${f.name}: ${x.responseText.trim() || x.statusText}`, true);
+      next();
+    };
+    x.onerror = () => { toast(`${f.name}: upload failed`, true); queue.current = []; next(); };
+    x.onabort = () => { toast("Upload cancelled"); queue.current = []; next(); };
+    x.send(fd);
+  };
+  const enqueue = (files) => {
+    const idle = !queue.current.length && !progress;
+    queue.current.push(...files);
+    if (idle) next();
+  };
+  return { progress, over, setOver, vis, setVis, enqueue, cancel: () => xhr.current?.abort() };
+}
+
+const UploadArea = ({ info, up, loaded }) => {
+  const picker = useRef(null);
+  const dragging = (on) => (e) => { e.preventDefault(); up.setOver(on); };
+  return html`<div class=${up.over ? "drop over" : "drop"} id="drop" onDragEnter=${dragging(true)} onDragOver=${dragging(true)} onDragLeave=${dragging(false)}
+    onDrop=${(e) => { dragging(false)(e); up.enqueue([...e.dataTransfer.files]); }}>
+      <div>
+        <p><strong>Drop files here</strong> or <button type="button" id="pick" class="primary" onClick=${() => picker.current.click()}><${Icon} id="upload" />Choose files</button></p>
+        <p class="hint" id="limit">${!loaded ? "One file per request, streamed to disk." : `Up to ${fmtBytes(info.maxFileBytes || 0)} per file. Same name replaces the file.`}</p>
       </div>
-      <div class="note" id="tok-note"></div>
+      <fieldset class="seggroup" style="border:0;padding:0;margin:0" aria-label="Visibility of new uploads">
+        <div class="seggroup">
+          <label><input type="radio" name="vis" value="private" checked=${up.vis === "private"} onChange=${() => up.setVis("private")} /> <${Icon} id="lock" /> Private</label>
+          <label><input type="radio" name="vis" value="public" checked=${up.vis === "public"} onChange=${() => up.setVis("public")} /> <${Icon} id="globe" /> Public</label>
+        </div>
+      </fieldset>
+      <input type="file" id="file" multiple hidden ref=${picker} onChange=${(e) => { up.enqueue([...e.target.files]); e.target.value = ""; }} />
     </div>
-  </section>
-
-  <div class="drop" id="drop">
-    <div>
-      <p><strong>Drop files here</strong> or <button type="button" id="pick" class="primary"><svg class="i" aria-hidden="true"><use href="#i-upload"/></svg>Choose files</button></p>
-      <p class="hint" id="limit">One file per request, streamed to disk.</p>
-    </div>
-    <fieldset class="seggroup" style="border:0;padding:0;margin:0" aria-label="Visibility of new uploads">
-      <div class="seggroup">
-        <label><input type="radio" name="vis" value="private" checked> <svg class="i" aria-hidden="true"><use href="#i-lock"/></svg> Private</label>
-        <label><input type="radio" name="vis" value="public"> <svg class="i" aria-hidden="true"><use href="#i-globe"/></svg> Public</label>
+    <div class=${up.progress ? "card prog on" : "card prog"} id="prog" aria-live="polite">
+      <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center">
+        <div><div id="prog-text">${up.progress?.text}</div><div class="note" id="prog-sub" style="margin:0">${up.progress?.sub}</div></div>
+        <button type="button" id="prog-cancel" onClick=${up.cancel}><${Icon} id="x" />Cancel</button>
       </div>
-    </fieldset>
-    <input type="file" id="file" multiple hidden>
-  </div>
-  <div class="card prog" id="prog" aria-live="polite">
-    <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center">
-      <div><div id="prog-text"></div><div class="note" id="prog-sub" style="margin:0"></div></div>
-      <button type="button" id="prog-cancel"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>Cancel</button>
-    </div>
-    <div class="track" role="progressbar" aria-label="Upload progress" aria-valuemin="0" aria-valuemax="100" id="prog-track"><div class="fill" id="prog-fill" style="width:0"></div></div>
-  </div>
+      <div class="track" role="progressbar" aria-label="Upload progress" aria-valuemin="0" aria-valuemax="100" id="prog-track" ...${up.progress?.pct ? { "aria-valuenow": Math.round(up.progress.pct) } : {}}>
+        <div class="fill" id="prog-fill" style=${{ width: up.progress?.pct ? up.progress.pct.toFixed(1) + "%" : "0" }}></div>
+      </div>
+    </div>`;
+};
 
-  <section class="card" aria-label="Files">
+// ---- The file list ----
+
+const FileRow = ({ f, info, run }) => {
+  const to = f.visibility === "public" ? "private" : "public";
+  const cls = f.visibility === "public" ? "pub" : "priv";
+  return html`<tr>
+    <td class="name"><a href=${downloadUrl(f)}>${f.name}</a></td>
+    <td><span class=${"pill " + cls}><i></i>${f.visibility === "public" ? "Public" : "Private"}</span></td>
+    <td class="num">${fmtBytes(f.size)}</td>
+    <td class="hide" title=${new Date(f.modified).toLocaleString()}>${ago(f.modified)}</td>
+    <td class="act"><div class="acts">
+      <a class="btn icon has-label ghost" title="Download" href=${downloadUrl(f)} aria-label=${"Download " + f.name} download=${f.name}><${Icon} id="download" /><span class="lbl">Download</span></a>
+      ${f.visibility === "public" && info.publicUrl && html`<${RowButton} icon="link" label="Copy link" cls="ghost" action=${(flash) => copy(`${info.publicUrl}/${encodeURIComponent(f.name)}`, flash)} />`}
+      <${RowButton} icon=${to === "public" ? "globe" : "lock"} label=${"Make " + to} cls="ghost"
+        action=${() => run(() => call(`api/files/${encodeURIComponent(f.name)}/visibility?to=${to}`, { method: "POST" }), `${f.name} is now ${to}`)} />
+      <${DeleteButton} file=${f} onDelete=${() => run(() => call("api/files/" + encodeURIComponent(f.name), { method: "DELETE" }), "Deleted " + f.name)} />
+    </div></td>
+  </tr>`;
+};
+
+const FileList = ({ files, info, run, loaded }) => {
+  const [view, setView] = useState({ filter: "all", q: "", sort: "modified", dir: -1 });
+  const set = (patch) => setView((v) => ({ ...v, ...patch }));
+  const q = view.q.toLowerCase();
+  const list = files
+    .filter((f) => (view.filter === "all" || f.visibility === view.filter) && f.name.toLowerCase().includes(q))
+    .sort((a, b) => {
+      const k = view.sort;
+      const x = a[k];
+      const y = b[k];
+      const c = typeof x === "string" && k !== "modified" ? x.localeCompare(y, undefined, { sensitivity: "base" }) : x > y ? 1 : x < y ? -1 : 0;
+      return (c || a.name.localeCompare(b.name)) * (c ? view.dir : 1);
+    });
+  const sortKey = view.sort + ":" + view.dir;
+  const sorts = SORTS.some(([v]) => v === sortKey) ? SORTS : [...SORTS, [sortKey, "Custom"]];
+  // newest and largest first when a column is picked for the first time
+  const pick = (k) => set({ dir: view.sort === k ? -view.dir : k === "modified" || k === "size" ? -1 : 1, sort: k });
+  return html`<section class="card" aria-label="Files">
     <div class="bar">
-      <input type="search" id="q" placeholder="Filter by name" aria-label="Filter by name">
+      <input type="search" id="q" placeholder="Filter by name" aria-label="Filter by name" value=${view.q} onInput=${(e) => set({ q: e.target.value })} />
       <div class="chips" role="group" aria-label="Visibility filter">
-        <button type="button" data-f="all" aria-pressed="true">All</button>
-        <button type="button" data-f="public" aria-pressed="false">Public</button>
-        <button type="button" data-f="private" aria-pressed="false">Private</button>
+        ${FILTERS.map(([v, text]) => html`<button type="button" data-f=${v} aria-pressed=${String(view.filter === v)} onClick=${() => set({ filter: v })}>${text}</button>`)}
       </div>
       <label class="sortsel">Sort
-        <select id="sort" aria-label="Sort files">
-          <option value="modified:-1">Newest first</option>
-          <option value="modified:1">Oldest first</option>
-          <option value="size:-1">Largest first</option>
-          <option value="size:1">Smallest first</option>
-          <option value="name:1">Name A to Z</option>
-          <option value="name:-1">Name Z to A</option>
-          <option value="visibility:1">Visibility</option>
+        <select id="sort" aria-label="Sort files" value=${sortKey} onChange=${(e) => { const [k, d] = e.target.value.split(":"); set({ sort: k, dir: Number(d) }); }}>
+          ${sorts.map(([v, text]) => html`<option value=${v} selected=${v === sortKey}>${text}</option>`)}
         </select>
       </label>
     </div>
     <table>
       <thead><tr>
-        <th><button type="button" data-s="name">Name</button></th>
-        <th><button type="button" data-s="visibility">Visibility</button></th>
-        <th class="num"><button type="button" data-s="size">Size</button></th>
-        <th class="hide"><button type="button" data-s="modified">Modified</button></th>
+        ${COLUMNS.map(([k, text, cls]) => html`<th class=${cls} ...${view.sort === k ? { "aria-sort": view.dir > 0 ? "ascending" : "descending" } : {}}><button type="button" data-s=${k} onClick=${() => pick(k)}>${text}</button></th>`)}
         <th><span class="sr">Actions</span></th>
       </tr></thead>
-      <tbody id="rows"></tbody>
+      <tbody id="rows">${list.map((f) => html`<${FileRow} key=${f.name} f=${f} info=${info} run=${run} />`)}</tbody>
     </table>
-    <div class="empty" id="empty" hidden></div>
-  </section>
-</main>
+    <div class="empty" id="empty" hidden=${!loaded || list.length > 0}>${loaded && (files.length ? "No file matches the filter." : "No files yet. Drop one above to start.")}</div>
+  </section>`;
+};
 
-<div id="toast" role="status" aria-live="polite"></div>
-<div id="tip" role="tooltip"></div>
+// ---- The page ----
 
-<script>
-'use strict';
-const $ = id => document.getElementById(id);
-const H = { 'X-Requested-With': 'fileserver' };
-const state = { files: [], info: {}, token: {}, filter: 'all', q: '', sort: 'modified', dir: -1 };
-
-const fmtBytes = n => n >= 2 ** 30 ? (n / 2 ** 30).toFixed(n >= 10 * 2 ** 30 ? 1 : 2) + ' GiB' : n >= 2 ** 20 ? (n / 2 ** 20).toFixed(1) + ' MiB' : n >= 1024 ? (n / 1024).toFixed(0) + ' KiB' : n + ' B';
-const ago = d => { const s = (Date.now() - new Date(d)) / 1000; if (s < 90) return 'just now'; const m = s / 60; if (m < 90) return Math.round(m) + ' min ago'; const h = m / 60; if (h < 36) return Math.round(h) + ' h ago'; return Math.round(h / 24) + ' days ago'; };
-const el = (tag, props, ...kids) => { const e = document.createElement(tag); Object.assign(e, props); e.append(...kids); return e; };
-
-const SVGNS = 'http://www.w3.org/2000/svg';
-function icon(id) {
-  const s = document.createElementNS(SVGNS, 'svg'), u = document.createElementNS(SVGNS, 'use');
-  s.setAttribute('class', 'i'); s.setAttribute('aria-hidden', 'true'); u.setAttribute('href', '#i-' + id); s.append(u); return s;
-}
-// a row action: an icon button; its text shows on phones
-function ibtn(id, label, cls, onclick) {
-  const b = el('button', { type: 'button', className: 'icon has-label ' + cls, title: label, onclick });
-  b.setAttribute('aria-label', label); b.append(icon(id), el('span', { className: 'lbl', textContent: label })); return b;
-}
-// brief confirmation on the button itself
-function flash(btn, text) {
-  const t = btn.querySelector('.t, .lbl'), u = btn.querySelector('use'), old = t && t.textContent, oldIcon = u && u.getAttribute('href');
-  btn.classList.add('ok'); if (u) u.setAttribute('href', '#i-check'); if (t) t.textContent = text;
-  setTimeout(() => { btn.classList.remove('ok'); if (u) u.setAttribute('href', oldIcon); if (t) t.textContent = old; }, 1500);
-}
-// the clipboard API needs https; the textarea fallback covers plain http
-function copy(text, btn, done) {
-  const fallback = () => {
-    const t = el('textarea', { value: text }); t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;opacity:0';
-    document.body.append(t); t.select();
-    const ok = document.execCommand('copy'); t.remove(); return ok;
+const App = () => {
+  const [data, setData] = useState({ files: [], info: {}, token: {}, loaded: false });
+  const refresh = async () => {
+    const [files, info, token] = await Promise.all([call("api/files").then((r) => r.json()), call("api/info").then((r) => r.json()), call("api/token").then((r) => r.json())]);
+    setData({ files, info, token, loaded: true });
   };
-  const ok = () => flash(btn, done), bad = () => toast('Copy failed', true);
-  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok, () => (fallback() ? ok() : bad()));
-  else fallback() ? ok() : bad();
-}
-
-function toast(text, err) {
-  const t = el('div', { className: err ? 'err' : '', textContent: text });
-  $('toast').append(t); setTimeout(() => t.remove(), err ? 6000 : 2500);
-}
-async function call(url, opts) {
-  const r = await fetch(url, { ...opts, headers: { ...H, ...(opts && opts.headers) } });
-  if (!r.ok) throw new Error((await r.text()).trim() || r.statusText);
-  return r;
-}
-
-/* tooltips for the bars: one element, filled with textContent */
-const tip = $('tip');
-function tipOn(node, lines) {
-  const show = e => { tip.replaceChildren(el('b', { textContent: lines[0] }), document.createElement('br'), document.createTextNode(lines[1])); tip.style.display = 'block';
-    const r = node.getBoundingClientRect(); tip.style.left = (e.clientX || r.left + r.width / 2) + 'px'; tip.style.top = (r.bottom + 8) + 'px'; };
-  node.addEventListener('pointermove', show); node.addEventListener('focus', show);
-  node.addEventListener('pointerleave', () => tip.style.display = 'none'); node.addEventListener('blur', () => tip.style.display = 'none');
-}
-
-function fitLabels() {
-  for (const sp of $('dk-seg').children) {
-    sp.textContent = sp.dataset.label;
-    const rg = document.createRange(); rg.selectNodeContents(sp);
-    if (rg.getBoundingClientRect().width + 16 > sp.clientWidth) sp.textContent = '';
-  }
-}
-new ResizeObserver(fitLabels).observe($('dk-seg'));
-
-function renderStats() {
-  const { capacityBytes: cap = 0, freeBytes: free = 0 } = state.info;
-  const used = Math.max(0, cap - free), pct = cap ? used / cap * 100 : 0;
-  const by = v => state.files.filter(f => f.visibility === v);
-  const sum = v => by(v).reduce((a, f) => a + f.size, 0);
-  const pub = sum('public'), priv = sum('private'), other = Math.max(0, used - pub - priv);
-  const sev = pct >= 92 ? 'crit' : pct >= 80 ? 'warn' : '';
-  const freeShare = cap ? free / cap * 100 : 0;
-  const freePct = freeShare > 0 && freeShare < 1 ? '<1%' : Math.round(freeShare) + '%';
-
-  $('dk-val').replaceChildren(document.createTextNode(fmtBytes(free) + ' '), el('small', { textContent: 'remaining of ' + fmtBytes(cap) }));
-  const seg = $('dk-seg'); seg.replaceChildren();
-  const parts = [
-    ['pub', 'Public', pub, `${by('public').length} files`],
-    ['priv', 'Private', priv, `${by('private').length} files`],
-    ['oth', 'Other use', other, 'filesystem overhead and other data on the volume'],
-    ['free ' + sev, 'Free', free, freePct + ' of the volume'],
-  ];
-  for (const [cls, name, bytes, what] of parts) {
-    if (!bytes) continue;
-    const sp = el('span', { className: cls.trim(), tabIndex: 0 }); sp.setAttribute('role', 'img'); sp.style.flex = String(bytes);
-    sp.setAttribute('aria-label', `${name}: ${fmtBytes(bytes)}, ${what}`);
-    tipOn(sp, [name, `${fmtBytes(bytes)} \u00B7 ${what}`]);
-    seg.append(sp);
-    // printed inside the block only when it fits (fitLabels)
-    sp.dataset.label = name === 'Free' ? `${fmtBytes(bytes)} \u00B7 ${freePct}` : fmtBytes(bytes);
-  }
-  fitLabels();
-  const lg = $('dk-legend'); lg.replaceChildren();
-  for (const [cls, name, bytes, what] of parts) {
-    if (cls === 'oth' && !bytes) continue;
-    lg.append(el('span', {}, el('i', { className: 'sw ' + cls.split(' ')[0] }), document.createTextNode(name === 'Free' ? `${name} ${freePct}` : `${name} ${fmtBytes(bytes)}`)));
-  }
-  const status = sev === 'crit' ? ['crit', '\u26A0', 'Almost full. Uploads will be refused.'] : sev === 'warn' ? ['warn', '\u26A0', 'Getting full.'] : ['ok', '\u2713', 'Plenty of room.'];
-  const note = $('dk-note'); note.replaceChildren(
-    el('span', { className: 'st st-' + status[0], textContent: status[1] + ' ' + status[2] }),
-    document.createTextNode(`${state.files.length} files \u00B7 ${Math.round(pct)}% used`));
-
-  // token
-  const t = state.token, note2 = $('tok-note'); note2.replaceChildren();
-  if (!t.current) { note2.append(el('span', { className: 'st st-warn', textContent: '⚠ No token yet. The rotation job has not run.' })); return; }
-  const overdue = (Date.now() - new Date(t.rotatedAt)) / 864e5 > 35; // rotated monthly
-  note2.append(el('span', { className: 'st ' + (overdue ? 'st-crit' : 'st-ok'), textContent: overdue ? '⚠ Rotation overdue' : '✓ Rotating normally' }),
-    document.createTextNode(`Rotated ${ago(t.rotatedAt)}`));
-  $('tok-curl').style.display = state.info.uploadUrl ? '' : 'none';
-}
-
-function renderRows() {
-  const rows = $('rows'); rows.replaceChildren();
-  const q = state.q.toLowerCase();
-  const list = state.files.filter(f => (state.filter === 'all' || f.visibility === state.filter) && f.name.toLowerCase().includes(q))
-    .sort((a, b) => {
-      const k = state.sort, x = a[k], y = b[k];
-      const c = typeof x === 'string' && k !== 'modified' ? x.localeCompare(y, undefined, { sensitivity: 'base' }) : (x > y ? 1 : x < y ? -1 : 0);
-      return (c || a.name.localeCompare(b.name)) * (c ? state.dir : 1);
-    });
-  const sel = $('sort'); const key = state.sort + ':' + state.dir;
-  if (![...sel.options].some(o => o.value === key)) sel.add(new Option('Custom', key));
-  sel.value = key;
-  document.querySelectorAll('th[aria-sort]').forEach(th => th.removeAttribute('aria-sort'));
-  const th = document.querySelector(`th button[data-s="${state.sort}"]`).parentElement; th.setAttribute('aria-sort', state.dir > 0 ? 'ascending' : 'descending');
-  const empty = $('empty'); empty.hidden = list.length > 0;
-  empty.textContent = state.files.length ? 'No file matches the filter.' : 'No files yet. Drop one above to start.';
-  for (const f of list) {
-    const tr = rows.insertRow();
-    const a = el('a', { href: `download/${f.visibility}/${encodeURIComponent(f.name)}`, textContent: f.name });
-    tr.insertCell().className = 'name'; tr.cells[0].append(a);
-    const cls = f.visibility === 'public' ? 'pub' : 'priv';
-    tr.insertCell().append(el('span', { className: 'pill ' + cls }, el('i'), document.createTextNode(f.visibility === 'public' ? 'Public' : 'Private')));
-    const sz = tr.insertCell(); sz.className = 'num'; sz.textContent = fmtBytes(f.size);
-    const md = tr.insertCell(); md.className = 'hide'; md.textContent = ago(f.modified); md.title = new Date(f.modified).toLocaleString();
-    const act = tr.insertCell(); act.className = 'act';
-    const box = el('div', { className: 'acts' }); act.append(box);
-    const dl = el('a', { className: 'btn icon has-label ghost', title: 'Download', href: `download/${f.visibility}/${encodeURIComponent(f.name)}` });
-    dl.setAttribute('aria-label', 'Download ' + f.name); dl.setAttribute('download', f.name); dl.append(icon('download'), el('span', { className: 'lbl', textContent: 'Download' }));
-    box.append(dl);
-    if (f.visibility === 'public' && state.info.publicUrl) box.append(ibtn('link', 'Copy link', 'ghost', e => copy(`${state.info.publicUrl}/${encodeURIComponent(f.name)}`, e.currentTarget, 'Copied')));
-    const to = f.visibility === 'public' ? 'private' : 'public';
-    box.append(ibtn(to === 'public' ? 'globe' : 'lock', 'Make ' + to, 'ghost', e => run(() => call(`api/files/${encodeURIComponent(f.name)}/visibility?to=${to}`, { method: 'POST' }), `${f.name} is now ${to}`, e.currentTarget)),
-      deleteBtn(f));
-  }
-}
-
-async function refresh() {
-  const [files, info, token] = await Promise.all([call('api/files').then(r => r.json()), call('api/info').then(r => r.json()), call('api/token').then(r => r.json())]);
-  Object.assign(state, { files, info, token });
-  $('limit').textContent = `Up to ${fmtBytes(info.maxFileBytes || 0)} per file. Same name replaces the file.`;
-  renderStats(); renderRows();
-}
-async function run(fn, ok, btn) {
-  if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
-  try { await fn(); if (ok) toast(ok); await refresh(); }
-  catch (e) { toast(e.message, true); if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); } }
-}
-
-/* delete takes two clicks: the first arms the button; it disarms after 4 s, on Esc or on blur */
-const armed = new Set();
-function disarm(b) {
-  if (!b.dataset.armed) return;
-  clearTimeout(b._t); delete b.dataset.armed; armed.delete(b);
-  b.classList.remove('danger-solid', 'armed'); b.classList.add('ghost');
-  b.querySelector('.lbl').textContent = 'Delete'; b.setAttribute('aria-label', b.dataset.name ? 'Delete ' + b.dataset.name : 'Delete');
-}
-function deleteBtn(f) {
-  const b = ibtn('trash', 'Delete', 'ghost danger', () => {
-    if (b.dataset.armed) { disarm(b); run(() => call('api/files/' + encodeURIComponent(f.name), { method: 'DELETE' }), 'Deleted ' + f.name, b); return; }
-    b.dataset.armed = '1'; armed.add(b);
-    b.classList.remove('ghost'); b.classList.add('danger-solid', 'armed');
-    b.querySelector('.lbl').textContent = 'Confirm delete'; b.setAttribute('aria-label', `Confirm: delete ${f.name}`);
-    b._t = setTimeout(() => disarm(b), 4000);
-  });
-  b.dataset.name = f.name; b.addEventListener('blur', () => disarm(b)); b.setAttribute('aria-label', 'Delete ' + f.name);
-  return b;
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') armed.forEach(disarm); });
-
-/* token */
-let revealed = false;
-const mask = t => t ? t.slice(0, 3) + '•'.repeat(12) + t.slice(-4) : 'none';
-function showToken() {
-  $('tok-val').textContent = revealed ? (state.token.current || 'none') : mask(state.token.current);
-  const b = $('tok-show'); b.querySelector('.t').textContent = revealed ? 'Hide' : 'Show';
-  b.querySelector('use').setAttribute('href', revealed ? '#i-eye-off' : '#i-eye'); b.setAttribute('aria-pressed', revealed);
-}
-$('tok-show').onclick = () => { revealed = !revealed; showToken(); };
-$('tok-copy').onclick = e => copy(state.token.current || '', e.currentTarget, 'Copied');
-$('tok-curl').onclick = e => copy(`curl --fail -T FILE -H "Authorization: Bearer ${state.token.current}" "${state.info.uploadUrl}/v1/files/NAME?visibility=private"`, e.currentTarget, 'Copied');
-
-/* upload: one file at a time, with progress, speed and cancel */
-let xhr = null, queue = [];
-function uploadNext() {
-  const f = queue.shift();
-  if (!f) { $('prog').classList.remove('on'); return refresh(); }
-  const vis = document.querySelector('input[name=vis]:checked').value, total = queue.length + 1;
-  $('prog').classList.add('on'); $('prog-text').textContent = `Uploading ${f.name} (${vis})`;
-  const fd = new FormData(); fd.append('file', f);
-  xhr = new XMLHttpRequest(); const t0 = Date.now();
-  xhr.open('POST', 'api/files?visibility=' + vis); xhr.setRequestHeader('X-Requested-With', 'fileserver');
-  xhr.upload.onprogress = p => {
-    const pc = p.lengthComputable ? p.loaded / p.total * 100 : 0, rate = p.loaded / Math.max(.5, (Date.now() - t0) / 1000);
-    $('prog-fill').style.width = pc.toFixed(1) + '%'; $('prog-track').setAttribute('aria-valuenow', Math.round(pc));
-    $('prog-sub').textContent = `${Math.round(pc)}% · ${fmtBytes(p.loaded)} of ${fmtBytes(p.total)} · ${fmtBytes(rate)}/s` + (queue.length ? ` · ${queue.length} more queued` : '');
+  // Runs a change, tells the user, and reloads the lists; a failure is shown and rethrown nowhere.
+  const run = async (fn, ok) => {
+    try { await fn(); if (ok) toast(ok); await refresh(); } catch (e) { toast(e.message, true); }
   };
-  xhr.onload = () => { if (xhr.status === 201) toast('Uploaded ' + f.name); else toast(`${f.name}: ${xhr.responseText.trim() || xhr.statusText}`, true); $('prog-fill').style.width = '0'; uploadNext(); };
-  xhr.onerror = () => { toast(`${f.name}: upload failed`, true); queue = []; uploadNext(); };
-  xhr.onabort = () => { toast('Upload cancelled'); queue = []; uploadNext(); };
-  xhr.send(fd);
-}
-function enqueue(files) { const idle = !queue.length && !$('prog').classList.contains('on'); queue.push(...files); if (idle) uploadNext(); }
-$('prog-cancel').onclick = () => xhr && xhr.abort();
-$('pick').onclick = () => $('file').click();
-$('file').onchange = e => { enqueue([...e.target.files]); e.target.value = ''; };
-const drop = $('drop');
-['dragenter', 'dragover'].forEach(n => drop.addEventListener(n, e => { e.preventDefault(); drop.classList.add('over'); }));
-['dragleave', 'drop'].forEach(n => drop.addEventListener(n, e => { e.preventDefault(); drop.classList.remove('over'); }));
-drop.addEventListener('drop', e => enqueue([...e.dataTransfer.files]));
+  useEffect(() => { refresh().catch((e) => toast(e.message, true)); }, []);
+  const up = useUploads(() => refresh().catch((e) => toast(e.message, true)));
+  const { files, info, token, loaded } = data;
+  return html`<main>
+    <h1>Fileserver</h1>
+    <p class="sub">Public files are downloadable from the internet. Private files are only here.</p>
+    <section class="kpis" aria-label="Overview">
+      <${DiskCard} files=${files} info=${info} loaded=${loaded} />
+      <${TokenCard} token=${token} info=${info} loaded=${loaded} />
+    </section>
+    <${UploadArea} info=${info} up=${up} loaded=${loaded} />
+    <${FileList} files=${files} info=${info} run=${run} loaded=${loaded} />
+  </main>
+  <${ToastHost} />
+  <${Tooltip} />`;
+};
 
-/* list controls */
-$('q').oninput = e => { state.q = e.target.value; renderRows(); };
-document.querySelectorAll('.chips button').forEach(b => b.onclick = () => { state.filter = b.dataset.f; document.querySelectorAll('.chips button').forEach(x => x.setAttribute('aria-pressed', x === b)); renderRows(); });
-document.querySelectorAll('th button').forEach(b => b.onclick = () => {
-  const k = b.dataset.s, first = k === 'modified' || k === 'size' ? -1 : 1; // newest and largest first
-  state.dir = state.sort === k ? -state.dir : first; state.sort = k; renderRows();
-});
-$('sort').onchange = e => { const [k, d] = e.target.value.split(':'); state.sort = k; state.dir = Number(d); renderRows(); };
-
-refresh().then(showToken).catch(e => toast(e.message, true));
+render(html`<${App} />`, document.getElementById("app"));
 </script>
 </body>
 </html>

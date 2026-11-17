@@ -50,6 +50,10 @@ flowchart TB
   checked before the rename (422 on a mismatch).
 - **Limits**: `MAX_FILE_BYTES` per file (413), `MIN_FREE_BYTES` must stay free (507).
 - **Downloads are never pages**: `application/octet-stream`, `attachment`, `nosniff`, `CSP: sandbox`.
+- **The admin page loads no third-party script.** It is built with htm and Preact, bundled in the binary as `web/htm-preact.js`
+  (htm 3.1.1, which includes Preact 10; served unguarded at `/htm-preact.js` because a module script cannot send
+  `X-Requested-With`), so its CSP stays `script-src 'self'`: the page shows the upload token and can delete files. To update the
+  bundle, take `preact/standalone.module.js` from the `htm` npm package. Renovate does not track it.
 
 ## Upload token
 

@@ -416,6 +416,30 @@ func TestAdminInfo(t *testing.T) {
 	}
 }
 
+func TestAdminServesPageAndScript(t *testing.T) {
+	h := adminHandler(newStore(t), NewTokenAuth(t.TempDir()), 1<<20, adminConfig{})
+	get := func(path string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("GET", path, nil))
+		return rec
+	}
+	page := get("/")
+	if page.Code != 200 || !strings.Contains(page.Body.String(), `from "./htm-preact.js"`) {
+		t.Fatalf("page: %d", page.Code)
+	}
+	// the page stays on script-src 'self': no third-party script host is allowed
+	if csp := page.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "script-src 'self' 'unsafe-inline'") || strings.Contains(csp, "http") {
+		t.Errorf("unexpected CSP %q", csp)
+	}
+	js := get("/htm-preact.js")
+	if js.Code != 200 || !strings.HasPrefix(js.Header().Get("Content-Type"), "text/javascript") || js.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("script: %d %q", js.Code, js.Header().Get("Content-Type"))
+	}
+	if !strings.Contains(js.Body.String(), "useState") {
+		t.Error("the script does not look like htm + Preact")
+	}
+}
+
 func TestCleanTmpKeepsLiveUploads(t *testing.T) {
 	dir := t.TempDir()
 	if _, err := NewStore(dir, 0); err != nil {
