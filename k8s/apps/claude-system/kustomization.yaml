@@ -92,15 +92,14 @@ configMapGenerator:
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - claude-md/CLAUDE.md
-  - name: claude-statusline
+  - name: claude-usage-poller
     namespace: claude-system
     options:
       annotations:
-        # Shell scripts, not Flux templates: skip postBuild envsubst
+        # A shell script, not a Flux template: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
-      - statusline/statusline-report
-      - statusline/run-statusline-session
+      - usage-poller/poll-usage
   - name: claude-skills
     namespace: claude-system
     options:

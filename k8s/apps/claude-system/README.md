@@ -397,14 +397,16 @@ The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claud
 
 ### Claude usage from the pod
 
-`claude remote-control` is a server without a terminal UI, so its sessions never run a `statusLine`. The `statusline` container of `claude-rc` does what
-`claude-statusline@.service` does on the Claude VM ([homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)): an interactive
-`claude --model haiku` in a detached tmux that gets `/clear` and `ok` every 10 minutes (`STATUSLINE_PING_INTERVAL`), because the plan limits only refresh
-on an API reply. It shares the `claude-home` login, so it reports the limits of the same account. At start it sets `statusLine` in `~/.claude/settings.json`
-(the rest of the file stays) to `statusline/statusline-report`, which prints `5h 24% · 7d 41%` and, at most once a minute, posts the limits, model,
-version and context use to `http://claude-cockpit-ingest.claude-system.svc:8081/api/v1/sessions/claude-vm/claude-k8s-helper`. The scripts come from the
-`claude-statusline` ConfigMap, tmux from the image. `CiliumNetworkPolicy/claude-cockpit` lets only `app=claude-rc` in on `:8081`. The container waits for tmux
-and for the login, so it idles until both exist. Telemetry is off in it, so its pings add no OpenTelemetry series.
+`claude remote-control` is a server without a terminal UI, so its sessions never run a `statusLine` (the Claude VM works around that with an interactive
+claude in tmux, see `claude-statusline@.service` in [homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)). The `usage-poller` container of
+`claude-rc` instead asks `GET https://api.anthropic.com/api/oauth/usage`, the endpoint behind Claude Code's `/usage`, every 5 minutes (`POLL_INTERVAL`)
+with the login on `claude-home`, mounted read-only. It posts the two windows (percentage and reset time in epoch seconds) to
+`http://claude-cockpit-ingest.claude-system.svc:8081/api/v1/sessions/claude-vm/claude-k8s-helper`; model and version stay empty. The script comes from the
+`claude-usage-poller` ConfigMap and only logs when a poll fails. `CiliumNetworkPolicy/claude-cockpit` lets only `app=claude-rc` in on `:8081`.
+
+Caveats: the endpoint is undocumented (its `anthropic-beta` header is an internal detail) and can change. A long-lived `claude setup-token` token answers
+403 there (tested), so only the login can be used. The poller never refreshes the token: Claude Code does that in place, so while the login is expired the
+poll logs `usage endpoint answered 401` and the panel goes stale after 6 hours. Check with `kubectl -n claude-system logs deploy/claude-rc -c usage-poller`.
 
 Check after Flux applied it:
 
