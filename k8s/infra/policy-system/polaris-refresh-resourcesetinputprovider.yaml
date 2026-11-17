@@ -1,0 +1,14 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/fluxcd.controlplane.io/resourcesetinputprovider_v1.json
+apiVersion: fluxcd.controlplane.io/v1
+kind: ResourceSetInputProvider
+metadata:
+  name: polaris-refresh-main
+  namespace: policy-system
+  annotations:
+    fluxcd.controlplane.io/reconcileEvery: "5m"
+spec:
+  type: GitHubBranch
+  url: https://github.com/cthtrifork/talos-gitops
+  filter:
+    includeBranch: ^main$

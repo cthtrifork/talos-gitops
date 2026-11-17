@@ -6,5 +6,7 @@ resources:
   - namespace.yaml
   - networkpolicy.yaml
   - polaris/
-  - polaris-refresh.yaml
+  - rbac.yaml
+  - polaris-refresh-resourcesetinputprovider.yaml
+  - polaris-refresh-resourceset.yaml
   # - reports-server-postgres/
