@@ -15,6 +15,8 @@
     --calm: #77756f; --ok: #1a7f4b; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    /* The whole type scale: small (labels, metadata), body, panel title, large (page title and headline numbers). */
+    --fs-sm: 12px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 28px;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -32,15 +34,15 @@
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; background: var(--page); color: var(--ink); font: 15px/1.45 var(--font);
+    margin: 0; background: var(--page); color: var(--ink); font: var(--fs-md)/1.45 var(--font);
     padding-block: 24px 48px;
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
   main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
-  h1 { font-size: 24px; margin: 0; }
-  h2 { font-size: 12px; margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-  h3 { font-size: 16px; margin: 0; font-weight: 600; }
+  h1 { font-size: var(--fs-xl); margin: 0; }
+  h2 { font-size: var(--fs-sm); margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  h3 { font-size: var(--fs-lg); margin: 0; font-weight: 600; }
   a { color: var(--accent); text-decoration: none; overflow-wrap: anywhere; }
   a:hover { text-decoration: underline; }
   a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
@@ -51,7 +53,7 @@
   .muted { color: var(--muted); }
   header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
   .strip { display: flex; flex-wrap: wrap; gap: 8px; }
-  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; font-size: var(--fs-md); font-weight: 600; white-space: nowrap; }
   .pill::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
   .warn { color: var(--warn); }
   .bad { color: var(--bad); }
@@ -70,14 +72,14 @@
   .hdr-r { display: flex; align-items: center; gap: 12px; }
   footer p { margin: 0 0 8px; }
   .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .big { font-size: 30px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
-  .big small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .big { font-size: var(--fs-xl); font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
+  .big small { font-size: var(--fs-sm); font-weight: 500; color: var(--muted); letter-spacing: 0; }
   ul.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
   ul.rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--grid); }
   ul.rows li:first-child { border-top: 0; padding-top: 0; }
   ul.rows li:last-child { padding-bottom: 0; }
   .big + ul.rows { margin-top: 14px; }
-  .run-st { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 13px; }
+  .run-st { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: var(--fs-md); }
   ul.rows .l { flex: 1 1 12em; min-width: 0; overflow-wrap: anywhere; }
   /* The right-hand value (time, count, version) keeps its natural width and drops below the text as a whole when the row is tight.
      It only wraps when it is wider than the row itself. */
@@ -85,22 +87,22 @@
   .bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; display: flex; }
   .bar i { display: block; height: 100%; }
   .spark { width: 100%; height: 44px; display: block; }
-  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-sm); color: var(--ink-2); }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
   .limit { display: flex; flex-direction: column; gap: 6px; }
-  .limit-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13px; }
+  .limit-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: var(--fs-md); }
   .row-st { display: inline-flex; align-items: center; gap: 8px; }
   .row-st::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
   .row-st[data-st="warn"]::before { background: var(--warn); }
   .row-st[data-st="bad"]::before { background: var(--bad); }
-  .mono { font-family: var(--mono); font-size: 13px; }
-  a.open { font-size: 13px; font-weight: 600; margin-top: auto; }
-  .src { font-size: 12px; color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
+  .mono { font-family: var(--mono); font-size: var(--fs-sm); }
+  a.open { font-size: var(--fs-sm); font-weight: 600; margin-top: auto; }
+  .src { font-size: var(--fs-sm); color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
   /* Nothing below the header is shown until the first data arrives: content that appears after the fetch would
      push the footer down (a layout shift of about 0.8 on the default throttled load). */
   main:not(.ready) > nav, main:not(.ready) > section, main:not(.ready) > footer { display: none; }
   .banner.bad { background: var(--bad-bg); }
-  .banner { padding: 12px 14px; border-radius: 10px; font-size: 15px; }
+  .banner { padding: 12px 14px; border-radius: 10px; font-size: var(--fs-md); }
 </style>
 </head>
 <body>
