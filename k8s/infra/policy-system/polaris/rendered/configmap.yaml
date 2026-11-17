@@ -103,6 +103,7 @@ data:
         - hostPathSet
       - controllerNames:
         - arc-ubuntu
+        - arc-iso-bootc
         namespace: arc-runners-system
         rules:
         - runAsPrivileged
@@ -140,6 +141,7 @@ data:
       - controllerNames:
         - arc-ubuntu
         - arc-files-bootc
+        - arc-iso-bootc
         rules:
         - readinessProbeMissing
         - livenessProbeMissing
