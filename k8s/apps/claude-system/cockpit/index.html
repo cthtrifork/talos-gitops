@@ -91,6 +91,7 @@
   .row-st[data-st="warn"]::before { background: var(--warn); }
   .row-st[data-st="bad"]::before { background: var(--bad); }
   .mono { font-family: var(--mono); font-size: 13px; }
+  a.open { font-size: 13px; font-weight: 600; margin-top: auto; }
   .src { font-size: 12px; color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
   /* Nothing below the header is shown until the first data arrives: content that appears after the fetch would
      push the footer down (a layout shift of about 0.8 on the default throttled load). */
@@ -551,9 +552,29 @@
       return true;
     });
   }
+  // The pages behind a panel, served by the Omni service exposer. A panel with an entry gets an "Open" link at its foot.
+  var OMNI = "https://%s-portableinfo.workload.eu-central-1.omni.siderolabs.io/";
+  var OPEN = {
+    "p-running-versions": ["Open Update VMs", "claudevmupgrade"],
+    "p-dropped-traffic-last-hour": ["Open Hubble", "hubble"],
+    "p-flux-reconciliation": ["Open Flux", "flux"],
+    "p-polaris-score": ["Open Polaris", "polaris"],
+    "p-renovate-pull-requests": ["Open Renovate", "renovate"],
+    "p-renovate-runs": ["Open Renovate", "renovate"]
+  };
+  function withLink(p) {
+    var o = OPEN[p.id];
+    if (!o) return p;
+    var a = el("a", "open", o[0] + " \u2192");
+    a.href = OMNI.replace("%s", o[1]);
+    a.rel = "noopener noreferrer";
+    a.target = "_blank";
+    p.appendChild(a);
+    return p;
+  }
   // Panels are built off-screen and keep the order they are listed in, so each one stays where it was last time.
   function fill(id, fns, d) {
-    var ps = fns.map(function (fn, i) { var p = fn(d); p.id = slug(p.querySelector("h3").textContent); return p; });
+    var ps = fns.map(function (fn, i) { var p = fn(d); p.id = slug(p.querySelector("h3").textContent); return withLink(p); });
     var f = document.createDocumentFragment();
     ps.forEach(function (p) { f.appendChild(p); });
     swap(document.getElementById(id), f);
