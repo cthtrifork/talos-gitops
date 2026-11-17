@@ -101,6 +101,7 @@
   svg .seg-fill { stroke: var(--surface); stroke-width: 2; }
   svg text.inbar { font-weight: 600; }
 
+  usage-app, usage-tooltip { display: block; }
   .tip { position: fixed; z-index: 5; pointer-events: none; background: var(--ink); color: var(--page); border-radius: 8px; padding: 8px 10px; font-size: var(--fs-sm); line-height: 1.5; box-shadow: 0 4px 16px rgba(0,0,0,.25); max-width: 16rem; }
   .tip b { display: block; margin-bottom: 2px; }
   .tip .r { display: flex; justify-content: space-between; gap: 16px; }
@@ -129,11 +130,23 @@
 </style>
 </head>
 <body>
-<div id="app"></div>
-<div id="tip-root"></div>
+<usage-app></usage-app>
+<usage-tooltip></usage-tooltip>
+<!-- Lit comes from jsDelivr as plain ES modules, every package pinned to an exact version. Bump the versions here. -->
+<script type="importmap">
+{
+  "imports": {
+    "lit": "https://cdn.jsdelivr.net/npm/lit@3.3.3/index.js",
+    "lit-element/": "https://cdn.jsdelivr.net/npm/lit-element@4.2.2/",
+    "lit-html": "https://cdn.jsdelivr.net/npm/lit-html@3.3.3/lit-html.js",
+    "lit-html/": "https://cdn.jsdelivr.net/npm/lit-html@3.3.3/",
+    "@lit/reactive-element": "https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.1.2/reactive-element.js",
+    "@lit/reactive-element/": "https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.1.2/"
+  }
+}
+</script>
 <script type="module">
-// lit-html (templates) comes from jsDelivr, pinned to an exact version. Bump the version here.
-import { html, svg, nothing, render } from "https://cdn.jsdelivr.net/npm/lit-html@3.3.3/lit-html.js";
+import { LitElement, html, svg, nothing } from "lit";
 
 const TOKENS = [
   { k: "input", label: "Input", v: "--tok-input", on: "--on-tok-input" },
@@ -168,54 +181,6 @@ async function get(path) {
   return r.json();
 }
 
-// ---- State: one object, and a render that is batched into one microtask per burst of changes ----
-
-const state = {
-  ui: { env: "all", period: "7d", metric: "cost" },
-  data: { summary: null, daily: null, breakdown: null, decisions: null, period: null },
-  error: null,
-};
-let queued = false;
-function update() {
-  if (queued) return;
-  queued = true;
-  queueMicrotask(() => {
-    queued = false;
-    render(App(), document.getElementById("app"));
-  });
-}
-const setUi = (key) => (value) => {
-  state.ui = { ...state.ui, [key]: value };
-  if (key === "period") pollUsage(value);
-  update();
-};
-
-// The data of one period: the summary and the daily series cover 30 days, the breakdown and the decisions are per period.
-// A load that is overtaken by a newer one (a quick switch of period) is dropped. A failed load keeps the last data.
-let stopPolling = () => {};
-function pollUsage(period) {
-  stopPolling();
-  let latest = 0;
-  const load = async () => {
-    const seq = ++latest;
-    try {
-      const [summary, daily, breakdown, decisions] = await Promise.all([
-        get("api/v1/summary"), get("api/v1/daily?days=30"), get("api/v1/breakdown?window=" + period), get("api/v1/decisions?window=" + period),
-      ]);
-      if (seq !== latest) return;
-      state.data = { summary, daily, breakdown, decisions, period };
-      state.error = null;
-    } catch (e) {
-      if (seq !== latest) return;
-      state.error = e.message;
-    }
-    update();
-  };
-  load();
-  const timer = setInterval(load, REFRESH_MS);
-  stopPolling = () => { latest = Infinity; clearInterval(timer); };
-}
-
 // What the page shows for the chosen environment and period, derived from the data.
 function view(data, ui) {
   const { summary, daily, breakdown, decisions } = data;
@@ -242,19 +207,13 @@ function view(data, ui) {
   };
 }
 
-// ---- Tooltip: its own render root, so moving over a chart does not re-render the page ----
+// ---- Tooltip: its own element, so moving over a chart does not re-render the page ----
+// Charts announce what to show with a bubbling "usage-tip" event (detail null hides it); <usage-tooltip> listens on the document.
 
-const tipTemplate = (tip) => html`<div class="tip" id="tip" ?hidden=${!tip}>${tip ? html`<b>${tip.title}</b>${tip.lines.map(([dot, name, val]) => html`<div class="r"><span>${dot ? html`<span class="dot" style="background: ${css(dot)}"></span>` : nothing}${name}</span><span>${val}</span></div>`)}` : nothing}</div>`;
-function setTip(tip) {
-  const root = document.getElementById("tip-root");
-  render(tipTemplate(tip), root);
-  if (!tip) return;
-  const el = root.querySelector("#tip");
-  el.style.left = Math.min(tip.x + 14, innerWidth - el.offsetWidth - 8) + "px";
-  el.style.top = Math.max(8, Math.min(tip.y - el.offsetHeight - 10, innerHeight - el.offsetHeight - 8)) + "px";
-}
-const showTip = (ev, title, lines) => setTip({ x: ev.clientX, y: ev.clientY, title, lines });
-const hideTip = () => setTip(null);
+const tipEvent = (ev, detail) => ev.currentTarget.dispatchEvent(new CustomEvent("usage-tip", { bubbles: true, detail }));
+const showTip = (ev, title, lines) => tipEvent(ev, { x: ev.clientX, y: ev.clientY, title, lines });
+const hideTip = (ev) => tipEvent(ev, null);
+
 
 // ---- Building blocks ----
 
@@ -423,61 +382,129 @@ const DecisionTable = (v) => Table({
 
 // ---- The page ----
 
-const App = () => {
-  const { ui, data, error } = state;
-  const v = view(data, ui);
-  const days = data.daily?.days;
-  const range = days?.length
-    ? `${days[Math.max(0, days.length - (v.period === "30d" ? 30 : 7))].date} to ${days[days.length - 1].date} · UTC days · from Prometheus`
-    : "UTC days · from Prometheus";
-  return html`<main>
-    <p id="error" role="alert" ?hidden=${!error}>${error ? `Could not load usage: ${error}. Showing the last data received.` : nothing}</p>
-    <header class="bar">
-      <div><h1>Claude usage</h1><div class="sub" id="range">${range}</div></div>
-      <div class="group">
-        ${Segmented({ label: "Environment", id: "envSeg", options: ["all", ...v.envs].map((e) => [e, e === "all" ? "All" : e]), value: v.env, onPick: setUi("env") })}
-        ${Segmented({ label: "Period", id: "periodSeg", options: PERIODS, value: ui.period, onPick: setUi("period") })}
+
+// ---- The elements. Both render into themselves (no shadow root), so the page's stylesheet applies. ----
+
+class UsageTooltip extends LitElement {
+  static properties = { tip: { state: true } };
+  constructor() {
+    super();
+    this.tip = null;
+    this._on = (e) => { this.tip = e.detail; };
+  }
+  createRenderRoot() { return this; }
+  connectedCallback() { super.connectedCallback(); document.addEventListener("usage-tip", this._on); }
+  disconnectedCallback() { document.removeEventListener("usage-tip", this._on); super.disconnectedCallback(); }
+  updated() {
+    if (!this.tip) return;
+    const el = this.querySelector("#tip");
+    el.style.left = Math.min(this.tip.x + 14, innerWidth - el.offsetWidth - 8) + "px";
+    el.style.top = Math.max(8, Math.min(this.tip.y - el.offsetHeight - 10, innerHeight - el.offsetHeight - 8)) + "px";
+  }
+  render() {
+    const tip = this.tip;
+    return html`<div class="tip" id="tip" ?hidden=${!tip}>${tip ? html`<b>${tip.title}</b>${tip.lines.map(([dot, name, val]) => html`<div class="r"><span>${dot ? html`<span class="dot" style="background: ${css(dot)}"></span>` : nothing}${name}</span><span>${val}</span></div>`)}` : nothing}</div>`;
+  }
+}
+
+// The page. Assigning to ui, data or error re-renders it; nothing calls a render by hand.
+class UsageApp extends LitElement {
+  static properties = { ui: { state: true }, data: { state: true }, error: { state: true } };
+  constructor() {
+    super();
+    this.ui = { env: "all", period: "7d", metric: "cost" };
+    this.data = { summary: null, daily: null, breakdown: null, decisions: null, period: null };
+    this.error = null;
+    this._period = null;
+    this._stop = () => {};
+    this.pick = (key) => (value) => { this.ui = { ...this.ui, [key]: value }; };
+  }
+  createRenderRoot() { return this; }
+  disconnectedCallback() { this._stop(); this._period = null; super.disconnectedCallback(); }
+  // Polling follows the chosen period: a new period restarts it.
+  willUpdate() {
+    if (this.ui.period === this._period) return;
+    this._period = this.ui.period;
+    this._poll(this._period);
+  }
+  // The data of one period: the summary and the daily series cover 30 days, the breakdown and the decisions are per period.
+  // A load that is overtaken by a newer one (a quick switch of period) is dropped. A failed load keeps the last data.
+  _poll(period) {
+    this._stop();
+    let latest = 0;
+    const load = async () => {
+      const seq = ++latest;
+      try {
+        const [summary, daily, breakdown, decisions] = await Promise.all([
+          get("api/v1/summary"), get("api/v1/daily?days=30"), get("api/v1/breakdown?window=" + period), get("api/v1/decisions?window=" + period),
+        ]);
+        if (seq !== latest) return;
+        this.data = { summary, daily, breakdown, decisions, period };
+        this.error = null;
+      } catch (e) {
+        if (seq === latest) this.error = e.message;
+      }
+    };
+    load();
+    const timer = setInterval(load, REFRESH_MS);
+    this._stop = () => { latest = Infinity; clearInterval(timer); };
+  }
+  render() {
+    const { ui, data, error } = this;
+    const v = view(data, ui);
+    const days = data.daily?.days;
+    const range = days?.length
+      ? `${days[Math.max(0, days.length - (v.period === "30d" ? 30 : 7))].date} to ${days[days.length - 1].date} · UTC days · from Prometheus`
+      : "UTC days · from Prometheus";
+
+    return html`<main>
+      <p id="error" role="alert" ?hidden=${!error}>${error ? `Could not load usage: ${error}. Showing the last data received.` : nothing}</p>
+      <header class="bar">
+        <div><h1>Claude usage</h1><div class="sub" id="range">${range}</div></div>
+        <div class="group">
+          ${Segmented({ label: "Environment", id: "envSeg", options: ["all", ...v.envs].map((e) => [e, e === "all" ? "All" : e]), value: v.env, onPick: this.pick("env") })}
+          ${Segmented({ label: "Period", id: "periodSeg", options: PERIODS, value: ui.period, onPick: this.pick("period") })}
+        </div>
+      </header>
+
+      ${Tiles(v)}
+      ${PerDay({ data, v, metric: ui.metric, setMetric: this.pick("metric") })}
+
+      <div class="cols">
+        <section class="panel">
+          <div class="panel-head"><h2>Cost by model</h2><span class="src">claude_code_cost_usage{model}</span></div>
+          ${ModelCost(v)}
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Token mix by model</h2><span class="src">claude_code_token_usage{model,type}</span></div>
+          ${TokenMix(v)}
+          <div class="sub" style="margin-top:8px">Cache hit = cache read ÷ (input + cache read + cache write).</div>
+        </section>
       </div>
-    </header>
 
-    ${Tiles(v)}
-    ${PerDay({ data, v, metric: ui.metric, setMetric: setUi("metric") })}
-
-    <div class="cols">
       <section class="panel">
-        <div class="panel-head"><h2>Cost by model</h2><span class="src">claude_code_cost_usage{model}</span></div>
-        ${ModelCost(v)}
+        <div class="panel-head"><h2>By model and environment</h2><span class="src">tokens, cost and lines carry both labels</span></div>
+        <div class="scroll">${ModelTable(v)}</div>
       </section>
-      <section class="panel">
-        <div class="panel-head"><h2>Token mix by model</h2><span class="src">claude_code_token_usage{model,type}</span></div>
-        ${TokenMix(v)}
-        <div class="sub" style="margin-top:8px">Cache hit = cache read ÷ (input + cache read + cache write).</div>
-      </section>
-    </div>
 
-    <section class="panel">
-      <div class="panel-head"><h2>By model and environment</h2><span class="src">tokens, cost and lines carry both labels</span></div>
-      <div class="scroll">${ModelTable(v)}</div>
-    </section>
+      <div class="cols">
+        <section class="panel">
+          <div class="panel-head"><h2>Output by environment</h2><span class="src">commit_count and pull_request_count have no model label</span></div>
+          <div class="scroll">${ActivityTable(v)}</div>
+          <div class="sub" style="margin-top:8px">Cost per commit and per pull request divide the environment's whole cost by its commits or pull requests, so sessions that only read code count against them.</div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Edit tool decisions</h2><span class="src">claude_code_code_edit_tool_decision</span></div>
+          <div class="scroll">${DecisionTable(v)}</div>
+        </section>
+      </div>
 
-    <div class="cols">
-      <section class="panel">
-        <div class="panel-head"><h2>Output by environment</h2><span class="src">commit_count and pull_request_count have no model label</span></div>
-        <div class="scroll">${ActivityTable(v)}</div>
-        <div class="sub" style="margin-top:8px">Cost per commit and per pull request divide the environment's whole cost by its commits or pull requests, so sessions that only read code count against them.</div>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><h2>Edit tool decisions</h2><span class="src">claude_code_code_edit_tool_decision</span></div>
-        <div class="scroll">${DecisionTable(v)}</div>
-      </section>
-    </div>
-
-    <p class="sub" id="gen">Counts come from <code>increase()</code> of the collector's counters; the first export of a new model or environment is not counted.</p>
-  </main>`;
-};
-
-pollUsage(state.ui.period);
-update();
+      <p class="sub" id="gen">Counts come from <code>increase()</code> of the collector's counters; the first export of a new model or environment is not counted.</p>
+    </main>`;
+  }
+}
+customElements.define("usage-tooltip", UsageTooltip);
+customElements.define("usage-app", UsageApp);
 </script>
 </body>
 </html>

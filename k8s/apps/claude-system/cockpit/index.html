@@ -109,14 +109,28 @@
   .vm dd .mono { font-weight: 400; color: var(--ink-2); }
   .banner.bad { background: var(--bad-bg); }
   .banner { padding: 12px 14px; border-radius: 10px; font-size: var(--fs-md); }
+  cockpit-app { display: block; }
 </style>
 </head>
 <body>
-<div id="app"></div>
+<cockpit-app></cockpit-app>
+<!-- Lit comes from jsDelivr as plain ES modules, and Croner (cron schedules) from jsDelivr too, every package pinned to an exact version. Bump the versions here. -->
+<script type="importmap">
+{
+  "imports": {
+    "lit": "https://cdn.jsdelivr.net/npm/lit@3.3.3/index.js",
+    "lit-element/": "https://cdn.jsdelivr.net/npm/lit-element@4.2.2/",
+    "lit-html": "https://cdn.jsdelivr.net/npm/lit-html@3.3.3/lit-html.js",
+    "lit-html/": "https://cdn.jsdelivr.net/npm/lit-html@3.3.3/",
+    "@lit/reactive-element": "https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.1.2/reactive-element.js",
+    "@lit/reactive-element/": "https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.1.2/",
+    "croner": "https://cdn.jsdelivr.net/npm/croner@11.0.1/dist/croner.js"
+  }
+}
+</script>
 <script type="module">
-// lit-html (templates) and Croner (cron schedules) come from jsDelivr, pinned to exact versions. Bump the versions here.
-import { html, nothing, render } from "https://cdn.jsdelivr.net/npm/lit-html@3.3.3/lit-html.js";
-import { Cron } from "https://cdn.jsdelivr.net/npm/croner@11.0.1/dist/croner.js";
+import { LitElement, html, nothing } from "lit";
+import { Cron } from "croner";
 
 const REFRESH_MS = 60000;
 const STALE_AFTER = 150; // seconds without a poll before a VM counts as not responding (same as the Update VMs page)
@@ -504,71 +518,78 @@ const Section = ({ id, title }, children) => html`<section aria-labelledby=${"h-
   <div class="band">${children}</div>
 </section>`;
 
-// ---- State, and a render that is batched into one microtask per burst of changes ----
+// ---- The page: an element that renders into itself (no shadow root), so the page's stylesheet applies ----
+// Assigning to d, loadedAt or error re-renders it; nothing calls a render by hand.
 
-const state = { d: null, loadedAt: 0, error: null };
-let queued = false;
-function update() {
-  if (queued) return;
-  queued = true;
-  queueMicrotask(() => {
-    queued = false;
-    render(App(), document.getElementById("app"));
-  });
-}
-
-// One request at a time: a refresh while one is in flight, or one that hangs, replaces it instead of stacking up.
-// A hidden tab does not poll; coming back refreshes at once if the data is older than the interval.
-let inflight = null;
-async function load() {
-  inflight?.abort();
-  const ctl = (inflight = new AbortController());
-  const timer = setTimeout(() => ctl.abort(), 20000);
-  try {
-    const r = await fetch("api/v1/status", { signal: ctl.signal });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    const d = await r.json();
-    state.d = d;
-    state.loadedAt = Date.now();
-    state.error = null;
-  } catch (e) {
-    if (inflight === ctl) state.error = e.name === "AbortError" ? "timed out" : e.message; // not superseded by a newer request
-  } finally {
-    clearTimeout(timer);
-    if (inflight === ctl) inflight = null;
+class CockpitApp extends LitElement {
+  static properties = { d: { state: true }, loadedAt: { state: true }, error: { state: true } };
+  constructor() {
+    super();
+    this.d = null;
+    this.loadedAt = 0;
+    this.error = null;
+    this._inflight = null;
+    // A hidden tab does not poll; coming back refreshes at once if the data is older than the interval.
+    this._onVisible = () => { if (!document.hidden && Date.now() - this.loadedAt >= REFRESH_MS) this.load(); };
+    // One request at a time: a refresh while one is in flight, or one that hangs, replaces it instead of stacking up.
+    this.load = async () => {
+      this._inflight?.abort();
+      const ctl = (this._inflight = new AbortController());
+      const timer = setTimeout(() => ctl.abort(), 20000);
+      try {
+        const r = await fetch("api/v1/status", { signal: ctl.signal });
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const d = await r.json();
+        this.d = d;
+        this.loadedAt = Date.now();
+        this.error = null;
+      } catch (e) {
+        if (this._inflight === ctl) this.error = e.name === "AbortError" ? "timed out" : e.message; // not superseded by a newer request
+      } finally {
+        clearTimeout(timer);
+        if (this._inflight === ctl) this._inflight = null;
+      }
+    };
   }
-  update();
+  createRenderRoot() { return this; }
+  connectedCallback() {
+    super.connectedCallback();
+    this._poll = setInterval(() => { if (!document.hidden) this.load(); }, REFRESH_MS);
+    document.addEventListener("visibilitychange", this._onVisible);
+    this.load();
+  }
+  disconnectedCallback() {
+    clearInterval(this._poll);
+    document.removeEventListener("visibilitychange", this._onVisible);
+    this._inflight?.abort();
+    super.disconnectedCallback();
+  }
+  render() {
+    const { d, loadedAt, error } = this;
+    const failedSources = Object.keys(d?.meta?.workflow?.failed || {});
+    const banner = error
+      ? `The cockpit could not be reached (${error}). Showing the last data, if any.`
+      : failedSources.length ? `Some sources did not answer: ${failedSources.join(", ")}.` : "";
+    // The time shown is when the data was last good, so a failed refresh cannot look current.
+    const updated = error
+      ? html`<span class="pill warn" id="updated">${loadedAt ? "Stale, data from " + new Date(loadedAt).toLocaleTimeString() : "No data yet"}</span>`
+      : html`<span class="muted" id="updated">${d ? "Updated " + new Date(loadedAt).toLocaleTimeString() : "Loading…"}</span>`;
+    // Nothing below the header is shown until the first data arrives (see `main:not(.ready)`): content that appears after the fetch
+    // would push the page down.
+    return html`<main class=${d ? "ready" : nothing}>
+      <header>
+        <h1>Cockpit</h1>
+        <div class="hdr-r">${updated}<button type="button" id="refresh" @click=${this.load}>Refresh now</button></div>
+      </header>
+      <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
+      ${d ? html`${Strip(d)}
+        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${DiskPanel(d)}`)}
+        ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}
+        ${Section({ id: "home", title: "Homelab" }, html`${VersionsPanel(d)}${UsagePanel(d)}`)}` : nothing}
+    </main>`;
+  }
 }
-setInterval(() => { if (!document.hidden) load(); }, REFRESH_MS);
-document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - state.loadedAt >= REFRESH_MS) load(); });
-
-const App = () => {
-  const { d, loadedAt, error } = state;
-  const failedSources = Object.keys(d?.meta?.workflow?.failed || {});
-  const banner = error
-    ? `The cockpit could not be reached (${error}). Showing the last data, if any.`
-    : failedSources.length ? `Some sources did not answer: ${failedSources.join(", ")}.` : "";
-  // The time shown is when the data was last good, so a failed refresh cannot look current.
-  const updated = error
-    ? html`<span class="pill warn" id="updated">${loadedAt ? "Stale, data from " + new Date(loadedAt).toLocaleTimeString() : "No data yet"}</span>`
-    : html`<span class="muted" id="updated">${d ? "Updated " + new Date(loadedAt).toLocaleTimeString() : "Loading…"}</span>`;
-  // Nothing below the header is shown until the first data arrives (see `main:not(.ready)`): content that appears after the fetch
-  // would push the page down.
-  return html`<main class=${d ? "ready" : nothing}>
-    <header>
-      <h1>Cockpit</h1>
-      <div class="hdr-r">${updated}<button type="button" id="refresh" @click=${load}>Refresh now</button></div>
-    </header>
-    <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
-    ${d ? html`${Strip(d)}
-      ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${DiskPanel(d)}`)}
-      ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}
-      ${Section({ id: "home", title: "Homelab" }, html`${VersionsPanel(d)}${UsagePanel(d)}`)}` : nothing}
-  </main>`;
-};
-
-load();
-update();
+customElements.define("cockpit-app", CockpitApp);
 </script>
 </body>
 </html>
