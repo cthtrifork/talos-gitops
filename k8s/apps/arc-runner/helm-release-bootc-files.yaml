@@ -8,8 +8,8 @@
 # runner group of this scale set to that repository's `main` branch (GitHub > Settings > Actions > Runner groups > Selected
 # workflows), and keep `environment: file-upload` (deployment branch `main`) on the job.
 #
-# Select it with `runs-on: arc-files-bootc`. minRunners is 0, so it costs nothing while unused. Needs the repository on
-# the installation behind the Secret github-auth.
+# Select it with `runs-on: arc-files-bootc`. minRunners is 0, so it costs nothing while unused. Needs the Secret github-auth-bootc-files
+# (bootc-files-auth.enc.yaml).
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -38,7 +38,9 @@ spec:
     maxRunners: 1
     minRunners: 0
 
-    githubConfigSecret: github-auth
+    # the runner GitHub App (github_app_id, github_app_installation_id, github_app_private_key), installed on
+    # github-runner-bootc: bootc-files-auth.enc.yaml
+    githubConfigSecret: github-auth-bootc-files
     containerMode: {}
     template:
       spec:
