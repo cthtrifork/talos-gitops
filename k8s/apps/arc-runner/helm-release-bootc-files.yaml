@@ -95,3 +95,24 @@ spec:
             emptyDir:
               medium: Memory
               sizeLimit: 128Mi
+    listenerTemplate:
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+          - name: listener
+            securityContext:
+              runAsUser: 1000
+              runAsNonRoot: true
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - ALL
+            resources:
+              limits:
+                memory: 256Mi
+              requests:
+                cpu: 15m
+                memory: 64Mi

@@ -211,6 +211,7 @@ spec:
         # Generated ARC listener and runner pods: no probe values, and the runner needs a writable root filesystem
         - controllerNames:
             - arc-ubuntu
+            - arc-files-bootc
           rules:
             - readinessProbeMissing
             - livenessProbeMissing
