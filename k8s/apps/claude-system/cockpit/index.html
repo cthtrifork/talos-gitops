@@ -70,7 +70,6 @@
   a.pill:hover { text-decoration: underline; }
   a.pill:focus-visible { outline-offset: 1px; border-radius: 999px; }
   .hdr-r { display: flex; align-items: center; gap: 12px; }
-  footer p { margin: 0 0 8px; }
   .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .big { font-size: var(--fs-xl); font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
   .big small { font-size: var(--fs-md); font-weight: 500; color: var(--muted); letter-spacing: 0; }
@@ -99,8 +98,8 @@
   a.open { font-size: var(--fs-sm); font-weight: 600; margin-top: auto; }
   .src { font-size: var(--fs-sm); color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
   /* Nothing below the header is shown until the first data arrives: content that appears after the fetch would
-     push the footer down (a layout shift of about 0.8 on the default throttled load). */
-  main:not(.ready) > nav, main:not(.ready) > section, main:not(.ready) > footer { display: none; }
+     push the page down (a layout shift of about 0.8 on the default throttled load). */
+  main:not(.ready) > nav, main:not(.ready) > section { display: none; }
   .vm { padding-top: 10px; border-top: 1px solid var(--grid); }
   .vm:first-of-type { padding-top: 0; border-top: 0; }
   .vm-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
@@ -583,7 +582,7 @@ const App = () => {
     ? html`<span class="pill warn" id="updated">${loadedAt ? "Stale, data from " + new Date(loadedAt).toLocaleTimeString() : "No data yet"}</span>`
     : html`<span class="muted" id="updated">${d ? "Updated " + new Date(loadedAt).toLocaleTimeString() : "Loading…"}</span>`;
   // Nothing below the header is shown until the first data arrives (see `main:not(.ready)`): content that appears after the fetch
-  // would push the footer down.
+  // would push the page down.
   return html`<main class=${d ? "ready" : undefined}>
     <header>
       <h1>Cockpit</h1>
@@ -599,8 +598,7 @@ const App = () => {
       <//>
       <${Section} id="home" title="Homelab">
         <${VersionsPanel} d=${d} /><${UsagePanel} d=${d} />
-      <//>
-      <footer class="muted"><p>Reads only, nothing on this page changes the cluster.</p></footer>`}
+      <//>`}
   </main>`;
 };
 
