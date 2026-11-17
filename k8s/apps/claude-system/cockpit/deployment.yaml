@@ -43,6 +43,10 @@ spec:
             - -c
             - /etc/connect/redpanda-connect.yaml
             - --disable-telemetry
+          env:
+            # The GitHub App Renovate runs as; the page filters its pull requests by it (author:app/<name>).
+            - name: RENOVATE_APP
+              value: renovatebot-private
           ports:
             - name: http
               containerPort: 8080
