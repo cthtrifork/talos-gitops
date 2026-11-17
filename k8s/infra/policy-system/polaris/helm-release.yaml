@@ -17,6 +17,13 @@ spec:
         namespace: policy-system
   driftDetection:
     mode: enabled
+    ignore:
+      # polaris-refresh (k8s/infra/policy-system) restarts the dashboard with "kubectl rollout restart", which sets this annotation
+      - paths:
+          - /spec/template/metadata/annotations/kubectl.kubernetes.io~1restartedAt
+        target:
+          kind: Deployment
+          name: polaris-dashboard
   # https://github.com/FairwindsOps/charts/blob/master/stable/polaris/values.yaml
   values:
     image:
