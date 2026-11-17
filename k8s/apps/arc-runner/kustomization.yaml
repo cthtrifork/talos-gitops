@@ -5,6 +5,7 @@ resources:
   - helm-release.yaml
   - helm-release-podman.yaml
   - helm-release-bootc-files.yaml
+  - helm-release-bootc-iso.yaml
   - configmap.yaml
   - pvc.yaml
   - helm-repository.yaml
