@@ -5,4 +5,5 @@ resources:
   - namespace.yaml
   - rbac.yaml
   - clustersecretstore.yaml
-  - generated-secrets.yaml
+  - password.yaml
+  - pushsecret.yaml

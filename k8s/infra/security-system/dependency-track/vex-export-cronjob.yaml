@@ -8,7 +8,7 @@
 # It touches nothing outside vex/, never pushes to main, and only deletes documents whose author is Dependency-Track.
 # Statements are only exported for components that have a PURL (a statement without a subcomponent would cover the whole image).
 #
-# Needs two Secrets: dependency-track-vex-api-key (key api-key, created by config-job.yaml) and dependency-track-vex-github
+# Needs two Secrets: dependency-track-vex-api-key (key api-key, created by config-cronjob.yaml) and dependency-track-vex-github
 # (key token), a one-hour installation token that External Secrets mints every 30 minutes from the GitHub App credentials in
 # dependency-track-vex-github-app (keys app-id, installation-id, private-key.pem; SOPS-encrypted, see README.md). The token is
 # narrowed to this repository with Contents and Pull requests read/write, so no long-lived token is stored.

@@ -1,6 +1,6 @@
 import unittest
 
-from check_manifest_filenames import LEGACY_INFRA_FILES, check_kinds, filename_matches_kind
+from check_manifest_filenames import GENERATED_INFRA_FILES, check_kinds, filename_matches_kind
 
 
 class ManifestFilenameTests(unittest.TestCase):
@@ -32,9 +32,9 @@ class ManifestFilenameTests(unittest.TestCase):
             ["ClusterRole", "Service"],
         )
 
-    def test_legacy_infra_files_still_exist(self):
+    def test_generated_infra_files_still_exist(self):
         # a deleted or renamed file must leave the list, so it cannot hide a new file under the old name
-        for path in LEGACY_INFRA_FILES:
+        for path in GENERATED_INFRA_FILES:
             self.assertTrue(path.exists(), path)
 
 

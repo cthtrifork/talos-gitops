@@ -1,16 +1,4 @@
 ---
-apiVersion: metallb.io/v1beta1
-kind: L2Advertisement
-metadata:
-  name: metal-advertisement
-  namespace: metallb-system
-spec:
-  ipAddressPools:
-    - first-pool
-  #interfaces:
-  #  - eno1
-  #  - enp87s0
----
 # https://metallb.universe.tf/configuration/_advanced_ipaddresspool_configuration/
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool

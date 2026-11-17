@@ -1,13 +1,6 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/clusterissuer_v1.json
 # Self-signed root CA (cluster-scoped)
 ---
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: portableinfo-pmx01-root-ca-bootstrap
-spec:
-  selfSigned: {}
----
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
 # Mint the actual Root CA using the self-signed bootstrap
 apiVersion: cert-manager.io/v1
@@ -27,13 +20,3 @@ spec:
   issuerRef:
     name: portableinfo-pmx01-root-ca-bootstrap
     kind: ClusterIssuer
----
-# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/clusterissuer_v1.json
-# Final single ClusterIssuer backed by the minted Root CA
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: certificate-cluster-issuer
-spec:
-  ca:
-    secretName: portableinfo-root-ca

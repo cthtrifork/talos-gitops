@@ -1,0 +1,46 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumclusterwidenetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: prometheus-scrape
+spec:
+  endpointSelector:
+    matchLabels:
+      prometheus-scrape: "true"
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            k8s:app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            # zot, the Prometheus config-reloader and the operator-managed exporters, Dependency-Track management,
+            # Prometheus itself, the Harper Pad sync and database metrics, the AdGuard exporter, the Claude usage API
+            # (Redpanda Connect, 4195), the fileserver metrics (9102 to 9104)
+            - port: "4195"
+              protocol: TCP
+            - port: "5000"
+              protocol: TCP
+            - port: "8080"
+              protocol: TCP
+            - port: "9000"
+              protocol: TCP
+            - port: "9090"
+              protocol: TCP
+            - port: "9102"
+              protocol: TCP
+            - port: "9103"
+              protocol: TCP
+            - port: "9104"
+              protocol: TCP
+            - port: "9187"
+              protocol: TCP
+            - port: "9617"
+              protocol: TCP
+            # cert-manager (controller, webhook and cainjector metrics)
+            - port: "9402"
+              protocol: TCP
+            # Garage's admin API (metrics) in renovate-system
+            - port: "3903"
+              protocol: TCP

@@ -281,7 +281,7 @@ spec:
     - toEntities:
         - world
 ---
-# Config-as-code CronJob (dependency-track/config-job.yaml): talks to the Dependency-Track API (the Kubernetes API comes
+# Config-as-code CronJob (dependency-track/config-cronjob.yaml): talks to the Dependency-Track API (the Kubernetes API comes
 # from the default allow).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -301,7 +301,7 @@ spec:
             - port: "8080"
               protocol: TCP
 ---
-# VEX export CronJob (dependency-track/vex-export.yaml): reads the VEX documents from the Dependency-Track API, pushes
+# VEX export CronJob (dependency-track/vex-export-cronjob.yaml): reads the VEX documents from the Dependency-Track API, pushes
 # a branch and opens a pull request on github.com / api.github.com (the Kubernetes API comes from the default allow).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
