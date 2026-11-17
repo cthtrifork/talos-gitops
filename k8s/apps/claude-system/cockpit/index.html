@@ -104,578 +104,492 @@
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>Cockpit</h1>
-    <div class="hdr-r"><span class="muted" id="updated">Loading…</span><button type="button" id="refresh">Refresh now</button></div>
-  </header>
-  <div id="banner" class="banner bad" role="alert" hidden></div>
-  <nav class="strip" id="strip" aria-label="Overall status, each item jumps to its panel"></nav>
-  <section aria-labelledby="h-cluster">
-    <h2 id="h-cluster">Cluster</h2>
-    <div class="band" id="cluster"></div>
-  </section>
-  <section aria-labelledby="h-gh">
-    <h2 id="h-gh">GitHub</h2>
-    <div class="band" id="github"></div>
-  </section>
-  <section aria-labelledby="h-home">
-    <h2 id="h-home">Homelab</h2>
-    <div class="band" id="homelab"></div>
-  </section>
-  <footer class="muted">
-    <p>Reads only, nothing on this page changes the cluster.</p>
-  </footer>
-</main>
+<div id="app"></div>
 <script type="module">
-// Vendored in ./vendor and served by redpanda-connect.yaml: htm + Preact (templates) and Croner (cron schedules).
-import { html, render as mount } from "./vendor/htm-preact.js";
-import { Cron } from "./vendor/croner.js";
-(function () {
-  "use strict";
-  var REFRESH_MS = 60000;
-  var STALE_AFTER = 150; // seconds without a poll before a VM counts as not responding (same as the Update VMs page)
-  var MAX_ROWS = 5; // longest list shown in any panel; the rest is a count
-  var SVGNS = "http://www.w3.org/2000/svg";
+// htm + Preact (templates) and Croner (cron schedules) come from jsDelivr, pinned to exact versions. Bump the versions here.
+import { html, render, useState, useEffect, useRef } from "https://cdn.jsdelivr.net/npm/htm@3.1.1/preact/standalone.module.js";
+import { Cron } from "https://cdn.jsdelivr.net/npm/croner@11.0.1/dist/croner.js";
 
-  // Elements are built from text, never from markup, so nothing in the data can inject HTML.
-  function el(tag, cls, text) {
-    var e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (text !== undefined && text !== null) e.textContent = String(text);
-    return e;
-  }
-  function pill(state, text) { return el("span", "pill " + state, text); }
-  function head(title, state, text) {
-    var h = el("div", "panel-head");
-    h.dataset.state = state;
-    h.appendChild(el("h3", null, title));
-    if (state !== "ok") h.appendChild(pill(state, text)); // a healthy panel stays quiet: the strip counts it
-    return h;
-  }
-  // A failed source keeps its own visible line, because there the name is what the reader needs.
-  function panel() {
-    var p = el("div", "panel");
-    for (var i = 0; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]);
-    return p;
-  }
-  function unavailable(title, source) {
-    return panel(head(title, "none", "unavailable"), el("span", "src", "No answer from " + source));
-  }
-  function bar(label, parts) {
-    var b = el("div", "bar");
-    b.setAttribute("role", "img");
-    b.setAttribute("aria-label", label);
-    parts.forEach(function (p) {
-      if (!p.pct) return;
-      var i = document.createElement("i");
-      i.style.width = p.pct + "%";
-      i.style.minWidth = "4px"; // a lone failure among many stays visible
-      i.style.background = p.color;
-      b.appendChild(i);
-    });
-    return b;
-  }
-  function rows(items) {
-    var ul = el("ul", "rows");
-    items.forEach(function (it) {
-      var li = el("li");
-      var l = el("span", "l");
-      if (it.href && it.href.indexOf("https://github.com/") === 0) {
-        var a = el("a", null, it.title);
-        a.href = it.href;
-        a.rel = "noopener noreferrer";
-        a.target = "_blank";
-        l.appendChild(a);
-      } else {
-        var t = el("strong", null, it.title);
-        if (it.state) { t.className = "row-st"; t.dataset.st = it.state; }
-        l.appendChild(t);
-      }
-      if (it.sub) { l.appendChild(document.createElement("br")); l.appendChild(el("span", "muted", it.sub)); }
-      li.appendChild(l);
-      if (it.right) li.appendChild(it.right);
-      ul.appendChild(li);
-    });
-    return ul;
-  }
-  function ago(sec) {
-    if (sec < 90) return sec + " s";
-    if (sec < 5400) return Math.round(sec / 60) + " min";
-    return Math.round(sec / 3600) + " h";
-  }
+const REFRESH_MS = 60000;
+const STALE_AFTER = 150; // seconds without a poll before a VM counts as not responding (same as the Update VMs page)
+const MAX_ROWS = 5; // longest list shown in any panel; the rest is a count
+// The pages behind a panel, served by the Omni service exposer. A panel with an entry gets an "Open" link at its foot.
+const OMNI = "https://%s-portableinfo.workload.eu-central-1.omni.siderolabs.io/";
+const OPEN = {
+  "p-running-versions": ["Open Update VMs", "claudevmupgrade"],
+  "p-dropped-traffic-last-hour": ["Open Hubble", "hubble"],
+  "p-flux-reconciliation": ["Open Flux", "flux"],
+  "p-polaris-score": ["Open Polaris", "polaris"],
+  "p-renovate-runs": ["Open Renovate", "renovate"],
+};
 
-  function dropsPanel(d) {
-    var title = "Dropped traffic, last hour";
-    if (d.drops_total === undefined) return unavailable(title, "Prometheus · hubble_drop_total · POLICY_DENIED");
-    var p = panel(head(title, d.drops_total > 0 ? "warn" : "ok", d.drops_total > 0 ? "denied" : "none"));
-    var big = el("div", "big num", d.drops_total);
-    big.appendChild(el("small", null, " packets denied"));
-    p.appendChild(big);
-    var s = d.drops_series || [];
-    if (d.drops_total === 0) p.classList.add("compact"); // nothing dropped: no chart of nothing
-    if (s.length > 1 && d.drops_total !== 0) {
-      var max = Math.max.apply(null, s.concat([1]));
-      var pts = s.map(function (v, i) { return (i / (s.length - 1) * 240).toFixed(1) + " " + (40 - v / max * 34).toFixed(1); });
-      var svg = document.createElementNS(SVGNS, "svg");
-      svg.setAttribute("class", "spark");
-      svg.setAttribute("viewBox", "0 0 240 44");
-      svg.setAttribute("preserveAspectRatio", "none");
-      svg.setAttribute("role", "img");
-      svg.setAttribute("aria-label", "Denied packets per 5 minutes over the last hour, highest " + max);
-      var base = document.createElementNS(SVGNS, "line");
-      base.setAttribute("x1", "0"); base.setAttribute("y1", "43"); base.setAttribute("x2", "240"); base.setAttribute("y2", "43");
-      base.setAttribute("stroke", "var(--grid)");
-      var area = document.createElementNS(SVGNS, "path");
-      area.setAttribute("d", "M" + pts.join(" L") + " L240 43 L0 43 Z");
-      area.setAttribute("fill", "var(--warn)");
-      area.setAttribute("fill-opacity", "0.15");
-      var line = document.createElementNS(SVGNS, "path");
-      line.setAttribute("d", "M" + pts.join(" L"));
-      line.setAttribute("fill", "none");
-      line.setAttribute("stroke", "var(--warn)");
-      line.setAttribute("stroke-width", "1.5");
-      line.setAttribute("vector-effect", "non-scaling-stroke");
-      svg.appendChild(base); svg.appendChild(area); svg.appendChild(line);
-      p.appendChild(svg);
-    }
-    var top = d.drops_top || [];
-    if (top.length) {
-      p.appendChild(rows(top.map(function (t) {
-        return { title: t.source + " → " + t.destination, right: el("span", "num muted", t.count) };
-      })));
-    }
-    return p;
-  }
+// ---- Plain helpers: formatting, status levels and the data behind the panels ----
 
-  function alertsPanel(d) {
-    var title = "Firing alerts";
-    if (!d.alerts) return unavailable(title, "Prometheus · /api/v1/alerts");
-    var crit = d.alerts.some(function (a) { return a.severity === "critical"; });
-    var n = d.alerts.length;
-    var p = panel(head(title, n === 0 ? "ok" : crit ? "bad" : "warn", n === 0 ? "none" : String(n)));
-    if (n === 0) { p.classList.add("compact"); p.appendChild(el("span", "muted", "Nothing is firing.")); }
-    else {
-      // Critical first, then by name; a long incident list is capped so it cannot push every other panel off the screen.
-      var sorted = d.alerts.slice().sort(function (a, b) {
-        return (a.severity === "critical" ? 0 : 1) - (b.severity === "critical" ? 0 : 1) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
-      });
-      p.appendChild(rows(sorted.slice(0, MAX_ROWS).map(function (a) {
-        return { title: a.name, sub: a.summary, right: pill(a.severity === "critical" ? "bad" : "warn", a.severity) };
-      })));
-      if (n > MAX_ROWS) {
-        var hiddenCrit = sorted.slice(MAX_ROWS).filter(function (a) { return a.severity === "critical"; }).length;
-        p.appendChild(el("span", "muted", "and " + (n - MAX_ROWS) + " more" + (hiddenCrit ? ", " + hiddenCrit + " of them critical" : "")));
-      }
-    }
-    return p;
-  }
+const slug = (t) => "p-" + t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const secondsSince = (ms) => Math.max(0, Math.round((Date.now() - ms) / 1000));
+const compare = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const isCritical = (a) => a.severity === "critical";
+const isFailed = (x) => /fail|error/i.test(`${x.status} ${x.result}`);
 
-  function fluxTotals(d) {
-    var parts = [d.flux_ks, d.flux_hr].filter(Boolean);
-    var t = { total: 0, ready: 0, progressing: 0, suspended: 0, failed: 0, unknown: 0, problems: [] };
-    parts.forEach(function (x) {
-      t.total += x.total; t.ready += x.ready; t.progressing += x.progressing; t.suspended += x.suspended; t.failed += x.failed; t.unknown += x.unknown;
-      t.problems = t.problems.concat(x.problems || []);
-    });
-    t.complete = parts.length === 2;
-    return t;
+function ago(sec) {
+  if (sec < 90) return sec + " s";
+  if (sec < 5400) return Math.round(sec / 60) + " min";
+  return Math.round(sec / 3600) + " h";
+}
+function until(sec) {
+  if (sec < 90) return "less than a minute";
+  if (sec < 5400) return Math.round(sec / 60) + " min";
+  if (sec < 172800) return Math.round(sec / 360) / 10 + " h";
+  return Math.round(sec / 86400) + " days";
+}
+// A used percentage as a status (and a bar colour): quiet below 75, warn from 75, bad from `bad`.
+const usedState = (pct, bad) => (pct >= bad ? "bad" : pct >= 75 ? "warn" : "ok");
+const usedColor = (pct, bad) => ({ bad: "var(--bad)", warn: "var(--warn)", ok: "var(--calm)" })[usedState(pct, bad)];
+// Next time a cron expression (UTC, as the operator runs it) fires; null if it does not parse.
+function cronNext(expr) {
+  try {
+    const t = new Cron(expr, { timezone: "UTC" }).nextRun();
+    return t ? t.getTime() : null;
+  } catch (e) {
+    return null;
   }
-  function fluxPanel(d) {
-    var title = "Flux reconciliation";
-    var t = fluxTotals(d);
-    if (!d.flux_ks && !d.flux_hr) return unavailable(title, "Kubernetes API · kustomizations, helmreleases");
-    var state = t.failed ? "bad" : t.unknown ? "warn" : t.progressing ? "none" : "ok";
-    var label = t.failed ? t.failed + " failed" : t.unknown ? t.unknown + " unknown" : t.progressing ? t.progressing + " progressing" : "all ready";
-    var p = panel(head(title, state, label));
-    var pct = function (n) { return t.total ? n / t.total * 100 : 0; };
-    p.appendChild(bar(t.ready + " of " + t.total + " ready", [
-      { pct: pct(t.ready), color: "var(--calm)" }, { pct: pct(t.progressing), color: "var(--accent)" },
-      { pct: pct(t.failed), color: "var(--bad)" }, { pct: pct(t.unknown), color: "var(--warn)" }, { pct: pct(t.suspended), color: "var(--ink-2)" }
-    ]));
-    var lg = el("div", "legend");
-    [["var(--calm)", t.ready + " ready"], ["var(--accent)", t.progressing + " progressing"], ["var(--bad)", t.failed + " failed"], ["var(--warn)", t.unknown + " unknown"], ["var(--ink-2)", t.suspended + " suspended"]].forEach(function (x) {
-      var s = el("span"); var dot = el("span", "dot"); dot.style.background = x[0];
-      s.appendChild(dot); s.appendChild(document.createTextNode(x[1])); lg.appendChild(s);
-    });
-    p.appendChild(lg);
-    var ORDER = { failed: 0, unknown: 1, progressing: 2 };
-    var probs = t.problems.slice().sort(function (a, b) {
-      var k = a.namespace + "/" + a.name, l = b.namespace + "/" + b.name;
-      return (ORDER[a.state] - ORDER[b.state]) || (k < l ? -1 : k > l ? 1 : 0);
-    }).slice(0, MAX_ROWS);
-    var hidden = t.failed + t.unknown + t.progressing - probs.length;
-    if (probs.length) p.appendChild(rows(probs.map(function (x) {
-      return { title: x.namespace + "/" + x.name, sub: x.message, right: pill(x.state === "failed" ? "bad" : x.state === "unknown" ? "warn" : "none", x.state) };
-    })));
-    if (hidden > 0) p.appendChild(el("span", "muted", "and " + hidden + " more not listed"));
-    if (!t.complete) p.appendChild(el("span", "muted", "One of the two lists did not answer, so the counts are partial."));
-    return p;
+}
+// The same filter the cockpit uses, as a GitHub search, so "more on GitHub" opens the whole list.
+function ghSearch(group, d) {
+  const bot = d.github?.renovate?.items[0]?.author;
+  const app = bot ? "author:app/" + bot.replace(/\[bot\]$/, "") : null;
+  let q = "is:open archived:false user:cthtrifork";
+  if (group === "issues") q += ' is:issue NOT "Dependency Dashboard" in:title';
+  else q += " is:pr -is:draft" + (group === "renovate" ? (app ? " " + app : " renovate") : app ? " -" + app : "");
+  return "https://github.com/search?type=issues&s=updated&o=desc&q=" + encodeURIComponent(q);
+}
+function openLink(id, d) {
+  // The Renovate pull requests panel links to the pull requests on GitHub, not to the Renovate UI.
+  if (id === "p-renovate-pull-requests") return { label: "Open pull requests", href: ghSearch("renovate", d) };
+  const o = OPEN[id];
+  return o && { label: o[0], href: OMNI.replace("%s", o[1]) };
+}
+function fluxTotals(d) {
+  const parts = [d.flux_ks, d.flux_hr].filter(Boolean);
+  const t = { total: 0, ready: 0, progressing: 0, suspended: 0, failed: 0, unknown: 0, problems: [], complete: parts.length === 2 };
+  for (const x of parts) {
+    for (const k of ["total", "ready", "progressing", "suspended", "failed", "unknown"]) t[k] += x[k];
+    t.problems = t.problems.concat(x.problems || []);
   }
-
-  function polarisPanel(d) {
-    var title = "Polaris score";
-    var x = d.polaris;
-    if (!x) return unavailable(title, "polaris-dashboard · /results.json");
-    var state = x.score >= 90 ? "ok" : x.score >= 75 ? "warn" : "bad";
-    var p = panel(head(title, state, x.danger ? x.danger + " danger" : "no danger"));
-    p.classList.add("compact");
-    var line = el("div", "num");
-    line.appendChild(el("strong", null, x.score + " / 100"));
-    line.appendChild(document.createTextNode(" · " + x.danger + " danger · " + x.warning + " warning"));
-    p.appendChild(line);
-    p.appendChild(el("span", "muted", "Audited " + String(x.audit_time).replace("T", " ").replace("Z", " UTC")));
-    return p;
-  }
-
-  function diskPanel(d) {
-    var title = "Disk, local-path volumes";
-    if (!d.disk) return unavailable(title, "Prometheus · node_filesystem_*");
-    var max = d.disk.reduce(function (m, n) { return Math.max(m, n.used_pct); }, 0);
-    var state = max >= 85 ? "bad" : max >= 75 ? "warn" : "ok";
-    var p = panel(head(title, state, max >= 75 ? "node over " + (max >= 85 ? 85 : 75) + "%" : "ok"));
-    var SHOW = 60; // nodes under this are only counted
-    var hot = d.disk.filter(function (n) { return n.used_pct >= SHOW; }).sort(function (x, y) { return y.used_pct - x.used_pct; });
-    if (!hot.length) {
-      p.classList.add("compact");
-      p.appendChild(el("span", "muted", d.disk.length ? "All " + d.disk.length + (d.disk.length === 1 ? " node" : " nodes") + " under " + SHOW + "%, highest " + max + "%" : "No nodes reported."));
-    } else {
-      var box = el("div", "limit");
-      hot.forEach(function (n) {
-        var r = el("div", "limit-row");
-        r.appendChild(el("span", null, n.node));
-        var v = el("span", "num"); v.appendChild(el("strong", null, n.used_pct + "%")); v.appendChild(document.createTextNode(" used"));
-        r.appendChild(v); box.appendChild(r);
-        box.appendChild(bar(n.node + ", " + n.used_pct + " percent used", [{ pct: n.used_pct, color: n.used_pct >= 85 ? "var(--bad)" : n.used_pct >= 75 ? "var(--warn)" : "var(--calm)" }]));
-      });
-      p.appendChild(box);
-      var rest = d.disk.length - hot.length;
-      if (rest) p.appendChild(el("span", "muted", rest + (rest === 1 ? " other node" : " other nodes") + " under " + SHOW + "%"));
-    }
-    return p;
-  }
-
-  function prRows(items) {
-    return rows(items.map(function (i) {
-      return { title: i.repo + "#" + i.number, href: i.url, sub: i.title + " · " + i.author, right: el("span", "muted num", ago(Math.max(0, Math.round((Date.now() - Date.parse(i.updated)) / 1000)))) };
-    }));
-  }
-  // The same filter the cockpit uses, as a GitHub search, so "more on GitHub" opens the whole list.
-  function ghSearch(group, d) {
-    var q = "is:open archived:false user:cthtrifork";
-    var bot = d.github && d.github.renovate && d.github.renovate.items[0] && d.github.renovate.items[0].author;
-    var app = bot ? "author:app/" + bot.replace(/\[bot\]$/, "") : null;
-    if (group === "issues") q += ' is:issue NOT "Dependency Dashboard" in:title';
-    else q += " is:pr -is:draft" + (group === "renovate" ? (app ? " " + app : " renovate") : app ? " -" + app : "");
-    return "https://github.com/search?type=issues&s=updated&o=desc&q=" + encodeURIComponent(q);
-  }
-  function ghPanel(title, group, d, emptyText, state) {
-    var g = d.github && d.github[group];
-    if (!g) return unavailable(title, "GitHub API · search/issues");
-    var p = panel(head(title, state(g.count), g.count + " open"));
-    if (g.count === 0) { p.classList.add("compact"); p.appendChild(el("span", "muted", emptyText)); }
-    else p.appendChild(prRows(g.items));
-    if (g.count > g.items.length) {
-      var more = el("a", null, g.count - g.items.length + " more on GitHub");
-      more.href = ghSearch(group, d);
-      more.rel = "noopener noreferrer";
-      more.target = "_blank";
-      p.appendChild(more);
-    }
-    if (d.github.truncated) p.appendChild(el("span", "muted", "More than 100 are open, so the counts are a lower bound."));
-    return p;
-  }
-  function prsPanel(d) { return ghPanel("Pull requests", "other", d, "No open pull requests.", function (n) { return n ? "warn" : "ok"; }); }
-  function renovatePrsPanel(d) { return ghPanel("Renovate pull requests", "renovate", d, "No open Renovate pull requests.", function (n) { return n === 0 ? "ok" : n > 10 ? "warn" : "none"; }); }
-  function issuesPanel(d) {
-    var p = ghPanel("Open issues", "issues", d, "No open issues.", function (n) { return n ? "warn" : "ok"; });
-    return p;
-  }
-  // Next time a cron expression (UTC, as the operator runs it) fires; null if it does not parse.
-  function cronNext(expr) {
-    try { var t = new Cron(expr, { timezone: "UTC" }).nextRun(); return t ? t.getTime() : null; } catch (e) { return null; }
-  }
-  function renovateRunsPanel(d) {
-    var title = "Renovate runs";
-    if (!d.renovate) return unavailable(title, "Kubernetes API · renovateprojects");
-    var ps = d.renovate.projects;
-    var approval = ps.reduce(function (n, x) { return n + x.needs_approval; }, 0);
-    var isBad = function (x) { return /fail|error/i.test(x.status + " " + x.result); };
-    var bad = ps.filter(isBad).length;
-    var state = bad ? "bad" : approval ? "warn" : "ok";
-    var text = bad ? bad + " failed" : approval ? approval + " need approval" : "all done";
-    // Headline: time to the next scheduled run, like the other panels' big number.
-    var jobs = d.renovate_jobs || [];
-    var live = jobs.filter(function (j) { return !j.suspend; });
-    var nexts = live.map(function (j) { return cronNext(j.schedule); }).filter(Boolean);
-    var next = nexts.length ? Math.min.apply(null, nexts) : 0;
-    var headline = jobs.length > 0 && (next > 0 || !live.length);
-    var p = el("div", "panel");
-    mount(html`
-      <div class="panel-head" data-state=${state}>
-        <h3>${title}</h3>
-        ${state !== "ok" && html`<span class=${"pill " + state}>${text}</span>`}
-      </div>
-      ${headline && html`
-        <div class="big num" ...${next ? { title: "Schedule (UTC): " + live.map(function (j) { return j.schedule; }).join(", ") } : {}}>
-          ${next ? until(Math.round((next - Date.now()) / 1000)) : "suspended"}
-          <small>${next ? " until the next run" : " no run is scheduled"}</small>
-        </div>`}
-      <ul class="rows">
-        ${ps.map(function (x) {
-          var bits = [];
-          if (x.duration) bits.push("took " + x.duration);
-          if (x.needs_approval) bits.push(x.needs_approval + " need approval");
-          if (x.automerged) bits.push(x.automerged + " automerged");
-          if (x.unchanged) bits.push(x.unchanged + " unchanged");
-          var st = isBad(x) ? "bad" : x.status === "completed" ? "ok" : "warn";
-          var lt = Date.parse(x.last_transition);
-          // The Dependency Dashboard issue of the repo, found by search because the issue number is not in the data.
-          var dash = "https://github.com/search?type=issues&q=" + encodeURIComponent("repo:cthtrifork/" + x.project + ' is:issue is:open "Dependency Dashboard" in:title');
-          return html`<li key=${x.project}>
-            <span class="l">
-              <a href=${dash} rel="noopener noreferrer" target="_blank">${x.project}</a><br />
-              <span class="muted">${bits.join(" · ") || "no changes"}</span>
-            </span>
-            <span class="run-st">
-              <span class=${"pill " + st}>${x.status}</span>
-              ${lt && html`<span class="muted num">${ago(Math.max(0, Math.round((Date.now() - lt) / 1000)))} ago</span>`}
-            </span>
-          </li>`;
-        })}
-      </ul>`, p);
-    return p;
-  }
-
-  function until(sec) {
-    if (sec < 90) return "less than a minute";
-    if (sec < 5400) return Math.round(sec / 60) + " min";
-    if (sec < 172800) return Math.round(sec / 360) / 10 + " h";
-    return Math.round(sec / 86400) + " days";
-  }
-  function versionsPanel(d) {
-    var title = "Running versions";
-    var v = d.vm_upgrade && d.vm_upgrade.vms;
-    if (!v) return unavailable(title, "claude-vm-upgrade · /api/v1/status");
-    var now = d.vm_upgrade.now || Math.round(Date.now() / 1000);
-    var worst = "ok", label = "reporting";
-    var NAMES = { "claude-vm": "Claude VM", "homeserver": "Home server" };
-    var items = ["claude-vm", "homeserver"].map(function (name) {
-      var x = v[name] || {};
-      var vm = x.vm || {};
-      var age = x.last_poll_at ? now - x.last_poll_at : null;
-      var latest = d.vm_images && d.vm_images[name] && d.vm_images[name].digest;
-      var behind = latest && vm.booted_digest && latest !== vm.booted_digest;
-      var st = age === null || age > STALE_AFTER ? "bad" : vm.staged_version ? "warn" : behind ? "warn" : "ok";
-      if (st === "bad") { worst = "bad"; label = "not responding"; }
-      else if (st === "warn" && worst !== "bad") { worst = "warn"; label = vm.staged_version ? "Reboot pending" : "Update available"; }
-      var bits = [];
-      if (age === null) bits.push("has not reported");
-      else if (age > STALE_AFTER) bits.push("last poll " + ago(age) + " ago");
-      if (vm.staged_version) bits.push("staged " + vm.staged_version);
-      else if (behind) bits.push("newer image");
-      else if (latest) bits.push("Up to date");
-      var sub = bits.join(" · ");
-      return { title: NAMES[name] || name, state: st, sub: sub, right: el("span", "muted num mono", vm.booted_version ? vm.booted_version + (vm.booted_digest ? " · " + vm.booted_digest.slice(0, 12) : "") : "unknown") };
-    });
-    var p = panel(head(title, worst, label));
-    p.appendChild(rows(items));
-    if (!d.vm_images) p.appendChild(el("span", "muted", "The registry did not answer, so newer images are not shown."));
-    return p;
-  }
-  function usagePanel(d) {
-    var title = "Claude usage";
-    if (!d.sessions) return unavailable(title, "claude-vm status line → cockpit");
-    var users = usageUsers(d);
-    if (!users.length) {
-      var e = panel(head(title, "none", "no data"));
-      e.appendChild(el("span", "muted", "Nothing received in the last 24 hours. The Claude VM sends it while Claude Code is in use."));
-      return e;
-    }
-    var now = Math.round(Date.now() / 1000);
-    var blocks = users.map(function (u) { return usageBlock(u[1], now); });
-    var live = blocks.filter(function (b) { return !b.stale; });
-    var worst = live.reduce(function (m, b) { return Math.max(m, b.worst); }, 0);
-    var state = !live.length ? "none" : worst >= 90 ? "bad" : worst >= 75 ? "warn" : "ok";
-    var p = panel(head(title, state, !live.length ? "stale" : "peak " + worst + "%"));
-    blocks.forEach(function (b, i) {
-      // With several users each block is named; with one the panel reads as before.
-      if (users.length > 1) p.appendChild(el("strong", null, users[i][0]));
-      p.appendChild(b.box);
-      if (b.note) p.appendChild(b.note);
-    });
-    return p;
-  }
-  // The usage of one Linux user: a bar for the window closer to its limit, the other as a line.
-  function usageBlock(s, now) {
-    var age = now - s.received_at;
-    var stale = age > 6 * 3600;
-    var windows = [["5-hour window", s.five_hour], ["7-day window", s.seven_day]];
-    var worst = 0;
-    var box = el("div", "limit");
-    var vals = windows.map(function (w) {
-      var x = w[1] || {};
-      return x.used_pct === null || x.used_pct === undefined ? -1 : x.resets_at && x.resets_at < now ? 0 : x.used_pct;
-    });
-    var main = vals.indexOf(Math.max.apply(null, vals)); // only this window gets a bar
-    windows.forEach(function (w, i) {
-      var x = w[1] || {};
-      var over = x.resets_at && x.resets_at < now;
-      var used = x.used_pct === null || x.used_pct === undefined ? null : over ? 0 : x.used_pct;
-      if (used !== null) worst = Math.max(worst, used);
-      var r = el("div", "limit-row");
-      if (i !== main) r.classList.add("muted");
-      r.appendChild(el("span", null, w[0]));
-      var v = el("span", "num");
-      if (used === null) v.appendChild(document.createTextNode("no data"));
-      else {
-        v.appendChild(el("strong", null, used + "%"));
-        v.appendChild(document.createTextNode(" used" + (x.resets_at && !over ? " · resets in " + until(x.resets_at - now) : over ? " · window has reset" : "")));
-      }
-      r.appendChild(v);
-      box.appendChild(r);
-      if (i === main) box.appendChild(bar(w[0] + ", " + (used === null ? "no data" : used + " percent used"), used === null ? [] : [{ pct: used, color: used >= 90 ? "var(--bad)" : used >= 75 ? "var(--warn)" : "var(--calm)" }]));
-    });
-    var bits = stale ? ["reported " + ago(age) + " ago"] : [];
-    if (s.model) bits.push(s.model);
-    if (s.version) bits.push("Claude Code " + s.version);
-    return { box: box, worst: worst, stale: stale, note: bits.length ? el("span", "muted", bits.join(" · ") + (stale ? ". Older than 6 hours, so the VM may be idle." : "")) : null };
-  }
-  // The Linux users that reported anything in the last 24 hours, by name.
-  function usageUsers(d) {
-    var m = (d.sessions && d.sessions["claude-vm"]) || {};
-    return Object.keys(m).sort().filter(function (k) { return m[k] && m[k].received_at; }).map(function (k) { return [k, m[k]]; });
-  }
-
-  function stripChips(d) {
-    var chips = [];
-    if (d.alerts) {
-      var crit = d.alerts.some(function (a) { return a.severity === "critical"; });
-      chips.push(d.alerts.length ? [crit ? "bad" : "warn", d.alerts.length + (d.alerts.length === 1 ? " alert firing" : " alerts firing"), "p-firing-alerts"] : ["ok", "No alerts firing", "p-firing-alerts"]);
-    }
-    var t = fluxTotals(d);
-    if (d.flux_ks || d.flux_hr) chips.push(t.failed ? ["bad", "Flux: " + t.failed + " failed", "p-flux-reconciliation"] : t.unknown ? ["warn", "Flux: " + t.unknown + " unknown", "p-flux-reconciliation"] : t.progressing ? ["none", "Flux: " + t.progressing + " progressing", "p-flux-reconciliation"] : ["ok", "Flux ready", "p-flux-reconciliation"]);
-    if (d.polaris) chips.push([d.polaris.score >= 90 ? "ok" : d.polaris.score >= 75 ? "warn" : "bad", "Polaris " + d.polaris.score + "/100", "p-polaris-score"]);
-    if (d.disk && d.disk.length) {
-      var m = d.disk.reduce(function (a, n) { return Math.max(a, n.used_pct); }, 0);
-      chips.push([m >= 85 ? "bad" : m >= 75 ? "warn" : "ok", "Disk " + m + "%", "p-disk-local-path-volumes"]);
-    }
-    if (d.drops_total !== undefined) chips.push([d.drops_total > 0 ? "warn" : "ok", d.drops_total + " packets denied", "p-dropped-traffic-last-hour"]);
-    if (d.github) {
-      var o = d.github.other.count;
-      chips.push([o ? "warn" : "ok", o + (o === 1 ? " open PR" : " open PRs"), "p-pull-requests"]);
-    }
-    if (d.renovate) {
-      var bad = d.renovate.projects.filter(function (x) { return /fail|error/i.test(x.status + " " + x.result); }).length;
-      if (bad) chips.push(["bad", "Renovate: " + bad + " failed", "p-renovate-runs"]);
-    }
-    var nowS = Math.round(Date.now() / 1000), usage = usageUsers(d), top = null;
-    usage.forEach(function (u) {
-      var s = u[1], w = s.seven_day && s.seven_day.used_pct;
-      if (nowS - s.received_at > 6 * 3600 || w === null || w === undefined || (s.seven_day.resets_at && s.seven_day.resets_at < nowS)) return;
-      if (!top || w > top.w) top = { w: w, name: u[0] };
-    });
-    if (top) chips.push([top.w >= 90 ? "bad" : top.w >= 75 ? "warn" : "ok", "Claude 7-day " + top.w + "%" + (usage.length > 1 ? " (" + top.name + ")" : ""), "p-claude-usage"]);
-    var order = { bad: 0, warn: 1, none: 2, ok: 3 };
-    chips.sort(function (a, b) { return order[a[0]] - order[b[0]]; });
-    return chips;
-  }
-
-  function slug(t) { return "p-" + t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
-  // Swap a container's contents in one go. A refresh must not drop keyboard focus, so a focused link is found again by its href.
-  function swap(box, node) {
-    var a = document.activeElement;
-    var key = a && box.contains(a) ? a.getAttribute("href") : null;
-    box.replaceChildren(node);
-    if (key) Array.prototype.some.call(box.querySelectorAll("a"), function (x) {
-      if (x.getAttribute("href") !== key) return false;
-      x.focus({ preventScroll: true });
-      return true;
-    });
-  }
-  // The pages behind a panel, served by the Omni service exposer. A panel with an entry gets an "Open" link at its foot.
-  var OMNI = "https://%s-portableinfo.workload.eu-central-1.omni.siderolabs.io/";
-  var OPEN = {
-    "p-running-versions": ["Open Update VMs", "claudevmupgrade"],
-    "p-dropped-traffic-last-hour": ["Open Hubble", "hubble"],
-    "p-flux-reconciliation": ["Open Flux", "flux"],
-    "p-polaris-score": ["Open Polaris", "polaris"],
-    "p-renovate-runs": ["Open Renovate", "renovate"]
-  };
-  function withLink(p, d) {
-    // The Renovate pull requests panel links to the pull requests on GitHub, not to the Renovate UI.
-    var o = p.id === "p-renovate-pull-requests" ? ["Open pull requests", null] : OPEN[p.id];
-    if (!o) return p;
-    var a = el("a", "open", o[0] + " \u2192");
-    a.href = o[1] ? OMNI.replace("%s", o[1]) : ghSearch("renovate", d);
-    a.rel = "noopener noreferrer";
-    a.target = "_blank";
-    p.appendChild(a);
-    return p;
-  }
-  // Panels are built off-screen and keep the order they are listed in, so each one stays where it was last time.
-  function fill(id, fns, d) {
-    var ps = fns.map(function (fn, i) { var p = fn(d); p.id = slug(p.querySelector("h3").textContent); return withLink(p, d); });
-    var f = document.createDocumentFragment();
-    ps.forEach(function (p) { f.appendChild(p); });
-    swap(document.getElementById(id), f);
-  }
-  function chip(c) {
-    var a = el(c[2] ? "a" : "span", "pill " + c[0], c[1]);
-    if (c[2]) a.href = "#" + c[2];
-    return a;
-  }
-  function render(d) {
-    var strip = document.createDocumentFragment();
-    var all = stripChips(d);
-    var shown = all.filter(function (c) { return c[0] !== "ok"; });
-    shown.forEach(function (c) { strip.appendChild(chip(c)); });
-    var healthy = all.length - shown.length;
-    if (healthy) strip.appendChild(chip(["ok", shown.length ? healthy + " healthy" : "All healthy"]));
-    swap(document.getElementById("strip"), strip);
-    fill("cluster", [dropsPanel, alertsPanel, fluxPanel, polarisPanel, diskPanel], d);
-    fill("homelab", [versionsPanel, usagePanel], d);
-    fill("github", [prsPanel, renovatePrsPanel, issuesPanel, renovateRunsPanel], d);
-    var failed = (d.meta && d.meta.workflow && d.meta.workflow.failed) || {};
-    var names = Object.keys(failed);
-    var banner = document.getElementById("banner");
-    banner.hidden = names.length === 0;
-    banner.textContent = names.length ? "Some sources did not answer: " + names.join(", ") + "." : "";
-    document.querySelector("main").classList.add("ready");
-    var u = document.getElementById("updated");
-    u.className = "muted";
-    u.textContent = "Updated " + new Date().toLocaleTimeString();
-  }
-
-  // One request at a time: a refresh while one is in flight, or one that hangs, replaces it instead of stacking up.
-  var inflight = null, loadedAt = 0;
-  function load() {
-    if (inflight) inflight.abort();
-    var ctl = inflight = new AbortController();
-    var timer = setTimeout(function () { ctl.abort(); }, 20000);
-    fetch("api/v1/status", { signal: ctl.signal })
-      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (d) { loadedAt = Date.now(); render(d); })
-      .catch(function (e) {
-        if (inflight !== ctl) return; // superseded by a newer request
-        var banner = document.getElementById("banner");
-        banner.hidden = false;
-        banner.textContent = "The cockpit could not be reached (" + (e.name === "AbortError" ? "timed out" : e.message) + "). Showing the last data, if any.";
-        // The time shown is when the data was last good, so a failed refresh cannot look current.
-        var u = document.getElementById("updated");
-        u.className = "pill warn";
-        u.textContent = loadedAt ? "Stale, data from " + new Date(loadedAt).toLocaleTimeString() : "No data yet";
-      })
-      .then(function () { clearTimeout(timer); if (inflight === ctl) inflight = null; });
-  }
-  document.getElementById("refresh").addEventListener("click", load);
-  // A hidden tab does not poll; coming back refreshes at once if the data is older than the interval.
-  document.addEventListener("visibilitychange", function () {
-    if (!document.hidden && Date.now() - loadedAt >= REFRESH_MS) load();
+  return t;
+}
+// The Linux users that reported anything in the last 24 hours, as [name, session].
+function usageUsers(d) {
+  const m = d.sessions?.["claude-vm"] || {};
+  return Object.keys(m).sort().filter((k) => m[k]?.received_at).map((k) => [k, m[k]]);
+}
+// The usage of one Linux user: both windows, and which of them is closer to its limit (that one gets a bar).
+function usageBlock(s, now) {
+  const age = now - s.received_at;
+  const windows = [["5-hour window", s.five_hour], ["7-day window", s.seven_day]].map(([name, w]) => {
+    const x = w || {};
+    const over = Boolean(x.resets_at && x.resets_at < now);
+    const used = x.used_pct === null || x.used_pct === undefined ? null : over ? 0 : x.used_pct;
+    return { name, used, over, resets_at: x.resets_at };
   });
-  load();
-  setInterval(function () { if (!document.hidden) load(); }, REFRESH_MS);
-})();
+  const vals = windows.map((w) => (w.used === null ? -1 : w.used));
+  return {
+    age,
+    stale: age > 6 * 3600,
+    windows,
+    main: vals.indexOf(Math.max(...vals)),
+    worst: Math.max(0, ...windows.map((w) => w.used ?? 0)),
+  };
+}
+
+// The chips of the strip: one per panel that has a verdict, worst first.
+function stripChips(d) {
+  const chips = [];
+  const add = (state, text, panel) => chips.push({ state, text, href: panel });
+  if (d.alerts) {
+    const n = d.alerts.length;
+    add(n ? (d.alerts.some(isCritical) ? "bad" : "warn") : "ok", n ? `${n} ${n === 1 ? "alert" : "alerts"} firing` : "No alerts firing", "p-firing-alerts");
+  }
+  if (d.flux_ks || d.flux_hr) {
+    const t = fluxTotals(d);
+    if (t.failed) add("bad", `Flux: ${t.failed} failed`, "p-flux-reconciliation");
+    else if (t.unknown) add("warn", `Flux: ${t.unknown} unknown`, "p-flux-reconciliation");
+    else if (t.progressing) add("none", `Flux: ${t.progressing} progressing`, "p-flux-reconciliation");
+    else add("ok", "Flux ready", "p-flux-reconciliation");
+  }
+  if (d.polaris) add(polarisState(d.polaris.score), `Polaris ${d.polaris.score}/100`, "p-polaris-score");
+  if (d.disk?.length) {
+    const m = Math.max(0, ...d.disk.map((n) => n.used_pct));
+    add(usedState(m, 85), `Disk ${m}%`, "p-disk-local-path-volumes");
+  }
+  if (d.drops_total !== undefined) add(d.drops_total > 0 ? "warn" : "ok", `${d.drops_total} packets denied`, "p-dropped-traffic-last-hour");
+  if (d.github) {
+    const o = d.github.other.count;
+    add(o ? "warn" : "ok", o + (o === 1 ? " open PR" : " open PRs"), "p-pull-requests");
+  }
+  const failed = d.renovate?.projects.filter(isFailed).length;
+  if (failed) add("bad", `Renovate: ${failed} failed`, "p-renovate-runs");
+  // The highest 7-day usage among the users whose numbers are fresh and not past their reset.
+  const now = Math.round(Date.now() / 1000);
+  const users = usageUsers(d);
+  let top = null;
+  for (const [name, s] of users) {
+    const w = s.seven_day?.used_pct;
+    if (now - s.received_at > 6 * 3600 || w === null || w === undefined || (s.seven_day.resets_at && s.seven_day.resets_at < now)) continue;
+    if (!top || w > top.w) top = { w, name };
+  }
+  if (top) add(usedState(top.w, 90), `Claude 7-day ${top.w}%` + (users.length > 1 ? ` (${top.name})` : ""), "p-claude-usage");
+  const order = { bad: 0, warn: 1, none: 2, ok: 3 };
+  return chips.sort((a, b) => order[a.state] - order[b.state]);
+}
+const polarisState = (score) => (score >= 90 ? "ok" : score >= 75 ? "warn" : "bad");
+
+// ---- Building blocks. Text goes in as text, never as markup, so nothing in the data can inject HTML. ----
+
+const Pill = ({ state, children }) => html`<span class=${"pill " + state}>${children}</span>`;
+
+const Panel = ({ title, state, text, compact, d, children }) => {
+  const id = slug(title);
+  const open = openLink(id, d);
+  return html`<div class=${compact ? "panel compact" : "panel"} id=${id}>
+    <div class="panel-head" data-state=${state}>
+      <h3>${title}</h3>
+      ${state !== "ok" && html`<${Pill} state=${state}>${text}<//>`}
+    </div>
+    ${children}
+    ${open && html`<a class="open" href=${open.href} rel="noopener noreferrer" target="_blank">${open.label} →</a>`}
+  </div>`;
+};
+// A failed source keeps its own visible line, because there the name is what the reader needs.
+const Unavailable = ({ title, source, d }) =>
+  html`<${Panel} title=${title} state="none" text="unavailable" d=${d}><span class="src">No answer from ${source}</span><//>`;
+
+const Muted = ({ children }) => html`<span class="muted">${children}</span>`;
+
+const Bar = ({ label, parts }) => html`<div class="bar" role="img" aria-label=${label}>
+  ${parts.filter((p) => p.pct).map((p) => html`<i style=${{ width: p.pct + "%", minWidth: "4px" /* a lone failure among many stays visible */, background: p.color }} />`)}
+</div>`;
+
+// Each item: { title, href?, state?, sub?, right? }. Only GitHub links are made clickable.
+const Rows = ({ items }) => html`<ul class="rows">
+  ${items.map((it, i) => html`<li key=${i}>
+    <span class="l">
+      ${it.href?.startsWith("https://github.com/")
+        ? html`<a href=${it.href} rel="noopener noreferrer" target="_blank">${it.title}</a>`
+        : html`<strong ...${it.state ? { class: "row-st", "data-st": it.state } : {}}>${it.title}</strong>`}
+      ${it.sub && html`<br /><${Muted}>${it.sub}<//>`}
+    </span>
+    ${it.right}
+  </li>`)}
+</ul>`;
+
+const Sparkline = ({ series }) => {
+  const max = Math.max(...series, 1);
+  const pts = series.map((v, i) => `${((i / (series.length - 1)) * 240).toFixed(1)} ${(40 - (v / max) * 34).toFixed(1)}`);
+  const line = "M" + pts.join(" L");
+  return html`<svg class="spark" viewBox="0 0 240 44" preserveAspectRatio="none" role="img" aria-label=${"Denied packets per 5 minutes over the last hour, highest " + max}>
+    <line x1="0" y1="43" x2="240" y2="43" stroke="var(--grid)" />
+    <path d=${line + " L240 43 L0 43 Z"} fill="var(--warn)" fill-opacity="0.15" />
+    <path d=${line} fill="none" stroke="var(--warn)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+  </svg>`;
+};
+
+// ---- Panels: each takes the status data `d` and renders one card ----
+
+const DropsPanel = ({ d }) => {
+  const title = "Dropped traffic, last hour";
+  if (d.drops_total === undefined) return html`<${Unavailable} title=${title} source="Prometheus · hubble_drop_total · POLICY_DENIED" d=${d} />`;
+  const total = d.drops_total;
+  const series = d.drops_series || [];
+  const top = d.drops_top || [];
+  return html`<${Panel} title=${title} state=${total > 0 ? "warn" : "ok"} text=${total > 0 ? "denied" : "none"} compact=${total === 0} d=${d}>
+    <div class="big num">${total}<small> packets denied</small></div>
+    ${series.length > 1 && total !== 0 && html`<${Sparkline} series=${series} />`}
+    ${top.length > 0 && html`<${Rows} items=${top.map((t) => ({ title: `${t.source} → ${t.destination}`, right: html`<span class="num muted">${t.count}</span>` }))} />`}
+  <//>`;
+};
+
+const AlertsPanel = ({ d }) => {
+  const title = "Firing alerts";
+  if (!d.alerts) return html`<${Unavailable} title=${title} source="Prometheus · /api/v1/alerts" d=${d} />`;
+  const n = d.alerts.length;
+  // Critical first, then by name; a long incident list is capped so it cannot push every other panel off the screen.
+  const sorted = [...d.alerts].sort((a, b) => Number(!isCritical(a)) - Number(!isCritical(b)) || compare(a.name, b.name));
+  const hiddenCritical = sorted.slice(MAX_ROWS).filter(isCritical).length;
+  return html`<${Panel} title=${title} state=${n === 0 ? "ok" : d.alerts.some(isCritical) ? "bad" : "warn"} text=${n === 0 ? "none" : String(n)} compact=${n === 0} d=${d}>
+    ${n === 0
+      ? html`<${Muted}>Nothing is firing.<//>`
+      : html`<${Rows} items=${sorted.slice(0, MAX_ROWS).map((a) => ({ title: a.name, sub: a.summary, right: html`<${Pill} state=${isCritical(a) ? "bad" : "warn"}>${a.severity}<//>` }))} />`}
+    ${n > MAX_ROWS && html`<${Muted}>and ${n - MAX_ROWS} more${hiddenCritical ? `, ${hiddenCritical} of them critical` : ""}<//>`}
+  <//>`;
+};
+
+const FLUX_STATE_PILL = { failed: "bad", unknown: "warn", progressing: "none" };
+const FLUX_ORDER = { failed: 0, unknown: 1, progressing: 2 };
+const FluxPanel = ({ d }) => {
+  const title = "Flux reconciliation";
+  if (!d.flux_ks && !d.flux_hr) return html`<${Unavailable} title=${title} source="Kubernetes API · kustomizations, helmreleases" d=${d} />`;
+  const t = fluxTotals(d);
+  const state = t.failed ? "bad" : t.unknown ? "warn" : t.progressing ? "none" : "ok";
+  const label = t.failed ? t.failed + " failed" : t.unknown ? t.unknown + " unknown" : t.progressing ? t.progressing + " progressing" : "all ready";
+  const pct = (n) => (t.total ? (n / t.total) * 100 : 0);
+  const segments = [
+    ["var(--calm)", t.ready, "ready"], ["var(--accent)", t.progressing, "progressing"], ["var(--bad)", t.failed, "failed"],
+    ["var(--warn)", t.unknown, "unknown"], ["var(--ink-2)", t.suspended, "suspended"],
+  ];
+  const problems = [...t.problems]
+    .sort((a, b) => FLUX_ORDER[a.state] - FLUX_ORDER[b.state] || compare(`${a.namespace}/${a.name}`, `${b.namespace}/${b.name}`))
+    .slice(0, MAX_ROWS);
+  const hidden = t.failed + t.unknown + t.progressing - problems.length;
+  return html`<${Panel} title=${title} state=${state} text=${label} d=${d}>
+    <${Bar} label=${`${t.ready} of ${t.total} ready`} parts=${segments.map(([color, n]) => ({ pct: pct(n), color }))} />
+    <div class="legend">${segments.map(([color, n, name]) => html`<span><span class="dot" style=${{ background: color }}></span>${n} ${name}</span>`)}</div>
+    ${problems.length > 0 && html`<${Rows} items=${problems.map((x) => ({ title: `${x.namespace}/${x.name}`, sub: x.message, right: html`<${Pill} state=${FLUX_STATE_PILL[x.state] || "warn"}>${x.state}<//>` }))} />`}
+    ${hidden > 0 && html`<${Muted}>and ${hidden} more not listed<//>`}
+    ${!t.complete && html`<${Muted}>One of the two lists did not answer, so the counts are partial.<//>`}
+  <//>`;
+};
+
+const PolarisPanel = ({ d }) => {
+  const title = "Polaris score";
+  const x = d.polaris;
+  if (!x) return html`<${Unavailable} title=${title} source="polaris-dashboard · /results.json" d=${d} />`;
+  return html`<${Panel} title=${title} state=${polarisState(x.score)} text=${x.danger ? x.danger + " danger" : "no danger"} compact d=${d}>
+    <div class="num"><strong>${x.score} / 100</strong> · ${x.danger} danger · ${x.warning} warning</div>
+    <${Muted}>Audited ${String(x.audit_time).replace("T", " ").replace("Z", " UTC")}<//>
+  <//>`;
+};
+
+const DISK_SHOW = 60; // nodes under this percentage are only counted
+const DiskPanel = ({ d }) => {
+  const title = "Disk, local-path volumes";
+  if (!d.disk) return html`<${Unavailable} title=${title} source="Prometheus · node_filesystem_*" d=${d} />`;
+  const max = Math.max(0, ...d.disk.map((n) => n.used_pct));
+  const hot = d.disk.filter((n) => n.used_pct >= DISK_SHOW).sort((a, b) => b.used_pct - a.used_pct);
+  const rest = d.disk.length - hot.length;
+  const nodes = (n) => n + (n === 1 ? " node" : " nodes");
+  return html`<${Panel} title=${title} state=${usedState(max, 85)} text=${max >= 75 ? "node over " + (max >= 85 ? 85 : 75) + "%" : "ok"} compact=${!hot.length} d=${d}>
+    ${!hot.length
+      ? html`<${Muted}>${d.disk.length ? `All ${nodes(d.disk.length)} under ${DISK_SHOW}%, highest ${max}%` : "No nodes reported."}<//>`
+      : html`<div class="limit">
+          ${hot.map((n) => html`<div class="limit-row" key=${n.node}><span>${n.node}</span><span class="num"><strong>${n.used_pct}%</strong> used</span></div>
+            <${Bar} label=${`${n.node}, ${n.used_pct} percent used`} parts=${[{ pct: n.used_pct, color: usedColor(n.used_pct, 85) }]} />`)}
+        </div>
+        ${rest > 0 && html`<${Muted}>${rest} ${rest === 1 ? "other node" : "other nodes"} under ${DISK_SHOW}%<//>`}`}
+  <//>`;
+};
+
+const PrRows = ({ items }) =>
+  html`<${Rows} items=${items.map((i) => ({ title: `${i.repo}#${i.number}`, href: i.url, sub: `${i.title} · ${i.author}`, right: html`<span class="muted num">${ago(secondsSince(Date.parse(i.updated)))}</span>` }))} />`;
+
+const GitHubPanel = ({ title, group, d, empty, stateOf }) => {
+  const g = d.github?.[group];
+  if (!g) return html`<${Unavailable} title=${title} source="GitHub API · search/issues" d=${d} />`;
+  return html`<${Panel} title=${title} state=${stateOf(g.count)} text=${g.count + " open"} compact=${g.count === 0} d=${d}>
+    ${g.count === 0 ? html`<${Muted}>${empty}<//>` : html`<${PrRows} items=${g.items} />`}
+    ${g.count > g.items.length && html`<a href=${ghSearch(group, d)} rel="noopener noreferrer" target="_blank">${g.count - g.items.length} more on GitHub</a>`}
+    ${d.github.truncated && html`<${Muted}>More than 100 are open, so the counts are a lower bound.<//>`}
+  <//>`;
+};
+const PrsPanel = ({ d }) => html`<${GitHubPanel} title="Pull requests" group="other" d=${d} empty="No open pull requests." stateOf=${(n) => (n ? "warn" : "ok")} />`;
+const RenovatePrsPanel = ({ d }) => html`<${GitHubPanel} title="Renovate pull requests" group="renovate" d=${d} empty="No open Renovate pull requests." stateOf=${(n) => (n === 0 ? "ok" : n > 10 ? "warn" : "none")} />`;
+const IssuesPanel = ({ d }) => html`<${GitHubPanel} title="Open issues" group="issues" d=${d} empty="No open issues." stateOf=${(n) => (n ? "warn" : "ok")} />`;
+
+const RenovateRunsPanel = ({ d }) => {
+  const title = "Renovate runs";
+  if (!d.renovate) return html`<${Unavailable} title=${title} source="Kubernetes API · renovateprojects" d=${d} />`;
+  const ps = d.renovate.projects;
+  const approval = ps.reduce((n, x) => n + x.needs_approval, 0);
+  const failed = ps.filter(isFailed).length;
+  // Headline: time to the next scheduled run, like the other panels' big number.
+  const jobs = d.renovate_jobs || [];
+  const live = jobs.filter((j) => !j.suspend);
+  const nexts = live.map((j) => cronNext(j.schedule)).filter(Boolean);
+  const next = nexts.length ? Math.min(...nexts) : 0;
+  const showHeadline = jobs.length > 0 && (next > 0 || live.length === 0);
+  return html`<${Panel} title=${title} state=${failed ? "bad" : approval ? "warn" : "ok"} text=${failed ? failed + " failed" : approval ? approval + " need approval" : "all done"} d=${d}>
+    ${showHeadline && html`<div class="big num" ...${next ? { title: "Schedule (UTC): " + live.map((j) => j.schedule).join(", ") } : {}}>
+      ${next ? until(Math.round((next - Date.now()) / 1000)) : "suspended"}<small>${next ? " until the next run" : " no run is scheduled"}</small>
+    </div>`}
+    <ul class="rows">
+      ${ps.map((x) => {
+        const bits = [
+          x.duration && "took " + x.duration,
+          x.needs_approval && x.needs_approval + " need approval",
+          x.automerged && x.automerged + " automerged",
+          x.unchanged && x.unchanged + " unchanged",
+        ].filter(Boolean);
+        const lastRun = Date.parse(x.last_transition);
+        // The Dependency Dashboard issue of the repo, found by search because the issue number is not in the data.
+        const dashboard = "https://github.com/search?type=issues&q=" + encodeURIComponent(`repo:cthtrifork/${x.project} is:issue is:open "Dependency Dashboard" in:title`);
+        return html`<li key=${x.project}>
+          <span class="l"><a href=${dashboard} rel="noopener noreferrer" target="_blank">${x.project}</a><br /><${Muted}>${bits.join(" · ") || "no changes"}<//></span>
+          <span class="run-st">
+            <${Pill} state=${isFailed(x) ? "bad" : x.status === "completed" ? "ok" : "warn"}>${x.status}<//>
+            ${lastRun > 0 && html`<span class="muted num">${ago(secondsSince(lastRun))} ago</span>`}
+          </span>
+        </li>`;
+      })}
+    </ul>
+  <//>`;
+};
+
+const VM_NAMES = { "claude-vm": "Claude VM", homeserver: "Home server" };
+const VersionsPanel = ({ d }) => {
+  const title = "Running versions";
+  const vms = d.vm_upgrade?.vms;
+  if (!vms) return html`<${Unavailable} title=${title} source="claude-vm-upgrade · /api/v1/status" d=${d} />`;
+  const now = d.vm_upgrade.now || Math.round(Date.now() / 1000);
+  let worst = "ok";
+  let label = "reporting";
+  const items = ["claude-vm", "homeserver"].map((name) => {
+    const x = vms[name] || {};
+    const vm = x.vm || {};
+    const age = x.last_poll_at ? now - x.last_poll_at : null;
+    const latest = d.vm_images?.[name]?.digest;
+    const behind = latest && vm.booted_digest && latest !== vm.booted_digest;
+    const state = age === null || age > STALE_AFTER ? "bad" : vm.staged_version || behind ? "warn" : "ok";
+    if (state === "bad") { worst = "bad"; label = "not responding"; }
+    else if (state === "warn" && worst !== "bad") { worst = "warn"; label = vm.staged_version ? "Reboot pending" : "Update available"; }
+    const bits = [];
+    if (age === null) bits.push("has not reported");
+    else if (age > STALE_AFTER) bits.push(`last poll ${ago(age)} ago`);
+    if (vm.staged_version) bits.push("staged " + vm.staged_version);
+    else if (behind) bits.push("newer image");
+    else if (latest) bits.push("Up to date");
+    const booted = vm.booted_version ? vm.booted_version + (vm.booted_digest ? " · " + vm.booted_digest.slice(0, 12) : "") : "unknown";
+    return { title: VM_NAMES[name] || name, state, sub: bits.join(" · "), right: html`<span class="muted num mono">${booted}</span>` };
+  });
+  return html`<${Panel} title=${title} state=${worst} text=${label} d=${d}>
+    <${Rows} items=${items} />
+    ${!d.vm_images && html`<${Muted}>The registry did not answer, so newer images are not shown.<//>`}
+  <//>`;
+};
+
+// The usage of one Linux user: a bar for the window closer to its limit, the other as a line.
+const UsageBlock = ({ s, b, now }) => {
+  const notes = [b.stale && "reported " + ago(b.age) + " ago", s.model, s.version && "Claude Code " + s.version].filter(Boolean);
+  return html`<div class="limit">
+      ${b.windows.map((w, i) => {
+        const suffix = w.resets_at && !w.over ? " · resets in " + until(w.resets_at - now) : w.over ? " · window has reset" : "";
+        return html`<div class=${i === b.main ? "limit-row" : "limit-row muted"} key=${w.name}>
+            <span>${w.name}</span>
+            <span class="num">${w.used === null ? "no data" : html`<strong>${w.used}%</strong>${" used" + suffix}`}</span>
+          </div>
+          ${i === b.main && html`<${Bar} label=${`${w.name}, ${w.used === null ? "no data" : w.used + " percent used"}`} parts=${w.used === null ? [] : [{ pct: w.used, color: usedColor(w.used, 90) }]} />`}`;
+      })}
+    </div>
+    ${notes.length > 0 && html`<${Muted}>${notes.join(" · ") + (b.stale ? ". Older than 6 hours, so the VM may be idle." : "")}<//>`}`;
+};
+const UsagePanel = ({ d }) => {
+  const title = "Claude usage";
+  if (!d.sessions) return html`<${Unavailable} title=${title} source="claude-vm status line → cockpit" d=${d} />`;
+  const users = usageUsers(d);
+  if (!users.length) {
+    return html`<${Panel} title=${title} state="none" text="no data" d=${d}><${Muted}>Nothing received in the last 24 hours. The Claude VM sends it while Claude Code is in use.<//><//>`;
+  }
+  const now = Math.round(Date.now() / 1000);
+  const blocks = users.map(([, s]) => usageBlock(s, now));
+  const live = blocks.filter((b) => !b.stale);
+  const worst = Math.max(0, ...live.map((b) => b.worst));
+  return html`<${Panel} title=${title} state=${!live.length ? "none" : usedState(worst, 90)} text=${!live.length ? "stale" : `peak ${worst}%`} d=${d}>
+    ${users.map(([name, s], i) => html`
+      ${/* with several users each block is named; with one the panel reads as before */ users.length > 1 && html`<strong>${name}</strong>`}
+      <${UsageBlock} s=${s} b=${blocks[i]} now=${now} />`)}
+  <//>`;
+};
+
+// ---- The page ----
+
+const Chip = ({ state, text, href }) =>
+  href ? html`<a class=${"pill " + state} href=${"#" + href}>${text}</a>` : html`<span class=${"pill " + state}>${text}</span>`;
+
+const Strip = ({ d }) => {
+  const all = stripChips(d);
+  const shown = all.filter((c) => c.state !== "ok");
+  const healthy = all.length - shown.length;
+  return html`<nav class="strip" aria-label="Overall status, each item jumps to its panel">
+    ${shown.map((c) => html`<${Chip} key=${c.text} ...${c} />`)}
+    ${healthy > 0 && html`<${Chip} state="ok" text=${shown.length ? healthy + " healthy" : "All healthy"} />`}
+  </nav>`;
+};
+
+const Section = ({ id, title, children }) => html`<section aria-labelledby=${"h-" + id}>
+  <h2 id=${"h-" + id}>${title}</h2>
+  <div class="band">${children}</div>
+</section>`;
+
+// One request at a time: a refresh while one is in flight, or one that hangs, replaces it instead of stacking up.
+// A hidden tab does not poll; coming back refreshes at once if the data is older than the interval.
+function useStatus() {
+  const [state, setState] = useState({ d: null, loadedAt: 0, error: null });
+  const load = useRef(() => {});
+  useEffect(() => {
+    let inflight = null;
+    let loadedAt = 0;
+    load.current = async () => {
+      inflight?.abort();
+      const ctl = (inflight = new AbortController());
+      const timer = setTimeout(() => ctl.abort(), 20000);
+      try {
+        const r = await fetch("api/v1/status", { signal: ctl.signal });
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const d = await r.json();
+        loadedAt = Date.now();
+        setState({ d, loadedAt, error: null });
+      } catch (e) {
+        if (inflight === ctl) setState((s) => ({ ...s, error: e.name === "AbortError" ? "timed out" : e.message })); // not superseded by a newer request
+      } finally {
+        clearTimeout(timer);
+        if (inflight === ctl) inflight = null;
+      }
+    };
+    const onVisible = () => { if (!document.hidden && Date.now() - loadedAt >= REFRESH_MS) load.current(); };
+    const poll = setInterval(() => { if (!document.hidden) load.current(); }, REFRESH_MS);
+    document.addEventListener("visibilitychange", onVisible);
+    load.current();
+    return () => {
+      clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisible);
+      inflight?.abort();
+    };
+  }, []);
+  return { ...state, reload: () => load.current() };
+}
+
+const App = () => {
+  const { d, loadedAt, error, reload } = useStatus();
+  const failedSources = Object.keys(d?.meta?.workflow?.failed || {});
+  const banner = error
+    ? `The cockpit could not be reached (${error}). Showing the last data, if any.`
+    : failedSources.length ? `Some sources did not answer: ${failedSources.join(", ")}.` : "";
+  // The time shown is when the data was last good, so a failed refresh cannot look current.
+  const updated = error
+    ? html`<span class="pill warn" id="updated">${loadedAt ? "Stale, data from " + new Date(loadedAt).toLocaleTimeString() : "No data yet"}</span>`
+    : html`<span class="muted" id="updated">${d ? "Updated " + new Date(loadedAt).toLocaleTimeString() : "Loading…"}</span>`;
+  // Nothing below the header is shown until the first data arrives (see `main:not(.ready)`): content that appears after the fetch
+  // would push the footer down.
+  return html`<main class=${d ? "ready" : undefined}>
+    <header>
+      <h1>Cockpit</h1>
+      <div class="hdr-r">${updated}<button type="button" id="refresh" onClick=${reload}>Refresh now</button></div>
+    </header>
+    <div id="banner" class="banner bad" role="alert" hidden=${!banner}>${banner}</div>
+    ${d && html`<${Strip} d=${d} />
+      <${Section} id="cluster" title="Cluster">
+        <${DropsPanel} d=${d} /><${AlertsPanel} d=${d} /><${FluxPanel} d=${d} /><${PolarisPanel} d=${d} /><${DiskPanel} d=${d} />
+      <//>
+      <${Section} id="gh" title="GitHub">
+        <${PrsPanel} d=${d} /><${RenovatePrsPanel} d=${d} /><${IssuesPanel} d=${d} /><${RenovateRunsPanel} d=${d} />
+      <//>
+      <${Section} id="home" title="Homelab">
+        <${VersionsPanel} d=${d} /><${UsagePanel} d=${d} />
+      <//>
+      <footer class="muted"><p>Reads only, nothing on this page changes the cluster.</p></footer>`}
+  </main>`;
+};
+
+render(html`<${App} />`, document.getElementById("app"));
 </script>
 </body>
 </html>
