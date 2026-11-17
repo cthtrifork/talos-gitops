@@ -36,7 +36,7 @@ ARG TALOSCTL_VERSION=1.14.6
 ARG OMNICTL_VERSION=1.13.3
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      git curl ca-certificates openssh-client jq python3 python3-pip shellcheck make tmux \
+      git curl ca-certificates openssh-client jq python3 python3-pip shellcheck make \
  && rm -rf /var/lib/apt/lists/*
 
 RUN base="https://downloads.claude.ai/claude-code-releases/${CLAUDE_CODE_VERSION}" \
