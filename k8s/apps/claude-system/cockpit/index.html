@@ -165,19 +165,18 @@ function cronNext(expr) {
 }
 // The same filter the cockpit uses, as a GitHub search, so the "Open" link opens the whole list.
 function ghSearch(group, d) {
-  const bot = d.github?.renovate?.items[0]?.author;
-  const app = bot ? "author:app/" + bot.replace(/\[bot\]$/, "") : null;
+  const app = "author:app/" + d.github.renovate_app; // the Renovate GitHub App, from RENOVATE_APP on the pod
   let q = "is:open archived:false user:cthtrifork";
   if (group === "issues") q += ' is:issue NOT "Dependency Dashboard" in:title';
-  else q += " is:pr -is:draft" + (group === "renovate" ? (app ? " " + app : " renovate") : app ? " -" + app : "");
+  else q += " is:pr -is:draft" + (group === "renovate" ? " " + app : " -" + app);
   return "https://github.com/search?type=issues&s=updated&o=desc&q=" + encodeURIComponent(q);
 }
 function openLink(id, d) {
   // The GitHub panels link to the whole list on GitHub (the Renovate one too, not to the Renovate UI), and say how many the panel leaves out.
   const gh = GITHUB_PANELS[id];
-  if (gh) {
-    const g = d.github?.[gh[0]];
-    const more = g && g.count > g.items.length ? ` (${g.count - g.items.length} more)` : "";
+  if (gh && d.github) {
+    const g = d.github[gh[0]];
+    const more = g.count > g.items.length ? ` (${g.count - g.items.length} more)` : "";
     return { label: gh[1] + more, href: ghSearch(gh[0], d) };
   }
   const o = OPEN[id];

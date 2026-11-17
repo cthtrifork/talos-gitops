@@ -357,6 +357,7 @@ processor_resources:
                     let renovate = $items.filter(i -> i.pr && i.renovate)
                     let issues = $items.filter(i -> !i.pr && i.title != "Dependency Dashboard")
                     root.truncated = this.total_count.or(0) > 100
+                    root.renovate_app = "${RENOVATE_APP}"
                     root.other = {"count": $other.length(), "items": $other.slice(0, 5)}
                     root.renovate = {"count": $renovate.length(), "items": $renovate.slice(0, 5)}
                     root.issues = {"count": $issues.length(), "items": $issues.slice(0, 5)}
