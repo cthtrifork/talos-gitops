@@ -165,9 +165,11 @@ spec:
             - hostPathSet
         # Docker-in-Docker CI runner: privileged and root by design, isolated to its own namespace. arc-ubuntu is also the
         # AutoscalingRunnerSet that the CI audit reads from k8s/apps/arc-runner/rendered; the pods it creates are arc-ubuntu-runner-*
+        # arc-iso-bootc is the privileged rootful podman runner for the installer ISO builds (loop devices, /dev and /run/udev)
         - namespace: arc-runners-system
           controllerNames:
             - arc-ubuntu
+            - arc-iso-bootc
           rules:
             - runAsPrivileged
             - runAsRootAllowed
@@ -212,6 +214,7 @@ spec:
         - controllerNames:
             - arc-ubuntu
             - arc-files-bootc
+            - arc-iso-bootc
           rules:
             - readinessProbeMissing
             - livenessProbeMissing
