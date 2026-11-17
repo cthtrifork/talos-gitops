@@ -21,6 +21,7 @@ spec:
         runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
+        fsGroup: 10001 # so the 0440 ghcr-pull file below is readable; without it the homeserver image lookup gets a 401
         seccompProfile:
           type: RuntimeDefault
       containers:

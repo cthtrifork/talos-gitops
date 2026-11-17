@@ -10,61 +10,62 @@
 <style>
   :root {
     color-scheme: light;
-    --page: #f4f4f1; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6b6963;
-    --grid: #e1e0d9; --ring: rgba(11, 11, 11, 0.10); --accent: #1f63b5;
-    --calm: #77756f; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
+    --page: #f4f4f1; --surface: #ffffff; --ink: #141413; --ink-2: #4a4843; --muted: #6b6963;
+    --grid: #e3e2da; --ring: rgba(11, 11, 11, 0.10); --accent: #1f63b5;
+    --calm: #77756f; --ok: #1a7f4b; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --muted: #898781;
       --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
-      --calm: #8d8b85; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+      --calm: #8d8b85; --ok: #3cc58a; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --muted: #898781;
     --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
-    --calm: #8d8b85; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+    --calm: #8d8b85; --ok: #3cc58a; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 var(--font);
-    padding-block: 20px 48px;
+    margin: 0; background: var(--page); color: var(--ink); font: 15px/1.45 var(--font);
+    padding-block: 24px 48px;
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
   main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
-  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
-  h2 { font-size: 11px; margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-  h3 { font-size: 13px; margin: 0; font-weight: 600; }
+  h1 { font-size: 24px; margin: 0; }
+  h2 { font-size: 12px; margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  h3 { font-size: 16px; margin: 0; font-weight: 600; }
   a { color: var(--accent); text-decoration: none; overflow-wrap: anywhere; }
   a:hover { text-decoration: underline; }
   a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
-  button { font: inherit; color: var(--accent); background: none; border: 1px solid var(--accent); border-radius: 6px; min-height: 32px; padding: 4px 12px; cursor: pointer; }
+  button { font: inherit; font-weight: 600; color: var(--accent); background: none; border: 1px solid var(--grid); border-radius: 10px; min-height: 40px; padding: 6px 16px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
   button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
   .num { font-variant-numeric: tabular-nums; }
   .muted { color: var(--muted); }
   header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
   .strip { display: flex; flex-wrap: wrap; gap: 8px; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-  .warn { color: var(--warn); background: var(--warn-bg); }
-  .bad { color: var(--bad); background: var(--bad-bg); }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .pill::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
+  .warn { color: var(--warn); }
+  .bad { color: var(--bad); }
   /* Healthy and neutral look the same: colour is kept for what needs a look, so a problem stands out. */
-  .ok, .none { color: var(--ink-2); background: var(--grid); }
-  .ok::before, .none::before { display: none; }
+  .ok { color: var(--ok); }
+  .none { color: var(--ink-2); }
   /* Columns, not a grid or flex row: cards are packed top to bottom and the browser balances the columns, so a short card
      (no alerts, a score) never sits in a row next to a tall list and never gets stretched into a mostly empty box.
      Cards keep a fixed order. */
   .band { column-width: 300px; column-gap: 12px; }
-  .panel { background: var(--surface); box-shadow: 0 0 0 1px var(--ring); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; break-inside: avoid; margin-bottom: 12px; }
+  .panel { background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; break-inside: avoid; margin-bottom: 12px; }
   .panel.compact { padding: 10px 16px; gap: 4px; }
-  .panel:target { box-shadow: 0 0 0 2px var(--accent); }
-  a.pill:hover { text-decoration: none; filter: brightness(0.94); }
+  .panel:target { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  a.pill:hover { text-decoration: underline; }
   a.pill:focus-visible { outline-offset: 1px; border-radius: 999px; }
   .hdr-r { display: flex; align-items: center; gap: 12px; }
   footer p { margin: 0 0 8px; }
@@ -72,8 +73,9 @@
   .big { font-size: 30px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
   .big small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
   ul.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-  ul.rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; padding: 7px 0; border-top: 1px solid var(--grid); }
-  ul.rows li:first-child { border-top: 0; }
+  ul.rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--grid); }
+  ul.rows li:first-child { border-top: 0; padding-top: 0; }
+  ul.rows li:last-child { padding-bottom: 0; }
   ul.rows .l { flex: 1 1 12em; min-width: 0; overflow-wrap: anywhere; }
   /* The right-hand value (time, count, version) keeps its natural width and drops below the text as a whole when the row is tight.
      It only wraps when it is wider than the row itself. */
@@ -85,11 +87,18 @@
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
   .limit { display: flex; flex-direction: column; gap: 6px; }
   .limit-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13px; }
-  .src { font-size: 11px; color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
+  .row-st { display: inline-flex; align-items: center; gap: 8px; }
+  .row-st::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+  .row-st[data-st="warn"]::before { background: var(--warn); }
+  .row-st[data-st="bad"]::before { background: var(--bad); }
+  .mono { font-family: var(--mono); font-size: 13px; }
+  a.open { font-size: 13px; font-weight: 600; margin-top: auto; }
+  .src { font-size: 12px; color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
   /* Nothing below the header is shown until the first data arrives: content that appears after the fetch would
      push the footer down (a layout shift of about 0.8 on the default throttled load). */
   main:not(.ready) > nav, main:not(.ready) > section, main:not(.ready) > footer { display: none; }
-  .banner { padding: 8px 12px; border-radius: 4px; font-size: 13px; }
+  .banner.bad { background: var(--bad-bg); }
+  .banner { padding: 12px 14px; border-radius: 10px; font-size: 15px; }
 </style>
 </head>
 <body>
@@ -120,6 +129,7 @@
 (function () {
   "use strict";
   var REFRESH_MS = 60000;
+  var STALE_AFTER = 150; // seconds without a poll before a VM counts as not responding (same as the Update VMs page)
   var MAX_ROWS = 5; // longest list shown in any panel; the rest is a count
   var SVGNS = "http://www.w3.org/2000/svg";
 
@@ -145,7 +155,7 @@
     return p;
   }
   function unavailable(title, source) {
-    return panel(head(title, "none", "unavailable"), el("span", "muted", "The source did not answer. The other panels are unaffected."), el("span", "src", source));
+    return panel(head(title, "none", "unavailable"), el("span", "src", "No answer from " + source));
   }
   function bar(label, parts) {
     var b = el("div", "bar");
@@ -173,7 +183,9 @@
         a.target = "_blank";
         l.appendChild(a);
       } else {
-        l.appendChild(el("strong", null, it.title));
+        var t = el("strong", null, it.title);
+        if (it.state) { t.className = "row-st"; t.dataset.st = it.state; }
+        l.appendChild(t);
       }
       if (it.sub) { l.appendChild(document.createElement("br")); l.appendChild(el("span", "muted", it.sub)); }
       li.appendChild(l);
@@ -407,23 +419,24 @@
     if (!v) return unavailable(title, "claude-vm-upgrade · /api/v1/status");
     var now = d.vm_upgrade.now || Math.round(Date.now() / 1000);
     var worst = "ok", label = "reporting";
+    var NAMES = { "claude-vm": "Claude VM", "homeserver": "Home server" };
     var items = ["claude-vm", "homeserver"].map(function (name) {
       var x = v[name] || {};
       var vm = x.vm || {};
       var age = x.last_poll_at ? now - x.last_poll_at : null;
       var latest = d.vm_images && d.vm_images[name] && d.vm_images[name].digest;
       var behind = latest && vm.booted_digest && latest !== vm.booted_digest;
-      var st = age === null || age > 300 ? "bad" : vm.staged_version ? "warn" : behind ? "warn" : "ok";
-      if (st === "bad") { worst = "bad"; label = "not reporting"; }
-      else if (st === "warn" && worst !== "bad") { worst = "warn"; label = vm.staged_version ? "reboot pending" : "update available"; }
+      var st = age === null || age > STALE_AFTER ? "bad" : vm.staged_version ? "warn" : behind ? "warn" : "ok";
+      if (st === "bad") { worst = "bad"; label = "not responding"; }
+      else if (st === "warn" && worst !== "bad") { worst = "warn"; label = vm.staged_version ? "Reboot pending" : "Update available"; }
       var bits = [];
       if (age === null) bits.push("has not reported");
-      else if (age > 120) bits.push("reported " + ago(age) + " ago");
+      else if (age > STALE_AFTER) bits.push("last poll " + ago(age) + " ago");
       if (vm.staged_version) bits.push("staged " + vm.staged_version);
-      else if (behind) bits.push("newer image " + latest);
-      else if (latest) bits.push("up to date");
+      else if (behind) bits.push("newer image");
+      else if (latest) bits.push("Up to date");
       var sub = bits.join(" · ");
-      return { title: name, sub: sub, right: el("span", "muted num", vm.booted_version ? vm.booted_version + (vm.booted_digest ? " · " + vm.booted_digest : "") : "unknown") };
+      return { title: NAMES[name] || name, state: st, sub: sub, right: el("span", "muted num mono", vm.booted_version ? vm.booted_version + (vm.booted_digest ? " · " + vm.booted_digest.slice(0, 12) : "") : "unknown") };
     });
     var p = panel(head(title, worst, label));
     p.appendChild(rows(items));
@@ -540,9 +553,29 @@
       return true;
     });
   }
+  // The pages behind a panel, served by the Omni service exposer. A panel with an entry gets an "Open" link at its foot.
+  var OMNI = "https://%s-portableinfo.workload.eu-central-1.omni.siderolabs.io/";
+  var OPEN = {
+    "p-running-versions": ["Open Update VMs", "claudevmupgrade"],
+    "p-dropped-traffic-last-hour": ["Open Hubble", "hubble"],
+    "p-flux-reconciliation": ["Open Flux", "flux"],
+    "p-polaris-score": ["Open Polaris", "polaris"],
+    "p-renovate-pull-requests": ["Open Renovate", "renovate"],
+    "p-renovate-runs": ["Open Renovate", "renovate"]
+  };
+  function withLink(p) {
+    var o = OPEN[p.id];
+    if (!o) return p;
+    var a = el("a", "open", o[0] + " \u2192");
+    a.href = OMNI.replace("%s", o[1]);
+    a.rel = "noopener noreferrer";
+    a.target = "_blank";
+    p.appendChild(a);
+    return p;
+  }
   // Panels are built off-screen and keep the order they are listed in, so each one stays where it was last time.
   function fill(id, fns, d) {
-    var ps = fns.map(function (fn, i) { var p = fn(d); p.id = slug(p.querySelector("h3").textContent); return p; });
+    var ps = fns.map(function (fn, i) { var p = fn(d); p.id = slug(p.querySelector("h3").textContent); return withLink(p); });
     var f = document.createDocumentFragment();
     ps.forEach(function (p) { f.appendChild(p); });
     swap(document.getElementById(id), f);
