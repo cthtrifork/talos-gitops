@@ -3,9 +3,9 @@
 # main: the ResourceSetInputProvider exports the branch's sha, and the ResourceSet renders one Job per sha (a Job spec is
 # immutable, so a new name is how it runs again; Flux prunes the old one). dependsOn holds the Job back until the Flux
 # Kustomizations are Ready. That is not tied to the sha: right after a push they can still be Ready at the previous commit,
-# so the audit may see the cluster a few minutes behind and the next commit corrects it. The Job deletes the dashboard pod and
-# requests /results.json from the new one, which runs the audit. Deleting the pod, not "kubectl rollout restart", leaves the
-# Deployment unchanged, so Helm drift detection has nothing to correct.
+# so the audit may see the cluster a few minutes behind and the next commit corrects it. The Job restarts the dashboard and
+# requests /results.json from the new one, which runs the audit. The restart is a rolling one, so the old pod keeps serving
+# its stale report until the new one is Ready; HelmRelease polaris ignores the restartedAt annotation it sets.
 # https://fluxoperator.dev/docs/resourcesets/staged-jobs/
 ---
 apiVersion: fluxcd.controlplane.io/v1
@@ -60,9 +60,11 @@ spec:
                   - -eu
                   - -c
                   - |
-                    kubectl delete pod -n policy-system -l app=polaris,component=dashboard --wait=false
-                    # the new pod audits on its first request; retry until it is up
-                    curl -fsS -o /dev/null --max-time 120 --retry 30 --retry-all-errors --retry-delay 4 http://polaris-dashboard.policy-system.svc.cluster.local/results.json
+                    # a rolling restart: the old pod keeps serving its (stale) report until the new one is Ready
+                    kubectl rollout restart deployment/polaris-dashboard -n policy-system
+                    kubectl rollout status deployment/polaris-dashboard -n policy-system --timeout=180s
+                    # the new pod audits on its first request
+                    curl -fsS -o /dev/null --max-time 120 --retry 10 --retry-all-errors --retry-delay 3 http://polaris-dashboard.policy-system.svc.cluster.local/results.json
                 securityContext:
                   allowPrivilegeEscalation: false
                   readOnlyRootFilesystem: true

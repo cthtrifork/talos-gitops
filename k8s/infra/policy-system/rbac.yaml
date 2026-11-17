@@ -14,14 +14,24 @@ metadata:
   name: polaris-refresh
   namespace: policy-system
 rules:
+  # kubectl rollout status
   - apiGroups:
-      - ""
+      - apps
     resources:
-      - pods
+      - deployments
     verbs:
       - get
       - list
-      - delete
+      - watch
+  # kubectl rollout restart
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    resourceNames:
+      - polaris-dashboard
+    verbs:
+      - patch
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
