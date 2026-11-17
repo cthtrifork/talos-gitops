@@ -16,7 +16,7 @@
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
     /* The whole type scale: small (labels, metadata), body, panel title, large (page title and headline numbers). */
-    --fs-sm: 12px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 28px;
+    --fs-sm: 12px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 22px;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -73,7 +73,7 @@
   footer p { margin: 0 0 8px; }
   .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .big { font-size: var(--fs-xl); font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
-  .big small { font-size: var(--fs-sm); font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .big small { font-size: var(--fs-md); font-weight: 500; color: var(--muted); letter-spacing: 0; }
   ul.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
   ul.rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--grid); }
   ul.rows li:first-child { border-top: 0; padding-top: 0; }
