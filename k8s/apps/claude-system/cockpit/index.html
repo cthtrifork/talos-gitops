@@ -341,13 +341,28 @@
       return { title: i.repo + "#" + i.number, href: i.url, sub: i.title + " · " + i.author, right: el("span", "muted num", ago(Math.max(0, Math.round((Date.now() - Date.parse(i.updated)) / 1000)))) };
     }));
   }
+  // The same filter the cockpit uses, as a GitHub search, so "more on GitHub" opens the whole list.
+  function ghSearch(group, d) {
+    var q = "is:open archived:false user:cthtrifork";
+    var bot = d.github.renovate && d.github.renovate.items[0] && d.github.renovate.items[0].author;
+    var app = bot ? "author:app/" + bot.replace(/\[bot\]$/, "") : null;
+    if (group === "issues") q += ' is:issue NOT "Dependency Dashboard" in:title';
+    else q += " is:pr -is:draft" + (group === "renovate" ? (app ? " " + app : " renovate") : app ? " -" + app : "");
+    return "https://github.com/search?type=issues&s=updated&o=desc&q=" + encodeURIComponent(q);
+  }
   function ghPanel(title, group, d, emptyText, state) {
     var g = d.github && d.github[group];
     if (!g) return unavailable(title, "GitHub API · search/issues");
     var p = panel(head(title, state(g.count), g.count + " open"));
     if (g.count === 0) { p.classList.add("compact"); p.appendChild(el("span", "muted", emptyText)); }
     else p.appendChild(prRows(g.items));
-    if (g.count > g.items.length) p.appendChild(el("span", "muted", g.count - g.items.length + " more on GitHub"));
+    if (g.count > g.items.length) {
+      var more = el("a", null, g.count - g.items.length + " more on GitHub");
+      more.href = ghSearch(group, d);
+      more.rel = "noopener noreferrer";
+      more.target = "_blank";
+      p.appendChild(more);
+    }
     if (d.github.truncated) p.appendChild(el("span", "muted", "More than 100 are open, so the counts are a lower bound."));
     return p;
   }
