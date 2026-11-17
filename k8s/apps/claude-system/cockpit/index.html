@@ -175,6 +175,7 @@ function ghSearch(group, d) {
 function openLink(id, d) {
   // The Renovate pull requests panel links to the pull requests on GitHub, not to the Renovate UI.
   if (id === "p-renovate-pull-requests") return { label: "Open pull requests", href: ghSearch("renovate", d) };
+  if (id === "p-pull-requests") return { label: "Open pull requests", href: ghSearch("other", d) };
   const o = OPEN[id];
   return o && { label: o[0], href: OMNI.replace("%s", o[1]) };
 }
