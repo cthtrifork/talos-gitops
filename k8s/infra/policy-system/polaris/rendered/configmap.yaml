@@ -139,6 +139,7 @@ data:
         - livenessProbeMissing
       - controllerNames:
         - arc-ubuntu
+        - arc-files-bootc
         rules:
         - readinessProbeMissing
         - livenessProbeMissing
