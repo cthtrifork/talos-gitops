@@ -1,10 +1,12 @@
 ---
-# The object store behind a clustered zot (k8s/infra/registry-system/zot/): 3 Garage nodes, one per node of the cluster,
-# every object stored 3 times (replicationFactor 3, so each node holds a full copy). Separate from Renovate's single
-# Garage (k8s/apps/renovate/garage/), whose data is disposable. The S3 API and the admin API stay inside the cluster.
+# The object store behind a clustered zot: 3 Garage nodes, one per node of the cluster, every object stored once
+# (replicationFactor 1), so the data and the read and write load are spread over the three nodes and a node holds a third
+# of the registry (about 15 GiB of today's 44 GiB). It is a cache and CI store: losing a node only loses the blobs on it,
+# which zot pulls again on demand. Separate from Renovate's single Garage (k8s/apps/renovate/garage/). The S3 API and the
+# admin API stay inside the cluster.
 # The chart's configure job only knows a single node, so it is off and the layout comes from layout-job.yaml.
-# Each node needs room for a full copy of the registry (about 44 GiB today, the zot PVC is 60Gi): check the free space
-# in /var of every node before zot moves to this store.
+# Each node has room for about 20 GiB of data (talos-2ny-8tx has the least free space in /var); size it with the layout
+# capacity in configure.sh and the data PVC below.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -22,7 +24,7 @@ spec:
       replicaCount: 3
       # without a layout the nodes are not ready, so OrderedReady would never start the second one
       podManagementPolicy: Parallel
-    # One Garage pod per node: with replicationFactor 3 every node must hold a copy
+    # One Garage pod per node, so the data and the load are spread over the nodes
     affinity:
       podAntiAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
@@ -76,7 +78,7 @@ spec:
       # renovate: datasource=docker depName=dxflrs/garage
       tag: v2.5.0@sha256:677e5b758e4425a325b811c425c026bf35a4bf42f7ddbaa773de3f4fd779a5a5
     garage:
-      replicationFactor: "3"
+      replicationFactor: "1"
       s3:
         api:
           region: garage
@@ -91,8 +93,8 @@ spec:
         size: 2Gi
       data:
         storageClass: local-path
-        # local-path does not enforce the size; it matches the zot PVC it replaces
-        size: 60Gi
+        # local-path does not enforce the size; keep it equal to CAPACITY in configure.sh
+        size: 20Gi
     # Off: the chart's job assigns garage-0 only. layout-job.yaml assigns the three nodes and creates the bucket and key.
     clusterConfig:
       enabled: false

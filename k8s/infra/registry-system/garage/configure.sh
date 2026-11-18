@@ -3,7 +3,7 @@
 set -e
 
 SERVICE_DNS=garage-headless.registry-system.svc.cluster.local
-CAPACITY=60Gi
+CAPACITY=20Gi
 REPLICAS="0 1 2"
 
 # The node id of a pod, once its admin API answers
@@ -27,7 +27,7 @@ run_garage() {
   /shared/garage -h "$GARAGE_RPC_HOST" "$@"
 }
 
-# One zone per pod, so that with replicationFactor 3 every node holds a copy
+# One zone per pod; the same capacity on each, so the data is spread evenly
 for i in $REPLICAS; do
   NODE_ID=$(get_node_id "garage-$i.${SERVICE_DNS}")
   echo "Assigning garage-$i ($NODE_ID) to zone z$i"
