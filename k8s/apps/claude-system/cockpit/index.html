@@ -144,6 +144,7 @@ const OPEN = {
   "p-flux-reconciliation": ["Open Flux", "flux"],
   "p-polaris-score": ["Open Polaris", "polaris"],
   "p-renovate-runs": ["Open Renovate", "renovate"],
+  "p-share-urls": ["Open Share URLs", "claudeurlshare"],
 };
 
 // ---- Plain helpers: formatting, status levels and the data behind the panels ----
@@ -260,6 +261,7 @@ function stripChips(d) {
   if (u && now - u.received_at <= 6 * 3600 && w !== null && w !== undefined && !(u.seven_day.resets_at && u.seven_day.resets_at < now)) {
     add(usedState(w, 90), `Claude 7-day ${w}%`, "p-claude-usage");
   }
+  if (d.urlshare?.pending) add("warn", `${d.urlshare.pending} ${d.urlshare.pending === 1 ? "URL waits" : "URLs wait"} for approval`, "p-share-urls");
   const order = { bad: 0, warn: 1, none: 2, ok: 3 };
   return chips.sort((a, b) => order[a.state] - order[b.state]);
 }
@@ -501,6 +503,26 @@ const UsagePanel = (d) => {
   return Panel({ title, state: b.stale ? "none" : usedState(b.worst, 90), text: b.stale ? "stale" : `peak ${b.worst}%`, d }, UsageBlock(b, now));
 };
 
+const SHARE_STATE = { pending: "warn", approved: "ok", rejected: "none", failed: "bad", fetching: "none" };
+const SharePanel = (d) => {
+  const title = "Share URLs";
+  const x = d.urlshare;
+  if (!x) return Unavailable({ title, source: "claude-urlshare · /api/v1/requests", d });
+  const hidden = x.total - x.items.length;
+  const summary = [x.approved && `${x.approved} approved`, x.rejected && `${x.rejected} rejected`, x.failed && `${x.failed} failed`].filter(Boolean).join(" · ");
+  return Panel({ title, state: x.pending ? "warn" : "ok", text: `${x.pending} waiting`, compact: x.total === 0, d }, html`
+    ${x.total === 0
+      ? Muted("No requests in the last 24 hours.")
+      : html`<div class="big num">${x.pending}<small> waiting for approval</small></div>
+        ${Rows(x.items.map((r) => ({
+          title: r.url,
+          sub: r.error || undefined,
+          right: Pill(SHARE_STATE[r.status] || "none", r.status),
+        })))}
+        ${hidden > 0 ? Muted(`and ${hidden} more not listed`) : nothing}
+        ${summary ? Muted(summary + " in the last 24 hours") : nothing}`}`);
+};
+
 // ---- The page ----
 
 const Chip = ({ state, text, href }) =>
@@ -585,7 +607,7 @@ class CockpitApp extends LitElement {
       ${d ? html`${Strip(d)}
         ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${DiskPanel(d)}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}
-        ${Section({ id: "home", title: "Homelab" }, html`${VersionsPanel(d)}${UsagePanel(d)}`)}` : nothing}
+        ${Section({ id: "home", title: "Homelab" }, html`${VersionsPanel(d)}${UsagePanel(d)}${SharePanel(d)}`)}` : nothing}
     </main>`;
   }
 }

@@ -323,6 +323,14 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
+    # the cockpit page lists the requests (read-only GET /api/v1/requests)
+    - fromEndpoints:
+        - matchLabels:
+            k8s:app: claude-cockpit
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
     - fromEndpoints:
         - matchLabels:
             k8s:app: claude-rc
@@ -440,6 +448,14 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:app: claude-vm-upgrade
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    # Share URLs: the approval page's listener, for the read-only list of requests (GET /api/v1/requests)
+    - toEndpoints:
+        - matchLabels:
+            k8s:app: claude-urlshare
       toPorts:
         - ports:
             - port: "8080"
