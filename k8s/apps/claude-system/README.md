@@ -373,6 +373,7 @@ flowchart LR
   app[GitHub App] -->|"JWT, 1 h token"| es[ExternalSecret<br/>every 30 min]
   es -->|"mounted file"| cockpit
 
+  cockpit -->|"GET /api/v1/requests"| urlshare[claude-urlshare :8080]
   cockpit -->|"GET /api/v1/status"| vmup[claude-vm-upgrade]
   cockpit -->|"latest image digest"| ghcr[ghcr.io :443]
   poller["claude-rc usage-poller"] -->|"POST /api/v1/usage<br/>5 h and 7 d usage"| ingest["claude-cockpit-ingest :8081<br/>claude-rc pod only"]
@@ -389,6 +390,7 @@ flowchart LR
 | Polaris score | `polaris-dashboard` `/results.json` |
 | Pull requests, issues | GitHub search over all repositories of the owner the App is installed on (private ones included), with the cockpit's own one-hour read-only App token (`githubaccesstoken.yaml`, `externalsecret.yaml`) |
 | Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io`, read with the runner's `ghcr-pull` read:packages token (`homeserver-bootc` is a private package) |
+| Share URLs | `claude-urlshare` `GET /api/v1/requests` on the approval listener (read-only, never the page content): what waits for approval and what was decided in the last 24 hours. `CiliumNetworkPolicy/claude-urlshare` lets the cockpit pod in on `:8080` |
 | Claude usage | Pushed every 5 minutes by the `usage-poller` container of `claude-rc` (see "Claude usage from the pod") to `POST /api/v1/usage` on `:8081`, one value kept in memory for 24 hours |
 
 The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in the `app=claude-rc` pod only, through the ClusterIP Service

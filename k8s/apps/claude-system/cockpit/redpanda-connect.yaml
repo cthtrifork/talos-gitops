@@ -372,6 +372,30 @@ processor_resources:
                     timeout: 10s
               result_map: 'root.vm_upgrade = this'
 
+            # The URL requests of the share-URLs pod (never the page content): what waits for the owner's approval and what was decided in the last 24h.
+            urlshare:
+              request_map: 'root = ""'
+              processors:
+                - http:
+                    url: '${URLSHARE_URL:http://claude-urlshare.claude-system.svc}/api/v1/requests'
+                    verb: GET
+                    timeout: 10s
+                - mapping: |
+                    let reqs = this.requests.or([]).map_each(r -> {
+                      "id": r.id,
+                      "url": r.url.or("").slice(0, 200),
+                      "status": r.status.or("unknown"),
+                      "requested_at": r.requested_at.or(0),
+                      "error": r.error.or("").slice(0, 120)
+                    })
+                    root.total = $reqs.length()
+                    root.pending = $reqs.filter(r -> r.status == "pending").length()
+                    root.approved = $reqs.filter(r -> r.status == "approved").length()
+                    root.rejected = $reqs.filter(r -> r.status == "rejected").length()
+                    root.failed = $reqs.filter(r -> r.status == "failed").length()
+                    root.items = $reqs.sort_by(r -> (if r.status == "pending" { "0" } else { "1" }) + (9999999999 - r.requested_at.number()).string()).slice(0, 3)
+              result_map: 'root.urlshare = this'
+
             vm_image_claude_vm:
               request_map: |
                 meta image = "claude-vm-bootc"
