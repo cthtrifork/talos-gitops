@@ -393,7 +393,7 @@ processor_resources:
                     root.approved = $reqs.filter(r -> r.status == "approved").length()
                     root.rejected = $reqs.filter(r -> r.status == "rejected").length()
                     root.failed = $reqs.filter(r -> r.status == "failed").length()
-                    root.items = $reqs.sort_by(r -> (if r.status == "pending" { "0" } else { "1" }) + (9999999999 - r.requested_at.number()).string()).slice(0, 5)
+                    root.items = $reqs.sort_by(r -> (if r.status == "pending" { "0" } else { "1" }) + (9999999999 - r.requested_at.number()).string()).slice(0, 3)
               result_map: 'root.urlshare = this'
 
             vm_image_claude_vm:
