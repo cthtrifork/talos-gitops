@@ -11,11 +11,12 @@ metadata:
   namespace: registry-system
 spec:
   minReadySeconds: 10
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app.kubernetes.io/instance: zot
       app.kubernetes.io/name: zot
+  serviceName: zot-headless
   template:
     metadata:
       annotations:
@@ -33,6 +34,16 @@ spec:
           value: 1600MiB
         - name: ZOT_CREDENTIALS_FILE
           value: /run/secrets/github_auth
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: access-key-id
+              name: garage-s3-key
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secret-access-key
+              name: garage-s3-key
         image: ghcr.io/project-zot/zot:v2.1.23@sha256:9d3de83ac2099e6f4843045b4c9b65b7e8baf40f92d28f54906dee9d4d390fd7
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -88,6 +99,14 @@ spec:
       - effect: NoSchedule
         key: node-role.kubernetes.io/control-plane
         operator: Exists
+      topologySpreadConstraints:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/instance: zot
+            app.kubernetes.io/name: zot
+        maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
       volumes:
       - name: zot-config
         projected:
