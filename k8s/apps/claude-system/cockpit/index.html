@@ -503,7 +503,8 @@ const UsagePanel = (d) => {
   return Panel({ title, state: b.stale ? "none" : usedState(b.worst, 90), text: b.stale ? "stale" : `peak ${b.worst}%`, d }, UsageBlock(b, now));
 };
 
-const SHARE_STATE = { pending: "warn", approved: "ok", rejected: "none", failed: "bad", fetching: "none" };
+const SHARE_URL_MAX = 50; // longest URL shown in the panel; the approval page has the full one
+const SHARE_STATE ={ pending: "warn", approved: "ok", rejected: "none", failed: "bad", fetching: "none" };
 const SharePanel = (d) => {
   const title = "Share URLs";
   const x = d.urlshare;
@@ -515,7 +516,7 @@ const SharePanel = (d) => {
       ? Muted("No requests in the last 24 hours.")
       : html`<div class="big num">${x.pending}<small> waiting for approval</small></div>
         ${Rows(x.items.map((r) => ({
-          title: r.url,
+          title: r.url.length > SHARE_URL_MAX ? r.url.slice(0, SHARE_URL_MAX - 1) + "…" : r.url,
           sub: r.error || undefined,
           right: Pill(SHARE_STATE[r.status] || "none", r.status),
         })))}
