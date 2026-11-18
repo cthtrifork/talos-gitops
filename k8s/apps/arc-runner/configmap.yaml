@@ -5,12 +5,15 @@ metadata:
   name: podman-registries
   namespace: arc-runners-system
 data:
-  # Mirrors are tried in order and the origin is the fallback. The zot paths are its pull-through caches
-  # (k8s/infra/registry-system), and private images under ghcr.io/cthtrifork fall back to the origin.
+  # Mirrors are tried in order and the origin is the fallback: first the zot-edge on the runner's node (a cache that syncs
+  # from zot on demand), then zot. The zot paths are its pull-through caches (k8s/infra/registry-system), and private
+  # images under ghcr.io/cthtrifork fall back to the origin.
   zot-mirror.conf: |
     [[registry]]
     prefix = "ghcr.io"
     location = "ghcr.io"
+    [[registry.mirror]]
+    location = "zot-edge.registry-system.svc.cluster.local:5000/ghcr-cache"
     [[registry.mirror]]
     location = "zot.registry-system.svc.cluster.local:5000/ghcr-cache"
 
@@ -18,10 +21,14 @@ data:
     prefix = "quay.io"
     location = "quay.io"
     [[registry.mirror]]
+    location = "zot-edge.registry-system.svc.cluster.local:5000/quay-cache"
+    [[registry.mirror]]
     location = "zot.registry-system.svc.cluster.local:5000/quay-cache"
 
     [[registry]]
     prefix = "gcr.io"
     location = "gcr.io"
+    [[registry.mirror]]
+    location = "zot-edge.registry-system.svc.cluster.local:5000/gcr-cache"
     [[registry.mirror]]
     location = "zot.registry-system.svc.cluster.local:5000/gcr-cache"

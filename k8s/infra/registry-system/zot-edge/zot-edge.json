@@ -1,0 +1,61 @@
+{
+  "http": {
+    "address": "0.0.0.0",
+    "port": "5000",
+    "tls": {
+      "cert": "/etc/zot/certs/tls.crt",
+      "key": "/etc/zot/certs/tls.key"
+    }
+  },
+  "log": {
+    "level": "info"
+  },
+  "storage": {
+    "rootDirectory": "/var/lib/registry",
+    "gc": true,
+    "gcDelay": "1h",
+    "gcInterval": "1h",
+    "retention": {
+      "dryRun": false,
+      "delay": "1h",
+      "policies": [
+        {
+          "repositories": ["**"],
+          "deleteReferrers": true,
+          "deleteUntagged": true,
+          "keepTags": [
+            {
+              "pulledWithin": "72h"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "extensions": {
+    "metrics": {
+      "enable": true,
+      "prometheus": {
+        "path": "/metrics"
+      }
+    },
+    "sync": {
+      "enable": true,
+      "registries": [
+        {
+          "urls": ["https://zot.registry-system.svc.cluster.local:5000"],
+          "content": [
+            {
+              "prefix": "**"
+            }
+          ],
+          "onDemand": true,
+          "tlsVerify": true,
+          "certDir": "/etc/zot/upstream-ca",
+          "maxRetries": 1,
+          "retryDelay": "5s"
+        }
+      ]
+    }
+  }
+}

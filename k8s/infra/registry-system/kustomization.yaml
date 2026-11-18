@@ -5,4 +5,5 @@ resources:
   - namespace.yaml
   - networkpolicy.yaml
   - zot/
+  - zot-edge/
   - spegel/

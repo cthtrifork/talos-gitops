@@ -1,0 +1,24 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/monitoring.coreos.com/servicemonitor_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: zot-edge-metrics
+  namespace: registry-system
+  labels:
+    app.kubernetes.io/component: metrics
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zot-edge
+  namespaceSelector:
+    matchNames:
+      - registry-system
+  endpoints:
+    - port: zot
+      path: /metrics
+      interval: 30s
+      scheme: https
+      tlsConfig:
+        # The certificate is issued for the Service's DNS names, not the pod IP Prometheus connects to
+        insecureSkipVerify: true

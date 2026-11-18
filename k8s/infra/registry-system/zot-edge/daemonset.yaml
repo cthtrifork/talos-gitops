@@ -1,0 +1,115 @@
+# The node-local tier of the registry: a plain zot on every node that syncs images on demand from the main zot
+# (zot.registry-system) and keeps them on an emptyDir. Pulls from the ARC runners go to the edge of their own node first
+# (Service zot-edge, internalTrafficPolicy Local), so a popular image leaves the main zot once per node however many runs
+# pull it at once. It is only a cache: the volume is lost with the pod, and the runners fall back to the main zot.
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: zot-edge
+  namespace: registry-system
+  labels:
+    app.kubernetes.io/name: zot-edge
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zot-edge
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: zot-edge
+        prometheus-scrape: "true"
+    spec:
+      automountServiceAccountToken: false
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: zot
+          image: ghcr.io/project-zot/zot:v2.1.23@sha256:9d3de83ac2099e6f4843045b4c9b65b7e8baf40f92d28f54906dee9d4d390fd7
+          imagePullPolicy: IfNotPresent
+          args: ["serve", "/etc/zot/config.json"]
+          env:
+            - name: GOGC
+              value: "50"
+            - name: GOMEMLIMIT
+              value: 800MiB
+          ports:
+            - name: zot
+              containerPort: 5000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 5000
+              scheme: HTTPS
+            initialDelaySeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 5000
+              scheme: HTTPS
+            initialDelaySeconds: 5
+          startupProbe:
+            httpGet:
+              path: /startupz
+              port: 5000
+              scheme: HTTPS
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry
+            - name: tmp
+              mountPath: /tmp
+            - name: config
+              mountPath: /etc/zot
+            - name: certs
+              mountPath: /etc/zot/certs
+              readOnly: true
+            - name: upstream-ca
+              mountPath: /etc/zot/upstream-ca
+              readOnly: true
+      volumes:
+        - name: data
+          emptyDir:
+            # the kubelet evicts the pod when it is exceeded and the cache starts empty: it holds only what zot can sync
+            # again (talos-2ny-8tx has the least free space in /var)
+            sizeLimit: 8Gi
+        - name: tmp
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: zot-edge-config
+        - name: certs
+          secret:
+            secretName: zot-edge-cert
+        # trusts the main zot's certificate (the private CA, distributed by trust-manager)
+        - name: upstream-ca
+          configMap:
+            name: portableinfo-ca-bundle
+            items:
+              - key: ca-bundle.crt
+                path: ca.crt

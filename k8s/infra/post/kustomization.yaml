@@ -14,5 +14,6 @@ resources:
   - flux-system/ingressroute.yaml
   - flux-system/middleware.yaml
   - registry-system/zot-certificate.yaml
+  - registry-system/zot-edge-certificate.yaml
   - security-system/dependency-track-postgres-cluster.yaml
   - security-system/dependency-track-ingressroute.yaml

@@ -1,0 +1,19 @@
+# internalTrafficPolicy Local: a client reaches the edge on its own node, so a hit never crosses the network. A node
+# without a ready edge pod gets no answer, and the runner configuration then falls back to the main zot.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zot-edge
+  namespace: registry-system
+  labels:
+    app.kubernetes.io/name: zot-edge
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Local
+  ports:
+    - name: zot
+      port: 5000
+      targetPort: zot
+  selector:
+    app.kubernetes.io/name: zot-edge

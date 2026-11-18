@@ -61,6 +61,9 @@ spec:
             k8s:io.kubernetes.pod.namespace: arc-runners-system
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: security-system
+        # the node-local edge caches sync images on demand from here
+        - matchLabels:
+            k8s:app.kubernetes.io/name: zot-edge
       toPorts:
         - ports:
             - port: "5000"
@@ -77,6 +80,33 @@ spec:
       toPorts:
         - ports:
             - port: "4954"
+              protocol: TCP
+---
+# zot-edge (the node-local cache): pulled from by the ARC runners, scraped by Prometheus, syncs from the main zot.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: zot-edge
+  namespace: registry-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: zot-edge
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: arc-runners-system
+      toPorts:
+        - ports:
+            - port: "5000"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:app.kubernetes.io/name: zot
+      toPorts:
+        - ports:
+            - port: "5000"
               protocol: TCP
 ---
 # Spegel (node-local mirror): containerd on each node reaches it through the NodePort (host or remote-node), the

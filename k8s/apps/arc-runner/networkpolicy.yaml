@@ -168,3 +168,12 @@ spec:
         - ports:
             - port: "5000"
               protocol: TCP
+    # the node-local zot caches (pulls only)
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: registry-system
+            k8s:app.kubernetes.io/name: zot-edge
+      toPorts:
+        - ports:
+            - port: "5000"
+              protocol: TCP
