@@ -60,6 +60,7 @@
   /* Healthy and neutral look the same: colour is kept for what needs a look, so a problem stands out. */
   .ok { color: var(--ok); }
   .none { color: var(--ink-2); }
+  .info { color: var(--accent); }
   /* Columns, not a grid or flex row: cards are packed top to bottom and the browser balances the columns, so a short card
      (no alerts, a score) never sits in a row next to a tall list and never gets stretched into a mostly empty box.
      Cards keep a fixed order. */
@@ -266,7 +267,8 @@ function stripChips(d) {
   const order = { bad: 0, warn: 1, none: 2, ok: 3 };
   return chips.sort((a, b) => order[a.state] - order[b.state]);
 }
-const polarisState = (score) => (score >= 90 ? "ok" : score >= 75 ? "warn" : "bad");
+// 100 is green, 90 to 99 amber, below 90 red.
+const polarisState = (score) => (score >= 100 ? "ok" : score >= 90 ? "warn" : "bad");
 
 
 // ---- Building blocks. Text goes in as text, never as markup, so nothing in the data can inject HTML. ----
@@ -344,7 +346,7 @@ const AlertsPanel = (d) => {
     ${n > MAX_ROWS ? Muted(`and ${n - MAX_ROWS} more${hiddenCritical ? `, ${hiddenCritical} of them critical` : ""}`) : nothing}`);
 };
 
-const FLUX_STATE_PILL = { failed: "bad", unknown: "warn", progressing: "none" };
+const FLUX_STATE_PILL = { failed: "bad", unknown: "warn", progressing: "info" };
 const FLUX_ORDER = { failed: 0, unknown: 1, progressing: 2 };
 const FluxPanel = (d) => {
   const title = "Flux reconciliation";
@@ -354,8 +356,8 @@ const FluxPanel = (d) => {
   const label = t.failed ? t.failed + " failed" : t.unknown ? t.unknown + " unknown" : t.progressing ? t.progressing + " progressing" : "all ready";
   const pct = (n) => (t.total ? (n / t.total) * 100 : 0);
   const segments = [
-    ["var(--calm)", t.ready, "ready"], ["var(--accent)", t.progressing, "progressing"], ["var(--bad)", t.failed, "failed"],
-    ["var(--warn)", t.unknown, "unknown"], ["var(--ink-2)", t.suspended, "suspended"],
+    ["var(--ok)", t.ready, "ready"], ["var(--accent)", t.progressing, "progressing"], ["var(--bad)", t.failed, "failed"],
+    ["var(--warn)", t.unknown, "unknown"], ["var(--muted)", t.suspended, "suspended"],
   ];
   const problems = [...t.problems]
     .sort((a, b) => FLUX_ORDER[a.state] - FLUX_ORDER[b.state] || compare(`${a.namespace}/${a.name}`, `${b.namespace}/${b.name}`))
@@ -363,7 +365,7 @@ const FluxPanel = (d) => {
   const hidden = t.failed + t.unknown + t.progressing - problems.length;
   return Panel({ title, state, text: label, d }, html`
     ${Bar({ label: `${t.ready} of ${t.total} ready`, parts: segments.map(([color, n]) => ({ pct: pct(n), color })) })}
-    <div class="legend">${segments.map(([color, n, name]) => html`<span><span class="dot" style="background: ${color}"></span>${n} ${name}</span>`)}</div>
+    <div class="legend">${segments.map(([color, n, name]) => html`<span class=${n ? nothing : "muted"}><span class="dot" style="background: ${color}; opacity: ${n ? 1 : 0.35}"></span>${n} ${name}</span>`)}</div>
     ${problems.length > 0 ? Rows(problems.map((x) => ({ title: `${x.namespace}/${x.name}`, sub: x.message, right: Pill(FLUX_STATE_PILL[x.state] || "warn", x.state) }))) : nothing}
     ${hidden > 0 ? Muted(`and ${hidden} more not listed`) : nothing}
     ${!t.complete ? Muted("One of the two lists did not answer, so the counts are partial.") : nothing}`);
