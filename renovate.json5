@@ -328,10 +328,9 @@
         "/^.github/.*\\.yaml$/"
       ],
       "matchStrings": [
-        "(?<depName>[^\\s\"\\']+):\\s\"?(?<currentValue>.[^\"'\\s]*)\"?\\s+# renovate:\\s*datasource=(?<datasource>[^\\s]+)\\s+depName=(?<packageName>[^\\s]+)"
+        "[^\\s\"\\']+:\\s\"?(?<currentValue>.[^\"'\\s]*)\"?\\s+# renovate:\\s*datasource=(?<datasource>[^\\s]+)\\s+depName=(?<depName>[^\\s]+)"
       ],
       "datasourceTemplate": "{{{datasource}}}",
-      "packageNameTemplate": "{{{packageName}}}",
       "versioningTemplate": "semver"
     }
   ]
