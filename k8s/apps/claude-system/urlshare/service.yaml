@@ -6,6 +6,7 @@ metadata:
   name: claude-urlshare
   namespace: claude-system
   annotations:
+    omni-kube-service-exposer.sidero.dev/icon: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iI2M0NjIzZiIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEwIDE0YTQgNCAwIDAgMCA1LjcgMGwzLTNhNCA0IDAgMCAwLTUuNy01LjdsLTEgMSIvPjxwYXRoIGQ9Ik0xNCAxMGE0IDQgMCAwIDAtNS43IDBsLTMgM2E0IDQgMCAwIDAgNS43IDUuN2wxLTEiLz48L2c+PC9zdmc+
     omni-kube-service-exposer.sidero.dev/label: "Share URLs"
     omni-kube-service-exposer.sidero.dev/port: "50096"
     omni-kube-service-exposer.sidero.dev/prefix: claudeurlshare
