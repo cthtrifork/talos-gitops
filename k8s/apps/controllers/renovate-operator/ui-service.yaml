@@ -6,6 +6,7 @@ metadata:
   name: renovate-operator-ui
   namespace: renovate-system
   annotations:
+    omni-kube-service-exposer.sidero.dev/icon: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iIzFhN2Y0YiIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDE5VjZNNi41IDExLjVMMTIgNmw1LjUgNS41Ii8+PHBhdGggZD0iTTUgMTloMTQiLz48L2c+PC9zdmc+
     omni-kube-service-exposer.sidero.dev/label: "Renovate"
     omni-kube-service-exposer.sidero.dev/port: "50095"
     omni-kube-service-exposer.sidero.dev/prefix: renovate

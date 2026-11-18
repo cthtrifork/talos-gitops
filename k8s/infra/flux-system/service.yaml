@@ -5,6 +5,7 @@ metadata:
   name: flux-operator-exposed
   namespace: flux-system
   annotations:
+    omni-kube-service-exposer.sidero.dev/icon: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iIzRmNWJkNSIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTE4IDlhNi41IDYuNSAwIDAgMC0xMS41LTEuNU02IDQuNXYzLjVoMy41Ii8+PHBhdGggZD0iTTYgMTVhNi41IDYuNSAwIDAgMCAxMS41IDEuNU0xOCAxOS41VjE2aC0zLjUiLz48L2c+PC9zdmc+
     omni-kube-service-exposer.sidero.dev/label: Flux UI
     omni-kube-service-exposer.sidero.dev/port: "50080"
     omni-kube-service-exposer.sidero.dev/prefix: flux

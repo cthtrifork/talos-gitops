@@ -142,6 +142,7 @@ spec:
         enabled: false
       service:
         annotations:
+          omni-kube-service-exposer.sidero.dev/icon: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iI2U2NTIyYyIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDRjMSAzIDUgNSA1IDlhNSA1IDAgMCAxLTEwIDBjMC0yIDEtMyAyLTQgMCAxLjUuNyAyLjUgMS41IDNDMTAuNSA5IDExIDYgMTIgNHoiLz48L2c+PC9zdmc+
           omni-kube-service-exposer.sidero.dev/label: Prometheus
           omni-kube-service-exposer.sidero.dev/port: "50087"
           omni-kube-service-exposer.sidero.dev/prefix: prometheus
