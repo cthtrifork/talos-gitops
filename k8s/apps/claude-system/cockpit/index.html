@@ -372,8 +372,11 @@ const PolarisPanel = (d) => {
   const title = "Polaris score";
   const x = d.polaris;
   if (!x) return Unavailable({ title, source: "polaris-dashboard · /results.json", d });
-  return Panel({ title, state: polarisState(x.score), text: x.danger ? x.danger + " danger" : "no danger", compact: true, d }, html`
-    <div class="num"><strong>${x.score} / 100</strong> · ${x.danger} danger · ${x.warning} warning</div>
+  const state = polarisState(x.score);
+  // The score is the big number, coloured only when it needs a look; the counts and the audit time are quiet lines below it.
+  return Panel({ title, state, text: x.danger ? x.danger + " danger" : "no danger", d }, html`
+    <div class=${state === "ok" ? "big num" : "big num " + state}>${x.score}<small> / 100</small></div>
+    <div class="num">${x.danger} danger · ${x.warning} warning</div>
     ${Muted(`Audited ${String(x.audit_time).replace("T", " ").replace("Z", " UTC")}`)}`);
 };
 
