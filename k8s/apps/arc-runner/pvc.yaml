@@ -83,3 +83,19 @@ spec:
   resources:
     requests:
       storage: 32Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  # The ISO builder (arc-iso-bootc, github-runner-bootc): its container storage (the OS image and bootc-image-builder) in
+  # `containers`, and bootc-image-builder's osbuild store and RPM metadata (`bib`), so the installer RPMs are not
+  # downloaded on every build (11 of 19 minutes). Only that scale set uses it (maxRunners 1: one pod at a time).
+  name: bootc-iso-cache
+  namespace: arc-runners-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 40Gi

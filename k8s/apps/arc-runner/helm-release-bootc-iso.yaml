@@ -123,8 +123,14 @@ spec:
                 mountPath: /usr/local/share/ca-certificates/private-ca.crt
                 subPath: ca.crt
               # Persistent rootful Podman storage: the OS image and bootc-image-builder, and the container it runs.
-              - name: container-storage-rootful
+              - name: bootc-iso-cache
                 mountPath: /var/lib/containers/storage
+                subPath: containers
+              # bootc-image-builder's osbuild store and RPM metadata (the workflow mounts them into the builder): the
+              # installer RPMs are downloaded once, not on every build. The workflow wipes it when it grows past a limit.
+              - name: bootc-iso-cache
+                mountPath: /var/cache/bib
+                subPath: bib
               # Job workspace: node-local ephemeral storage.
               - name: work
                 mountPath: /home/runner/_work
@@ -185,15 +191,9 @@ spec:
           - name: var-tmp
             emptyDir:
               sizeLimit: 20Gi
-          - name: container-storage-rootful
-            ephemeral:
-              volumeClaimTemplate:
-                spec:
-                  accessModes:
-                    - ReadWriteOnce
-                  resources:
-                    requests:
-                      storage: 48Gi # the OS image (up to about 8 GiB unpacked), bootc-image-builder and its osbuild store
+          - name: bootc-iso-cache
+            persistentVolumeClaim:
+              claimName: bootc-iso-cache
     listenerTemplate:
       spec:
         securityContext:
