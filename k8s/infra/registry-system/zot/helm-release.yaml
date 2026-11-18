@@ -35,12 +35,32 @@ spec:
     service:
       type: ClusterIP
       port: 5000
-    replicaCount: 1
+    # Scale-out cluster (https://zotregistry.dev/v2.1.23/articles/scaleout/): every replica shares the Garage object
+    # store and the Valkey cache and owns the repositories its hash of the repo path maps to; a request that lands on
+    # another replica is proxied to the owner. One replica per node; more only need a bigger "members" list in zot.json
+    # and the same number here. Not self-healing: while a replica is down, the repositories it owns are unavailable.
+    replicaCount: 3
+    # headless Service zot-headless: the stable per-pod names used as cluster members
+    serviceHeadless:
+      enabled: true
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: zot
+            app.kubernetes.io/instance: zot
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 1
     # todo: consider VPA
     image:
       repository: ghcr.io/project-zot/zot
       pullPolicy: IfNotPresent
       tag: "v2.1.23@sha256:9d3de83ac2099e6f4843045b4c9b65b7e8baf40f92d28f54906dee9d4d390fd7"
+    # The images are in Garage; the volume only holds zot's local root directory. It stays (a StatefulSet cannot drop or
+    # resize its volumeClaimTemplates), local-path only allocates what is written.
     persistence: true
     pvc:
       create: true
@@ -66,6 +86,17 @@ spec:
         value: 1600MiB
       - name: ZOT_CREDENTIALS_FILE
         value: "/run/secrets/github_auth"
+      # the S3 key of the Garage store (garage-s3-key, k8s/infra/registry-system/garage/); the S3 driver reads the AWS variables
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: garage-s3-key
+            key: access-key-id
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: garage-s3-key
+            key: secret-access-key
     metrics:
       enabled: true
       # The chart's ServiceMonitor always sets basicAuth from a Secret `basic-auth` and scrapes over
@@ -75,8 +106,6 @@ spec:
     externalSecrets:
       - secretName: zot-sync-creds
         mountPath: /etc/zot/sync
-    strategy:
-      type: Recreate
     extraVolumes:
       - name: tmp
         emptyDir: {}
