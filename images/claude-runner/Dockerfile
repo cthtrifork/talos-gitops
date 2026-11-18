@@ -11,7 +11,7 @@ ARG CLAUDE_CODE_VERSION=2.1.325
 # Keep within one minor version of the cluster
 ARG KUBECTL_VERSION=v1.34.1
 # renovate: datasource=github-releases depName=cli/cli
-ARG GH_VERSION=2.104.0
+ARG GH_VERSION=2.105.0
 # renovate: datasource=github-releases depName=google/go-containerregistry
 ARG CRANE_VERSION=0.22.1
 # renovate: datasource=github-releases depName=mikefarah/yq
