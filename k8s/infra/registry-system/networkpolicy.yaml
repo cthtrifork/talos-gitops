@@ -78,6 +78,66 @@ spec:
         - ports:
             - port: "4954"
               protocol: TCP
+    # The Garage object store (S3)
+    - toEndpoints:
+        - matchLabels:
+            k8s:app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+---
+# Garage (the object store behind a clustered zot): S3 (3900) only from zot, the RPC (3901) and admin (3903) ports only
+# between Garage's own pods, which include the layout Job. Prometheus scrapes the admin port. Garage finds its peers
+# through the API server (allowed for the namespace above).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: garage
+  namespace: registry-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: garage
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:app.kubernetes.io/name: zot
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+            - port: "3901"
+              protocol: TCP
+            - port: "3903"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            k8s:app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "3903"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+            - port: "3901"
+              protocol: TCP
+            - port: "3903"
+              protocol: TCP
 ---
 # Spegel (node-local mirror): containerd on each node reaches it through the NodePort (host or remote-node), the
 # instances find each other on 5000 and 5001 (TCP and UDP) and use the nodes and the internet as upstream.

@@ -1,0 +1,15 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - helm-release.yaml
+  - helm-repository.yaml
+  - external-secrets.yaml
+  - layout-job.yaml
+configMapGenerator:
+  - name: garage-layout
+    namespace: registry-system
+    options:
+      disableNameSuffixHash: true
+    files:
+      - configure.sh
