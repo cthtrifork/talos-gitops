@@ -12,7 +12,7 @@
     color-scheme: light;
     --page: #f4f4f1; --surface: #ffffff; --ink: #141413; --ink-2: #4a4843; --muted: #6b6963;
     --grid: #e3e2da; --ring: rgba(11, 11, 11, 0.10); --accent: #1f63b5;
-    --calm: #77756f; --ok: #1a7f4b; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
+    --calm: #77756f; --suspend: #6d28d9; --ok: #1a7f4b; --warn: #8a5a00; --warn-bg: #fff4d6; --bad: #b3261e; --bad-bg: #fde4e1;
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
     /* The whole type scale: small (labels, metadata), body, panel title, large (page title and headline numbers). */
@@ -23,14 +23,14 @@
       color-scheme: dark;
       --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --muted: #898781;
       --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
-      --calm: #8d8b85; --ok: #3cc58a; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+      --calm: #8d8b85; --suspend: #b388ff; --ok: #3cc58a; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
     --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --muted: #898781;
     --grid: #2c2c2a; --ring: rgba(255, 255, 255, 0.10); --accent: #3987e5;
-    --calm: #8d8b85; --ok: #3cc58a; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
+    --calm: #8d8b85; --suspend: #b388ff; --ok: #3cc58a; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
   }
   * { box-sizing: border-box; }
   body {
@@ -357,7 +357,7 @@ const FluxPanel = (d) => {
   const pct = (n) => (t.total ? (n / t.total) * 100 : 0);
   const segments = [
     ["var(--ok)", t.ready, "ready"], ["var(--accent)", t.progressing, "progressing"], ["var(--bad)", t.failed, "failed"],
-    ["var(--warn)", t.unknown, "unknown"], ["var(--muted)", t.suspended, "suspended"],
+    ["var(--warn)", t.unknown, "unknown"], ["var(--suspend)", t.suspended, "suspended"],
   ];
   const problems = [...t.problems]
     .sort((a, b) => FLUX_ORDER[a.state] - FLUX_ORDER[b.state] || compare(`${a.namespace}/${a.name}`, `${b.namespace}/${b.name}`))
@@ -377,7 +377,7 @@ const PolarisPanel = (d) => {
   if (!x) return Unavailable({ title, source: "polaris-dashboard · /results.json", d });
   const state = polarisState(x.score);
   // The score is the big number, coloured by its state (green, amber, red); the counts are coloured when not zero.
-  return Panel({ title, state, text: x.danger ? x.danger + " danger" : "no danger", d }, html`
+  return Panel({ title, state, text: x.danger ? x.danger + " danger" : x.warning + " warning", d }, html`
     <div class=${"big num score " + state}>${x.score}<small> / 100</small></div>
     <div class="num"><span class=${x.danger ? "bad" : "muted"}>${x.danger} danger</span> · <span class=${x.warning ? "warn" : "muted"}>${x.warning} warning</span></div>
     ${Muted(`Audited ${String(x.audit_time).replace("T", " ").replace("Z", " UTC")}`)}`);
