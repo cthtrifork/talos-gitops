@@ -216,6 +216,14 @@
       "groupSlug": "claude-runner-tools"
     },
     {
+      "description": "Minor and patch updates of the runner tools automerge (the image build is the check); majors stay manual. Also wins over the fluxcd rule above for the flux tools in the Dockerfile.",
+      "matchFileNames": ["images/claude-runner/Dockerfile"],
+      "matchPackageNames": ["!@anthropic-ai/claude-code"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
       "description": "A group's name only titles a pull request that carries several updates; with one, Renovate falls back to the bare package name (\"update dependency cli/cli\"). Name the image in the topic so a lone tool bump still reads as a runner change.",
       "matchFileNames": ["images/claude-runner/Dockerfile"],
       "matchPackageNames": ["!@anthropic-ai/claude-code"],
