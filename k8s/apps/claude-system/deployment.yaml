@@ -45,7 +45,7 @@ spec:
       initContainers:
         - name: private-tmp
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.325-20261116.19@sha256:65115338778d5b30efada33c76e5ec492e96f90a5a40e5ce866eb5b4387003e4
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.325-20261118.22@sha256:3be494831f6ed1bac19aae198ca2076e44cda79d30b0637eb483d0546945d565
           command:
             - "/bin/bash"
             - "-c"
@@ -68,7 +68,7 @@ spec:
       containers:
         - name: claude
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.325-20261116.19@sha256:65115338778d5b30efada33c76e5ec492e96f90a5a40e5ce866eb5b4387003e4
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.325-20261118.22@sha256:3be494831f6ed1bac19aae198ca2076e44cda79d30b0637eb483d0546945d565
           command:
             - "/bin/bash"
             - "-c"
@@ -197,7 +197,7 @@ spec:
         # (undocumented) with the login on the home volume, mounted read-only, and posts only the percentages and reset times.
         - name: usage-poller
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.325-20261116.19@sha256:65115338778d5b30efada33c76e5ec492e96f90a5a40e5ce866eb5b4387003e4
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.325-20261118.22@sha256:3be494831f6ed1bac19aae198ca2076e44cda79d30b0637eb483d0546945d565
           command:
             - "/etc/claude-usage-poller/poll-usage"
           resources:
