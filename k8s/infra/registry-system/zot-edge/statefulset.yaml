@@ -1,10 +1,12 @@
 # The node-local tier of the registry: a plain zot on every node that syncs images on demand from the main zot
-# (zot.registry-system) and keeps them on an emptyDir. Pulls from the ARC runners go to the edge of their own node first
+# (zot.registry-system) and keeps them on its own volume. Pulls from the ARC runners go to the edge of their own node first
 # (Service zot-edge, internalTrafficPolicy Local), so a popular image leaves the main zot once per node however many runs
-# pull it at once. It is only a cache: the volume is lost with the pod, and the runners fall back to the main zot.
+# pull it at once. A StatefulSet and not a DaemonSet, because every node needs its own PVC: the cache survives restarts
+# and rollouts. One replica per node (required anti-affinity); the count must stay equal to the number of nodes.
+# It is only a cache: the runners fall back to the main zot when the edge of their node is not ready.
 ---
 apiVersion: apps/v1
-kind: DaemonSet
+kind: StatefulSet
 metadata:
   name: zot-edge
   namespace: registry-system
@@ -13,6 +15,9 @@ metadata:
   annotations:
     reloader.stakater.com/auto: "true"
 spec:
+  serviceName: zot-edge
+  replicas: 3
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       app.kubernetes.io/name: zot-edge
@@ -23,6 +28,13 @@ spec:
         prometheus-scrape: "true"
     spec:
       automountServiceAccountToken: false
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: zot-edge
+              topologyKey: kubernetes.io/hostname
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
@@ -93,11 +105,6 @@ spec:
               mountPath: /etc/zot/upstream-ca
               readOnly: true
       volumes:
-        - name: data
-          emptyDir:
-            # the kubelet evicts the pod when it is exceeded and the cache starts empty: it holds only what zot can sync
-            # again (talos-2ny-8tx has the least free space in /var)
-            sizeLimit: 8Gi
         - name: tmp
           emptyDir: {}
         - name: config
@@ -113,3 +120,14 @@ spec:
             items:
               - key: ca-bundle.crt
                 path: ca.crt
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        # XFS project quota: the size is enforced, so the cache cannot fill /var (talos-2ny-8tx has the least free
+        # space, and /var is also etcd's). local-path does not enforce its size.
+        storageClassName: openebs-hostpath-xfs
+        resources:
+          requests:
+            storage: 8Gi
