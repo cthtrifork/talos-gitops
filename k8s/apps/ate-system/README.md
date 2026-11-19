@@ -9,12 +9,15 @@ and snapshots idle actors to object storage. This directory is its control plane
 |---|---|
 | `rendered/` | Upstream's install manifests (`manifests/ate-install/` at the tag), CRDs and RBAC, and the Kubernetes credential provider. Generated: see below. |
 | `kustomization.yaml` | The patches that make them fit this cluster (S3 instead of GCS, no GKE credential provider, the router's client allowlist, PodSecurity labels) |
-| `helm-release.yaml`, `helm-repository.yaml` | Garage (S3) for the snapshots, in this namespace and separate from the one Renovate uses |
+| `garage/` | Garage (S3) for the snapshots, in this namespace and separate from the one Renovate uses |
 | `postgres-cluster.yaml` | CloudNativePG database for `ate-api-server` (Substrate's "bring your own database" layout, with password logins) |
 | `externalsecrets.yaml` | Passwords and keys generated in `k8s/infra/secret-store/` (`ate-garage-*`, `ate-postgres-*`) and copied here; no value is in Git |
 | `configmap.yaml` | What `ate-setup deploy` writes as ConfigMaps at install time: API config, authentication config, API env, OTel config (export off) |
 | `networkpolicy.yaml`, `ingress-networkpolicy.yaml` | Cilium egress policies, and the ingress allows upstream's policies lack for Garage and the database |
 | `issuer.yaml`, `certificate.yaml`, `rbac.yaml`, `secretstore.yaml`, `externalsecrets-pools.yaml` | The CA and JWT key pools: cert-manager makes the keys, External Secrets builds the pool Secrets Substrate reads (see below) |
+
+`rendered/` holds vendored files, not Helm output. The render workflow rewrites `rendered/` in every directory that has both `helm-release.yaml` and
+`helm-repository.yaml`, which is why Garage is in `garage/` and nothing like that may be added at this level.
 
 ## The key pools
 

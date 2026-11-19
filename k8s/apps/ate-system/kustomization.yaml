@@ -10,8 +10,7 @@ resources:
   - rendered/crds/ate.dev_workerpools.yaml
   - rendered/crds/role.yaml
   - rendered/sandboxconfig-validation.yaml
-  - helm-release.yaml
-  - helm-repository.yaml
+  - garage
   - postgres-cluster.yaml
   - externalsecrets.yaml
   - issuer.yaml
