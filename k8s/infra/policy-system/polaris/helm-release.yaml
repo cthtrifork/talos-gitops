@@ -328,6 +328,37 @@ spec:
             - cpuRequestsMissing
             - memoryRequestsMissing
             - memoryLimitsMissing
+        - namespace: ate-system
+          controllerNames:
+            - garage-configure
+          rules:
+            - cpuRequestsMissing
+            - memoryRequestsMissing
+            - memoryLimitsMissing
+        # Agent Substrate (k8s/apps/ate-system/rendered) is upstream's v1.0.0 manifests: they set no requests or limits, and no probes
+        # or read-only root filesystem on most containers. Sizing them needs the usage of a running install, so this is a follow-up
+        - controllerNames:
+            - ate-api-server
+            - ate-controller
+            - ate-idp-server
+            - atelet
+            - atenet-egress
+            - atenet-router
+            - k8s-credential-provider
+            - podcertificate-controller
+          rules:
+            - cpuRequestsMissing
+            - memoryRequestsMissing
+            - memoryLimitsMissing
+            - livenessProbeMissing
+            - readinessProbeMissing
+            - notReadOnlyRootFilesystem
+        # atelet restores actors on the node: root, with host paths for the actor state (/var/lib/ate), the kubelet device plugins and /dev
+        - controllerNames:
+            - atelet
+          rules:
+            - runAsRootAllowed
+            - hostPathSet
         # The upstream KubeVirt and CDI operator bundles in k8s/infra/kubevirt are not deployed (kustomization.yaml has no resources).
         # The operator ClusterRole execs into pods by design. Revisit when they are deployed.
         - controllerNames:
