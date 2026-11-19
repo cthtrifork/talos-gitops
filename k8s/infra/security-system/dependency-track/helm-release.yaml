@@ -87,7 +87,7 @@ spec:
     frontend:
       image:
         # renovate: datasource=docker depName=mirror.gcr.io/dependencytrack/frontend versioning=semver
-        tag: 5.2.1@sha256:1c0f63b083af8e89ff4ede5e7ed5cfc4e23ab871fa140ed101e8dc56f53eb51c
+        tag: 5.2.2@sha256:fd15b6cdc38692518a703eab0ed2867fa34e1276034cbe00773c61a9975cf719
       # The SPA calls the API from the browser, on the origin it was loaded from: the IngressRoute in
       # post/security-system/dependency-track-ingressroute.yaml sends /api to the api-server and the rest here.
       apiBaseUrl: "https://dtrack.portableinfo.cloud"
