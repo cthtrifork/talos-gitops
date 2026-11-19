@@ -143,6 +143,20 @@ patches:
                 $patch: delete
               - name: image-credential-provider-config
                 $patch: delete
+  # ate-api-server exits at startup without a bootstrap owner (docs/guides/authorization.md), and `ate-setup` adds this flag itself. The default
+  # is the shared ate-client service account (rendered/ate-controller.yaml), which is what `kubectl ate` acts as without --token-file: anyone who
+  # can create a token for it in ate-system, in practice a cluster admin, is a global owner. Replace it with your own principals once access
+  # policies exist.
+  - target:
+      kind: Deployment
+      name: ate-api-server
+    patch: |-
+      - op: test
+        path: /spec/template/spec/containers/0/name
+        value: ate-api-server
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --authz-bootstrap-owners=system:serviceaccount:ate-system:ate-client
   # Who may call actors through the router. Upstream carries none (the router then serves nothing) and its quickstart uses this one.
   # Add the service accounts of the clients that should reach actors.
   - target:
