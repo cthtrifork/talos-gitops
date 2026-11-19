@@ -134,8 +134,8 @@
           ],
           "onDemand": true,
           "tlsVerify": true,
-          "maxRetries": 1,
-          "retryDelay": "5s"
+          "stream": true,
+          "maxConcurrentStreams": 64
         },
         {
           "urls": ["https://ghcr.io"],
@@ -147,8 +147,8 @@
           ],
           "onDemand": true,
           "tlsVerify": true,
-          "maxRetries": 1,
-          "retryDelay": "5s"
+          "stream": true,
+          "maxConcurrentStreams": 64
         },
         {
           "urls": ["https://ghcr.io"],
@@ -160,8 +160,8 @@
           ],
           "onDemand": true,
           "tlsVerify": true,
-          "maxRetries": 1,
-          "retryDelay": "5s"
+          "stream": true,
+          "maxConcurrentStreams": 64
         },
         {
           "urls": ["https://gcr.io"],
@@ -173,8 +173,8 @@
           ],
           "onDemand": true,
           "tlsVerify": true,
-          "maxRetries": 1,
-          "retryDelay": "5s"
+          "stream": true,
+          "maxConcurrentStreams": 64
         },
         {
           "urls": ["https://quay.io"],
@@ -186,8 +186,8 @@
           ],
           "onDemand": true,
           "tlsVerify": true,
-          "maxRetries": 1,
-          "retryDelay": "5s"
+          "stream": true,
+          "maxConcurrentStreams": 64
         },
         {
           "urls": ["https://registry.k8s.io"],
@@ -199,8 +199,8 @@
           ],
           "onDemand": true,
           "tlsVerify": true,
-          "maxRetries": 1,
-          "retryDelay": "5s"
+          "stream": true,
+          "maxConcurrentStreams": 64
         },
         {
           "urls": ["https://us-docker.pkg.dev"],
@@ -212,8 +212,8 @@
           ],
           "onDemand": true,
           "tlsVerify": true,
-          "maxRetries": 1,
-          "retryDelay": "5s"
+          "stream": true,
+          "maxConcurrentStreams": 64
         }
       ]
     }

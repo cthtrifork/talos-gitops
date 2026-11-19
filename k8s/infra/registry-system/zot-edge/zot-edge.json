@@ -27,7 +27,10 @@
             {
               "pulledWithin": "72h"
             }
-          ]
+          ],
+          "keepUntagged": {
+            "pulledWithin": "72h"
+          }
         }
       ]
     }
@@ -52,8 +55,8 @@
           "onDemand": true,
           "tlsVerify": true,
           "certDir": "/etc/zot/upstream-ca",
-          "maxRetries": 1,
-          "retryDelay": "5s"
+          "stream": true,
+          "maxConcurrentStreams": 64
         }
       ]
     }
