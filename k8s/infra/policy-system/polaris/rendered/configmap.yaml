@@ -233,6 +233,34 @@ data:
         - memoryRequestsMissing
         - memoryLimitsMissing
       - controllerNames:
+        - garage-configure
+        namespace: ate-system
+        rules:
+        - cpuRequestsMissing
+        - memoryRequestsMissing
+        - memoryLimitsMissing
+      - controllerNames:
+        - ate-api-server
+        - ate-controller
+        - ate-idp-server
+        - atelet
+        - atenet-egress
+        - atenet-router
+        - k8s-credential-provider
+        - podcertificate-controller
+        rules:
+        - cpuRequestsMissing
+        - memoryRequestsMissing
+        - memoryLimitsMissing
+        - livenessProbeMissing
+        - readinessProbeMissing
+        - notReadOnlyRootFilesystem
+      - controllerNames:
+        - atelet
+        rules:
+        - runAsRootAllowed
+        - hostPathSet
+      - controllerNames:
         - kubevirt-operator
         rules:
         - clusterrolePodExecAttach
