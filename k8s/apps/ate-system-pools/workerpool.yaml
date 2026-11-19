@@ -7,6 +7,9 @@ kind: WorkerPool
 metadata:
   name: gvisor
   namespace: ate-workers
+  # ActorTemplates pick a pool by these labels (workerSelector.matchLabels)
+  labels:
+    pool: gvisor
 spec:
   replicas: 2
   workerImage: ghcr.io/agent-substrate/substrate/ateworker-gvisor:v1.0.0@sha256:f8987236c6256f58c4b2625e543b43f4ae4bdded6ee6821c03d966effb7c0f17
