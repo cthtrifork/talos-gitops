@@ -19,6 +19,64 @@ and snapshots idle actors to object storage. This directory is its control plane
 `rendered/` holds vendored files, not Helm output. The render workflow rewrites `rendered/` in every directory that has both `helm-release.yaml` and
 `helm-repository.yaml`, which is why Garage is in `garage/` and nothing like that may be added at this level.
 
+## Architecture
+
+```mermaid
+flowchart LR
+  user["kubectl ate, clients"]
+  ext["Internet"]
+  reg["ghcr.io, gs://gvisor"]
+
+  subgraph sys["ate-system"]
+    subgraph control["Control plane"]
+      api["ate-api-server"]
+      ctrl["ate-controller"]
+      idp["ate-idp-server"]
+    end
+    subgraph state["State"]
+      db[("substrate-db<br/>CloudNativePG")]
+      garage[("garage<br/>S3, ate-snapshots")]
+    end
+    subgraph data["Data plane"]
+      atelet["atelet<br/>DaemonSet, one per node"]
+      router["atenet-router"]
+      egress["atenet-egress"]
+      cred["k8s-credential-provider"]
+    end
+  end
+
+  subgraph workers["ate-workers: WorkerPool gvisor"]
+    w["worker pods<br/>actors in gVisor sandboxes, atunnel"]
+  end
+
+  subgraph keys["Keys and certificates"]
+    cm["cert-manager<br/>CAs, JWT key"]
+    es["ExternalSecrets<br/>pool Secrets"]
+    pc["podcertificate-controller<br/>pod certificates"]
+  end
+
+  user --> api
+  ctrl --> api
+  api -- SQL --> db
+  api -- snapshots --> garage
+  atelet -- assign, resume, watch --> api
+  router -- routes --> api
+  atelet -- restore, suspend --> w
+  router -- actor traffic --> w
+  w -- outbound, via atunnel --> egress
+  egress --> cred
+  egress --> ext
+  atelet --> reg
+  atelet -- snapshots --> garage
+  cm --> es
+  es -. pools .-> pc
+  pc -. mTLS certificates .-> api
+```
+
+The API server is the only thing clients call. Actors run in gVisor sandboxes inside the worker pods; idle ones are snapshotted to Garage and restored
+into any worker with room. An actor reaches the network only through `atunnel` and the egress gateway, which denies everything without a policy for that
+actor. Nothing here has run yet, and there are no actors: see `docs/agent-substrate-claude-actor.md` for a first one.
+
 ## The key pools
 
 Substrate keeps its CAs (pod identity, service DNS, Postgres, actor identity, egress MITM) and the actor JWT signing key in pool Secrets in its
