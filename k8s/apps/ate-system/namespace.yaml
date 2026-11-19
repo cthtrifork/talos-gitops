@@ -1,0 +1,13 @@
+# ate-workers holds the worker pods of the WorkerPools (k8s/apps/ate-system-pools/). A worker runs as root with SYS_ADMIN, NET_ADMIN and
+# NET_RAW and an unconfined seccomp profile, so the namespace is privileged. Actors run inside the workers' sandboxes, not as pods.
+# ate-system itself comes from rendered/ate-controller.yaml; kustomization.yaml labels it privileged too, because atelet runs there as
+# root with hostPath mounts.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ate-workers
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged

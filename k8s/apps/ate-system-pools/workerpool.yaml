@@ -1,0 +1,24 @@
+# The warm capacity actors are placed on: standby worker pods running gVisor. An actor's memory and filesystem are snapshotted to Garage
+# when it is idle and restored into any worker with room, so a worker is a shared budget (spec.template.resources.limits), not a
+# per-actor reservation. Size it for the actors that should run together; the cluster's nodes are 8, 4 and 2 CPUs.
+---
+apiVersion: ate.dev/v1
+kind: WorkerPool
+metadata:
+  name: gvisor
+  namespace: ate-workers
+spec:
+  replicas: 2
+  workerImage: ghcr.io/agent-substrate/substrate/ateworker-gvisor:v1.0.0@sha256:f8987236c6256f58c4b2625e543b43f4ae4bdded6ee6821c03d966effb7c0f17
+  sandboxClasses:
+    - name: gvisor
+      configRef:
+        name: gvisor-default
+  template:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: "2"
+        memory: 4Gi

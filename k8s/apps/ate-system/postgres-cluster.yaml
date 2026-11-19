@@ -1,0 +1,71 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/postgresql.cnpg.io/cluster_v1.json
+# The database of ate-api-server: Substrate's "bring your own database" setup (docs/guides/postgres.md), with password logins.
+# One instance, no backups: the database holds the actor registry, and losing it orphans the snapshots in Garage.
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: substrate-db
+  namespace: ate-system
+spec:
+  instances: 1
+  # A single instance has nothing to fail over to, so the default PDB (minAvailable 1) only blocks node drains and Talos upgrades.
+  enablePDB: false
+  enableSuperuserAccess: false
+  storage:
+    size: 5Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  bootstrap:
+    initdb:
+      database: substrate
+      owner: substrate_owner_user
+      encoding: UTF8
+      secret:
+        name: substrate-db-owner
+      # pkg/postgressetup/setup.sql, minus the logins (managed below): the two NOLOGIN roles, the schema owned by the owner role, and the
+      # default privileges that give the read/write role the objects the owner's migrations create. initdb runs only when the cluster is
+      # first created, as the superuser, in the application database.
+      postInitApplicationSQL:
+        - CREATE ROLE substrate_owner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
+        - CREATE ROLE substrate_readwrite NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
+        - GRANT substrate_owner TO substrate_owner_user
+        - CREATE SCHEMA substrate AUTHORIZATION substrate_owner
+        - REVOKE CREATE ON SCHEMA public FROM PUBLIC
+        - REVOKE ALL ON SCHEMA substrate FROM PUBLIC
+        - GRANT USAGE ON SCHEMA substrate TO substrate_readwrite
+        - ALTER DEFAULT PRIVILEGES FOR ROLE substrate_owner IN SCHEMA substrate GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO substrate_readwrite
+        - ALTER DEFAULT PRIVILEGES FOR ROLE substrate_owner IN SCHEMA substrate GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO substrate_readwrite
+        - ALTER DEFAULT PRIVILEGES FOR ROLE substrate_owner IN SCHEMA substrate GRANT EXECUTE ON ROUTINES TO substrate_readwrite
+        - ALTER DEFAULT PRIVILEGES FOR ROLE substrate_owner IN SCHEMA substrate GRANT USAGE ON TYPES TO substrate_readwrite
+  managed:
+    roles:
+      # Substrate wants both logins NOINHERIT (ate-api-server runs SET ROLE after connecting) and exactly the attributes below.
+      - name: substrate_owner_user
+        ensure: present
+        login: true
+        inherit: false
+        passwordSecret:
+          name: substrate-db-owner
+        inRoles:
+          - substrate_owner
+        comment: ate-api-server, schema owner; it applies the migrations
+      - name: substrate_readwrite_user
+        ensure: present
+        login: true
+        inherit: false
+        passwordSecret:
+          name: substrate-db-readwrite
+        inRoles:
+          - substrate_readwrite
+        comment: ate-api-server, runtime queries; rows only, no DDL
+  inheritedMetadata:
+    labels:
+      prometheus-scrape: "true"
+  monitoring:
+    enablePodMonitor: true

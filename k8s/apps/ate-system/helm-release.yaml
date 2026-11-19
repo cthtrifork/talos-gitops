@@ -1,0 +1,100 @@
+# Garage (S3) for Agent Substrate's actor snapshots, in ate-system, separate from the one in renovate-system. One node, no replicas: it
+# holds the memory and disk state of suspended actors, so losing it loses the actors' state but not the cluster.
+# The Service is garage.ate-system.svc: S3 on 3900, admin on 3903. There is no Ingress.
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: garage
+  namespace: ate-system
+spec:
+  interval: 30m
+  releaseName: garage
+  chartRef:
+    kind: OCIRepository
+    name: garage
+  # https://github.com/datahub-local/garage-helm/blob/main/charts/garage/values.yaml
+  values:
+    deployment:
+      replicaCount: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 512Mi
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 3903
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 3903
+      initialDelaySeconds: 10
+      periodSeconds: 15
+    commonLabels:
+      prometheus-scrape: "true"
+    monitoring:
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+          labels:
+            release: kube-prometheus-stack
+    # The chart's defaults lack these two fields, and the toolsImage init container copies a binary, so a root filesystem stays writable
+    podSecurityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+    image:
+      repository: mirror.gcr.io/dxflrs/garage
+      # renovate: datasource=docker depName=dxflrs/garage
+      tag: v2.5.0@sha256:677e5b758e4425a325b811c425c026bf35a4bf42f7ddbaa773de3f4fd779a5a5
+    garage:
+      replicationFactor: "1"
+      s3:
+        api:
+          region: garage
+      # rpcSecret and adminToken: generated in k8s/infra/secret-store/ (ate-garage-secrets) and copied by externalsecrets.yaml
+      secret:
+        create: false
+        name: garage-secrets
+    persistence:
+      enabled: true
+      meta:
+        storageClass: local-path
+        size: 1Gi
+      data:
+        storageClass: local-path
+        size: 20Gi
+    clusterConfig:
+      enabled: true
+      layout:
+        enabled: true
+        zone: dc1
+        capacity: 20Gi
+      podSecurityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      securityContext:
+        allowPrivilegeEscalation: false
+      buckets:
+        - name: ate-snapshots
+      keys:
+        ate:
+          # the Secret is copied from the cluster store by externalsecrets.yaml; the objectstore-plugin containers read it
+          secretName: garage-s3-key
+          keyId: access-key-id
+          secretKey: secret-access-key
+          buckets:
+            - ate-snapshots
+      toolsImage:
+        repository: mirror.gcr.io/library/busybox
+        tag: 1.38-musl@sha256:80e38f9a1b39188b8bdb28879178edb322a4402b081a9aedda1924609decd6f6
+      configureImage:
+        repository: mirror.gcr.io/library/busybox
+        tag: 1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4

@@ -1,0 +1,234 @@
+# Egress policy for the namespaces of Agent Substrate. Ingress is handled by rendered/ate-system-networkpolicies.yaml (a default deny and one
+# policy per component, as Kubernetes NetworkPolicies); the CiliumNetworkPolicies here only deny and allow egress, so the two do not
+# widen each other. Pods that upstream does not know about (the CloudNativePG pods, Garage) get their ingress rules in ingress-networkpolicy.yaml.
+#
+# Two rules are deliberately broad and are worth narrowing once Hubble shows the real traffic (skill cilium-drops):
+#   - atelet reaches the internet on 443: it downloads the gVisor bundle from gs://gvisor and pulls the container images of the actors, and
+#     which registries those are is up to whoever creates an actor template.
+#   - atenet-egress reaches the internet: it is the gateway for the actors' own outbound traffic, whose policy is per actor (EgressPolicy).
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ate-system-default-deny
+  namespace: ate-system
+spec:
+  endpointSelector: {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ate-system-allow-dns-apiserver
+  namespace: ate-system
+spec:
+  endpointSelector: {}
+  egress:
+    # DNS through kube-dns
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    # Kubernetes API: the controller, atelet, the routers and the credential provider watch it; CloudNativePG's instance manager uses it
+    - toEntities:
+        - kube-apiserver
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ate-controller
+  namespace: ate-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: ate-controller
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:app: ate-api-server
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: atenet-router
+  namespace: ate-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: atenet-router
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:app: ate-api-server
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # the actors' traffic: the router forwards requests to the worker that holds the actor
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: ate-workers
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: atenet-egress
+  namespace: ate-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: atenet-egress
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:app: ate-api-server
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:app: k8s-credential-provider
+      toPorts:
+        - ports:
+            - port: "50051"
+              protocol: TCP
+    # the internet, for the actors' outbound requests (their own egress policy decides which)
+    - toEntities:
+        - world
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ate-api-server
+  namespace: ate-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: ate-api-server
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: substrate-db
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app: atelet
+      toPorts:
+        - ports:
+            - port: "21998"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+    # snapshots are exchanged with the workers' nodes through atelet; the actors' workers are not called directly
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: atelet
+  namespace: ate-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: atelet
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app: ate-api-server
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+            - port: "8445"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+    # the worker pods it supervises, over gRPC
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: ate-workers
+    # the gVisor bundle (gs://gvisor, storage.googleapis.com) and the actors' images
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+# Garage talks to itself (the RPC port between the nodes of the layout, the admin API for the configure Job) and to nothing else
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: garage
+  namespace: ate-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: garage
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+            - port: "3901"
+              protocol: TCP
+            - port: "3903"
+              protocol: TCP
+---
+# The pod certificate controller only watches the Kubernetes API and signs; nothing else calls it
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: podcertificate-controller-default-deny
+  namespace: podcertificate-controller-system
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: podcertificate-controller-allow-dns-apiserver
+  namespace: podcertificate-controller-system
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - kube-apiserver

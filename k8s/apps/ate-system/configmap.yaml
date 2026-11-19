@@ -1,0 +1,59 @@
+# The ConfigMaps that `ate-setup deploy ate-system` writes at install time (cmd/ate-setup/internal/steps/create.go, apienv.go), as files.
+# ate-api-server and the other workloads pull them in through envFrom and volumes (rendered/ate-api-server.yaml). A change here does not
+# restart the pods on its own: restart ate-api-server after editing one (see README.md).
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ate-api-config
+  namespace: ate-system
+data:
+  apiconfig.textproto: |
+    logging: {
+      level: "info"
+    }
+---
+# The JWT issuers ate-api-server trusts for its clients (kubectl-ate, the demos). Kubernetes' own issuer: the controller, atelet and the
+# routers authenticate with pod certificates instead and do not need it. Discovery goes to the issuer URL; if the cluster's issuer is not
+# reachable from the pod, this only affects clients that present a Kubernetes service account token.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ate-api-authentication
+  namespace: ate-system
+data:
+  authentication.yaml: |
+    jwtProviders:
+    - name: kubernetes
+      issuer: https://[fdae:41e4:649b:9303::1]:10000
+      audiences:
+      - api.ate-system.svc
+---
+# The settings ate-api-server and its object-store plugin read through envFrom and configMapKeyRef; the DSNs and the schema are in the
+# Secret of the same name (externalsecrets.yaml). The roles are the NOLOGIN ones postgres-cluster.yaml creates. The snapshot location keeps
+# the gs:// scheme of upstream's own S3 setup (the plugin picks the backend with ATE_STORAGE_BACKEND, not the scheme). The transfer service
+# account is for GKE's workload identity and stays empty.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ate-api-server-envvars
+  namespace: ate-system
+data:
+  ATE_API_POSTGRES_READ_WRITE_ROLE: substrate_readwrite
+  ATE_API_POSTGRES_OWNER_ROLE: substrate_owner
+  ATE_API_ACTOR_JWT_ISSUER: https://idp.ate-system.svc
+  ATE_API_SNAPSHOT_TRANSFER_SERVICE_ACCOUNT: ""
+  ATE_API_SNAPSHOT_LOCATION: gs://ate-snapshots/
+---
+# Every Substrate workload pulls this in through envFrom. the upstream ate-otel-config.yaml points at GKE's managed collector, which does not
+# exist here, and this cluster has no OTLP collector for the control plane, so telemetry export is off. The components still serve
+# Prometheus metrics on their named ports (see rendered/ate-system-networkpolicies.yaml).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ate-otel-config
+  namespace: ate-system
+data:
+  OTEL_TRACES_EXPORTER: none
+  OTEL_METRICS_EXPORTER: none
+  OTEL_LOGS_EXPORTER: none

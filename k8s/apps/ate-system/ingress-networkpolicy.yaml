@@ -1,0 +1,67 @@
+# What upstream's ingress policies (rendered/ate-system-networkpolicies.yaml) do not cover: the pods that are not Substrate's own. That file
+# denies all ingress to the namespace, so each of these needs its own allow.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: substrate-db
+  namespace: ate-system
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: substrate-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: ate-api-server
+      ports:
+        - protocol: TCP
+          port: 5432
+    # the operator asks each instance manager for its status
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: storage-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: garage
+  namespace: ate-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: garage
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - ate-api-server
+                  - atelet
+      ports:
+        - protocol: TCP
+          port: 3900
+    # the nodes of the layout, and the configure Job that creates the bucket and the key
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: garage
+      ports:
+        - protocol: TCP
+          port: 3901
+        - protocol: TCP
+          port: 3903
