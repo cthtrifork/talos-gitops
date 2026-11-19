@@ -1,0 +1,85 @@
+# What External Secrets needs to read the cert-manager Secrets of certificate.yaml, one service account per namespace (secretstore.yaml).
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ate-secret-source
+  namespace: ate-system
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ate-secret-source
+  namespace: ate-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - selfsubjectrulesreviews
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ate-secret-source
+  namespace: ate-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ate-secret-source
+subjects:
+  - kind: ServiceAccount
+    name: ate-secret-source
+    namespace: ate-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ate-secret-source
+  namespace: podcertificate-controller-system
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ate-secret-source
+  namespace: podcertificate-controller-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - selfsubjectrulesreviews
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ate-secret-source
+  namespace: podcertificate-controller-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ate-secret-source
+subjects:
+  - kind: ServiceAccount
+    name: ate-secret-source
+    namespace: podcertificate-controller-system

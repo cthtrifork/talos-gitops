@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/kustomize.toolkit.fluxcd.io/kustomization_v1.json
 ---
 # Agent Substrate: the control plane, its database and its snapshot store. The WorkerPool and SandboxConfig are in app-ate-system-pools,
-# which waits for the CRDs this installs, and the CA and JWT key pools are in app-ate-system-secrets, which waits for the namespaces.
+# which waits for the CRDs this installs.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -14,10 +14,6 @@ spec:
   retryInterval: 2m
   prune: true
   timeout: 10m
-  decryption:
-    provider: sops
-    secretRef:
-      name: sops-age
   dependsOn:
     - name: gitops-infra-post
     - name: app-controllers
@@ -47,29 +43,3 @@ spec:
     kind: GitRepository
     name: flux-system
   path: ../../k8s/apps/ate-system-pools
----
-# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/kustomize.toolkit.fluxcd.io/kustomization_v1.json
-# The key pools Substrate keeps in its own format (scripts/ate-system-secrets.sh writes them). The directory has no kustomization.yaml, so
-# Flux generates one and the repo's CI skips it; until the files are committed this Kustomization fails on a missing path, and the Substrate
-# pods wait in ContainerCreating for their Secrets. After the namespaces, which app-ate-system creates.
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: app-ate-system-secrets
-  namespace: flux-system
-  labels:
-    gitops.homelab/tier: apps
-spec:
-  interval: 30m
-  retryInterval: 2m
-  prune: true
-  decryption:
-    provider: sops
-    secretRef:
-      name: sops-age
-  dependsOn:
-    - name: app-ate-system
-  sourceRef:
-    kind: GitRepository
-    name: flux-system
-  path: ../../k8s/apps/ate-system-secrets
