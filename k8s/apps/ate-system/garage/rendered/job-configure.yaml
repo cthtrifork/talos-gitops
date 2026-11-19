@@ -1,0 +1,130 @@
+---
+# Source: garage/templates/job-configure.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: garage-configure
+  labels:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/component: garage
+    app.kubernetes.io/version: "v2.5.0"
+    app.kubernetes.io/managed-by: Helm
+    prometheus-scrape: "true"
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "argocd.argoproj.io/hook": Sync
+    "argocd.argoproj.io/hook-delete-policy": BeforeHookCreation,HookSucceeded
+  namespace: ate-system
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: garage
+        app.kubernetes.io/instance: garage
+        app.kubernetes.io/component: garage
+        app.kubernetes.io/version: "v2.5.0"
+        app.kubernetes.io/managed-by: Helm
+        prometheus-scrape: "true"
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: garage
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: get-busybox-tools
+          image: "mirror.gcr.io/library/busybox:1.38-musl@sha256:80e38f9a1b39188b8bdb28879178edb322a4402b081a9aedda1924609decd6f6"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 50Mi
+            limits:
+              cpu: 50m
+              memory: 50Mi
+          command: ["/bin/sh", "-c", "cp /bin/busybox /tools/busybox && chmod +x /tools/busybox"]
+          volumeMounts:
+            - name: tools
+              mountPath: /tools
+        - name: get-garage-bin
+          image: "mirror.gcr.io/dxflrs/garage:v2.5.0@sha256:677e5b758e4425a325b811c425c026bf35a4bf42f7ddbaa773de3f4fd779a5a5"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 100Mi
+            limits:
+              cpu: 50m
+              memory: 100Mi
+          command: ["/tools/busybox", "sh", "-c", "/tools/busybox cp /garage /shared/garage"]
+          volumeMounts:
+            - name: tools
+              mountPath: /tools
+            - name: garage-bin
+              mountPath: /shared
+      containers:
+        - name: configure
+          image: "mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4"
+          imagePullPolicy: IfNotPresent
+          resources: {}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          env:
+            - name: GARAGE_RPC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: garage-secrets
+                  key: rpcSecret
+            - name: GARAGE_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: garage-secrets
+                  key: adminToken
+            - name: KEY_ID_ATE
+              valueFrom:
+                secretKeyRef:
+                  name: garage-s3-key
+                  key: access-key-id
+            - name: SECRET_KEY_ATE
+              valueFrom:
+                secretKeyRef:
+                  name: garage-s3-key
+                  key: secret-access-key
+          command: ["/bin/sh", "/scripts/configure.sh"]
+          volumeMounts:
+            - name: garage-bin
+              mountPath: /shared
+            - name: configure-script
+              mountPath: /scripts
+      volumes:
+        - name: tools
+          emptyDir: {}
+        - name: garage-bin
+          emptyDir: {}
+        - name: configure-script
+          secret:
+            secretName: garage-configure-script
+            defaultMode: 0755
