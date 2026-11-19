@@ -103,7 +103,7 @@ jobs:
 
       - name: Setup Flux CLI
         if: ${{ steps.select.outputs.none != 'true' }}
-        uses: fluxcd/flux2/action@f7e172882c35566ff6981d0907d2b6ad766a039f # main
+        uses: fluxcd/flux2/action@1380863780bccb85915ab30b4c84e993ac6e5cac # main
         with:
           token: ${{ github.token }}
 
