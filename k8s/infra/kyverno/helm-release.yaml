@@ -36,15 +36,17 @@ spec:
       migration:
         enabled: false
       groups:
-        # The legacy kyverno.io policy types are no longer executed in Kyverno 1.20, so none of their CRDs are installed
+        # The legacy kyverno.io policy types are no longer executed in Kyverno 1.20, so their CRDs are not installed, except
+        # updaterequests and globalcontextentries: the admission controller watches them at startup and exits with
+        # "failed to wait for cache sync" when they are missing.
         kyverno:
           cleanuppolicies: false
           clustercleanuppolicies: false
           clusterpolicies: false
-          globalcontextentries: false
+          globalcontextentries: true
           policies: false
           policyexceptions: false
-          updaterequests: false
+          updaterequests: true
         reports:
           clusterephemeralreports: false
           ephemeralreports: false
