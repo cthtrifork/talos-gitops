@@ -31,7 +31,7 @@ data:
   # The agent can be put into the following three policy enforcement modes
   # default, always and never.
   # https://docs.cilium.io/en/latest/security/policy/intro/#policy-enforcement-modes
-  enable-policy: "default"
+  enable-policy: "always"
   # If you want metrics enabled in all of your Cilium agents, set the port for
   # which the Cilium agents will have their metrics exposed.
   # This option deprecates the "prometheus-serve-addr" in the
