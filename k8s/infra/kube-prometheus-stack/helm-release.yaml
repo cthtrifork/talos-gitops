@@ -86,9 +86,8 @@ spec:
               memory: 128Mi
     kube-state-metrics:
       image:
-        # No digest yet: registry.k8s.io was not reachable when this was written. Renovate pins it (pinDigests).
         # renovate: datasource=docker depName=registry.k8s.io/kube-state-metrics/kube-state-metrics versioning=docker
-        tag: v2.20.0
+        tag: v2.20.0@sha256:42cfe3723a5f058171c627537fb57a3ea0f26e4380fa18555a95cb1a1b4cfc5b
       podLabels:
         prometheus-scrape: "true"
       resources:

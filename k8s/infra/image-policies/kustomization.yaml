@@ -5,3 +5,4 @@ resources:
   - imagevalidatingpolicy-cthtrifork-images.yaml
   - validatingpolicy-deny-world-egress.yaml
   - validatingpolicy-helmrelease-remediation.yaml
+  - validatingpolicy-require-image-digest.yaml
