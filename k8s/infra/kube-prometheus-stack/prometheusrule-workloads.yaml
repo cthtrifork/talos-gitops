@@ -1,0 +1,46 @@
+# Generic workload alerts for every namespace. A pod refused at admission (the image policy) shows up as a Deployment or
+# StatefulSet below its replica count, since its ReplicaSet cannot create the pod. The Prometheus ruleSelector requires the release label.
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: workload-alerts
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: workloads
+      rules:
+        - alert: DeploymentReplicasUnavailable
+          expr: kube_deployment_spec_replicas - kube_deployment_status_replicas_available > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.deployment }} has had fewer available replicas than wanted for 15m"
+            description: "kubectl -n {{ $labels.namespace }} describe deployment {{ $labels.deployment }}; the events of its ReplicaSet show an admission refusal"
+        - alert: StatefulSetReplicasUnavailable
+          expr: kube_statefulset_replicas - kube_statefulset_status_replicas_ready > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.statefulset }} has had fewer ready replicas than wanted for 15m"
+            description: "kubectl -n {{ $labels.namespace }} describe statefulset {{ $labels.statefulset }}"
+        - alert: DaemonSetPodsUnavailable
+          expr: kube_daemonset_status_number_unavailable > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.daemonset }} has pods unavailable for 15m"
+            description: "kubectl -n {{ $labels.namespace }} describe daemonset {{ $labels.daemonset }}"
+        - alert: PodContainerFailing
+          expr: kube_pod_container_status_waiting_reason{reason=~"CrashLoopBackOff|ImagePullBackOff|ErrImagePull|CreateContainerConfigError"} == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} container {{ $labels.container }} is waiting with {{ $labels.reason }}"
+            description: "kubectl -n {{ $labels.namespace }} describe pod {{ $labels.pod }}"

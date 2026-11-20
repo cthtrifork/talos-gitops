@@ -6,6 +6,7 @@ resources:
   - helm-repository.yaml
   - prometheusrule-cilium.yaml
   - prometheusrule-credentials.yaml
+  - prometheusrule-workloads.yaml
   - cilium-clusterwide-networkpolicy.yaml
   - networkpolicy.yaml
   - otlp-service.yaml
