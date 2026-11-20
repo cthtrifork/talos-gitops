@@ -210,6 +210,7 @@ spec:
       exposedSecretScannerEnabled: false # we do not use this feature
       scannerReportTTL: "${TRIVY_SCANNER_TTL:=12h}"
       scanJobTTL: "5m" # set to 1m to keep jobs for a little while for troubleshooting
+      scanJobsRetryDelay: "${TRIVY_SCAN_RETRY_DELAY:=5s}" # also the wait when the concurrent limit is reached: a scan takes ~10 s, the default 30 s idled the slots
       # the nodes are control-plane nodes too (etcd, apiserver) and one has ~5 GB RAM: keep few scan jobs, each limited to 4Gi, running at once
       scanJobsConcurrentLimit: "${TRIVY_SCANNER_CONCURRENTLIMIT:=2}"
       sbomGenerationEnabled: true
