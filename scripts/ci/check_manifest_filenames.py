@@ -9,7 +9,7 @@ import yaml
 APP_ROOT = Path("k8s/apps")
 INFRA_ROOT = Path("k8s/infra")
 # Generated, not hand-written: scripts/ci/update-kubevirt-operators.sh rewrites these vendored release bundles (CRDs, RBAC,
-# Deployment) as one file, and nothing deploys them yet (k8s/infra/kubevirt/kustomization.yaml). Every other infra file must conform.
+# Deployment) as one file. Every other infra file must conform.
 GENERATED_INFRA_FILES = frozenset(
     Path(name)
     for name in (

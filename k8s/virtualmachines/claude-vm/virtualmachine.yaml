@@ -1,0 +1,81 @@
+# claude-vm-bootc as a KubeVirt VM (https://github.com/cthtrifork/homeserver-bootc, docs/claude-vm).
+# The disk is imported once from the containerDisk published by homeserver-bootc's "Publish claude-vm containerDisk"
+# workflow. After that the VM updates itself with `bootc upgrade`, so changing the DataVolume source later does not
+# touch the running disk. First-boot setup (GitHub App, signing key, Claude login) is manual over SSH; see the docs.
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: claude-vm
+  namespace: claude-vm
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: claude-vm
+    spec:
+      # Only nodes with /dev/kvm (the Proxmox-hosted talos node has none). KubeVirt labels such nodes itself.
+      nodeSelector:
+        kubevirt.io/schedulable: "true"
+        devices.kubevirt.io/kvm: "1"
+      domain:
+        cpu:
+          cores: 2
+        memory:
+          guest: 8Gi
+        firmware:
+          bootloader:
+            efi:
+              secureBoot: false # the bootc image is not signed for Secure Boot
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+              # without a ports list masquerade forwards every port into the guest; only sshd is meant to be reachable
+              ports:
+                - port: 22
+                  protocol: TCP
+        resources:
+          requests:
+            memory: 8Gi
+          limits:
+            memory: 9Gi
+      networks:
+        - name: default
+          pod: {}
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: claude-vm-rootdisk
+        # cloud-init (NoCloud) only runs write_files and runcmd in this image. The user data comes from the Secret claude-vm-cloud-init, which
+        # externalsecret.yaml builds from claude-system/claude-github-app, so the first boot seeds the GitHub App by itself. Until External
+        # Secrets has made that Secret the VM pod waits in ContainerCreating.
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            secretRef:
+              name: claude-vm-cloud-init
+  dataVolumeTemplates:
+    - metadata:
+        name: claude-vm-rootdisk
+      spec:
+        source:
+          registry:
+            # The default pull method (a CDI importer pod using the digest-pinned importer image) on purpose: "node"
+            # would start a pod with this tag-only image, which the require-image-digest policy denies.
+            url: docker://ghcr.io/cthtrifork/homeserver-bootc/claude-vm-containerdisk:latest
+            secretRef: ghcr-pull-cdi # from the ExternalSecret of that name; the package is public today, this keeps the import working if it goes private
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: local-path
+          resources:
+            requests:
+              storage: 60Gi # keep in step with config-claude-vm.toml in homeserver-bootc
