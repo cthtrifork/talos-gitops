@@ -68,14 +68,12 @@
   .hint.warn { color: var(--warn); }
   .flow { margin-top: 24px; }
   .flow h2 { margin-bottom: 8px; }
-  .flow p, .flow li { font-size: var(--fs-md); color: var(--ink-2); }
-  .flow ol { margin: 0 0 16px; padding-left: 1.4em; }
-  .flow li { margin-bottom: 6px; }
-  .flow li b, .flow td:first-child { color: var(--ink); }
-  .flow table { width: 100%; border-collapse: collapse; font-size: var(--fs-md); }
-  .flow th, .flow td { text-align: left; padding: 8px 10px 8px 0; border-top: 1px solid var(--line); vertical-align: top; }
-  .flow th { color: var(--ink-2); font-weight: 600; border-top: 0; }
-  .flow .tablewrap { overflow-x: auto; }
+  .flow svg { width: 100%; height: auto; display: block; }
+  .flow .bx { fill: none; stroke: var(--line); stroke-width: 2; }
+  .flow .t { fill: var(--ink); font: 600 17px var(--font); }
+  .flow .d { fill: var(--ink-2); font: 400 14px var(--font); }
+  .flow .n { fill: var(--accent); font: 600 14px var(--font); }
+  .flow .ar { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -88,25 +86,34 @@
   <div id="cards"></div>
 
   <section class="card flow" aria-labelledby="flow-title">
-    <h2 id="flow-title">How an update runs, and how long it takes</h2>
-    <ol>
-      <li><b>Click.</b> The request is held in the cluster for <b>10 minutes</b> and is used by the first poll that sees it.</li>
-      <li><b>The VM picks it up: up to about 1 minute.</b> Each VM asks every minute (the timer waits 60 s after the previous poll ends). Right after a boot the first poll comes after 2 minutes.</li>
-      <li><b>Download and stage: depends on the image size and the connection.</b> The VM runs <code>bootc upgrade --apply</code>. With no new image nothing happens and nothing reboots; the page just shows the same version again.</li>
-      <li><b>Reboot: a few minutes.</b> With a new image the VM reboots into it and anything running on it ends. The card shows <i>VM not responding</i> after 2.5 minutes without a poll, until the first poll after the boot (about 2 to 3 minutes after it starts).</li>
-      <li><b>The card catches up.</b> The page refreshes every 5 seconds, but <i>Latest</i> comes from the registry and is cached for 5 minutes, so an image published just now can take that long to show.</li>
-    </ol>
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th>What</th><th>Claude VM</th><th>Home server</th></tr></thead>
-        <tbody>
-          <tr><td>Automatic update</td><td>Daily at 03:00 (a missed run happens at the next boot). Reboots when a new image exists.</td><td>10 minutes after boot, then 10 minutes after each run ends. Reboots when a new image exists.</td></tr>
-          <tr><td>Button</td><td>Starts the same update at once instead of waiting for 03:00.</td><td>Starts the same update at once; saves at most 10 minutes.</td></tr>
-          <tr><td>Limit</td><td colspan="2">One button update per VM per hour. A click made inside that hour is kept for 10 minutes and, if it is not used by then, dropped: click again later.</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p>So the usual wait from click to the VM running the new image is about a minute plus the download plus the reboot. A new image only exists a while after the change is merged, because the image build and publish come first.</p>
+    <h2 id="flow-title">How long an update takes</h2>
+    <svg viewBox="0 0 900 190" role="img" aria-label="Click, then the VM polls within a minute, downloads the image, reboots if the image is new, and the card updates within five minutes.">
+      <rect class="bx" x="10" y="30" width="150" height="70" rx="12"/>
+      <text class="t" x="85" y="72" text-anchor="middle">Click</text>
+      <path class="ar" d="M164 65h20m-6-6l6 6-6 6"/>
+      <text class="n" x="85" y="20" text-anchor="middle">1</text>
+      <rect class="bx" x="188" y="30" width="150" height="70" rx="12"/>
+      <text class="t" x="263" y="62" text-anchor="middle">VM polls</text>
+      <text class="d" x="263" y="86" text-anchor="middle">≤ 1 min</text>
+      <path class="ar" d="M342 65h20m-6-6l6 6-6 6"/>
+      <text class="n" x="263" y="20" text-anchor="middle">2</text>
+      <rect class="bx" x="366" y="30" width="150" height="70" rx="12"/>
+      <text class="t" x="441" y="62" text-anchor="middle">Download</text>
+      <text class="d" x="441" y="86" text-anchor="middle">size-dependent</text>
+      <path class="ar" d="M520 65h20m-6-6l6 6-6 6"/>
+      <text class="n" x="441" y="20" text-anchor="middle">3</text>
+      <rect class="bx" x="544" y="30" width="150" height="70" rx="12"/>
+      <text class="t" x="619" y="62" text-anchor="middle">Reboot</text>
+      <text class="d" x="619" y="86" text-anchor="middle">a few min</text>
+      <path class="ar" d="M698 65h20m-6-6l6 6-6 6"/>
+      <text class="n" x="619" y="20" text-anchor="middle">4</text>
+      <rect class="bx" x="722" y="30" width="150" height="70" rx="12"/>
+      <text class="t" x="797" y="62" text-anchor="middle">Card updates</text>
+      <text class="d" x="797" y="86" text-anchor="middle">≤ 5 min</text>
+      <text class="n" x="797" y="20" text-anchor="middle">5</text>
+      <text class="d" x="450" y="140" text-anchor="middle">Click expires after 10 min · one button update per VM per hour</text>
+      <text class="d" x="450" y="166" text-anchor="middle">Automatic: Claude VM daily 03:00 · Home server every 10 min</text>
+    </svg>
   </section>
 </main>
 
