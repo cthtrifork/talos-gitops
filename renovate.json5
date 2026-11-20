@@ -74,6 +74,17 @@
       ]
     },
     {
+      "description": "The OpenVEX schema is tracked as a commit of the spec repo's main branch (.github/workflows/images.yaml), which moves for docs too: once a month, and it automerges only if the VEX lint (documents against the new schema) passes.",
+      "matchPackageNames": [
+        "https://github.com/openvex/spec"
+      ],
+      "schedule": [
+        "* 0-5 1 * *"
+      ],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
       "automerge": false,
       "matchUpdateTypes": [
         "major",
@@ -352,6 +363,17 @@
       ],
       "datasourceTemplate": "{{{datasource}}}",
       "versioningTemplate": "semver"
+    },
+    {
+      // a commit of a branch, pinned by SHA: `KEY: "<sha>" # renovate: depName=<repo URL> branch=<branch>`; the digest is bumped when the branch moves
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^.github/.*\\.yaml$/"
+      ],
+      "matchStrings": [
+        "[A-Z_]+:\\s\"?(?<currentDigest>[a-f0-9]{40})\"?\\s+# renovate:\\s*depName=(?<depName>\\S+)\\s+branch=(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "git-refs"
     }
   ]
 }
