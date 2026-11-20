@@ -47,7 +47,10 @@ data:
       logging:
         level: info
       memory: 1Gi
-      telemetry: {}
+      telemetry:
+        metrics:
+          endpoint: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
+          protocol: http/protobuf
     sandboxes:
       cpu: "1"
       defaultTtl: 3600s
@@ -68,7 +71,10 @@ data:
       caFile: /run/substrate-servicedns/trust-bundle.pem
       clientCertFile: /run/substrate-podidentity/credential-bundle.pem
       routerUrl: https://atenet-router.ate-system.svc:443
-    telemetry: {}
+    telemetry:
+      metrics:
+        endpoint: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
+        protocol: http/protobuf
 kind: ConfigMap
 metadata:
   labels:

@@ -162,6 +162,12 @@ spec:
             secretKeyRef:
               key: ownerConnectionString
               name: substrate-postgres-owner
+        - name: OTEL_TRACES_EXPORTER
+          value: none
+        - name: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+          value: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
+        - name: OTEL_LOGS_EXPORTER
+          value: none
         envFrom:
         - configMapRef:
             name: ate-api-server-envvars
@@ -268,6 +274,12 @@ spec:
             secretKeyRef:
               key: AWS_SECRET_ACCESS_KEY
               name: garage-aws-credentials
+        - name: OTEL_TRACES_EXPORTER
+          value: none
+        - name: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+          value: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
+        - name: OTEL_LOGS_EXPORTER
+          value: none
         image: ghcr.io/kagent-dev/substrate/objectstore-plugin:v1.0.1
         name: objectstore-plugin
         ports:

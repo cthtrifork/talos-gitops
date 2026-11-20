@@ -21,7 +21,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/configmap: 4ab8bc802e0d0b14e9b1868c4e2651c1f1def63cf319b4978dd734e65b7f34d6
+        checksum/configmap: e4f900a5f0f48ebd8a2f1b002af177f21d51bbd0be7a82a64f74adaaeee3b98b
       labels:
         app.kubernetes.io/component: controller
         app.kubernetes.io/instance: kagent
@@ -43,6 +43,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        - name: OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION
+          value: explicit_bucket_histogram
         image: ghcr.io/kagent-dev/kagent/controller:1.0.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
