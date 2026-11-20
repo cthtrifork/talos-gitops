@@ -54,6 +54,7 @@ jobs:
             scripts/ci/scan-*
             scripts/vex-index.sh
             .github/workflows/images.yaml
+            .github/workflows/update-trivy-db.yaml
             .github/actions/**
       - name: Decide whether to build
         id: plan
