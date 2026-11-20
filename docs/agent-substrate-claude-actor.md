@@ -5,15 +5,19 @@ Runs the existing `claude-runner` image (`images/claude-runner/`, the one `claud
 or memory; the next request resumes it where it was. This is upstream's `claude-code-multiplex` pattern with a way to send it work.
 
 Everything here is a Substrate API object, created with `kubectl ate`, not a Kubernetes manifest, so Flux does not manage it. **Nothing below
-has been run.** It needs `k8s/apps/ate-system/` (PR #978) merged and healthy.
+has been run.** It needs `k8s/apps/ate-system/` (PR #978) merged and healthy: run [the checklist](agent-substrate-stage1-checklist.md) first. For how this compares with
+kagent and with `claude-rc`, see [the overview](agent-substrate-overview.md); the kagent route is [Runbook B](agent-substrate-kagent-claude.md).
 
 ## What you need
 
-- `kubectl` for this cluster, and the `kubectl-ate` plugin built from the Substrate source at the matching release (v1.0.0 of `agent-substrate/substrate`, or the same tag of the kagent fork):
-  `git clone --depth 1 --branch v1.0.0 https://github.com/agent-substrate/substrate && cd substrate && go install ./cmd/kubectl-ate`
+- `kubectl` for this cluster, and the `kubectl-ate` plugin built from the source of the release the charts install (v1.0.1 of the kagent fork, which is what is deployed):
+  `git clone --depth 1 --branch v1.0.1 https://github.com/kagent-dev/substrate && cd substrate && go install ./cmd/kubectl-ate`
   (Go 1.27 or newer; the binary lands in `~/go/bin`, which must be on `PATH` for `kubectl ate` to be found).
-- Rights to create service account tokens in `ate-system`: without `--token-file`, `kubectl ate` acts as the `ate-client` service account, which is the
-  API server's bootstrap owner (`ateApi.authorization.bootstrapOwners` in `k8s/apps/ate-system/substrate/helm-release.yaml`). `kubectl ate proxy` also needs to create `podcertificaterequests`.
+- Rights to create service account tokens in `ate-system`: without `--token-file`, `kubectl ate` acts as the `ate-client` service account, which is a bootstrap owner of the
+  API server (`ateApi.authorization.bootstrapOwners` in `k8s/apps/ate-system/substrate/helm-release.yaml`). `kubectl ate proxy` also needs to create `podcertificaterequests`.
+- **Token verification may fail on this cluster.** The API server verifies that service account token against the cluster's issuer, `https://[fdae:41e4:649b:9303::1]:10000`, which pods
+  probably cannot reach ([agent-substrate/substrate#3326](https://github.com/agent-substrate/substrate/issues/3326)). If every `kubectl ate` call says `invalid bearer token`, none of this runbook can run until
+  that is fixed; Part E of the checklist is the test.
 - An Anthropic API key in your shell as `ANTHROPIC_API_KEY`. **Never paste it into a file in the repo or into a chat.**
 - `envsubst`, to put it into the template at apply time.
 
