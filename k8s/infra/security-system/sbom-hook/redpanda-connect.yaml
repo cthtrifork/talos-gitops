@@ -15,8 +15,8 @@ input:
       - POST
 
 buffer:
-  memory:
-    limit: 52428800 # 50 MB, a report is up to ~1.2 MB; a full buffer blocks the POST and the operator gives up after 30 s, losing the SBOM
+  sqlite:
+    path: /queue/sbom.db # on disk: a restart (OOM kill) keeps the queued reports, and a backlog does not use memory
 
 pipeline:
   processors:

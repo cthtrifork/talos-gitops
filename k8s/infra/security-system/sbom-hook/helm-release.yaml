@@ -71,12 +71,17 @@ spec:
     extraVolumes:
       - name: tmp
         emptyDir: {}
+      - name: queue
+        emptyDir:
+          sizeLimit: 512Mi # the sqlite buffer of redpanda-connect.yaml; survives a container restart, not a pod replacement
       - name: connect-config
         configMap:
           name: sbom-hook-connect-config
     extraVolumeMounts:
       - name: tmp
         mountPath: /tmp
+      - name: queue
+        mountPath: /queue
       - name: connect-config
         mountPath: /etc/connect/redpanda-connect.yaml
         subPath: redpanda-connect.yaml
