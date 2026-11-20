@@ -26,8 +26,8 @@ concurrency:
 env:
   PYYAML_VERSION: "6.0.3" # renovate: datasource=pypi depName=PyYAML
   CHECK_JSONSCHEMA_VERSION: "0.39.0" # renovate: datasource=pypi depName=check-jsonschema
-  # the OpenVEX schema of the spec commit (v0.2.0), pinned by SHA
-  OPENVEX_SCHEMA: https://raw.githubusercontent.com/openvex/spec/93139bd2c65390b504e47f82f11c50451289f93a/openvex_json_schema.json
+  # the OpenVEX JSON schema (v0.2.0) lives on the spec repo's main branch only (no release tag has it); Renovate bumps the commit
+  OPENVEX_SCHEMA_SHA: "93139bd2c65390b504e47f82f11c50451289f93a" # renovate: depName=https://github.com/openvex/spec branch=main
 
 permissions:
   contents: read
@@ -257,7 +257,9 @@ jobs:
           persist-credentials: false
       - name: Validate documents against the OpenVEX schema
         if: hashFiles('vex/pkg/**/*.openvex.json') != ''
-        run: git ls-files -z 'vex/pkg/*.openvex.json' | xargs -0 pipx run "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}" --schemafile "${OPENVEX_SCHEMA}"
+        run: |
+          schema="https://raw.githubusercontent.com/openvex/spec/${OPENVEX_SCHEMA_SHA}/openvex_json_schema.json"
+          git ls-files -z 'vex/pkg/*.openvex.json' | xargs -0 pipx run "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}" --schemafile "${schema}"
       - name: Check that the Trivy versions agree
         # the vex-cache image pins its own Trivy (with a digest, bumped by Renovate); it must be the version the scans use
         run: |
