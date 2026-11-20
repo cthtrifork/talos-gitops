@@ -154,6 +154,17 @@ jobs:
           for ks in $(kubectl get kustomization -n flux-system -l gitops.homelab/tier=infra -o name | cut -d/ -f2); do
             kubectl patch kustomization "${ks}" -n flux-system --type merge --patch-file scripts/ci/e2e/gitops-infra.yaml
           done
+      - name: Build apps and create their namespaces
+        timeout-minutes: 3
+        run: |
+          # infra Kustomizations may write into app namespaces (the app-* Kustomizations are suspended here)
+          # the app-* Kustomizations; renovate needs CRDs from app-controllers, which is suspended here
+          for app in adguard arc-runner claude-system fileserver harper-pad; do
+            kustomize build "k8s/apps/${app}" --load-restrictor=LoadRestrictionsNone
+            echo "---"
+          done > "${RUNNER_TEMP}/apps.yaml"
+          yq 'select(.kind == "Namespace")' "${RUNNER_TEMP}/apps.yaml" | kubectl apply -f -
+
       - name: Reconcile infra
         timeout-minutes: 15
         run: |
@@ -167,12 +178,7 @@ jobs:
       - name: Dry-run apps against the API server
         timeout-minutes: 3
         run: |
-          # the app-* Kustomizations; renovate needs CRDs from app-controllers, which is suspended here
-          for app in adguard arc-runner claude-system fileserver harper-pad; do
-            kustomize build "k8s/apps/${app}" --load-restrictor=LoadRestrictionsNone
-            echo "---"
-          done > "${RUNNER_TEMP}/apps.yaml"
-          yq 'select(.kind == "Namespace")' "${RUNNER_TEMP}/apps.yaml" | kubectl apply -f -
+          # apps.yaml is built in "Build apps and create their namespaces"
           yq 'select(has("sops") | not)' "${RUNNER_TEMP}/apps.yaml" | kubectl apply --dry-run=server -f -
 
       - name: List deployed resources
