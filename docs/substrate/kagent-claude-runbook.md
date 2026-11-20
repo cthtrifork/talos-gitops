@@ -135,7 +135,7 @@ If the agent is in Git, remove it there instead: Flux prunes it.
 | Channel | What it is | In this install |
 |---|---|---|
 | Claude Code's own tools | The Claude harness runs the real Claude Code with `--dangerously-skip-permissions`: Bash, Read, Edit and the rest work inside the sandbox, which is the boundary | On. Any command that is in the image |
-| The image | `Harness.spec.workload.image` (digest-pinned) replaces the default harness image, which has `bash`, `git` and `ripgrep` | `images/kagent-claude-harness/`, built by CI; **not wired until it has been built** (`k8s/apps/kagent/README.md`) |
+| The image | `Harness.spec.workload.image` (digest-pinned) replaces the default harness image, which has `bash`, `git` and `ripgrep` | `images/claude-runner/Dockerfile` (target `kagent-harness`), built by CI; **not wired until it has been built** (`k8s/apps/kagent/README.md`) |
 | MCP servers | `Agent.spec.template.inline.tools[].mcp.server`, HTTP or SSE, with an optional `requireApproval` before each call | None. kagent's own tool server wraps kubectl and helm but its chart gives it cluster-admin, so it is off |
 | Skills and plugins | Instruction and script packages from OCI, Git or S3, loaded as Claude skills | None. They cannot add binaries to `PATH` |
 

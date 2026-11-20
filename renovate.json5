@@ -238,15 +238,21 @@
       "allowedVersions": "/^0\\.0\\.0-/"
     },
     {
-      "description": "The tools in the Claude runner image and in the kagent Claude harness image (the same tools, at the same versions) move in one pull request, so one image build covers them. Claude Code itself stays out: its patch releases automerge, and the new image tag then reaches the pod through the claude-runner rule above.",
-      "matchFileNames": ["images/claude-runner/Dockerfile", "images/kagent-claude-harness/Dockerfile"],
+      "description": "The kagent claude-harness base of the harness target is bumped by hand with the kagent chart (its Claude Code version is pinned by the adapter).",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/kagent-dev/kagent/claude-harness"],
+      "enabled": false
+    },
+    {
+      "description": "The tools of images/claude-runner/Dockerfile (shared by the runner and the kagent harness targets) move in one pull request, so one image build covers them. Claude Code itself stays out: its patch releases automerge, and the new image tag then reaches the pod through the claude-runner rule above.",
+      "matchFileNames": ["images/claude-runner/Dockerfile"],
       "matchPackageNames": ["!@anthropic-ai/claude-code"],
       "groupName": "claude-runner tools",
       "groupSlug": "claude-runner-tools"
     },
     {
       "description": "Minor and patch updates of the runner tools automerge (the image build is the check); majors stay manual. Also wins over the fluxcd rule above for the flux tools in the Dockerfile.",
-      "matchFileNames": ["images/claude-runner/Dockerfile", "images/kagent-claude-harness/Dockerfile"],
+      "matchFileNames": ["images/claude-runner/Dockerfile"],
       "matchPackageNames": ["!@anthropic-ai/claude-code"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true,
@@ -254,13 +260,13 @@
     },
     {
       "description": "A group's name only titles a pull request that carries several updates; with one, Renovate falls back to the bare package name (\"update dependency cli/cli\"). Name the image in the topic so a lone tool bump still reads as a runner change.",
-      "matchFileNames": ["images/claude-runner/Dockerfile", "images/kagent-claude-harness/Dockerfile"],
+      "matchFileNames": ["images/claude-runner/Dockerfile"],
       "matchPackageNames": ["!@anthropic-ai/claude-code"],
       "commitMessageTopic": "claude-runner tool {{{depName}}}"
     },
     {
       "description": "cli/cli is the GitHub CLI; say so in the title.",
-      "matchFileNames": ["images/claude-runner/Dockerfile", "images/kagent-claude-harness/Dockerfile"],
+      "matchFileNames": ["images/claude-runner/Dockerfile"],
       "matchPackageNames": ["cli/cli"],
       "commitMessageTopic": "GitHub CLI"
     },

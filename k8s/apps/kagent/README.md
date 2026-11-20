@@ -34,7 +34,7 @@ Until the file is committed, `app-kagent-secrets` fails on a missing path and th
 ## Tools, and GitHub access
 
 The Claude harness runs the real Claude Code with its Bash tool on and its permission prompts off, inside the Substrate sandbox, so an agent can run any command that exists in its image. The default harness image has
-`bash`, `git` and `ripgrep` only. `images/kagent-claude-harness/` builds one with `kubectl`, `kustomize`, `helm`, `flux`, `yq`, `kubeconform`, `crane`, `actionlint`, `shellcheck`, `yamllint` and `gh` (the versions and checksum
+`bash`, `git` and `ripgrep` only. `images/claude-runner/Dockerfile` (target `kagent-harness`) builds one with `kubectl`, `kustomize`, `helm`, `flux`, `yq`, `kubeconform`, `crane`, `actionlint`, `shellcheck`, `yamllint` and `gh` (the versions and checksum
 checks of the claude-runner image; no cluster access, so no `talosctl`), on top of kagent's `claude-harness` of the same release.
 
 **Not wired yet.** A Harness points at an image by digest, which only exists after CI has built it from `main`. After the merge: (1) wait for the "Build and release the kagent Claude harness image" run and make the

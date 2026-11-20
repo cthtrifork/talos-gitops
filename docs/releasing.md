@@ -16,7 +16,7 @@ Each image has a small workflow that calls `.github/workflows/build-release-imag
 | ----------------------- | ---------------------------------- | ---------------------------------------------------- |
 | `github-actions-runner` | `build-github-actions-runner.yaml` | merge to `images/github-actions-runner/**`, weekly, manual |
 | `claude-runner`         | `build-claude-runner.yaml`         | merge to `images/claude-runner/**`, weekly, manual   |
-| `kagent-claude-harness` | `build-kagent-claude-harness.yaml` | merge to `images/kagent-claude-harness/**`, weekly, manual |
+| `kagent-claude-harness` | `build-kagent-claude-harness.yaml` | merge to `images/claude-runner/**` (target `kagent-harness`), weekly, manual |
 | `fileserver`            | `build-fileserver.yaml`            | merge to `images/fileserver/**`, manual              |
 
 A build of `main` pushes `ghcr.io/cthtrifork/talos-gitops/<image>:<tag>` and `latest`, signs it (cosign), attests its
