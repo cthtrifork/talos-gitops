@@ -1,0 +1,9 @@
+---
+# Source: substrate/templates/ate-client.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ate-client
+  namespace: ate-system
+  labels:
+    apps: ate-client
