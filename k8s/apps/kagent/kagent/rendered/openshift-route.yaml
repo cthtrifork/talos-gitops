@@ -1,0 +1,3 @@
+---
+# Source: kagent/templates/openshift-route.yaml
+#if route crd exists and the route is enabled

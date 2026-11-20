@@ -1,0 +1,7 @@
+---
+# Source: kagent/templates/extra-objects.yaml
+# Render arbitrary user-supplied manifests so resources such as ExternalSecret,
+# HTTPRoute, or NetworkPolicy can be managed within the same chart lifecycle.
+# Each entry is processed through `tpl`, so values may reference the release
+# context (e.g. {{ include "kagent.fullname" . }} or {{ .Release.Namespace }}).
+

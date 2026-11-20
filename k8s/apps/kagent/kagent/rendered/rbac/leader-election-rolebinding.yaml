@@ -1,0 +1,23 @@
+---
+# Source: kagent/templates/rbac/leader-election-rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kagent-leader-election-rolebinding
+  namespace: kagent
+  labels:
+    helm.sh/chart: kagent-1.0.1
+    app.kubernetes.io/name: kagent
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/version: "1.0.1"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: kagent
+    app.kubernetes.io/component: controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kagent-leader-election-role
+subjects:
+  - kind: ServiceAccount
+    name: "kagent-controller"
+    namespace: kagent

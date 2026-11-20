@@ -1,0 +1,129 @@
+---
+# Source: kagent/templates/controller-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kagent-controller
+  namespace: kagent
+  labels:
+    helm.sh/chart: kagent-1.0.1
+    app.kubernetes.io/name: kagent
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/version: "1.0.1"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: kagent
+    app.kubernetes.io/component: controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kagent
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 4ab8bc802e0d0b14e9b1868c4e2651c1f1def63cf319b4978dd734e65b7f34d6
+      labels:
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/instance: kagent
+        app.kubernetes.io/name: kagent
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: "kagent-controller"
+      volumes:
+        - name: controller-config
+          configMap:
+            name: kagent-controller
+        - name: controller-secrets
+          projected:
+            sources:
+              - secret:
+                  name: kagent-postgres-readwrite
+                  items:
+                    - key: readWriteConnectionString
+                      path: database-readwrite-url
+              - secret:
+                  name: kagent-postgres-owner
+                  items:
+                    - key: ownerConnectionString
+                      path: database-owner-url
+        - name: substrate-servicedns
+          projected:
+            sources:
+              - clusterTrustBundle:
+                  signerName: servicedns.podcert.ate.dev/identity
+                  labelSelector:
+                    matchLabels:
+                      podcert.ate.dev/canarying: live
+                  path: trust-bundle.pem
+        - name: substrate-podidentity
+          projected:
+            sources:
+              - podCertificate:
+                  signerName: podidentity.podcert.ate.dev/identity
+                  keyType: ECDSAP256
+                  credentialBundlePath: credential-bundle.pem
+      containers:
+        - name: controller
+          image: "ghcr.io/kagent-dev/kagent/controller:1.0.1"
+          imagePullPolicy: IfNotPresent
+          args: ["--config=/etc/kagent/controller.yaml"]
+          env:
+            # Private pod identity defaults; explicit OTEL resource attributes win.
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          ports:
+            - name: http
+              containerPort: 8083
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 2
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 15
+            initialDelaySeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 30
+          volumeMounts:
+            - name: controller-config
+              mountPath: /etc/kagent
+              readOnly: true
+            - name: controller-secrets
+              mountPath: /etc/kagent/secrets
+              readOnly: true
+            - name: substrate-servicedns
+              mountPath: /run/substrate-servicedns
+              readOnly: true
+            - name: substrate-podidentity
+              mountPath: /run/substrate-podidentity
+              readOnly: true

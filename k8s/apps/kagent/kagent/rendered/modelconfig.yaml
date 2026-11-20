@@ -1,0 +1,19 @@
+---
+# Source: kagent/templates/modelconfig.yaml
+apiVersion: api.kagent.dev/v1alpha3
+kind: ModelConfig
+metadata:
+  name: "default-model-config"
+  namespace: kagent
+  labels:
+    helm.sh/chart: kagent-1.0.1
+    app.kubernetes.io/name: kagent
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/version: "1.0.1"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: kagent
+spec:
+  provider: "Anthropic"
+  model: "claude-sonnet-5-5"
+  apiKeySecret: kagent-anthropic
+  apiKeySecretKey: ANTHROPIC_API_KEY

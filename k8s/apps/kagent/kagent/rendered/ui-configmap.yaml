@@ -1,0 +1,18 @@
+---
+# Source: kagent/templates/ui-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kagent-ui
+  namespace: kagent
+  labels:
+    helm.sh/chart: kagent-1.0.1
+    app.kubernetes.io/name: kagent
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/version: "1.0.1"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: kagent
+data:
+  KAGENT_UI_API_BASE_URL: "/api"
+  KAGENT_UI_SSO_REDIRECT_PATH: "/oauth2/start"
+  KAGENT_UI_STREAM_TIMEOUT_MS: "1800000"
