@@ -362,16 +362,9 @@ spec:
         # The "Elevate Claude" tiers: the elevate page creates these RoleBindings per grant (k8s/apps/claude-system/elevate/) and binds
         # a short-lived ServiceAccount to the narrow ClusterRoles claude-ops, claude-storage and claude-flux
         # (clusterrole-elevated.yaml). None is cluster-admin: no wildcards, and the flux tier is limited by an admission policy.
-        # Polaris reports the leftover bindings as cluster-admin. One entry per namespace that gets grants.
-        - namespace: renovate-system
-          controllerNames:
-            - claude-elevate-flux
-            - claude-elevate-ops
-            - claude-elevate-storage
-          rules:
-            - rolebindingClusterAdminRole
-        - namespace: flux-system
-          controllerNames:
+        # Polaris reports the leftover bindings as cluster-admin. Any namespace labelled claude-elevate/<tier> can get a grant,
+        # so no namespace is set.
+        - controllerNames:
             - claude-elevate-flux
             - claude-elevate-ops
             - claude-elevate-storage
