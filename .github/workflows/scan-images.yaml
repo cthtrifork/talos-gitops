@@ -1,7 +1,8 @@
 name: Scan changed images
 
 # Scans the container images a PR adds or re-tags under k8s/ with Trivy and posts one comment with the
-# CRITICAL/HIGH delta per image (counts, new and fixed CVEs with their fix versions, the full list collapsed). Informational: it never blocks the PR.
+# CRITICAL/HIGH delta per image (counts, new and fixed CVEs with their fix versions, the full list collapsed). Findings never block the PR;
+# a scan that fails (registry rate limit, missing tag) fails the job.
 # Manual runs scan every image under k8s/ (no comparison) and only write the job summary.
 on:
   workflow_dispatch:
@@ -126,6 +127,7 @@ jobs:
       # trivy-action installs Trivy and caches its vulnerability databases per day.
       # A failed scan (missing tag, registry down) leaves no output file; the comment then says so.
       - name: Scan new image
+        id: scan-new
         continue-on-error: true
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -144,6 +146,7 @@ jobs:
         env:
           TRIVY_IGNORE_STATUS: ${{ env.IGNORE_STATUS }}
       - name: Scan old image
+        id: scan-old
         if: matrix.image.oldref != ''
         continue-on-error: true
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -204,6 +207,14 @@ jobs:
         with:
           header: scan-images ${{ matrix.image.oldref }} ${{ matrix.image.ref }}
           path: out/comment.md
+
+      - name: Fail if a scan failed
+        # After the comment, which says so too. Findings never fail the job; a scan that could not run does (a registry rate limit, a missing
+        # tag), so a green check always means the image was scanned. A re-run usually fixes a transient error.
+        if: steps.scan-new.outcome == 'failure' || steps.scan-old.outcome == 'failure'
+        run: |
+          echo "::error::A Trivy scan failed (see the scan step above); re-run the job"
+          exit 1
 
   scan-complete:
     # Stable single check to require in branch protection: the scan job is skipped when no image changed.
