@@ -1,8 +1,8 @@
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/imagevalidatingpolicy_v1.json
 # Images built by this repo's workflows (and harper-pad's release workflow) must carry a keyless cosign signature from a workflow in this repo, on main.
-# validationActions Deny: a pod that fails the check is rejected. Every namespace is checked except kube-system and policy-system
-# (Kyverno itself must be able to start); label a namespace gitops.homelab/verify-images=false to opt out.
+# validationActions Deny: a pod that fails the check is rejected. Every namespace is checked, none is exempt. matchConditions
+# send only pods with one of our images to the webhook, so an outage of Kyverno blocks only those and not the rest of the cluster.
 apiVersion: policies.kyverno.io/v1
 kind: ImageValidatingPolicy
 metadata:
@@ -10,25 +10,20 @@ metadata:
 spec:
   validationActions:
     - Deny
-  # an outage of the Kyverno webhook blocks pod creation in the checked namespaces
+  # an outage of the Kyverno webhook blocks creation of pods with our images
   failurePolicy: Fail
   evaluation:
     background:
       enabled: false
   webhookConfiguration:
     timeoutSeconds: 15
+  matchConditions:
+    - name: our-images
+      expression: >-
+        (object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) +
+        (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : []))
+        .exists(c, c.image.startsWith('ghcr.io/cthtrifork/talos-gitops/') || c.image.startsWith('ghcr.io/cthtrifork/harper-pad-'))
   matchConstraints:
-    namespaceSelector:
-      matchExpressions:
-        - key: kubernetes.io/metadata.name
-          operator: NotIn
-          values:
-            - kube-system
-            - policy-system
-        - key: gitops.homelab/verify-images
-          operator: NotIn
-          values:
-            - "false"
     resourceRules:
       - apiGroups:
           - ""
