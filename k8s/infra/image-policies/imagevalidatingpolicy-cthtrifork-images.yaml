@@ -1,6 +1,6 @@
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/imagevalidatingpolicy_v1.json
-# Images built by this repo's workflows must carry a keyless cosign signature from a workflow in this repo, on main.
+# Images built by this repo's workflows (and harper-pad's release workflow) must carry a keyless cosign signature from a workflow in this repo, on main.
 # validationActions Deny: a pod that fails the check is rejected. Every namespace is checked except kube-system and policy-system
 # (Kyverno itself must be able to start); label a namespace gitops.homelab/verify-images=false to opt out.
 apiVersion: policies.kyverno.io/v1
@@ -41,6 +41,7 @@ spec:
           - pods
   matchImageReferences:
     - glob: ghcr.io/cthtrifork/talos-gitops/**
+    - glob: ghcr.io/cthtrifork/harper-pad-*
   attestors:
     - name: github
       cosign:
@@ -51,6 +52,16 @@ spec:
               subjectRegExp: ^https://github\.com/cthtrifork/talos-gitops/\.github/workflows/build-[a-z-]+\.yaml@refs/heads/main$
         ctlog:
           url: https://rekor.sigstore.dev
+    - name: harperpad
+      cosign:
+        keyless:
+          identities:
+            - issuer: https://token.actions.githubusercontent.com
+              subject: https://github.com/cthtrifork/harper-pad/.github/workflows/release.yml@refs/heads/main
+        ctlog:
+          url: https://rekor.sigstore.dev
   validations:
-    - expression: images.containers.map(image, verifyImageSignatures(image, [attestors.github])).all(e, e > 0)
-      message: image is not signed by a build workflow of cthtrifork/talos-gitops
+    - expression: >-
+        images.containers.map(image,
+        verifyImageSignatures(image, [image.startsWith('ghcr.io/cthtrifork/harper-pad-') ? attestors.harperpad : attestors.github])).all(e, e > 0)
+      message: image is not signed by its build workflow (cthtrifork/talos-gitops build-*.yaml, cthtrifork/harper-pad release.yml)
