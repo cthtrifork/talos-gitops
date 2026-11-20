@@ -1,0 +1,41 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/validatingpolicy_v1.json
+# Every image must be pinned by digest (name@sha256:...), so a moved tag cannot swap what runs. Warn and Audit first: the pod is
+# admitted and the client sees a warning. Switch validationActions to Deny once the warnings are gone.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-image-digest
+spec:
+  validationActions:
+    - Warn
+    - Audit
+  # an outage of the Kyverno webhook must not block pods
+  failurePolicy: Ignore
+  evaluation:
+    background:
+      enabled: false
+  webhookConfiguration:
+    timeoutSeconds: 10
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pods
+  variables:
+    - name: images
+      expression: >-
+        (object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) +
+        (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])).map(c, c.image)
+    # the local-path helper pods use an untagged busybox from the provisioner's helperPod.yaml
+    - name: exempt
+      expression: "['docker.io/library/busybox']"
+  validations:
+    - expression: variables.images.all(i, i in variables.exempt || i.contains('@sha256:'))
+      message: every image must be pinned by digest (name@sha256:...)
