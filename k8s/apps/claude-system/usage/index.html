@@ -67,6 +67,9 @@
   h1 { font-size: var(--fs-xl); margin: 0; letter-spacing: -0.01em; }
   h2 { font-size: var(--fs-md); margin: 0; font-weight: 650; }
   .sub { color: var(--muted); font-size: var(--fs-sm); }
+  .back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 2px; color: var(--env-rc); text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  .back:focus-visible { outline: 2px solid var(--env-rc); outline-offset: 2px; border-radius: 3px; }
   code, .src { font-family: var(--mono); font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
 
 
@@ -523,7 +526,7 @@ class UsageApp extends LitElement {
     return html`<main>
       <p id="error" role="alert" ?hidden=${!error}>${error ? `Could not load usage: ${error}. Showing the last data received.` : nothing}</p>
       <header class="bar">
-        <div><h1>Claude usage</h1><div class="sub" id="range">${range}${stamp}</div></div>
+        <div><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><h1>Claude usage</h1><div class="sub" id="range">${range}${stamp}</div></div>
         <div class="group">
           ${Segmented({ label: "Environment", id: "envSeg", options: ["all", ...v.envs].map((e) => [e, e === "all" ? "All" : e]), value: v.env, onPick: this.pick("env") })}
           ${Segmented({ label: "Period", id: "periodSeg", options: PERIODS, value: ui.period, onPick: this.pick("period") })}
