@@ -93,8 +93,8 @@ Patch 11 is applied per node. The init log of a new Spegel pod shows what its no
   repository is left. A polled sync would copy every tag of a repository again after retention removed it, so retention could not
   keep its size down.
 - retention keeps the newest tag of every cache repository and, with `keepUntagged`, the newest and the most recently pulled untagged
-  manifest, so digest-pinned images stay available without internet. `pr/**` keeps 72 hours.
-- the zot volume is 60Gi but local-path does not enforce it: check the node disk (`NodeFilesystemAlmostFull` fires at 85%).
+  manifest, so digest-pinned images stay available without internet. Tagged and untagged manifests of the caches and the catch-all policy are also kept 720 hours after their last pull or push. `pr/**` and `buildcache/**` keep 72 hours.
+- the zot volume is 60Gi on `openebs-hostpath-xfs`, whose XFS project quota enforces it; a PVC's storage class cannot change in place, so moving it means recreating the StatefulSet and the PVC (the cache refills on demand).
 
 ## Using Spegel alone
 

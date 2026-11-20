@@ -47,8 +47,7 @@ spec:
       accessModes:
         - "ReadWriteOnce"
       storage: 60Gi
-      # Name of the storage class to use if it is different than the default one
-      storageClassName: ${DEFAULT_STORAGE_CLASS:=local-path}
+      storageClassName: openebs-hostpath-xfs # XFS project quota enforces the 60Gi, unlike local-path
     configFiles: ~
     # https://docs.giantswarm.io/tutorials/registry/zot/
     resources:
