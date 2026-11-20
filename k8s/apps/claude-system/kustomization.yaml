@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - rbac.yaml
-  - dependency-track-rbac.yaml
+  - dependency-track/rbac.yaml
   - clusterrole-elevated.yaml
   - networkpolicy.yaml
   - pvc.yaml
