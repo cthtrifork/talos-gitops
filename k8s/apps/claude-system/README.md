@@ -302,7 +302,7 @@ Kubernetes API with the pod's own token; the steps and the API are in `elevate/r
   `arc-runners-system`, `fileserver-system`, `harper-pad`, `renovate-system`: `ops` and `storage` (no `debug`: exec could read secrets),
   `arc-controller-system`, `registry-system`, `security-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`: `ops` only (their PVC data is kept),
   `flux` in the namespaces that hold HelmReleases and are opted in (`renovate-system`, `arc-runners-system`, `arc-controller-system`, `registry-system`, `security-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`; `flux-system` is managed by the flux-operator and cannot be labelled from Git, so Kustomizations need a manual label),
-  `external-dns-system`: `ops` only, since exec there could read the DNS API token).
+  `claude-system`: `ops` only (to force a rescan of the claude-rc image; a grant can also delete the pod, which ends the session), `external-dns-system`: `ops` only, since exec there could read the DNS API token).
 - **Expiry.** The token expires on the API server by itself and nothing cleans up afterwards: the ServiceAccount, RoleBinding and kubeconfig key left
   behind hold no valid token, and the next grant replaces them. A revoke deletes the ServiceAccount, which kills its tokens at once.
 - **Limits.** The API server validates. RBAC pins the pod to the three roles and to `claude-elevate-<tier>` objects;
