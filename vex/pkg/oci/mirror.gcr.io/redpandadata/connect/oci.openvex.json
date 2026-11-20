@@ -28,7 +28,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
-      "impact_statement": "OpenTelemetry-Go (sdk, sdk/log, trace) ships inside Redpanda Connect, but the sbom-hook deployment configures no tracer, no OpenTelemetry exporter and no attribute value length limit (k8s/infra/security-system/sbom-hook/redpanda-connect.yaml; started with --disable-telemetry). The truncation paths are only used when AttributeValueLengthLimit is set, and the only input is the Trivy operator webhook inside the cluster, so no attacker-controlled telemetry attributes reach the SDK."
+      "impact_statement": "No deployment of this image here (sbom-hook, cockpit, elevate, urlshare, usage, vm-upgrade) configures a tracer, an OpenTelemetry exporter or an attribute value length limit, which this flaw needs."
     }
   ]
 }
