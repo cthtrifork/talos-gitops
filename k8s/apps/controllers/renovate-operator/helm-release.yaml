@@ -36,6 +36,8 @@ spec:
     # so no volume and no password: the namespace policy lets only the operator and the job pods reach it.
     valkey:
       enabled: true
+      image:
+        registry: mirror.gcr.io
       auth:
         enabled: false
       dataStorage:
