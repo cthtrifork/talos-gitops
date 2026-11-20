@@ -269,6 +269,10 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # replies to the VMs' polls on 8081 (the client port is ephemeral, so no port here); Cilium drops them when it loses the connection state
+    - toCIDR:
+        - 192.168.1.138/32 # claude-vm
+        - 192.168.1.173/32 # homeserver
 ---
 # Elevate Claude. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node).
 # claude-rc has no ingress rule here: it receives the rights the page grants, so it cannot reach the page. Prometheus reaches only the metrics port
