@@ -131,6 +131,8 @@
             <span class="face"><strong>debug</strong><small>Exec into pods, port-forward, ephemeral containers. Up to <span id="maxDebug">15</span> min.</small></span></label>
           <label class="choice destructive"><input type="radio" name="tier" value="storage">
             <span class="face"><strong>storage</strong><small>Delete PersistentVolumeClaims. A bound claim loses its data. Up to <span id="maxStorage">15</span> min.</small></span></label>
+          <label class="choice"><input type="radio" name="tier" value="flux">
+            <span class="face"><strong>flux</strong><small>Ask Flux to reconcile a HelmRelease or Kustomization (annotations only, no spec changes). Up to <span id="maxFlux">15</span> min.</small></span></label>
         </div>
       </fieldset>
 
@@ -233,6 +235,7 @@
     $("maxOps").textContent = maxFor("ops");
     $("maxDebug").textContent = maxFor("debug");
     $("maxStorage").textContent = maxFor("storage");
+    $("maxFlux").textContent = maxFor("flux");
   }
 
   function summaryText() {
