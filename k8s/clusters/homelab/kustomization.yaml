@@ -13,6 +13,7 @@ resources:
   - gitops-infra-coredns.yaml
   - gitops-infra-kube-prometheus-stack.yaml
   - gitops-infra-policy-system.yaml
+  - gitops-infra-kyverno.yaml
   - gitops-infra-image-policies.yaml
   - gitops-infra-registry-system.yaml
   - gitops-infra-secret-store.yaml

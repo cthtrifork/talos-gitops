@@ -34,6 +34,7 @@ rules:
       - claude-elevate-ops
       - claude-elevate-debug
       - claude-elevate-storage
+      - claude-elevate-flux
     verbs:
       - patch
       - delete
@@ -45,6 +46,7 @@ rules:
       - claude-elevate-ops
       - claude-elevate-debug
       - claude-elevate-storage
+      - claude-elevate-flux
     verbs:
       - create
   - apiGroups:
@@ -61,6 +63,7 @@ rules:
       - claude-elevate-ops
       - claude-elevate-debug
       - claude-elevate-storage
+      - claude-elevate-flux
     verbs:
       - patch
       - delete
@@ -72,6 +75,7 @@ rules:
       - claude-ops
       - claude-debug
       - claude-storage
+      - claude-flux
     verbs:
       - bind
 ---
