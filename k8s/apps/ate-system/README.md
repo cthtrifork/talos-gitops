@@ -154,8 +154,8 @@ by hand after editing `configmap.yaml` or after the database passwords change.
   `kubectl ate proxy` (`ns/ate-system/sa/atenet-client`). Add the real clients under `atenetRouter.ingressAllowedSPIFFEIDs` in `substrate/helm-release.yaml`.
 - **JWT clients** (`kubectl ate` and the like) authenticate with a Kubernetes service account token, which `ate-api-server` verifies against the issuer's discovery
   document. `configmap.yaml` gives it the pod's CA and token for that (`ate-setup` only does so for `https://kubernetes.default.svc`: agent-substrate/substrate#3326, fix
-  in #3803). **Known gap:** this cluster's issuer is `https://[fdae:41e4:649b:9303::1]:10000`, an address pods very likely cannot reach, so tokens may still be rejected; the
-  cure is a reachable `service-account-issuer`, which is a cluster change this PR does not make. The control plane and kagent use pod certificates and are not affected.
+  in #3803). **Needs a node patch:** this cluster's issuer is `https://[fdae:41e4:649b:9303::1]:10000` (the Omni endpoint), which pods cannot reach, so `patches/14-service-account-issuer.yaml`
+  makes `https://kubernetes.default.svc` the issuer (the old one stays accepted). Until Omni has rolled it out to the control plane nodes, tokens carry the old issuer and are rejected. The control plane and kagent use pod certificates and are not affected.
 - **Hardening done and not done**: the router and egress gateway (agentgateway) get `allowPrivilegeEscalation: false`, all capabilities dropped, a seccomp profile and a liveness
   probe from `postRenderers` in `substrate/helm-release.yaml`, and the charts' empty resources are set by values. Still root with a writable root filesystem: the router,
   the egress gateway (which holds the TLS interception CA's key), `ate-api-server`, `ate-idp-server` and atelet. What is exempt in Polaris, and why, is commented in

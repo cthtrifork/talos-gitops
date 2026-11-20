@@ -5,12 +5,12 @@
 # routers authenticate with pod certificates instead and do not need it.
 #
 # ate-api-server verifies a token by fetching the issuer's discovery document and keys. certificateAuthorityFile and discoveryTokenFile are the pod's own service
-# account CA and token, which it needs to read them from the API server; `ate-setup` adds them only when the issuer is exactly https://kubernetes.default.svc, so on
-# any other issuer, as here, every token is rejected (agent-substrate/substrate#3326, fix in #3803). They are set by hand for that reason.
+# account CA and token, which it needs to read them from the API server; `ate-setup` adds them only when the issuer is exactly https://kubernetes.default.svc, so they are
+# set by hand here (agent-substrate/substrate#3326, fix in #3803).
 #
-# Known gap on this cluster: Talos sets the issuer to https://[fdae:41e4:649b:9303::1]:10000, an address pods very likely cannot reach (the discovery document names
-# its keys at the node addresses, which the token covers, but the document itself is fetched from the issuer). If tokens are still rejected, that is why: fixing
-# it means changing the cluster's service-account-issuer, which this PR does not do. Check the API server's logs first.
+# The issuer has to be reachable from the pod. Talos' default is the Omni endpoint of the cluster, which pods cannot reach, so patches/14-service-account-issuer.yaml makes
+# https://kubernetes.default.svc the issuer. Until that patch is applied to the control plane nodes, tokens still carry the old issuer and every one is rejected here; after it,
+# new tokens carry the new one. Check with `kubectl create token default -n default --audience api.ate-system.svc` and read the iss claim.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -20,7 +20,7 @@ data:
   authentication.yaml: |
     jwtProviders:
     - name: kubernetes
-      issuer: https://[fdae:41e4:649b:9303::1]:10000
+      issuer: https://kubernetes.default.svc
       audiences:
       - api.ate-system.svc
       certificateAuthorityFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt

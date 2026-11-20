@@ -94,7 +94,7 @@ Commands are read-only except Part F, which creates an atespace, a template and 
   kubectl ate get workers
   kubectl ate get atespaces
   ```
-  Expect: the two workers listed. **Likely failure on this cluster:** `Unauthenticated: invalid bearer token`. `kubectl ate` presents a service account token, and the API server verifies it against the issuer
+  Expect: the two workers listed. **Fails until `patches/14-service-account-issuer.yaml` is applied through Omni:** `Unauthenticated: invalid bearer token`. `kubectl ate` presents a service account token, and the API server verifies it against the issuer
   `https://[fdae:41e4:649b:9303::1]:10000`, which pods probably cannot reach ([#3326](https://github.com/agent-substrate/substrate/issues/3326)). Check the API server's logs for the discovery error.
   If so, nothing in Part F can run through `kubectl ate` until the cluster's `service-account-issuer` is reachable from pods; record it and stop. Everything in Parts A to D is still valid, and kagent
   authenticates with pod certificates, so it is not blocked by this.
@@ -127,4 +127,4 @@ counters restart at 1 → the snapshot fidelity or the volume mount in the templ
 | Resume time, first / second / warm | | |
 | First image pull on a node | | |
 
-Then: if A to D pass, kagent can be added (Runbook B). If F passes, Runbook A stage 2 can run. If E fails, the issuer is the next thing to fix, in `patches/`, not in this PR.
+Then: if A to D pass, kagent can be added (Runbook B). If F passes, Runbook A stage 2 can run. If E fails, check that the issuer patch (`patches/14-service-account-issuer.yaml`) is live: `kubectl -n kube-system get pod -l component=kube-apiserver -o yaml | grep service-account-issuer`.

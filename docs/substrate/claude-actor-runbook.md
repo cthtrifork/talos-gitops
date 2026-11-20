@@ -19,9 +19,9 @@ and was checked with `shellcheck` and by rendering its templates, not run agains
   (Go 1.27 or newer; the binary lands in `~/go/bin`, which must be on `PATH` for `kubectl ate` to be found).
 - Rights to create service account tokens in `ate-system`: without `--token-file`, `kubectl ate` acts as the `ate-client` service account, which is a bootstrap owner of the
   API server (`ateApi.authorization.bootstrapOwners` in `k8s/apps/ate-system/substrate/helm-release.yaml`). `kubectl ate proxy` also needs to create `podcertificaterequests`.
-- **Token verification may fail on this cluster.** The API server verifies that service account token against the cluster's issuer, `https://[fdae:41e4:649b:9303::1]:10000`, which pods
-  probably cannot reach ([agent-substrate/substrate#3326](https://github.com/agent-substrate/substrate/issues/3326)). If every `kubectl ate` call says `invalid bearer token`, none of this runbook can run until
-  that is fixed; Part E of the checklist is the test.
+- **Token verification needs the issuer patch.** The API server verifies that service account token against the cluster's issuer, which was `https://[fdae:41e4:649b:9303::1]:10000`, unreachable
+  from pods ([agent-substrate/substrate#3326](https://github.com/agent-substrate/substrate/issues/3326)). `patches/14-service-account-issuer.yaml` makes it `https://kubernetes.default.svc`; it has to be
+  applied to the control plane nodes through Omni first. If every `kubectl ate` call says `invalid bearer token`, the patch is not live yet; Part E of the checklist is the test.
 - An Anthropic API key in your shell as `ANTHROPIC_API_KEY`. **Never paste it into a file in the repo or into a chat.**
 - `envsubst`, to put it into the template at apply time.
 

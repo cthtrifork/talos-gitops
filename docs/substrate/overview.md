@@ -95,7 +95,7 @@ Sources: the GitHub issues linked, the fork's commits and sync guide, upstream `
 
 ## Watch list
 
-Open issues that change this install, most important first: [#3326](https://github.com/agent-substrate/substrate/issues/3326) (token verification on Talos: the issuer here is probably unreachable from pods),
+Open issues that change this install, most important first: [#3326](https://github.com/agent-substrate/substrate/issues/3326) (token verification on Talos: the issuer is unreachable from pods; `patches/14-service-account-issuer.yaml` changes it, and Omni has to roll it out),
 [#3448](https://github.com/agent-substrate/substrate/issues/3448), [#3445](https://github.com/agent-substrate/substrate/issues/3445), [#483](https://github.com/agent-substrate/substrate/issues/483) (no idle detection),
 [#3885](https://github.com/agent-substrate/substrate/issues/3885) (WebSocket egress, for `claude remote-control`), [#79](https://github.com/agent-substrate/substrate/issues/79) (an upstream Helm chart),
 [kagent-dev/substrate#64](https://github.com/kagent-dev/substrate/issues/64) (chart values instead of post-renderers).
