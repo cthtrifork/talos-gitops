@@ -12,14 +12,10 @@ spec:
   chartRef:
     kind: OCIRepository
     name: garage
-  # The garage-configure Job (assigns the layout, creates the bucket and key) is a post-install and post-upgrade hook, and the node's
-  # /health stays 503 until it is in the layout: waiting for the StatefulSet to be ready would never get to the hook on an empty volume
   install:
-    disableWait: true
     remediation:
       retries: 3
   upgrade:
-    disableWait: true
     remediation:
       retries: 3
   # https://github.com/datahub-local/garage-helm/blob/main/charts/garage/values.yaml
@@ -32,16 +28,16 @@ spec:
         memory: 128Mi
       limits:
         memory: 512Mi
-    # Garage's admin API answers /health once the node is up and in the layout
+    # Not /health: it answers 503 until the node is in the layout, and the layout is assigned by the garage-configure Job, a Helm
+    # post-install/post-upgrade hook that runs only after Helm sees the StatefulSet ready. On an empty volume that waits forever (and the
+    # liveness probe would restart the pod meanwhile), so both probes only check that the admin API (3903) is up.
     livenessProbe:
-      httpGet:
-        path: /health
+      tcpSocket:
         port: 3903
       initialDelaySeconds: 30
       periodSeconds: 30
     readinessProbe:
-      httpGet:
-        path: /health
+      tcpSocket:
         port: 3903
       initialDelaySeconds: 10
       periodSeconds: 15
