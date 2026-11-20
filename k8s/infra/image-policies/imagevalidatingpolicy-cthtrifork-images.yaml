@@ -44,5 +44,5 @@ spec:
         ctlog:
           url: https://rekor.sigstore.dev
   validations:
-    - expression: images.containers.map(image, verifyImageSignatures(image, [attestors.github])).all(e, e > 0)
+    - expression: images.containers.map(image, verifyImageSignatures(image, [attestors.github])).allx(e, e > 0)
       message: image is not signed by a build workflow of cthtrifork/talos-gitops
