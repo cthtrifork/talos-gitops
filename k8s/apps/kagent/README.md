@@ -8,7 +8,7 @@ install, and the Substrate side is described in `../ate-system/README.md` ("Read
 | `namespace.yaml` | `kagent`: PodSecurity `privileged` (the worker pool is here, and a Harness can only use a pool in its own namespace), and `ate.dev/api-access` so Substrate's API server admits it |
 | `crds/`, `kagent/` | The two HelmReleases (kagent-crds, kagent), pinned by digest, grouped by Renovate. The values are the cluster-specific part |
 | `postgres-cluster.yaml`, `externalsecrets.yaml` | kagent's own CloudNativePG database, set up as its installer does, with passwords generated in the cluster store (`k8s/infra/secret-store/`) |
-| `networkpolicy.yaml` | Cilium default-deny for kagent's pods and what each needs. The worker pods are not denied (see the comment there) |
+| `networkpolicy.yaml` | Cilium default-deny for kagent's pods and what each needs. The worker pods have a deny of their own (`kagent-workers`) |
 | `../kagent-agents/` | The test agent, in its own Flux Kustomization because its CRDs come from the chart |
 | `../kagent-secrets/` | **You add this:** the Anthropic key as a SOPS file |
 
@@ -72,6 +72,6 @@ token, but anything the agent can be talked into doing with it, such as a push o
 - No MCP tools: the chart's tool server runs with cluster-admin on everything, so `kagent-tools` is off. Command-line tools come from the image above, once the follow-up lands.
 - The UI has no authentication of its own. It is published through the Omni service exposer (annotations on the `kagent-ui` Service, port 50098, prefix `kagent`), so the Omni login is the only gate, and the `kagent-ui` NetworkPolicy lets in the host network only. `kubectl -n kagent port-forward svc/kagent-ui 8080:8080` still works with the debug tier. Anyone who can open it can run the agents, which spend API money and can use the injected GitHub credential: keep Omni access narrow. Substrate itself has no UI.
 - Backups of the database; telemetry; the codex harness.
-- The worker pods' network policy.
+- Verification of the worker pods' network policy (`kagent-workers`, and `ate-workers-lockdown` in `k8s/apps/ate-system-pools/`): ports come from the worker's sources, nothing has run, so the first actor is the test. Look for drops from the workers (skill `cilium-drops`).
 
 The runbook is `docs/substrate/kagent-claude-runbook.md`; the overview and tradeoffs are `docs/substrate/overview.md`.

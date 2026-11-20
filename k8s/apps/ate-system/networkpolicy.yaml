@@ -78,6 +78,12 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: ate-workers
+        # and to the workers of kagent's own pool, which run in the kagent namespace
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kagent
+          matchExpressions:
+            - key: k8s:ate.dev/worker-pool
+              operator: Exists
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -180,6 +186,12 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: ate-workers
+        # and kagent's own pool, in the kagent namespace
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kagent
+          matchExpressions:
+            - key: k8s:ate.dev/worker-pool
+              operator: Exists
     # the gVisor bundle (gs://gvisor, storage.googleapis.com) and the actors' images
     - toEntities:
         - world

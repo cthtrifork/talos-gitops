@@ -18,7 +18,7 @@ install. **A test install is in PR #978** (`k8s/apps/kagent/` and `k8s/apps/kage
 | Charts | `kagent-crds` and `kagent` 1.0.1 as HelmReleases, pinned by digest and grouped by Renovate |
 | Values | Anthropic as the default provider (`claude-haiku-5-5`, the cheaper model, for testing), the controller's client certificate on, kagent's endpoints for our Substrate, `global.watchNamespaces: [kagent]` (Roles instead of ClusterRoles), `kagent-tools` **off** (the chart gives it cluster-admin on everything), the codex harness off |
 | Worker pool | `kagent-default`, two gVisor workers, created by the chart in `kagent` with the labels kagent selects on, using the fork's worker image |
-| Network | Cilium default-deny for kagent's pods plus what each needs; the Substrate egress gateway may call the controller (actors call it back). The worker pods are not denied |
+| Network | Cilium default-deny for kagent's pods plus what each needs; the Substrate egress gateway may call the controller (actors call it back). The worker pods are denied everything except atelet and the router calling them, and the egress gateway |
 | Agent | `homelab-assistant` in `k8s/apps/kagent-agents/`: the `claude-default` Harness, `default-model-config`, a system prompt, no tools |
 | **Anthropic key** | **You add it:** a SOPS file in `k8s/apps/kagent-secrets/`. The steps are in `k8s/apps/kagent/README.md`. Until it exists, `app-kagent-secrets` fails and the controller cannot use its model |
 

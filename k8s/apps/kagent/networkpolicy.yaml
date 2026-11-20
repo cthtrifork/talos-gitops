@@ -1,6 +1,6 @@
 # Default deny both ways for kagent's own pods, then DNS, the Kubernetes API and what each component needs. The worker pods of the WorkerPool (label ate.dev/worker-pool)
-# are left out of the deny, as the ones in ate-workers are: their traffic is what Substrate's gateways mediate, and what they need beyond that is not known yet. Narrow them
-# once Hubble shows it (skill cilium-drops). The model call and the tools leave an actor through atenet-egress, not from these pods.
+# have their own policy at the end of this file, the same as the workers in ate-workers (ate-system-pools): they only answer atelet and the router and call the egress gateway.
+# The model call and the tools leave an actor through atenet-egress, not from these pods.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -149,4 +149,56 @@ spec:
       toPorts:
         - ports:
             - port: "8000"
+              protocol: TCP
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: kagent-workers
+  namespace: kagent
+spec:
+  endpointSelector:
+    matchExpressions:
+      - key: ate.dev/worker-pool
+        operator: Exists
+  ingress:
+    # atelet supervises the worker over gRPC (the "https" port)
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: ate-system
+            app: atelet
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # the router opens its tunnel to atunnel ("connect"; 443 with the Envoy router) to reach an actor
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: ate-system
+            app: atenet-router
+      toPorts:
+        - ports:
+            - port: "8443"
+              protocol: TCP
+            - port: "443"
+              protocol: TCP
+  egress:
+    # DNS through kube-dns: atunnel resolves the egress gateway's service name
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    # the actors' outbound traffic: atunnel tunnels it to the egress gateway (the pod port behind its "https" service port), which applies the actor's egress policy
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: ate-system
+            app: atenet-egress
+      toPorts:
+        - ports:
+            - port: "8443"
               protocol: TCP
