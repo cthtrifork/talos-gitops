@@ -57,10 +57,17 @@ spec:
               protocol: TCP
             - port: "443"
               protocol: TCP
-    # Web UI (adguard-web, 80 to 3000): the Omni service exposer on the host network
+    # Web UI (adguard-web, 80 to 3000): the Omni service exposer on the host network, and the exporter
     - fromEntities:
         - host
         - remote-node
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            app: adguard-exporter
       toPorts:
         - ports:
             - port: "3000"
@@ -105,3 +112,31 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: adguard-exporter
+  namespace: adguard-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: adguard-exporter
+  ingress:
+    # Prometheus scrape
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            k8s:app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "9618"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app: adguard-home
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP

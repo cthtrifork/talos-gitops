@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/deployment-apps-v1.json
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adguard-exporter
+  namespace: adguard-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: adguard-exporter
+  template:
+    metadata:
+      labels:
+        app: adguard-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9618"
+    spec:
+      containers:
+        - name: exporter
+          image: ghcr.io/henrywhitaker3/adguard-exporter:v1.2.3@sha256:27244b698034a190d657417fe1231db02cf2d22931d238495fd1a32bd0957185
+          ports:
+            - containerPort: 9618
+          env:
+            - name: ADGUARD_SERVERS
+              value: "http://adguard-web.adguard-system.svc.cluster.local"
+            - name: ADGUARD_USERNAMES
+              value: "admin"
+            - name: ADGUARD_PASSWORDS
+              valueFrom:
+                secretKeyRef:
+                  name: adguard-credentials
+                  key: password
+          readinessProbe:
+            tcpSocket:
+              port: 9618
+            periodSeconds: 20
+          livenessProbe:
+            tcpSocket:
+              port: 9618
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              memory: 128Mi
+              cpu: 10m
+          securityContext:
+            capabilities:
+              drop:
+                - "ALL"
+            readOnlyRootFilesystem: true # one static binary, config from env, logs to stdout
+            allowPrivilegeEscalation: false
+            privileged: false
+            runAsUser: 65532
+            runAsGroup: 65532
