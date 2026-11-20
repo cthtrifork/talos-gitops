@@ -5,16 +5,16 @@ below is from documentation, source code or issue threads, and says which.
 
 | Read | When |
 |---|---|
-| [`agent-substrate-stage1-checklist.md`](agent-substrate-stage1-checklist.md) | First, after the PR merges: is the install healthy, and does an actor suspend and resume? |
-| [`agent-substrate-claude-actor.md`](agent-substrate-claude-actor.md) | Runbook A: a headless Claude actor on Substrate alone |
-| [`agent-substrate-kagent-claude.md`](agent-substrate-kagent-claude.md) | Runbook B: a Claude agent managed by kagent (target state; kagent is not installed) |
-| [`../k8s/apps/ate-system/README.md`](../k8s/apps/ate-system/README.md) | How the install is put together, how to update it, what to watch |
+| [`stage1-checklist.md`](stage1-checklist.md) | First, after the PR merges: is the install healthy, and does an actor suspend and resume? |
+| [`claude-actor-runbook.md`](claude-actor-runbook.md) | Runbook A: a headless Claude actor on Substrate alone |
+| [`kagent-claude-runbook.md`](kagent-claude-runbook.md) | Runbook B: a Claude agent managed by kagent (target state; kagent is not installed) |
+| [`../../k8s/apps/ate-system/README.md`](../../k8s/apps/ate-system/README.md) | How the install is put together, how to update it, what to watch |
 
 ## What is installed
 
 Substrate from kagent's Helm charts (four HelmReleases, one release of the charts, maintained by Renovate), Garage for snapshots, CloudNativePG for the API server's database, cert-manager
 and External Secrets for the CA and JWT key pools, Cilium egress policy, and one gVisor `WorkerPool` of two workers. See the diagram in
-[`agent-substrate-architecture.svg`](agent-substrate-architecture.svg).
+[`architecture.svg`](architecture.svg).
 
 | Built in PR #978 | Not built |
 |---|---|
@@ -42,7 +42,7 @@ and External Secrets for the CA and JWT key pools, Cilium egress policy, and one
 | Main risk | One session, one pod | Key in snapshots; you build the watchdog | kagent's maturity; agentgateway's open gaps |
 
 How to choose: a few long-lived sessions you drive by hand → keep `claude-rc` or use Runbook A. Many agents that wake and sleep on their own, with history and a key the actor never holds →
-Runbook B. Run the [checklist](agent-substrate-stage1-checklist.md) first either way: it is the only thing that tells you whether suspend and resume work on these nodes.
+Runbook B. Run the [checklist](stage1-checklist.md) first either way: it is the only thing that tells you whether suspend and resume work on these nodes.
 
 ## Decisions already made
 

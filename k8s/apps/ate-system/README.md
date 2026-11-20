@@ -22,12 +22,12 @@ what is installed. They use **agentgateway** as the router and egress gateway; t
 The render workflow rewrites `rendered/` in every directory that has both a `helm-release.yaml` and a `helm-repository.yaml`, so each chart has a directory of its
 own, and nothing like that may be added at this level.
 
-Start with the [overview and tradeoffs](../../../docs/agent-substrate-overview.md). After the PR merges, run the [checklist](../../../docs/agent-substrate-stage1-checklist.md); the two ways to run Claude
-are [Runbook A (a bare actor)](../../../docs/agent-substrate-claude-actor.md) and [Runbook B (kagent)](../../../docs/agent-substrate-kagent-claude.md).
+Start with the [overview and tradeoffs](../../../docs/substrate/overview.md). After the PR merges, run the [checklist](../../../docs/substrate/stage1-checklist.md); the two ways to run Claude
+are [Runbook A (a bare actor)](../../../docs/substrate/claude-actor-runbook.md) and [Runbook B (kagent)](../../../docs/substrate/kagent-claude-runbook.md).
 
 ## Architecture
 
-![The whole solution: delivery and secrets, the Substrate control, state and data planes, the worker pool, and what is planned](../../../docs/agent-substrate-architecture.svg)
+![The whole solution: delivery and secrets, the Substrate control, state and data planes, the worker pool, and what is planned](../../../docs/substrate/architecture.svg)
 
 The same in text, for the Substrate parts only:
 
@@ -85,7 +85,7 @@ flowchart LR
 
 The API server is the only thing clients call. Actors run in gVisor sandboxes inside the worker pods; idle ones are snapshotted to Garage and restored
 into any worker with room. An actor reaches the network only through `atunnel` and the egress gateway, which denies everything without a policy for that
-actor. Nothing here has run yet, and there are no actors: see `docs/agent-substrate-claude-actor.md` for a first one.
+actor. Nothing here has run yet, and there are no actors: see `docs/substrate/claude-actor-runbook.md` for a first one.
 
 ## Ready for kagent
 

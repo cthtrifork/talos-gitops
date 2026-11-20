@@ -1,8 +1,8 @@
 # Runbook B (target state): a Claude agent with kagent on Agent Substrate
 
 [kagent](https://kagent.dev) is the agent layer above Substrate. An `Agent` resource, run by a `Harness`, becomes a Substrate actor; each conversation suspends when its turn ends and resumes on whatever worker is free
-for the next message. kagent's `claude` harness is the Claude Code binary plus a kagent adapter. Compare [Runbook A](agent-substrate-claude-actor.md), which runs the Claude Code CLI as a bare actor, and the
-[overview](agent-substrate-overview.md) for the tradeoffs.
+for the next message. kagent's `claude` harness is the Claude Code binary plus a kagent adapter. Compare [Runbook A](claude-actor-runbook.md), which runs the Claude Code CLI as a bare actor, and the
+[overview](overview.md) for the tradeoffs.
 
 **Provenance.** Written from kagent's own repository at v1.0.1 (its Helm chart and values, the CRD schemas, the installer's code in `go/core/pkg/install/plan.go`, and `docs/architecture/`), not from a running
 install. **kagent is not installed by any PR yet**, so "Part 1" below is work to do, not a state to check. Things I could not confirm are marked **(unverified)**.

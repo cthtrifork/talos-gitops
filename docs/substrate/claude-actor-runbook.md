@@ -5,8 +5,8 @@ Runs the existing `claude-runner` image (`images/claude-runner/`, the one `claud
 or memory; the next request resumes it where it was. This is upstream's `claude-code-multiplex` pattern with a way to send it work.
 
 Everything here is a Substrate API object, created with `kubectl ate`, not a Kubernetes manifest, so Flux does not manage it. **Nothing below
-has been run.** It needs `k8s/apps/ate-system/` (PR #978) merged and healthy: run [the checklist](agent-substrate-stage1-checklist.md) first. For how this compares with
-kagent and with `claude-rc`, see [the overview](agent-substrate-overview.md); the kagent route is [Runbook B](agent-substrate-kagent-claude.md).
+has been run.** It needs `k8s/apps/ate-system/` (PR #978) merged and healthy: run [the checklist](stage1-checklist.md) first. For how this compares with
+kagent and with `claude-rc`, see [the overview](overview.md); the kagent route is [Runbook B](kagent-claude-runbook.md).
 
 ## What you need
 
