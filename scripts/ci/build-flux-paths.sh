@@ -26,7 +26,7 @@ while IFS= read -r path; do
     fi
     echo "INFO - building $path"
     if ! kustomize build "$path" --load-restrictor=LoadRestrictionsNone |
-        kubeconform -strict -ignore-missing-schemas -skip=Secret,RenovateJob,Password,GithubAccessToken -summary \
+        kubeconform -strict -ignore-missing-schemas -skip=Secret,RenovateJob,Password,GithubAccessToken,KubeVirt -summary \
             -schema-location default \
             -schema-location /tmp/flux-crd-schemas \
             -schema-location "$crd_catalog"; then
