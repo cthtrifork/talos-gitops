@@ -18,10 +18,11 @@ and External Secrets for the CA and JWT key pools, Cilium egress policy, and one
 
 | Built in PR #978 | Not built |
 |---|---|
-| Control plane, data plane (agentgateway), atelet, pod certificate controller | kagent: its namespace, release, database, agents |
-| Garage, CloudNativePG, the key pools, Cilium and ingress policies | A WorkerPool in kagent's namespace; an egress policy per actor |
+| Control plane, data plane (agentgateway), atelet, pod certificate controller | The Anthropic key for kagent: you add it as a SOPS file (`k8s/apps/kagent/README.md`) |
+| Garage, CloudNativePG, the key pools, Cilium and ingress policies | A narrow network policy for the worker pods |
 | Preview gates, owners, router clients and credential grant that kagent needs | The microVM class, telemetry export, backups |
-| Two runbooks, a checklist, this overview | Any actor |
+| A kagent test install: namespace, database, two charts, worker pool, Cilium policy, one test agent with no tools | kagent's tools, UI exposure and authentication |
+| A bare-actor test script (`scripts/ate-actor-test.sh`), two runbooks, a checklist, this overview | Any actor actually created: the script and the agent have not run |
 
 ## Three ways to run Claude
 
@@ -54,7 +55,11 @@ Runbook B. Run the [checklist](stage1-checklist.md) first either way: it is the 
 | CA and JWT pools | cert-manager plus External Secrets | A script writing SOPS files; an in-cluster Job | No keys in Git, and the CAs renew. Catch: the template is untested against Substrate's parser |
 | Snapshot store | A separate Garage | Renovate's Garage; RustFS | Isolation. Catch: one node, no redundancy |
 | Sandbox class | gVisor | microVM | `/dev/kvm` exists on two nodes but nested virtualization is unconfirmed |
-| Claude workload | Both runbooks, undecided | One | Run the checklist first |
+| kagent namespaces | One privileged `kagent` namespace for everything | A split with a restricted control plane | A Harness can only use a pool in its own namespace; the split needs a shared ModelConfig and another credential grant. Catch: kagent's controller and UI run privileged |
+| kagent database | Its own CloudNativePG cluster | A second database in `substrate-db` | Isolation and easy deletion. Catch: another database to look after |
+| Anthropic key for kagent | A SOPS file you add | An ExternalSecret from the cluster store | Your choice. Catch: the key is in Git, encrypted; the install waits for the file |
+| kagent tools | Off | The chart's tool server | It runs with cluster-admin on everything. Catch: the test agent has no tools |
+| Claude workload | Both runbooks are implemented for testing | One | Run the checklist first |
 
 ## Envoy or agentgateway
 

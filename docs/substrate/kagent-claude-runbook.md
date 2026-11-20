@@ -5,50 +5,32 @@ for the next message. kagent's `claude` harness is the Claude Code binary plus a
 [overview](overview.md) for the tradeoffs.
 
 **Provenance.** Written from kagent's own repository at v1.0.1 (its Helm chart and values, the CRD schemas, the installer's code in `go/core/pkg/install/plan.go`, and `docs/architecture/`), not from a running
-install. **kagent is not installed by any PR yet**, so "Part 1" below is work to do, not a state to check. Things I could not confirm are marked **(unverified)**.
+install. **A test install is in PR #978** (`k8s/apps/kagent/` and `k8s/apps/kagent-agents/`); it has not run, and it needs one thing from you: the Anthropic key (Part 1). Things I could not confirm are marked **(unverified)**.
 
-## Part 1. What has to exist first (not in any PR)
+## Part 1. What is installed, and what you add
 
-Substrate's side is done in `k8s/apps/ate-system/` ("Ready for kagent" in its README): the preview gates, kagent's controller as a bootstrap owner and router client, and a credential grant for the `kagent` atespace.
-What is missing is kagent itself. A `k8s/apps/kagent/` app would need:
+`k8s/apps/ate-system/` sets Substrate's side ("Ready for kagent" in its README). `k8s/apps/kagent/` installs kagent itself, for testing:
 
-| Piece | Detail |
+| Piece | Where, and the choice made |
 |---|---|
-| Namespace `kagent` | Label `ate.dev/api-access: "true"`: Substrate's ingress policy admits API clients only from labeled namespaces. PodSecurity `privileged` too, if the chart creates the worker pool there |
-| Anthropic key | A Secret `kagent-anthropic` with key `ANTHROPIC_API_KEY`, made outside Git and outside any chat (an ExternalSecret from the cluster store, or SOPS). It is read by the controller, not by the agent |
-| A database for kagent | Its chart expects two connection-string Secrets (`kagent-postgres-owner`, `kagent-postgres-readwrite`, roles `kagent_owner` and `kagent_readwrite`, schema `kagent`). Either a second database in `substrate-db` or a separate CloudNativePG cluster; a design choice, not made |
-| `HelmRelease`s | `kagent-crds` and `kagent` from `oci://ghcr.io/kagent-dev/kagent/helm/`, version 1.0.1. The installer sets the values below |
-| Cilium policy | The namespace follows this repo's default-deny: egress to `api.ate-system.svc:443`, the router, the database, DNS and the API server |
-| The worker pool | In the **agent's namespace**: kagent resolves `workerPoolRef` there, so the pool in `ate-workers` is not used. The chart can create it (`substrateWorkerPool.create`), with the two placement labels kagent selects on |
+| Namespace `kagent` | One namespace for the control plane, the agents and the worker pool: PodSecurity `privileged` (worker pods need it, and a Harness can only use a pool in its own namespace) and labeled `ate.dev/api-access` |
+| Database | Its own CloudNativePG cluster `kagent-db`, set up as kagent's installer does, password logins; passwords generated in the cluster store |
+| Charts | `kagent-crds` and `kagent` 1.0.1 as HelmReleases, pinned by digest and grouped by Renovate |
+| Values | Anthropic as the default provider (`claude-sonnet-5-5`), the controller's client certificate on, kagent's endpoints for our Substrate, `global.watchNamespaces: [kagent]` (Roles instead of ClusterRoles), `kagent-tools` **off** (the chart gives it cluster-admin on everything), the codex harness off |
+| Worker pool | `kagent-default`, two gVisor workers, created by the chart in `kagent` with the labels kagent selects on, using the fork's worker image |
+| Network | Cilium default-deny for kagent's pods plus what each needs; the Substrate egress gateway may call the controller (actors call it back). The worker pods are not denied |
+| Agent | `homelab-assistant` in `k8s/apps/kagent-agents/`: the `claude-default` Harness, `default-model-config`, a system prompt, no tools |
+| **Anthropic key** | **You add it:** a SOPS file in `k8s/apps/kagent-secrets/`. The steps are in `k8s/apps/kagent/README.md`. Until it exists, `app-kagent-secrets` fails and the controller cannot use its model |
 
-Values, taken from what kagent's own installer sets, with this cluster's names **(the chart's value names are verified; that they are sufficient is not)**:
+Check before going on:
 
-```yaml
-providers:
-  default: anthropic
-  anthropic:
-    model: claude-sonnet-5-5
-    apiKeySecretRef: kagent-anthropic
-    apiKeySecretKey: ANTHROPIC_API_KEY
-controller:
-  substrateClientCertificate:
-    enabled: true            # mTLS to the API server and the router, with the pod-identity certificate
-config:
-  substrate:
-    apiEndpoint: dns:///api.ate-system.svc:443
-    routerUrl: https://atenet-router.ate-system.svc:443
-    actorJwtIssuer: https://idp.ate-system.svc      # the substrate chart's default
-substrateWorkerPool:
-  create: true               # in the kagent namespace
-  name: kagent-default
-  replicas: 2
-  sandboxClass: gvisor
-  workerImage: ghcr.io/kagent-dev/substrate/ateworker-gvisor:v1.0.1@sha256:97ca74cd2cabc3fd28ac67790ed3b1f25b7b4247709a316ff374a428822c420e
-harnesses:
-  enabled: true              # renders kagent-default, codex-default and claude-default
-  snapshotLocation: s3://ate-snapshots/kagent/     # Garage's bucket; needs the PerTemplateSnapshotLocation gate, which is set
-  codex:
-    enabled: false           # not needed
+```sh
+kubectl -n flux-system get kustomization app-kagent app-kagent-secrets app-kagent-agents
+kubectl -n kagent get helmrelease,pods
+kubectl -n kagent get harness                                 # claude-default
+kubectl get workerpool -n kagent                              # kagent-default, with kagent.dev/worker-pool-name and -namespace labels
+kubectl -n kagent get modelconfig,secret kagent-anthropic     # default-model-config, provider Anthropic
+kubectl -n kagent get cluster kagent-db                       # healthy
 ```
 
 The rendered `claude-default` Harness, from the chart's template, is:
@@ -66,16 +48,6 @@ spec:
       name: kagent-default
     snapshotPolicy:
       location: s3://ate-snapshots/kagent/
-```
-
-Check before going on:
-
-```sh
-kubectl -n kagent get pods                                    # controller, UI, database client, tool server
-kubectl -n kagent get harness                                 # claude-default
-kubectl get workerpool -n kagent                              # kagent-default, with kagent.dev/worker-pool-name and -namespace labels
-kubectl -n kagent get modelconfig                             # default-model-config, provider Anthropic
-kubectl -n kagent get secret kagent-anthropic
 ```
 
 ## Part 2. A Claude agent
@@ -108,7 +80,7 @@ Being a declarative object, the agent can live in Git and be applied by Flux. Th
 ## Part 3. Run it
 
 ```sh
-kubectl apply -f agent.yaml                                   # or commit it to the kagent app directory
+# the agent is applied by Flux from k8s/apps/kagent-agents/agent.yaml
 kubectl -n kagent get agent homelab-assistant                 # status: Ready, and workloadImage is the claude-harness image
 kubectl -n kagent get actortemplates.ate.dev                  # kagent turns the agent revision into an ActorTemplate; the golden snapshot takes a minute or two
 kubectl ate get actors                                        # none until a session starts

@@ -164,6 +164,19 @@
       "automerge": false
     },
     {
+      "description": "The kagent CRDs and the kagent chart are one release. kagent is built against a Substrate release (its Go module replaces go.ate.dev/substrate with the kagent-dev fork, and its README names the Substrate version it needs): read both release notes, and bump the Substrate charts (agent-substrate charts) in step. One pull request, no automerge. The workerImage in the kagent HelmRelease values is not a field Renovate reads: bump it by hand to the Substrate release.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "ghcr.io/kagent-dev/kagent/helm/kagent-crds",
+        "ghcr.io/kagent-dev/kagent/helm/kagent"
+      ],
+      "groupName": "kagent charts",
+      "groupSlug": "kagent-charts",
+      "automerge": false
+    },
+    {
       "description": "The Dependency-Track api-server and frontend are released together at the same version.",
       "matchDatasources": [
         "docker"

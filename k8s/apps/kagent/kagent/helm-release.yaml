@@ -1,0 +1,56 @@
+# kagent: the controller, the UI, the default ModelConfig (Claude), the Harnesses (kagent and claude) and the WorkerPool they run on. See ../README.md.
+# Not set, and worth a look: the chart's own resource requests and limits for the controller and UI, and its UI authentication (the default mode is insecure, so the UI
+# is not exposed anywhere: reach it with kubectl port-forward).
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kagent
+  namespace: kagent
+spec:
+  interval: 30m
+  releaseName: kagent
+  timeout: 10m
+  dependsOn:
+    - name: kagent-crds
+  chartRef:
+    kind: OCIRepository
+    name: kagent
+  values:
+    global:
+      # Namespaced Roles instead of ClusterRoles, and a watch scoped to this namespace (the chart derives both from this one value)
+      watchNamespaces:
+        - kagent
+    providers:
+      default: anthropic
+      anthropic:
+        model: claude-sonnet-5-5
+        # The Secret is the SOPS file you add (README.md): the chart only references it, so no key is in the values
+        apiKeySecretRef: kagent-anthropic
+        apiKeySecretKey: ANTHROPIC_API_KEY
+    controller:
+      # mTLS to the Substrate API server and router with the pod's own certificate (the service DNS and pod identity signers of ../../ate-system/podcert)
+      substrateClientCertificate:
+        enabled: true
+    config:
+      substrate:
+        apiEndpoint: dns:///api.ate-system.svc:443
+        routerUrl: https://atenet-router.ate-system.svc:443
+        # the substrate chart's default issuer for actor JWTs
+        actorJwtIssuer: https://idp.ate-system.svc
+    # The pool the Harnesses run on, in this namespace, with the labels kagent selects workers by
+    substrateWorkerPool:
+      create: true
+      name: kagent-default
+      replicas: 2
+      sandboxClass: gvisor
+      workerImage: ghcr.io/kagent-dev/substrate/ateworker-gvisor:v1.0.1@sha256:97ca74cd2cabc3fd28ac67790ed3b1f25b7b4247709a316ff374a428822c420e
+    harnesses:
+      enabled: true
+      # Garage's bucket; per-Harness snapshot locations need the PerTemplateSnapshotLocation gate, which ../../ate-system sets
+      snapshotLocation: s3://ate-snapshots/kagent/
+      codex:
+        enabled: false
+    # The built-in tool server runs with cluster-admin (a ClusterRole on every resource and verb), so it is off. The test agent has no tools.
+    kagent-tools:
+      enabled: false

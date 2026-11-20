@@ -101,7 +101,7 @@ Commands are read-only except Part F, which creates an atespace, a template and 
 
 ## F. Stage 1: suspend and resume
 
-Only if Part E worked. The commands are in [`claude-actor-runbook.md`](claude-actor-runbook.md), "Stage 1". In short: create the atespace, the `claude-lifecycle` template and an actor,
+Only if Part E worked. `scripts/ate-actor-test.sh lifecycle` runs all of this and prints PASS or FAIL for the counters (it was not run against a cluster). The commands are in [`claude-actor-runbook.md`](claude-actor-runbook.md), "Stage 1". In short: create the atespace, the `claude-lifecycle` template and an actor,
 resume it, read its logs, suspend, resume, read its logs again.
 
 - [ ] The template reaches its golden snapshot (`kubectl ate get actor-template claude-lifecycle -a claude`). Expect: a minute or two; the image is large.

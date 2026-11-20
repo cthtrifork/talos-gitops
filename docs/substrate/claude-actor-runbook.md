@@ -8,6 +8,10 @@ Everything here is a Substrate API object, created with `kubectl ate`, not a Kub
 has been run.** It needs `k8s/apps/ate-system/` (PR #978) merged and healthy: run [the checklist](stage1-checklist.md) first. For how this compares with
 kagent and with `claude-rc`, see [the overview](overview.md); the kagent route is [Runbook B](kagent-claude-runbook.md).
 
+**Script.** `scripts/ate-actor-test.sh` runs this runbook's steps: `lifecycle` (Stage 1, with a PASS or FAIL on whether the counter continued across a suspend and resume), `headless` (Stage 2: the template,
+actor and egress policy), `ask 'prompt'` (a request through the port-forward, timed), `clean`, and `check`. It needs the same things as below, reads the key from `ANTHROPIC_API_KEY` in your shell only,
+and was checked with `shellcheck` and by rendering its templates, not run against a cluster. The manual commands below are what it does.
+
 ## What you need
 
 - `kubectl` for this cluster, and the `kubectl-ate` plugin built from the source of the release the charts install (v1.0.1 of the kagent fork, which is what is deployed):

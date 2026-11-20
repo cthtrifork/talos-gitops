@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/source.toolkit.fluxcd.io/ocirepository_v1beta2.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: kagent-crds
+  namespace: kagent
+spec:
+  interval: 12h
+  url: oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds
+  ref:
+    tag: "1.0.1"
+    digest: sha256:6fda1c3d10ebc67b7e38dc8361700aebbe5ee73fcc205c5fd2cc2de9e1b85eeb

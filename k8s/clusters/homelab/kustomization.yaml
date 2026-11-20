@@ -22,6 +22,7 @@ resources:
   - app-adguard.yaml
   - app-arc-runner.yaml
   - app-ate-system.yaml
+  - app-kagent.yaml
   - app-claude-system.yaml
   - app-fileserver.yaml
   - app-harper-pad.yaml
