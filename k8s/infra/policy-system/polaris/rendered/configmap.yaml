@@ -256,6 +256,14 @@ data:
         - readinessProbeMissing
         - notReadOnlyRootFilesystem
       - controllerNames:
+        - atenet-router
+        - atenet-egress
+        rules:
+        - runAsRootAllowed
+        - privilegeEscalationAllowed
+        - insecureCapabilities
+        - linuxHardening
+      - controllerNames:
         - atelet
         rules:
         - runAsRootAllowed
