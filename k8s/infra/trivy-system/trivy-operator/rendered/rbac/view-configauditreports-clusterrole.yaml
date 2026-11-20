@@ -12,7 +12,7 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
     rbac.authorization.k8s.io/aggregate-to-view: "true"
   name: aggregate-config-audit-reports-view
-  namespace: security-system
+  namespace: trivy-system
 rules:
 - apiGroups:
   - aquasecurity.github.io

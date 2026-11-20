@@ -53,7 +53,7 @@ data:
   trivy.resources.requests.ephemeral-storage: 100Mi
   trivy.resources.requests.memory: 256Mi
   trivy.sbomSources: ""
-  trivy.serverURL: http://trivy-service.security-system:4954
+  trivy.serverURL: http://trivy-service.trivy-system:4954
   trivy.severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
   trivy.skipJavaDBUpdate: "false"
   trivy.slow: "false"
@@ -71,4 +71,4 @@ metadata:
     app.kubernetes.io/version: 0.30.1
     helm.sh/chart: trivy-operator-0.32.1
   name: trivy-operator-trivy-config
-  namespace: security-system
+  namespace: trivy-system

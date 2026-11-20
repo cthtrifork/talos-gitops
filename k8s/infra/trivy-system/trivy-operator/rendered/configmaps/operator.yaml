@@ -15,7 +15,7 @@ data:
   scanJob.podTemplateContainerSecurityContext: '{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"privileged":false,"readOnlyRootFilesystem":true}'
   scanJob.podTemplatePodSecurityContext: '{"fsGroup":65534,"runAsGroup":65534,"runAsNonRoot":true,"runAsUser":65534,"seccompProfile":{"type":"RuntimeDefault"}}'
   scanJob.useGCRServiceAccount: "true"
-  trivy.serverURL: http://trivy-service.security-system:4954
+  trivy.serverURL: http://trivy-service.trivy-system:4954
   vulnerabilityReports.scanJobsInSameNamespace: "false"
   vulnerabilityReports.scanner: Trivy
 kind: ConfigMap
@@ -27,4 +27,4 @@ metadata:
     app.kubernetes.io/version: 0.30.1
     helm.sh/chart: trivy-operator-0.32.1
   name: trivy-operator
-  namespace: security-system
+  namespace: trivy-system

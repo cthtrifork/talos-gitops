@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/instance: trivy-server
     app.kubernetes.io/name: trivy-server
   name: trivy-service
-  namespace: security-system
+  namespace: trivy-system
 spec:
   ports:
   - name: trivy-http

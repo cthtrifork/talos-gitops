@@ -10,7 +10,7 @@ metadata:
     app.kubernetes.io/version: 0.30.1
     helm.sh/chart: trivy-operator-0.32.1
   name: trivy-operator
-  namespace: security-system
+  namespace: trivy-system
 spec:
   replicas: 2
   selector:
@@ -22,7 +22,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: b5180a663b259bd04463aeaba9ce69ca423f833875f23a0b84ce3d5fbd90a618
+        checksum/config: 6e6202a3e51b5a6f299ca80fd89fa22e623393779e158a26cdf77af7eb8a7c1d
       labels:
         app.kubernetes.io/instance: trivy-operator
         app.kubernetes.io/name: trivy-operator
@@ -33,7 +33,7 @@ spec:
       containers:
       - env:
         - name: OPERATOR_NAMESPACE
-          value: security-system
+          value: trivy-system
         - name: OPERATOR_TARGET_NAMESPACES
           value: ""
         - name: OPERATOR_EXCLUDE_NAMESPACES

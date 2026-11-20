@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/version: 0.30.1
     helm.sh/chart: trivy-operator-0.32.1
   name: trivy-operator
-  namespace: security-system
+  namespace: trivy-system
 rules:
 - apiGroups:
   - ""
