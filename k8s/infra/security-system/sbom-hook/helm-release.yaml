@@ -37,9 +37,9 @@ spec:
     resources:
       requests:
         cpu: 20m
-        memory: 128Mi
-      limits:
         memory: 256Mi
+      limits:
+        memory: 512Mi
     # the image already runs as the non-root user "connect" (uid 10001); make that explicit so it is enforced
     podSecurityContext:
       runAsNonRoot: true

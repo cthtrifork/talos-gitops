@@ -16,7 +16,7 @@ input:
 
 buffer:
   memory:
-    limit: 52428800 # 50 MB, one report is under 1 MB
+    limit: 20971520 # 20 MB, one report is under 1 MB; the pod was OOM-killed at 256Mi with 50 MB
 
 pipeline:
   processors:
