@@ -22,6 +22,22 @@ patches:
               }
             ]
           }
+        # busybox pinned by digest (the base template has no tag)
+        helperPod.yaml: |-
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: helper-pod
+          spec:
+            priorityClassName: system-node-critical
+            tolerations:
+              - key: node.kubernetes.io/disk-pressure
+                operator: Exists
+                effect: NoSchedule
+            containers:
+            - name: helper-pod
+              image: docker.io/library/busybox@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+              imagePullPolicy: IfNotPresent
   - patch: |- #yaml
       apiVersion: apps/v1
       kind: Deployment
@@ -59,3 +75,7 @@ patches:
           pod-security.kubernetes.io/enforce-version: v1.30
           pod-security.kubernetes.io/warn: privileged
           pod-security.kubernetes.io/audit: privileged
+images:
+  - name: docker.io/rancher/local-path-provisioner
+    newTag: v0.0.37
+    digest: sha256:e757967a5ec338f6a9b371c5a9688bedaa8c3578ea3dd4db329ea0084be0a86f

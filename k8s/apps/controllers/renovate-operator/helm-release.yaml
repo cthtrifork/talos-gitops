@@ -20,6 +20,9 @@ spec:
   # https://github.com/mogenius/renovate-operator/blob/main/charts/renovate-operator/values.yaml
   values:
     fullnameOverride: renovate-operator
+    image:
+      # renovate: datasource=docker depName=ghcr.io/mogenius/renovate-operator versioning=docker
+      tag: 6.10.0@sha256:a7f7e7448a5f5c8ea91f56566b940754fe1fe46447c75d375eacf4ced12e6655
     # The CRDs are part of the release (not a kubectl hook Job, which would need egress)
     crd:
       mode: template
@@ -38,6 +41,8 @@ spec:
       enabled: true
       image:
         registry: mirror.gcr.io
+        # renovate: datasource=docker depName=mirror.gcr.io/valkey/valkey versioning=docker
+        tag: 9.1.3@sha256:3add1a336a920ea54770a001ab6feb3da5fceea96a40373a3a2cd469b815f0b7
       auth:
         enabled: false
       dataStorage:
