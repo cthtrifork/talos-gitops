@@ -36,12 +36,15 @@ spec:
       migration:
         enabled: false
       groups:
-        # The legacy kyverno.io policy types are no longer executed. Kept: clusterpolicies, policies, updaterequests and
-        # globalcontextentries, which the admission controller may still look for at startup. Try dropping them too.
+        # The legacy kyverno.io policy types are no longer executed in Kyverno 1.20, so none of their CRDs are installed
         kyverno:
           cleanuppolicies: false
           clustercleanuppolicies: false
+          clusterpolicies: false
+          globalcontextentries: false
+          policies: false
           policyexceptions: false
+          updaterequests: false
         reports:
           clusterephemeralreports: false
           ephemeralreports: false
