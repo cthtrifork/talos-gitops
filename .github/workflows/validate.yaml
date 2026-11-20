@@ -91,6 +91,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup yq
+        uses: fluxcd/pkg/actions/yq@e270089eb56404fcf3822b96bad2f423e9f45862 # main
       - name: Install the Kyverno CLI
         run: |
           base="https://github.com/kyverno/kyverno/releases/download/v${KYVERNO_VERSION}"
