@@ -32,6 +32,15 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kubevirt
+    # Prometheus scrape (the operator-made pods cannot carry the prometheus-scrape label)
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            k8s:app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "8443"
+              protocol: TCP
   egress:
     # DNS through kube-dns
     - toEndpoints:
@@ -79,6 +88,15 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: cdi
+    # Prometheus scrape (the operator-made pods cannot carry the prometheus-scrape label)
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            k8s:app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "8443"
+              protocol: TCP
   egress:
     # DNS through kube-dns
     - toEndpoints:
