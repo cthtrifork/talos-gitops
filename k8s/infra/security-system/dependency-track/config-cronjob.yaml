@@ -27,7 +27,7 @@ metadata:
     claude-elevate/description: Applies the Dependency-Track configuration (teams, API keys, properties, analyzers) and repairs drift. Safe to repeat.
     reloader.stakater.com/auto: "true" # Reloader starts a Job when the config ConfigMap changes
 spec:
-  schedule: "7 * * * *"
+  schedule: "7 * * * *" # minute 7 of every hour (UTC): minute hour day-of-month month day-of-week
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
