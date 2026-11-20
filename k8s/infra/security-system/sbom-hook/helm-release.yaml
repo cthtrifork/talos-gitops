@@ -32,7 +32,7 @@ spec:
     fullnameOverride: sbom-hook
     image:
       repository: mirror.gcr.io/redpandadata/connect
-      # renovate: datasource=docker depName=mirror.gcr.io/redpandadata/connect versioning=docker
+      # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
       tag: 4.119.0@sha256:64a140553f57eaefe897ad9613b9190e30a51e08fa8cdc9ebb02120440654fa7
     resources:
       requests:
