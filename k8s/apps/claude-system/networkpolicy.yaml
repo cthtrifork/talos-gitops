@@ -143,6 +143,7 @@ spec:
         - matchName: production.cloudflare.docker.com
         - matchName: gcr.io
         - matchName: mirror.gcr.io
+        - matchName: registry.k8s.io
 
         # Bandwidth tests with curl (download __down, upload __up)
         - matchName: speed.cloudflare.com
