@@ -1,1 +1,0 @@
-# HelmReleases exempt from scripts/ci/check-helmrelease-remediation.py, one "namespace/name  # reason" per line.
