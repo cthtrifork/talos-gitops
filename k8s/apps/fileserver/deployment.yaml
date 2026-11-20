@@ -137,7 +137,7 @@ spec:
         # Secret fileserver-r2 (R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET) exists. The pod is the source of truth:
         # files gone from public/ are deleted from the bucket, but --max-delete 50 stops a bad mount from emptying it.
         - name: r2-sync
-          # renovate: datasource=docker depName=docker.io/rclone/rclone versioning=docker
+          # renovate: datasource=docker depName=mirror.gcr.io/rclone/rclone versioning=docker
           image: mirror.gcr.io/rclone/rclone:1.76.0@sha256:7cbeec24a44f206067597c0368be4de90ae19a64d5113c7d1938bd737a81e466
           command:
             - sh

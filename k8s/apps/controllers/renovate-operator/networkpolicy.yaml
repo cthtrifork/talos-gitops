@@ -108,7 +108,6 @@ spec:
         - matchName: cdn.registry.k8s.io
         # registry.k8s.io redirects image requests to Artifact Registry (europe-west4-docker.pkg.dev, ...)
         - matchPattern: "*.pkg.dev"
-        - matchName: index.docker.io
         - matchName: registry-1.docker.io
         - matchName: auth.docker.io
         - matchName: production.cloudflare.docker.com
