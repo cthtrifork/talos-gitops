@@ -81,15 +81,15 @@ spec:
               mountPath: /etc/garage.toml
               subPath: garage.toml
           livenessProbe:
-            tcpSocket:
-              port: 3903
             initialDelaySeconds: 30
             periodSeconds: 30
-          readinessProbe:
             tcpSocket:
               port: 3903
+          readinessProbe:
             initialDelaySeconds: 10
             periodSeconds: 15
+            tcpSocket:
+              port: 3903
           resources:
             limits:
               memory: 512Mi
