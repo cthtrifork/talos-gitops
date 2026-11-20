@@ -304,7 +304,7 @@ Kubernetes API with the pod's own token; the steps and the API are in `elevate/r
 - **Limits.** The API server validates. RBAC pins the pod to the three roles and to `claude-elevate-<tier>` objects;
   `claude-elevator-rolebindings` allows only that ServiceAccount, only in an opted-in namespace; `claude-elevator-tokens` caps a token at the tier's
   minutes in `ConfigMap/claude-elevate-limits` (the page reads it too). The page container holds a credential that can grant, bounded by these.
-- **Reach.** Only the Omni exposer and Prometheus (metrics port) reach the pod, never `claude-rc`. A POST must carry the `csrf` value from the status
+- **Reach.** Only the Omni exposer, the cockpit (page port, to list the active grants; it drops the csrf value) and Prometheus (metrics port) reach the pod, never `claude-rc`. A POST must carry the `csrf` value from the status
   (a hash of the pod's token, which a page on another site cannot read; a header would not do, Connect copies query parameters into the same metadata),
   and requests are handled one at a time.
 - **Not offered.** Patching workloads or Flux objects (rollout restarts, forced reconciles). `debug` reads whatever a pod in the namespace can
@@ -395,6 +395,7 @@ flowchart LR
 | Pull requests, issues | GitHub search over all repositories of the owner the App is installed on (private ones included), with the cockpit's own one-hour read-only App token (`githubaccesstoken.yaml`, `externalsecret.yaml`) |
 | Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io`, read with the runner's `ghcr-pull` read:packages token (`homeserver-bootc` is a private package) |
 | Share URLs | `claude-urlshare` `GET /api/v1/requests` on the approval listener (read-only, never the page content): what waits for approval and what was decided in the last 24 hours. `CiliumNetworkPolicy/claude-urlshare` lets the cockpit pod in on `:8080` |
+| Elevate Claude | `claude-elevate` `GET /api/v1/status` on the page listener: the active grants (tier, namespace, expiry), nothing else; the status's csrf value is dropped in the mapping. `CiliumNetworkPolicy/claude-elevate` lets the cockpit pod in on `:8080` |
 | Claude usage | Pushed every 5 minutes by the `usage-poller` container of `claude-rc` (see "Claude usage from the pod") to `POST /api/v1/usage` on `:8081`, one value kept in memory for 24 hours |
 
 The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in the `app=claude-rc` pod only, through the ClusterIP Service
