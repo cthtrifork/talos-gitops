@@ -6,6 +6,7 @@ resources:
   - namespace.yaml
   - networkpolicy.yaml
   - polaris/
+  - kyverno/
   - rbac.yaml
   - polaris-refresh-resourcesetinputprovider.yaml
   - polaris-refresh-resourceset.yaml
