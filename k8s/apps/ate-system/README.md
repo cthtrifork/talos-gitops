@@ -21,6 +21,10 @@ and snapshots idle actors to object storage. This directory is its control plane
 
 ## Architecture
 
+![The whole solution: delivery and secrets, the Substrate control, state and data planes, the worker pool, and what is planned](../../../docs/agent-substrate-architecture.svg)
+
+The same in text, for the Substrate parts only:
+
 ```mermaid
 flowchart LR
   user["kubectl ate, clients"]
