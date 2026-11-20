@@ -8,6 +8,7 @@ resources:
   - trust-manager/
   #- kubevirt/kubevirt.yaml
   #- kubevirt/cdi.yaml
+  - kubevirt/networkpolicy.yaml
   - metallb/ipaddresspool.yaml
   - metallb/l2advertisement.yaml
   # resources that use CRDs installed by the HelmReleases in k8s/infra (cert-manager, CloudNativePG, Traefik)

@@ -1,0 +1,36 @@
+# Default deny both ways for the namespace. No pods run here yet (the KubeVirt and CDI operators are not deployed), so this closes the namespace before they are.
+# DNS and the Kubernetes API are the only things allowed; add a policy per workload next to its manifests.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: kubevirt-system-default-deny
+  namespace: kubevirt-system
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: kubevirt-system-allow-dns-apiserver
+  namespace: kubevirt-system
+spec:
+  endpointSelector: {}
+  egress:
+    # DNS through kube-dns
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    # Kubernetes API
+    - toEntities:
+        - kube-apiserver
