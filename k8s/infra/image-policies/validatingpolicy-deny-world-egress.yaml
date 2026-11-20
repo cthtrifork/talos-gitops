@@ -1,0 +1,47 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/validatingpolicy_v1.json
+# A CiliumNetworkPolicy in a namespace labelled gitops.homelab/deny-world-egress=true may not allow egress to the entities
+# world or all. Opt-in: other namespaces (adguard, cert-manager, flux-system, ...) still need world. Only admission is checked,
+# so a policy that already exists keeps working until it is next changed. CIDR rules (0.0.0.0/0) are not covered.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: deny-world-egress
+spec:
+  validationActions:
+    - Deny
+  # an outage of the Kyverno webhook must not block changes to network policies
+  failurePolicy: Ignore
+  evaluation:
+    background:
+      enabled: false
+  webhookConfiguration:
+    timeoutSeconds: 10
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        gitops.homelab/deny-world-egress: "true"
+    resourceRules:
+      - apiGroups:
+          - cilium.io
+        apiVersions:
+          - v2
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - ciliumnetworkpolicies
+  variables:
+    - name: denied
+      expression: "['world', 'world-ipv4', 'world-ipv6', 'all']"
+  validations:
+    - expression: >-
+        !(has(object.spec) && has(object.spec.egress) &&
+          object.spec.egress.exists(r, has(r.toEntities) && r.toEntities.exists(e, e in variables.denied)))
+      message: spec.egress must not allow toEntities world or all; allow zot or a named host instead
+    # the specs list is the other place a CiliumNetworkPolicy keeps rules
+    - expression: >-
+        !(has(object.specs) &&
+          object.specs.exists(s, has(s.egress) &&
+            s.egress.exists(r, has(r.toEntities) && r.toEntities.exists(e, e in variables.denied))))
+      message: specs[].egress must not allow toEntities world or all; allow zot or a named host instead

@@ -66,7 +66,7 @@ spec:
               protocol: TCP
 ---
 # Trivy server: used by the scan jobs, Dependency-Track (security-system) and the trivy-operator; zot (registry-system) calls it too.
-# Downloads its vulnerability and Java DBs from the internet and pulls images from zot.
+# Downloads its vulnerability and Java DBs and pulls images through zot, the only thing it talks to besides the API server.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -93,8 +93,6 @@ spec:
             - port: "4954"
               protocol: TCP
   egress:
-    - toEntities:
-        - world
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: registry-system
@@ -104,8 +102,8 @@ spec:
             - port: "5000"
               protocol: TCP
 ---
-# Scan jobs started by trivy-operator: the Trivy server, zot (pull-through of the images) and the
-# registries on the internet.
+# Scan jobs started by trivy-operator: the Trivy server and zot (pull-through of the images). No internet: an image from a
+# registry without a trivy.registry.mirror entry fails to scan.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -131,5 +129,3 @@ spec:
         - ports:
             - port: "5000"
               protocol: TCP
-    - toEntities:
-        - world

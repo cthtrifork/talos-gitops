@@ -6,3 +6,5 @@ metadata:
   labels:
     claude-elevate/ops: "true"
     claude-elevate/flux: "true"
+    # checked by the Kyverno policy deny-world-egress (k8s/infra/image-policies)
+    gitops.homelab/deny-world-egress: "true"
