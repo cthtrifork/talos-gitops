@@ -15,10 +15,10 @@ spec:
       labels:
         kubevirt.io/vm: claude-vm
     spec:
-      # Only nodes with /dev/kvm (the Proxmox-hosted talos node has none). KubeVirt labels such nodes itself.
+      # Only nodes with /dev/kvm (the Proxmox-hosted talos node has none): virt-handler labels them schedulable and only they
+      # advertise the devices.kubevirt.io/kvm resource the launcher requests. v1.10 sets no devices.kubevirt.io/kvm node label.
       nodeSelector:
         kubevirt.io/schedulable: "true"
-        devices.kubevirt.io/kvm: "1"
       domain:
         cpu:
           cores: 2
