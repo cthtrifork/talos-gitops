@@ -31,9 +31,45 @@ git add k8s/apps/kagent-secrets && git commit -m "feat(kagent): add the Anthropi
 Until the file is committed, `app-kagent-secrets` fails on a missing path and the kagent controller cannot start its model (`CreateContainerConfigError` or a model error); the rest is applied.
 `k8s/apps/kagent-secrets/` has no `kustomization.yaml`, so Flux generates one and the repo's CI skips it.
 
+## Tools, and GitHub access
+
+The Claude harness runs the real Claude Code with its Bash tool on and its permission prompts off, inside the Substrate sandbox, so an agent can run any command that exists in its image. The default harness image has
+`bash`, `git` and `ripgrep` only. `images/kagent-claude-harness/` builds one with `kubectl`, `kustomize`, `helm`, `flux`, `yq`, `kubeconform`, `crane`, `actionlint`, `shellcheck`, `yamllint` and `gh` (the versions and checksum
+checks of the claude-runner image; no cluster access, so no `talosctl`), on top of kagent's `claude-harness` of the same release.
+
+**Not wired yet.** A Harness points at an image by digest, which only exists after CI has built it from `main`. After the merge: (1) wait for the "Build and release the kagent Claude harness image" run and make the
+package public in the repository's package settings (a new ghcr package is private, and atelet pulls it anonymously, as it does `claude-runner`); (2) in a follow-up pull request add this Harness and point the Agent at it:
+
+```yaml
+apiVersion: api.kagent.dev/v1alpha3
+kind: Harness
+metadata:
+  name: claude-tools
+  namespace: kagent
+spec:
+  claude: {}
+  substrate:
+    workerPoolRef:
+      name: kagent-default
+    snapshotPolicy:
+      location: s3://ate-snapshots/kagent/
+  workload:
+    image: ghcr.io/cthtrifork/talos-gitops/kagent-claude-harness:<tag>@sha256:<digest>   # from the release; no command: the image keeps kagent's entrypoint (unverified that this is accepted)
+  env:
+    - name: GH_TOKEN
+      value: kagent-credential-injected   # gh sends this as its Authorization header; the gateway replaces it
+```
+
+and set the Agent's `harnessRef.name` to `claude-tools`.
+
+**GitHub.** The agents use claude-rc's GitHub credential without holding it: `k8s/apps/claude-system/pushsecret.yaml` copies the short-lived installation token into the cluster store,
+`externalsecrets.yaml` here shapes it (`token`, and `basic` for git), and `../kagent-agents/egresspolicy.yaml` has the Substrate egress gateway replace the `Authorization` header on `github.com` (Basic) and `api.github.com` (Bearer)
+with it. git and `gh` in the tools image send a placeholder header for the gateway to replace. **That token is the GitHub App's full grant on its repositories, write access included**: the actor cannot read or leak the
+token, but anything the agent can be talked into doing with it, such as a push or a pull request, it can do. The agent's prompt says not to, which is not a control; a read-only token is the narrower choice.
+
 ## What it does not do
 
-- No tools: the chart's tool server runs with cluster-admin on everything, so `kagent-tools` is off. The agent answers from its prompt only.
+- No MCP tools: the chart's tool server runs with cluster-admin on everything, so `kagent-tools` is off. Command-line tools come from the image above, once the follow-up lands.
 - No UI exposure and no UI authentication: reach it with `kubectl -n kagent port-forward svc/kagent-ui 8080:8080`.
 - Backups of the database; telemetry; the codex harness.
 - The worker pods' network policy.

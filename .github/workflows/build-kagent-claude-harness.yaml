@@ -1,0 +1,44 @@
+name: Build and release the kagent Claude harness image
+
+# A merge to images/kagent-claude-harness, the weekly rebuild (new packages) or a manual run publishes and releases the image; a
+# pull request builds it to check it. See docs/releasing.md and build-release-image.yaml.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - images/kagent-claude-harness/**
+      - .github/workflows/build-kagent-claude-harness.yaml
+      - .github/workflows/build-release-image.yaml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - images/kagent-claude-harness/**
+      - .github/workflows/build-kagent-claude-harness.yaml
+      - .github/workflows/build-release-image.yaml
+  schedule:
+    - cron: "41 4 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # only a pull request build is superseded. For pushes to main a newer push replaces a pending run, which is fine:
+  # the build of the latest commit covers it, and the notes list every commit since the previous release.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    permissions:
+      contents: write # create the release and its tag
+      id-token: write # sign the image and its provenance attestation (OIDC)
+      packages: write # push the image to ghcr.io
+      attestations: write # store the provenance attestation
+    uses: ./.github/workflows/build-release-image.yaml
+    with:
+      name: kagent-claude-harness
+      tag-prefix: kagent-harness
+      version-arg: KAGENT_VERSION

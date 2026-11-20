@@ -130,6 +130,22 @@ kubectl -n kagent delete agent homelab-assistant
 
 If the agent is in Git, remove it there instead: Flux prunes it.
 
+## Tools: how kagent handles them, and running kustomize
+
+| Channel | What it is | In this install |
+|---|---|---|
+| Claude Code's own tools | The Claude harness runs the real Claude Code with `--dangerously-skip-permissions`: Bash, Read, Edit and the rest work inside the sandbox, which is the boundary | On. Any command that is in the image |
+| The image | `Harness.spec.workload.image` (digest-pinned) replaces the default harness image, which has `bash`, `git` and `ripgrep` | `images/kagent-claude-harness/`, built by CI; **not wired until it has been built** (`k8s/apps/kagent/README.md`) |
+| MCP servers | `Agent.spec.template.inline.tools[].mcp.server`, HTTP or SSE, with an optional `requireApproval` before each call | None. kagent's own tool server wraps kubectl and helm but its chart gives it cluster-admin, so it is off |
+| Skills and plugins | Instruction and script packages from OCI, Git or S3, loaded as Claude skills | None. They cannot add binaries to `PATH` |
+
+To have an agent run `kustomize`, `helm` and `kubeconform`: the tools image above, the repository reachable (`github.com` is in the shared allowlist), and a GitHub credential. The credential is claude-rc's GitHub App token,
+**injected by the gateway** (an `EgressPolicy` `authentication` on `github.com` and `api.github.com`), so the actor never holds it; git and `gh` send a placeholder header that the gateway replaces. It is the App's full grant,
+write access included, so the gateway protects the token's secrecy, not what the agent does with it. The agent has no cluster access: it builds and validates manifests, it does not apply them.
+
+Try, once the tools image is wired: *Clone cthtrifork/talos-gitops and run kustomize build on k8s/apps/ate-system, then kubeconform on the result.* Look for the credential first: `git clone` of a private repository works only if
+the gateway replaced the header, and a 401 or 404 on a private repository is the sign it did not (check that the placeholder is in `git config --system -l` and that `github-token` exists in `kagent`).
+
 ## Cost and your Claude Pro
 
 kagent's Claude harness needs an **Anthropic API key** (a Console account with its own billing, pay per token): its docs list Anthropic, Bedrock and Vertex models, and its gateway injection supports API keys

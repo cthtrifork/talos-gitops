@@ -10,6 +10,7 @@ resources:
   - deployment.yaml
   - githubaccesstoken.yaml
   - externalsecret.yaml
+  - pushsecret.yaml
   - claude-github-app.enc.yaml
   - ghcr-pull.enc.yaml
   - claude-cloudflare.enc.yaml

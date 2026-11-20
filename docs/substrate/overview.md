@@ -73,7 +73,8 @@ kagent cannot use a subscription; the `remote` actor cannot use the API. Both ar
 | kagent database | Its own CloudNativePG cluster | A second database in `substrate-db` | Isolation and easy deletion. Catch: another database to look after |
 | kagent's model | Haiku (`claude-haiku-5-5`) | Sonnet | Cheaper for a test; the chart's own default is Haiku too |
 | Anthropic key for kagent | A SOPS file you add | An ExternalSecret from the cluster store | Your choice. Catch: the key is in Git, encrypted; the install waits for the file |
-| kagent tools | Off | The chart's tool server | It runs with cluster-admin on everything. Catch: the test agent has no tools |
+| kagent tools | The Claude harness's own Bash, with the tools in a custom image built by CI | MCP tool servers; skills that download tools | The harness already runs commands in the sandbox; the image adds kustomize, helm, kubeconform and the rest. kagent's own tool server is off: cluster-admin on everything. Catch: the image needs a follow-up PR to pin its digest |
+| GitHub access for kagent agents | claude-rc's token, injected by the gateway (the actor never holds it) | A read-only token; none | Your choice: same credential as claude-rc. Catch: it is the App's full grant, write access included |
 | Claude workload | Both runbooks are implemented for testing | One | Run the checklist first |
 
 ## Envoy or agentgateway
