@@ -14,6 +14,7 @@ resources:
   # resources that use CRDs installed by the HelmReleases in k8s/infra (cert-manager, CloudNativePG, Traefik)
   - flux-system/ingressroute.yaml
   - flux-system/middleware.yaml
+  - kube-system/ciliumnetworkpolicy.yaml
   - registry-system/zot-certificate.yaml
   - security-system/dependency-track-postgres-cluster.yaml
   - security-system/dependency-track-ingressroute.yaml
