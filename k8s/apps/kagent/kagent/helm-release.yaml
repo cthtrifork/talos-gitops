@@ -54,3 +54,40 @@ spec:
     # The built-in tool server runs with cluster-admin (a ClusterRole on every resource and verb), so it is off. The test agent has no tools.
     kagent-tools:
       enabled: false
+  # The chart has no liveness probe value for the controller or the UI (Polaris asks for one). Both already serve /health on the http port for their readiness and startup
+  # probes, so the liveness probe is the same endpoint, with a long period and three misses allowed. One postRenderers entry: the render workflow takes the first only.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: kagent-controller
+            patch: |
+              - op: test
+                path: /spec/template/spec/containers/0/name
+                value: controller
+              - op: add
+                path: /spec/template/spec/containers/0/livenessProbe
+                value:
+                  httpGet:
+                    path: /health
+                    port: http
+                  initialDelaySeconds: 30
+                  periodSeconds: 30
+                  failureThreshold: 3
+          - target:
+              kind: Deployment
+              name: kagent-ui
+            patch: |
+              - op: test
+                path: /spec/template/spec/containers/0/name
+                value: ui
+              - op: add
+                path: /spec/template/spec/containers/0/livenessProbe
+                value:
+                  httpGet:
+                    path: /health
+                    port: http
+                  initialDelaySeconds: 30
+                  periodSeconds: 30
+                  failureThreshold: 3
