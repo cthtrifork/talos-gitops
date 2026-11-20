@@ -254,7 +254,7 @@ spec:
         - name: repository-config
           configMap:
             name: vex-repository-config
-        # built by .github/workflows/vex.yaml; pulled through zot's ghcr-cache like every ghcr.io image
+        # built by .github/workflows/images.yaml; pulled through zot's ghcr-cache like every ghcr.io image
         - name: vex-cache
           image:
             reference: ghcr.io/cthtrifork/talos-gitops/vex-cache:latest

@@ -18,7 +18,7 @@ trivy server and the scan jobs:
 
 - `trivy-operator/vex/repository.yaml` (`vex-repository-config`): the VEX repositories Trivy loads, the Trivy VEX hub
   (`default`) and our `vex/` directory (`homelab-vexhub`). The data is in the `vex-cache` image (`images/vex-cache`, built
-  by `.github/workflows/vex.yaml` from the hub and `vex/`), which the scan jobs mount read-only at
+  by `.github/workflows/images.yaml` from the hub and `vex/`), which the scan jobs mount read-only at
   `<cache-dir>/vex`. `skip-vex-repo-update` keeps Trivy from downloading anything at scan time, so the URLs in the file
   are not fetched. The image is rebuilt when `vex/` changes on `main` and when the workflow is run by hand; the Trivy VEX hub
   part only changes when it runs. VEX statements mark CVEs as not exploitable in a product.
