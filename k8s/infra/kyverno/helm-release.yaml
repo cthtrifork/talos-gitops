@@ -30,6 +30,9 @@ spec:
         # ghcr.io instead of reg.kyverno.io: zot mirrors ghcr.io, so Trivy can scan the images without reaching the internet
         registry: ghcr.io
     admissionController:
+      # two replicas (the chart adds a PodDisruptionBudget and a preferred anti-affinity): the image policy fails closed, so a
+      # single pod would block pod creation in the verify-images namespaces while it restarts
+      replicas: 2
       # Prometheus scrapes the metrics service (8000): admission review latency and policy results
       podLabels:
         prometheus-scrape: "true"
