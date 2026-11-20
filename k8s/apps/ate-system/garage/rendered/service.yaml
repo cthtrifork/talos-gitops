@@ -1,65 +1,62 @@
----
-# Source: garage/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: garage
   labels:
-    app.kubernetes.io/name: garage
-    app.kubernetes.io/instance: garage
     app.kubernetes.io/component: garage
-    app.kubernetes.io/version: "v2.5.0"
+    app.kubernetes.io/instance: garage
     app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/version: v2.5.0
     prometheus-scrape: "true"
+  name: garage
   namespace: ate-system
 spec:
-  type: ClusterIP
   ports:
-    - port: 3900
-      targetPort: s3-api
-      protocol: TCP
-      name: s3-api
-    - port: 3902
-      targetPort: s3-web
-      protocol: TCP
-      name: s3-web
-    - port: 3901
-      targetPort: rpc
-      protocol: TCP
-      name: rpc
-    - port: 3903
-      targetPort: admin
-      protocol: TCP
-      name: admin
+  - name: s3-api
+    port: 3900
+    protocol: TCP
+    targetPort: s3-api
+  - name: s3-web
+    port: 3902
+    protocol: TCP
+    targetPort: s3-web
+  - name: rpc
+    port: 3901
+    protocol: TCP
+    targetPort: rpc
+  - name: admin
+    port: 3903
+    protocol: TCP
+    targetPort: admin
   selector:
-    app.kubernetes.io/name: garage
-    app.kubernetes.io/instance: garage
     app.kubernetes.io/component: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/name: garage
+  type: ClusterIP
 ---
-# Source: garage/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: garage-metrics
-  labels:
-    app.kubernetes.io/name: garage
-    app.kubernetes.io/instance: garage
-    app.kubernetes.io/component: garage
-    app.kubernetes.io/version: "v2.5.0"
-    app.kubernetes.io/managed-by: Helm
-    prometheus-scrape: "true"
   annotations:
     prometheus.io/scrape: "true"
+  labels:
+    app.kubernetes.io/component: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/version: v2.5.0
+    prometheus-scrape: "true"
+  name: garage-metrics
   namespace: ate-system
 spec:
-  type: ClusterIP
   clusterIP: None
   ports:
-    - port: 3903
-      targetPort: 3903
-      protocol: TCP
-      name: metrics
+  - name: metrics
+    port: 3903
+    protocol: TCP
+    targetPort: 3903
   selector:
-    app.kubernetes.io/name: garage
-    app.kubernetes.io/instance: garage
     app.kubernetes.io/component: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/name: garage
+  type: ClusterIP

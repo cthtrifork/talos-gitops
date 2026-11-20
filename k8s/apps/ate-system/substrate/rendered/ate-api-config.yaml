@@ -1,10 +1,8 @@
----
-# Source: substrate/templates/ate-api-config.yaml
 apiVersion: v1
+data:
+  apiconfig.textproto: |
+    logging: { level: "info" }
 kind: ConfigMap
 metadata:
   name: ate-api-config
   namespace: ate-system
-data:
-  apiconfig.textproto: |
-    logging: { level: "info" }

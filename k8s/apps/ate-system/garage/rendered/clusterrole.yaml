@@ -1,43 +1,56 @@
----
-# Source: garage/templates/clusterrole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: manage-crds-ate-system-garage
   labels:
-    app.kubernetes.io/name: garage
-    app.kubernetes.io/instance: garage
     app.kubernetes.io/component: garage
-    app.kubernetes.io/version: "v2.5.0"
+    app.kubernetes.io/instance: garage
     app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/version: v2.5.0
     prometheus-scrape: "true"
+  name: manage-crds-ate-system-garage
   namespace: ate-system
 rules:
-  - apiGroups: ["apiextensions.k8s.io"]
-    resources: ["customresourcedefinitions"]
-    verbs: ["get", "list", "watch", "create", "patch"]
-  - apiGroups: ["deuxfleurs.fr"]
-    resources: ["garagenodes"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+- apiGroups:
+  - deuxfleurs.fr
+  resources:
+  - garagenodes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 ---
-# Source: garage/templates/clusterrole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: allow-crds-for-ate-system-garage
   labels:
-    app.kubernetes.io/name: garage
-    app.kubernetes.io/instance: garage
     app.kubernetes.io/component: garage
-    app.kubernetes.io/version: "v2.5.0"
+    app.kubernetes.io/instance: garage
     app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/version: v2.5.0
     prometheus-scrape: "true"
+  name: allow-crds-for-ate-system-garage
   namespace: ate-system
-subjects:
-  - kind: ServiceAccount
-    name: garage
-    namespace: ate-system
 roleRef:
+  apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: manage-crds-ate-system-garage
-  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: garage
+  namespace: ate-system

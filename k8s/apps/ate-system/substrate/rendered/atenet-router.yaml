@@ -1,19 +1,12 @@
----
-# Source: substrate/templates/atenet-router.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: atenet-router
-  namespace: ate-system
   labels:
     app: atenet-router
----
-# Source: substrate/templates/atenet-router.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: atenet-router-agentgateway-config
+  name: atenet-router
   namespace: ate-system
+---
+apiVersion: v1
 data:
   config.yaml: |
     # yaml-language-server: $schema=https://agentgateway.dev/schema/config
@@ -133,48 +126,50 @@ data:
           matches: *grpc-matches
           policies: *substrate-ingress
           backends: *grpc-backends
+kind: ConfigMap
+metadata:
+  name: atenet-router-agentgateway-config
+  namespace: ate-system
 ---
-# Source: substrate/templates/atenet-router.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: atenet-router
   namespace: ate-system
 spec:
-  type: ClusterIP
   ipFamilyPolicy: PreferDualStack
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+  - name: connect
+    port: 8081
+    protocol: TCP
+    targetPort: 8081
+  - name: connect-tls
+    port: 8444
+    protocol: TCP
+    targetPort: 8444
+  - name: stats
+    port: 15020
+    protocol: TCP
+    targetPort: gw-metrics
   selector:
     app: atenet-router
-  ports:
-    - name: http
-      port: 80
-      targetPort: 8080
-      protocol: TCP
-    - name: https
-      port: 443
-      targetPort: 8443
-      protocol: TCP
-    - name: connect
-      port: 8081
-      targetPort: 8081
-      protocol: TCP
-    - name: connect-tls
-      port: 8444
-      targetPort: 8444
-      protocol: TCP
-    - name: stats
-      port: 15020
-      targetPort: gw-metrics
-      protocol: TCP
+  type: ClusterIP
 ---
-# Source: substrate/templates/atenet-router.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: atenet-router
-  namespace: ate-system
   labels:
     app: atenet-router
+  name: atenet-router
+  namespace: ate-system
 spec:
   replicas: 1
   selector:
@@ -182,89 +177,103 @@ spec:
       app: atenet-router
   template:
     metadata:
+      annotations:
+        prometheus.io/port: "15020"
+        prometheus.io/scrape: "true"
       labels:
         app: atenet-router
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "15020"
     spec:
-      serviceAccountName: atenet-router
       containers:
-        - name: agentgateway
-          image: cr.agentgateway.dev/agentgateway:v1.7.0@sha256:60216aafb03d37f94e952ff3d51d2f630a65b10ecaebdc0a864882f92610c45b
-          resources:
-            limits:
-              cpu: "2"
-              memory: 1Gi
-            requests:
-              cpu: 100m
-              memory: 128Mi
-          args:
-            - "-f"
-            - "/etc/agentgateway/config.yaml"
-          ports:
-            - name: http
-              containerPort: 8080
-            - name: https
-              containerPort: 8443
-            - name: connect
-              containerPort: 8081
-            - name: connect-tls
-              containerPort: 8444
-            - name: readiness
-              containerPort: 15021
-            - name: gw-metrics
-              containerPort: 15020
-          volumeMounts:
-            - name: agentgateway-config
-              mountPath: /etc/agentgateway
-            - name: "servicedns"
-              mountPath: "/run/servicedns.podcert.ate.dev"
-            - name: podidentity
-              mountPath: /run/podidentity.podcert.ate.dev
-              readOnly: true
-            - name: servicedns-ca
-              mountPath: /run/servicedns-ca
-              readOnly: true
-          readinessProbe:
-            httpGet:
-              path: /healthz/ready
-              port: readiness
-            periodSeconds: 10
+      - args:
+        - -f
+        - /etc/agentgateway/config.yaml
+        image: cr.agentgateway.dev/agentgateway:v1.7.0@sha256:60216aafb03d37f94e952ff3d51d2f630a65b10ecaebdc0a864882f92610c45b
+        livenessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /healthz/ready
+            port: readiness
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        name: agentgateway
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        - containerPort: 8081
+          name: connect
+        - containerPort: 8444
+          name: connect-tls
+        - containerPort: 15021
+          name: readiness
+        - containerPort: 15020
+          name: gw-metrics
+        readinessProbe:
+          httpGet:
+            path: /healthz/ready
+            port: readiness
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: "2"
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /etc/agentgateway
+          name: agentgateway-config
+        - mountPath: /run/servicedns.podcert.ate.dev
+          name: servicedns
+        - mountPath: /run/podidentity.podcert.ate.dev
+          name: podidentity
+          readOnly: true
+        - mountPath: /run/servicedns-ca
+          name: servicedns-ca
+          readOnly: true
+      serviceAccountName: atenet-router
       volumes:
-        - name: agentgateway-config
-          configMap:
-            name: atenet-router-agentgateway-config
-        - name: "servicedns"
-          projected:
-            sources:
-              - podCertificate:
-                  signerName: servicedns.podcert.ate.dev/identity
-                  keyType: ECDSAP256
-                  credentialBundlePath: credential-bundle.pem
-                  certificateChainPath: cert.pem
-                  keyPath: key.pem
-        - name: servicedns-ca
-          projected:
-            sources:
-              - clusterTrustBundle:
-                  signerName: servicedns.podcert.ate.dev/identity
-                  labelSelector:
-                    matchLabels:
-                      podcert.ate.dev/canarying: live
-                  path: trust-bundle.pem
-        - name: podidentity
-          projected:
-            sources:
-              - podCertificate:
-                  signerName: podidentity.podcert.ate.dev/identity
-                  keyType: ECDSAP256
-                  credentialBundlePath: credential-bundle.pem
-                  certificateChainPath: cert.pem
-                  keyPath: key.pem
-              - clusterTrustBundle:
-                  signerName: podidentity.podcert.ate.dev/identity
-                  labelSelector:
-                    matchLabels:
-                      podcert.ate.dev/canarying: live
-                  path: trust-bundle.pem
+      - configMap:
+          name: atenet-router-agentgateway-config
+        name: agentgateway-config
+      - name: servicedns
+        projected:
+          sources:
+          - podCertificate:
+              certificateChainPath: cert.pem
+              credentialBundlePath: credential-bundle.pem
+              keyPath: key.pem
+              keyType: ECDSAP256
+              signerName: servicedns.podcert.ate.dev/identity
+      - name: servicedns-ca
+        projected:
+          sources:
+          - clusterTrustBundle:
+              labelSelector:
+                matchLabels:
+                  podcert.ate.dev/canarying: live
+              path: trust-bundle.pem
+              signerName: servicedns.podcert.ate.dev/identity
+      - name: podidentity
+        projected:
+          sources:
+          - podCertificate:
+              certificateChainPath: cert.pem
+              credentialBundlePath: credential-bundle.pem
+              keyPath: key.pem
+              keyType: ECDSAP256
+              signerName: podidentity.podcert.ate.dev/identity
+          - clusterTrustBundle:
+              labelSelector:
+                matchLabels:
+                  podcert.ate.dev/canarying: live
+              path: trust-bundle.pem
+              signerName: podidentity.podcert.ate.dev/identity

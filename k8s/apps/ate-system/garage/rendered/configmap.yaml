@@ -1,12 +1,6 @@
----
-# Source: garage/templates/configmap.yaml
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: garage-config
-  namespace: ate-system
 data:
-  garage.toml: |-
+  garage.toml: |2-
 
     metadata_dir = "/mnt/meta"
     data_dir = "/mnt/data"
@@ -42,3 +36,7 @@ data:
 
     [admin]
     api_bind_addr = "[::]:3903"
+kind: ConfigMap
+metadata:
+  name: garage-config
+  namespace: ate-system
