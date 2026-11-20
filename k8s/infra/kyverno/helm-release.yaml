@@ -29,6 +29,14 @@ spec:
       image:
         # ghcr.io instead of reg.kyverno.io: zot mirrors ghcr.io, so Trivy can scan the images without reaching the internet
         registry: ghcr.io
+    admissionController:
+      # Prometheus scrapes the metrics service (8000): admission review latency and policy results
+      podLabels:
+        prometheus-scrape: "true"
+      serviceMonitor:
+        enabled: true
+        additionalLabels:
+          release: kube-prometheus-stack
     backgroundController:
       enabled: false
     cleanupController:
