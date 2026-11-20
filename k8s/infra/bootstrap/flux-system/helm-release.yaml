@@ -18,6 +18,9 @@ spec:
       tag: v0.62.1@sha256:1d09a3f96524d0895fb11e8072d84a3dd029cecdec0f869efa371be6b001469c
     serviceMonitor:
       create: true
+    web:
+      networkPolicy:
+        create: false # k8s/infra/flux-system/ciliumnetworkpolicy.yaml (flux-operator-web)
     tolerations:
       # Tolerate the control plane taint
       - key: node-role.kubernetes.io/control-plane
