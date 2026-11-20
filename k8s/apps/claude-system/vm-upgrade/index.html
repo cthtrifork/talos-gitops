@@ -66,6 +66,7 @@
   .hint { margin: 0 0 12px; font-size: var(--fs-md); color: var(--ink-2); }
   .hint:empty { display: none; }
   .hint.warn { color: var(--warn); }
+  .timings { margin: 16px 0 0; color: var(--ink-2); font-size: var(--fs-md); }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -76,6 +77,8 @@
   <p class="sub">Runs <code>bootc upgrade --apply</code> on a VM. A VM that finds no new image does not reboot.</p>
   <p id="error" class="banner" role="status"></p>
   <div id="cards"></div>
+
+  <p class="timings"><b>Timings:</b> the VM picks up a click within about 1 minute, then downloads the image (depends on its size) and reboots for a few minutes, but only if the image is new. A click expires after 10 minutes, and each VM updates at most once an hour.</p>
 </main>
 
 <template id="card">
