@@ -359,8 +359,10 @@ spec:
             - clusterrolebindingPodExecAttach
             - rolebindingClusterAdminRole
             - rolebindingRolePodExecAttach
-        # The "Elevate Claude" tiers (ops, debug, storage, flux) bind a role a person grants for a short time, so the binding is
-        # cluster-admin-like by design. They are not managed in this repo and carry no access until a grant.
+        # The "Elevate Claude" tiers: the elevate page creates these RoleBindings per grant (k8s/apps/claude-system/elevate/) and binds
+        # a short-lived ServiceAccount to the narrow ClusterRoles claude-ops, claude-storage and claude-flux
+        # (clusterrole-elevated.yaml). None is cluster-admin: no wildcards, and the flux tier is limited by an admission policy.
+        # Polaris reports the leftover bindings as cluster-admin.
         - namespace: renovate-system
           controllerNames:
             - claude-elevate-flux
