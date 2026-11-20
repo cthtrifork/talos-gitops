@@ -42,7 +42,7 @@ data:
           "apiUrl": "http://trivy-service.trivy-system.svc.cluster.local:4954",
           "ignoreUnfixed": false,
           "scanLibrary": true,
-          "scanOs": false
+          "scanOs": true
         }
       },
       {

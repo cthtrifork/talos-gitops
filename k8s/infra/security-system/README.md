@@ -48,7 +48,7 @@ them; `dependency-track/config-cronjob.yaml` (a CronJob every 20 minutes) applie
    `raw.githubusercontent.com`. VulnCheck KEV needs a token and is not configured.
 2. **Trivy vulnerability analyzer**: enabled with API URL `http://trivy-service.trivy-system.svc.cluster.local:4954`.
    It reuses the trivy server that trivy-operator runs, so the zot-mirrored database is used and the analyzer needs no
-   internet access. The server has no token set.
+   internet access. The server has no token set. It scans libraries and OS packages (`scanOs`), so Debian and Alpine findings show up too.
 
 The settings live in the ConfigMap `dependency-track-config` (`extensions.json`: extension point, extension name, config)
 and are merged over the current settings; add entries there for other analyzers or data sources. Notifications, policies and
