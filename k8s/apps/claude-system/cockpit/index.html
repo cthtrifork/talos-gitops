@@ -169,7 +169,6 @@ const OPEN = {
   "p-renovate-runs": ["Open Renovate", "renovate"],
   "p-share-urls": ["Open Share URLs", "claudeurlshare"],
   "p-claude-usage": ["Open Claude usage", "claudeusage"],
-  "p-elevate-claude": ["Open Elevate Claude", "claudeelevate"],
 };
 
 // ---- Plain helpers: formatting, status levels and the data behind the panels ----
@@ -287,8 +286,6 @@ function stripChips(d) {
     add(usedState(w, 90), `Claude 7-day ${w}%`, "p-claude-usage");
   }
   if (d.urlshare?.pending) add("warn", `${d.urlshare.pending} ${d.urlshare.pending === 1 ? "URL waits" : "URLs wait"} for approval`, "p-share-urls");
-  const live = activeGrants(d);
-  if (live?.length) add("warn", `${live.length} ${live.length === 1 ? "elevation" : "elevations"} active`, "p-elevate-claude");
   const order = { bad: 0, warn: 1, none: 2, ok: 3 };
   return chips.sort((a, b) => order[a.state] - order[b.state]);
 }
@@ -555,26 +552,6 @@ const SharePanel = (d) => {
         ${summary ? Muted(summary + " in the last 24 hours") : nothing}`}`);
 };
 
-// Grants that have not expired yet. An expired one leaves its ServiceAccount behind until the next grant, but its token is dead.
-const activeGrants = (d) => d.elevate?.grants.filter((g) => Date.parse(g.expires_at) > Date.now());
-const ElevatePanel = (d) => {
-  const title = "Elevate Claude";
-  const live = activeGrants(d);
-  if (!live) return Unavailable({ title, source: "claude-elevate · /api/v1/status", d });
-  live.sort((a, b) => Date.parse(a.expires_at) - Date.parse(b.expires_at));
-  const hidden = live.length - MAX_ROWS;
-  return Panel({ title, state: live.length ? "warn" : "ok", text: live.length ? `${live.length} active` : "none active", compact: live.length === 0, d }, html`
-    ${live.length === 0
-      ? Muted("Claude has no extra rights.")
-      : html`<div class="big num">${live.length}<small> ${live.length === 1 ? "elevation" : "elevations"} active</small></div>
-        ${Rows(live.slice(0, MAX_ROWS).map((g) => ({
-          title: `${g.tier} · ${g.namespace}`,
-          sub: `expires in ${until(Math.round((Date.parse(g.expires_at) - Date.now()) / 1000))}`,
-          right: Pill("warn", g.tier),
-        })))}
-        ${hidden > 0 ? Muted(`and ${hidden} more not listed`) : nothing}`}`);
-};
-
 // ---- The page ----
 
 const Chip = ({ state, text, href }) =>
@@ -672,7 +649,7 @@ class CockpitApp extends LitElement {
       </header>
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
       ${d ? html`${Strip(d)}
-        ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
+        ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
         ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${DiskPanel(d)}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;

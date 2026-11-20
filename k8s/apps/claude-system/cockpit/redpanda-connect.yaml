@@ -396,22 +396,6 @@ processor_resources:
                     root.items = $reqs.sort_by(r -> (if r.status == "pending" { "0" } else { "1" }) + (9999999999 - r.requested_at.number()).string()).slice(0, 3)
               result_map: 'root.urlshare = this'
 
-            # The active break-glass grants of the Elevate Claude page: tier, namespace and expiry only. The status also carries the page's csrf value; it is not copied.
-            elevate:
-              request_map: 'root = ""'
-              processors:
-                - http:
-                    url: '${ELEVATE_URL:http://claude-elevate.claude-system.svc}/api/v1/status'
-                    verb: GET
-                    timeout: 10s
-                - mapping: |
-                    root.grants = this.grants.or([]).map_each(g -> {
-                      "tier": g.tier.or("").slice(0, 20),
-                      "namespace": g.namespace.or("").slice(0, 63),
-                      "expires_at": g.expires_at.or("")
-                    })
-              result_map: 'root.elevate = this'
-
             vm_image_claude_vm:
               request_map: |
                 meta image = "claude-vm-bootc"

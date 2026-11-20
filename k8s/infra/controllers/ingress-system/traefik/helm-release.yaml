@@ -24,8 +24,6 @@ spec:
     strategy:
       name: RetryOnFailure
   upgrade:
-    remediation:
-      retries: 3
     disableWait: true
   values:
     image:

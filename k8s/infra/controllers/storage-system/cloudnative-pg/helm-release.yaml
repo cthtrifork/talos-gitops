@@ -15,9 +15,6 @@ spec:
   install:
     strategy:
       name: RetryOnFailure
-  upgrade:
-    remediation:
-      retries: 3
   # https://github.com/cloudnative-pg/charts/blob/main/charts/cloudnative-pg/values.yaml
   values:
     image:

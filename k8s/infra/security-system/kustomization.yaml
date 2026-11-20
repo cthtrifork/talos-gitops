@@ -4,5 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - networkpolicy.yaml
+  - trivy-operator/
   - dependency-track/
   - sbom-hook/
+  - reloader/

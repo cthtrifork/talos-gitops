@@ -5,5 +5,4 @@ metadata:
   name: registry-system
   labels:
     claude-elevate/ops: "true"
-    claude-elevate/flux: "true"
     pod-security.kubernetes.io/enforce: privileged

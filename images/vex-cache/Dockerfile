@@ -13,8 +13,7 @@ COPY vex /src/vex
 # serve vex/ over HTTP: Trivy reads a non-GitHub repository from <url>/.well-known/vex-repository.json
 # trivy creates 0700 directories and the scan jobs run as 65534, hence the chmod
 # the 168h update_interval (24h upstream) only matters if skip-vex-repo-update is ignored
-# GITHUB_TOKEN (a build secret, never in a layer) lifts the unauthenticated GitHub API rate limit that Trivy hits when it downloads the hub
-RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN set -eu; \
+RUN set -eu; \
     mkdir -p /srv/homelab/.well-known; \
     tar -C /src -czf /srv/homelab.tar.gz vex; \
     sed 's#"url": "[^"]*"#"url": "http://127.0.0.1:8080/homelab.tar.gz//vex"#' /src/vex/vex-repository.json > /srv/homelab/.well-known/vex-repository.json; \

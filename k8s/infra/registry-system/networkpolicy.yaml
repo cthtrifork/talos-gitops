@@ -60,7 +60,7 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: arc-runners-system
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: trivy-system
+            k8s:io.kubernetes.pod.namespace: security-system
       toPorts:
         - ports:
             - port: "5000"
@@ -72,7 +72,7 @@ spec:
     # Trivy extension
     - toEndpoints:
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: trivy-system
+            k8s:io.kubernetes.pod.namespace: security-system
             k8s:app.kubernetes.io/name: trivy-server
       toPorts:
         - ports:

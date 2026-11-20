@@ -71,15 +71,6 @@ spec:
         - ports:
             - port: "4195"
               protocol: TCP
-    # Dependency-Track API (query findings, record an analysis with the key of the claude-triage team)
-    - toEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: security-system
-            k8s:app.kubernetes.io/name: dependency-track-api-server
-      toPorts:
-        - ports:
-            - port: "8080"
-              protocol: TCP
     # URL sharing (asking for a page: GET /?url=...); the pod behind urlshare.portableinfo.cloud, which only lists and returns what the owner approved
     - toEndpoints:
         - matchLabels:
@@ -290,14 +281,6 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    # The cockpit reads the active grants
-    - fromEndpoints:
-        - matchLabels:
-            k8s:app: claude-cockpit
-      toPorts:
-        - ports:
-            - port: "8080"
-              protocol: TCP
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
@@ -473,14 +456,6 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:app: claude-urlshare
-      toPorts:
-        - ports:
-            - port: "8080"
-              protocol: TCP
-    # Elevate Claude: the page's listener, for the active grants (GET /api/v1/status; the panel keeps tier, namespace and expiry only)
-    - toEndpoints:
-        - matchLabels:
-            k8s:app: claude-elevate
       toPorts:
         - ports:
             - port: "8080"

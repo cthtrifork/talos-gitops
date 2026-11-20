@@ -1,6 +1,6 @@
 # -- override the fullname of created resources
 fullnameOverride: ""
-# -- number of operator replicas. Leader election is always enabled, so only one replica runs the executor and scheduler, including during a rolling update
+# -- number of operator replicas. Leader election is enabled automatically when > 1
 replicaCount: 1
 crd:
   # -- whether to install the CRD or not, set to false if you want to install the CRD separately
@@ -256,7 +256,7 @@ auth:
     issuerUrl: ""
     # -- OIDC client ID
     clientId: ""
-    # -- name of an existing secret containing the OIDC client secret. Leave empty for a public client, which requires pkceEnabled
+    # -- name of an existing secret containing the OIDC client secret
     existingSecret: ""
     # -- key in the existing secret that contains the OIDC client secret
     secretKey: "client-secret"

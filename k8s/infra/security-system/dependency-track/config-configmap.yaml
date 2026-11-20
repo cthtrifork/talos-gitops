@@ -16,12 +16,6 @@ data:
         "name": "vex-exporter",
         "secret": "dependency-track-vex-api-key",
         "permissions": ["VIEW_PORTFOLIO", "VULNERABILITY_ANALYSIS_READ"]
-      },
-      {
-        "name": "claude-triage",
-        "secret": "dependency-track-claude-api-key",
-        "namespace": "claude-system",
-        "permissions": ["VIEW_PORTFOLIO", "VIEW_VULNERABILITY", "VULNERABILITY_ANALYSIS_READ", "VULNERABILITY_ANALYSIS_CREATE", "VULNERABILITY_ANALYSIS_UPDATE"]
       }
     ]
   properties.json: |
@@ -39,7 +33,7 @@ data:
         "name": "trivy",
         "config": {
           "enabled": true,
-          "apiUrl": "http://trivy-service.trivy-system.svc.cluster.local:4954",
+          "apiUrl": "http://trivy-service.security-system.svc.cluster.local:4954",
           "ignoreUnfixed": false,
           "scanLibrary": true,
           "scanOs": false
