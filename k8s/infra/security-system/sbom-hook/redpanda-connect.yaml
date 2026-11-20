@@ -15,8 +15,8 @@ input:
       - POST
 
 buffer:
-  memory:
-    limit: 52428800 # 50 MB, one report is under 1 MB
+  sqlite:
+    path: /queue/sbom.db # on disk: a restart (OOM kill) keeps the queued reports, and a backlog does not use memory
 
 pipeline:
   processors:
@@ -68,7 +68,7 @@ output:
               Content-Type: application/json
               X-Api-Key: $${DT_API_KEY}
             timeout: 60s
-            max_in_flight: 4
+            max_in_flight: 4 # as many as trivy-operator runs scan jobs at once; each upload holds the report, its base64 copy and the body in memory
             retries: 3
             drop_on:
               - 400

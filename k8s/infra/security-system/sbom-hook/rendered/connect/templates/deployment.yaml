@@ -78,10 +78,10 @@ spec:
                   optional: true
           resources:
             limits:
-              memory: 256Mi
+              memory: 512Mi
             requests:
               cpu: 20m
-              memory: 128Mi
+              memory: 256Mi
           volumeMounts:
             - name: config
               mountPath: "/redpanda-connect.yaml"
@@ -89,6 +89,8 @@ spec:
               readOnly: true
             - mountPath: /tmp
               name: tmp
+            - mountPath: /queue
+              name: queue
             - mountPath: /etc/connect/redpanda-connect.yaml
               name: connect-config
               readOnly: true
@@ -99,6 +101,9 @@ spec:
             name: sbom-hook-config
         - emptyDir: {}
           name: tmp
+        - emptyDir:
+            sizeLimit: 512Mi
+          name: queue
         - configMap:
             name: sbom-hook-connect-config
           name: connect-config
