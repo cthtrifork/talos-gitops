@@ -1,6 +1,6 @@
 # Configuration as code for Dependency-Track: what Helm values and env vars cannot set because it lives in the database.
 # The desired state is data in the ConfigMap below (teams.json, properties.json, extensions.json); the script is a generic
-# loop over it. A CronJob that is safe to run repeatedly (every 20 minutes, which also bootstraps a fresh install and
+# loop over it. A CronJob that is safe to run repeatedly (hourly, and Reloader runs it when the ConfigMap changes; it also bootstraps a fresh install and
 # repairs drift):
 #  1. Admin: the built-in admin/admin must change its password on first login. The password is generated once by External
 #     Secrets (k8s/infra/secret-store/) and copied into the Secret dependency-track-admin (external-secret-admin.yaml), so
@@ -25,8 +25,9 @@ metadata:
   namespace: security-system
   annotations:
     claude-elevate/description: Applies the Dependency-Track configuration (teams, API keys, properties, analyzers) and repairs drift. Safe to repeat.
+    reloader.stakater.com/auto: "true" # Reloader starts a Job when the config ConfigMap changes
 spec:
-  schedule: "*/20 * * * *"
+  schedule: "7 * * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
@@ -64,7 +65,12 @@ spec:
                       --data-urlencode username=admin --data-urlencode "password=$1"
                   }
 
-                  curl -sf -o /dev/null "$DT_URL/api/version" || { echo "api-server not reachable yet" >&2; exit 1; }
+                  # the api-server may still be starting (a restart of it is the usual reason): wait up to two minutes
+                  i=0
+                  until curl -sf -o /dev/null "$DT_URL/api/version"; do
+                    i=$((i + 1)); [ "$i" -lt 24 ] || { echo "api-server not reachable" >&2; exit 1; }
+                    sleep 5
+                  done
 
                   # 1. admin password, from the Secret External Secrets keeps in sync (it may not exist for a minute on a fresh install)
                   pw=$(kubectl get secret dependency-track-admin -o jsonpath='{.data.password}' | base64 -d)
