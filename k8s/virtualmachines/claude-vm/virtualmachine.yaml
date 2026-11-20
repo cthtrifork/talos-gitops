@@ -36,6 +36,10 @@ spec:
           interfaces:
             - name: default
               masquerade: {}
+              # without a ports list masquerade forwards every port into the guest; only sshd is meant to be reachable
+              ports:
+                - port: 22
+                  protocol: TCP
         resources:
           requests:
             memory: 8Gi
