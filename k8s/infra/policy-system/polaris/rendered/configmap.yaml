@@ -253,6 +253,13 @@ data:
         - rolebindingClusterAdminRole
         - rolebindingRolePodExecAttach
       - controllerNames:
+        - kyverno:admission-controller
+        namespace: policy-system
+        rules:
+        - clusterrolebindingClusterAdmin
+        - clusterrolebindingPodExecAttach
+        - clusterrolePodExecAttach
+      - controllerNames:
         - adguard-deployment
         rules:
         - privilegeEscalationAllowed
