@@ -154,6 +154,14 @@ spec:
                   name: omni-service-account
                   key: OMNI_SERVICE_ACCOUNT_KEY
                   optional: true
+            - name: DT_URL
+              value: http://dependency-track-api-server.security-system.svc:8080
+            - name: DT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dependency-track-claude-api-key # created by the dependency-track-config CronJob (team claude-triage: view, read and write analysis; no BOM upload, no admin)
+                  key: api-key
+                  optional: true
             - name: TALOSCONFIG
               value: /home/claude/.talos/config # written at start by omnictl talosconfig
             - name: CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX

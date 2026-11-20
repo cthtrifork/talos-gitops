@@ -69,6 +69,9 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: traefik-system
             k8s:app.kubernetes.io/name: traefik
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: claude-system
+            k8s:app: claude-rc
       toPorts:
         - ports:
             - port: "8080"
