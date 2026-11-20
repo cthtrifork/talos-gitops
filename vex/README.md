@@ -2,7 +2,7 @@
 
 Our own VEX statements, following the [VEX repository specification](https://github.com/aquasecurity/vex-repo-spec)
 and the layout of the [Trivy VEX Hub](https://github.com/aquasecurity/vexhub). Trivy reads it as the repository
-`homelab-vexhub` (`k8s/infra/security-system/trivy-operator/vex/repository.yaml`), from the `vex-cache` image
+`homelab-vexhub` (`k8s/infra/trivy-system/trivy-operator/vex/repository.yaml`), from the `vex-cache` image
 (`images/vex-cache`) that contains this directory, and filters the findings of every scan with it.
 
 ```text

@@ -4,7 +4,7 @@ apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
   name: aqua
-  namespace: security-system
+  namespace: trivy-system
 spec:
   interval: 12h
   url: oci://ghcr.io/aquasecurity/helm-charts/trivy-operator

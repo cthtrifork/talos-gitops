@@ -4,7 +4,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: trivy-operator
-  namespace: security-system
+  namespace: trivy-system
 spec:
   chartRef:
     kind: OCIRepository
@@ -71,11 +71,11 @@ spec:
     trivy:
       debug: "false"
       slow: ${TRIVY_SLOW:=false} # set to true to enable slow mode which reduces load on the trivy server
-      serverURL: "http://trivy-service.security-system.svc.cluster.local:4954"
+      serverURL: "http://trivy-service.trivy-system.svc.cluster.local:4954"
       imageScanCacheDir: "/tmp/trivy/.cache"
       #httpProxy: ""
       #httpsProxy: "${HTTPS_PROXY}"
-      #noProxy: "${NO_PROXY},trivy-service.security-system"
+      #noProxy: "${NO_PROXY},trivy-service.trivy-system"
       # Skip DB updates for Trivy client (scanjobs)
       clientServerSkipUpdate: true
       skipJavaDBUpdate: false
@@ -204,7 +204,7 @@ spec:
       logDevMode: false
       #httpProxy: ""
       #httpsProxy: "${HTTPS_PROXY}"
-      #noProxy: "${NO_PROXY},trivy-service.security-system"
+      #noProxy: "${NO_PROXY},trivy-service.trivy-system"
       # Setting this option to true will enable the Client Server mode, managed by the Trivy Operator.
       builtInTrivyServer: true
       exposedSecretScannerEnabled: false # we do not use this feature
