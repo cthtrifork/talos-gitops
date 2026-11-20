@@ -1,5 +1,11 @@
 # Runbook (target state): a Claude agent with kagent on Agent Substrate
 
+> **Superseded in part.** Written before the kagent 1.0 sources were read. kagent 1.0 uses `api.kagent.dev/v1alpha3` (`Agent`, `Harness`, `EgressPolicy`),
+> not the `kagent.dev/v1alpha2` `SandboxAgent` shown below, which is from the 0.10 walkthrough. It also has a Claude harness (`claude-default`, the Claude
+> Code binary plus a kagent adapter), holds the Anthropic key at the Substrate gateway, and requires Substrate settings this repo does not set yet
+> (preview gates, the controller as a bootstrap owner and router client, a credential-provider grant, a pool in the agent's namespace). Treat the
+> assumptions, the failure table and the comparison as a sketch, and the YAML as wrong, until this is rewritten from the kagent 1.0 charts.
+
 [kagent](https://kagent.dev) is the agent layer above Substrate: a `SandboxAgent` resource becomes a Substrate actor, every conversation suspends
 when its turn ends, and the next message resumes it on whatever worker is free. This runbook is for the state where kagent is installed next to
 `k8s/apps/ate-system/` and runs a Claude-backed agent. Compare `docs/agent-substrate-claude-actor.md`, which runs the Claude Code CLI as a bare actor
