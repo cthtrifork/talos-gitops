@@ -20,6 +20,7 @@ resources:
   - gitops-infra-security-system.yaml
   #- gitops-infra-external-dns.yaml
   - gitops-infra-post.yaml
+  - gitops-infra-post-workloads.yaml
   - app-controllers.yaml
   - app-adguard.yaml
   - app-arc-runner.yaml
