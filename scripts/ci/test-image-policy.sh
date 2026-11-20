@@ -7,12 +7,7 @@ set -euo pipefail
 policy="${1:-k8s/infra/image-policies/imagevalidatingpolicy-cthtrifork-images.yaml}"
 dir="$(dirname "${BASH_SOURCE[0]}")/kyverno"
 
-# the namespaceSelector needs the namespace labels, which the CLI does not have: check the policy for any namespace
-tmp="$(mktemp)"
-trap 'rm -f "${tmp}"' EXIT
-yq e 'del(.spec.matchConstraints.namespaceSelector)' "${policy}" > "${tmp}"
-
-out="$(kyverno apply "${tmp}" --resource "${dir}/pod-signed.yaml" --detailed-results 2>&1)" || { echo "${out}"; exit 1; }
+out="$(kyverno apply "${policy}" --resource "${dir}/pod-signed.yaml" --values-file "${dir}/values.yaml" --detailed-results -v 4 2>&1)" || { echo "${out}"; exit 1; }
 echo "${out}"
 grep -Eq 'pass: [1-9]' <<<"${out}" || { echo "signed image did not pass" >&2; exit 1; }
 grep -Eq '(fail|error): [1-9]' <<<"${out}" && { echo "signed image failed the policy" >&2; exit 1; }
