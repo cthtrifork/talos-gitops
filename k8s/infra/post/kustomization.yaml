@@ -7,8 +7,8 @@ resources:
   #- cilium/cilium-l2-announcement-policy.yaml
   - cert-manager/
   - trust-manager/
-  #- kubevirt/kubevirt.yaml
-  #- kubevirt/cdi.yaml
+  - kubevirt/kubevirt.yaml
+  - kubevirt/cdi.yaml
   - kubevirt/networkpolicy.yaml
   - metallb/ipaddresspool.yaml
   - metallb/l2advertisement.yaml

@@ -1,0 +1,9 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: claude-vm
+  labels:
+    # virt-launcher needs more than "restricted" allows (NET_BIND_SERVICE, /dev/kvm device)
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: baseline

@@ -1,7 +1,9 @@
 ---
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: kubevirt-system
-resources: [] # waiting for helm charts...
-#  - kubevirt-operator.yaml
-# - cdi-operator.yaml
+# No namespace override: the operator manifests create and use their own namespaces (kubevirt, cdi)
+resources:
+  - kubevirt-operator.yaml
+  - cdi-operator.yaml
+patches:
+  - path: image-pins.yaml
