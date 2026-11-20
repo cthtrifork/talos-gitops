@@ -176,6 +176,7 @@
         <p class="none" style="margin-bottom:10px">Runs a CronJob now from its own template, in namespaces that allow it. Claude gets no rights from this.</p>
         <form id="jobForm" autocomplete="off" novalidate>
           <select id="jobSelect" aria-label="CronJob" disabled></select>
+          <p id="jobDesc" class="none" style="margin-top:8px"></p>
           <button id="jobGo" type="submit" class="small" style="margin-top:10px" disabled>Run now</button>
           <p id="jobMsg" class="hint" role="status"></p>
         </form>
@@ -277,7 +278,7 @@
   var jobsKey = "";
   function buildJobs() {
     var jobs = status.cronjobs || [];
-    var key = jobs.map(function (j) { return j.namespace + "/" + j.name; }).join(",");
+    var key = jobs.map(function (j) { return j.namespace + "/" + j.name + "|" + (j.description || ""); }).join(",");
     if (key === jobsKey) return;
     jobsKey = key;
     var keep = $("jobSelect").value, sel = $("jobSelect");
@@ -290,6 +291,13 @@
     if (keep) sel.value = keep;
     if (jobs.length === 0) { var e = el("option", "No namespace allows running jobs"); sel.appendChild(e); }
     sel.disabled = $("jobGo").disabled = jobs.length === 0;
+    showJobDescription();
+  }
+  // the description comes from the CronJob's claude-elevate/description annotation
+  function showJobDescription() {
+    var v = $("jobSelect").value, d = $("jobDesc");
+    var j = (status.cronjobs || []).filter(function (x) { return x.namespace + "/" + x.name === v; })[0];
+    d.textContent = !j ? "" : j.description || "No description. Add the annotation claude-elevate/description to the CronJob.";
   }
 
   function render() {
@@ -414,6 +422,7 @@
     send("/api/v1/grants", ns.map(function (n) { return { tier: tier, minutes: minutes, namespace: n }; }), "Elevated " + tier + " in " + ns.join(", ") + " for " + human(minutes) + ".");
   });
 
+  $("jobSelect").addEventListener("change", showJobDescription);
   $("jobForm").addEventListener("submit", function (ev) {
     ev.preventDefault();
     var parts = $("jobSelect").value.split("/");

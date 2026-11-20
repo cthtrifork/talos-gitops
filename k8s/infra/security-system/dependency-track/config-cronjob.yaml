@@ -23,6 +23,8 @@ kind: CronJob
 metadata:
   name: dependency-track-config
   namespace: security-system
+  annotations:
+    claude-elevate/description: Applies the Dependency-Track configuration (teams, API keys, properties, analyzers) and repairs drift. Safe to repeat.
 spec:
   schedule: "*/20 * * * *"
   concurrencyPolicy: Forbid

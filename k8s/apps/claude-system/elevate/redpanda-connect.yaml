@@ -207,7 +207,8 @@ processor_resources:
             "namespace": c.metadata.namespace,
             "name": c.metadata.name,
             "schedule": c.spec.schedule,
-            "suspended": c.spec.suspend.or(false)
+            "suspended": c.spec.suspend.or(false),
+            "description": c.metadata.annotations.or({}).get("claude-elevate/description").or("")
           })
           root.max_minutes = @limits.map_each(kv -> kv.value.number())
           root.allowed_namespaces = @limits.map_each(kv -> @namespaces.filter(n -> n.metadata.labels.or({}).get("claude-elevate/" + kv.key) == "true").map_each(n -> n.metadata.name))
