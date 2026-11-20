@@ -65,12 +65,7 @@ spec:
                       --data-urlencode username=admin --data-urlencode "password=$1"
                   }
 
-                  # the api-server may still be starting (a restart of it is the usual reason): wait up to two minutes
-                  i=0
-                  until curl -sf -o /dev/null "$DT_URL/api/version"; do
-                    i=$((i + 1)); [ "$i" -lt 24 ] || { echo "api-server not reachable" >&2; exit 1; }
-                    sleep 5
-                  done
+                  curl -sf -o /dev/null "$DT_URL/api/version" || { echo "api-server not reachable yet" >&2; exit 1; }
 
                   # 1. admin password, from the Secret External Secrets keeps in sync (it may not exist for a minute on a fresh install)
                   pw=$(kubectl get secret dependency-track-admin -o jsonpath='{.data.password}' | base64 -d)
