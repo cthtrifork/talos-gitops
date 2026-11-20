@@ -36,15 +36,39 @@ spec:
     # Kubernetes API (the kubernetescrd provider)
     - toEntities:
         - kube-apiserver
-    # cloudflared: the tunnel (7844 QUIC and TCP), the Cloudflare API (443) and its direct DNS lookups (53)
-    - toEntities:
-        - world
+    # DNS with the proxy on, so Cilium learns the addresses behind the hosts below
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # cloudflared: the tunnel (7844 QUIC and TCP)
+    - toFQDNs:
+        - matchName: region1.v2.argotunnel.com
+        - matchName: region2.v2.argotunnel.com
       toPorts:
         - ports:
             - port: "7844"
               protocol: ANY
+    # the Cloudflare API
+    - toFQDNs:
+        - matchName: api.cloudflare.com
+      toPorts:
+        - ports:
             - port: "443"
               protocol: TCP
+    # cloudflared's direct DNS lookups of the edge addresses
+    - toCIDRSet:
+        - cidr: 1.1.1.1/32
+        - cidr: 1.0.0.1/32
+      toPorts:
+        - ports:
             - port: "53"
               protocol: ANY
     # Backends of the IngressRoutes: harper-pad-sync (http, 9000), the Flux webhook receiver (notification-controller, 9292), Dependency-Track and the fileserver

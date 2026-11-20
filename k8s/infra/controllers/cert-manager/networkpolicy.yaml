@@ -1,6 +1,6 @@
 # Default deny both ways for the namespace, then DNS, the Kubernetes API and the webhook.
 # The controller also needs the internet for the letsencrypt-dns01 issuer (ACME and the Cloudflare API on 443,
-# and the DNS-01 self-check against public resolvers on 53).
+# and the DNS-01 self-check against the public resolvers 1.1.1.1 and 8.8.8.8 on 53).
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -46,12 +46,35 @@ spec:
     matchLabels:
       app.kubernetes.io/name: cert-manager
   egress:
-    - toEntities:
-        - world
+    # DNS with the proxy on, so Cilium learns the addresses behind the hosts below
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # ACME and the Cloudflare API of the letsencrypt-dns01 issuer
+    - toFQDNs:
+        - matchName: acme-v02.api.letsencrypt.org
+        - matchName: acme-staging-v02.api.letsencrypt.org
+        - matchName: api.cloudflare.com
       toPorts:
         - ports:
             - port: "443"
               protocol: TCP
+    # DNS-01 self-check against the public resolvers
+    - toCIDRSet:
+        - cidr: 1.1.1.1/32
+        - cidr: 1.0.0.1/32
+        - cidr: 8.8.8.8/32
+        - cidr: 8.8.4.4/32
+      toPorts:
+        - ports:
             - port: "53"
               protocol: ANY
 ---

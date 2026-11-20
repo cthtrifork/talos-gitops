@@ -25,6 +25,10 @@ spec:
   values:
     config:
       defaultRegistry: mirror.gcr.io
+    global:
+      image:
+        # ghcr.io instead of reg.kyverno.io: zot mirrors ghcr.io, so Trivy can scan the images without reaching the internet
+        registry: ghcr.io
     backgroundController:
       enabled: false
     cleanupController:
