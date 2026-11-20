@@ -154,6 +154,11 @@ jobs:
           for ks in $(kubectl get kustomization -n flux-system -l gitops.homelab/tier=infra -o name | cut -d/ -f2); do
             kubectl patch kustomization "${ks}" -n flux-system --type merge --patch-file scripts/ci/e2e/gitops-infra.yaml
           done
+      - name: Create namespaces that infra Kustomizations write into
+        run: |
+          # security-system binds RBAC in claude-system, whose app Kustomization is suspended here
+          kubectl create namespace claude-system --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Reconcile infra
         timeout-minutes: 15
         run: |
