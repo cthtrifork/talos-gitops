@@ -96,8 +96,9 @@ spec:
         # quay.io (blobs come from cdn*.quay.io)
         - matchName: quay.io
         - matchPattern: "cdn*.quay.io"
-        # registry.k8s.io redirects to Artifact Registry and S3
+        # registry.k8s.io redirects to Artifact Registry, S3 and the Fastly CDN (cdn.registry.k8s.io)
         - matchName: registry.k8s.io
+        - matchName: cdn.registry.k8s.io
         - matchPattern: "*.pkg.dev"
         - matchPattern: "prod-registry-k8s-io-*.s3.dualstack.*.amazonaws.com"
       toPorts:
