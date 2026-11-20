@@ -31,7 +31,7 @@ spec:
         registry: ghcr.io
     admissionController:
       # two replicas (the chart adds a PodDisruptionBudget): the image policy fails closed, so a single pod would block pod
-      # creation in the verify-images namespaces while it restarts
+      # creation in every namespace while it restarts
       replicas: 2
       # soft spread: one replica per node when possible, but never Pending because of it
       topologySpreadConstraints:
