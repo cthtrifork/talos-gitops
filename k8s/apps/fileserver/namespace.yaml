@@ -4,6 +4,8 @@ kind: Namespace
 metadata:
   name: fileserver-system
   labels:
+    # checked by the Kyverno image policy (ImageValidatingPolicy in k8s/infra/image-policies)
+    gitops.homelab/verify-images: "true"
     claude-elevate/ops: "true"
     claude-elevate/storage: "true"
     pod-security.kubernetes.io/enforce: restricted
