@@ -16,7 +16,7 @@ input:
 
 buffer:
   memory:
-    limit: 20971520 # 20 MB, one report is under 1 MB; the pod was OOM-killed at 256Mi with 50 MB
+    limit: 52428800 # 50 MB, a report is up to ~1.2 MB; a full buffer blocks the POST and the operator gives up after 30 s, losing the SBOM
 
 pipeline:
   processors:
@@ -68,7 +68,7 @@ output:
               Content-Type: application/json
               X-Api-Key: $${DT_API_KEY}
             timeout: 60s
-            max_in_flight: 4
+            max_in_flight: 2 # each upload holds the report, its base64 copy and the body in memory
             retries: 3
             drop_on:
               - 400
