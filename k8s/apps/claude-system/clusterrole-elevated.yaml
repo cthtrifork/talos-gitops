@@ -32,6 +32,16 @@ rules:
       - get
       - list
       - delete
+  # Trivy operator reports: deleting one makes the operator scan the workload again (and sbom-hook upload a fresh SBOM)
+  - apiGroups:
+      - aquasecurity.github.io
+    resources:
+      - vulnerabilityreports
+      - sbomreports
+    verbs:
+      - get
+      - list
+      - delete
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
 # Exec reaches whatever the pod can, including its mounted Secrets and ServiceAccount token

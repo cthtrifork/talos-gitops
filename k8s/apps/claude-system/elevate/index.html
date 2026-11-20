@@ -126,7 +126,7 @@
         <legend>Tier</legend>
         <div class="choices tiers">
           <label class="choice"><input type="radio" name="tier" value="ops" checked>
-            <span class="face"><strong>ops</strong><small>Delete or evict pods, so their workloads restart. Up to <span id="maxOps">60</span> min.</small></span></label>
+            <span class="face"><strong>ops</strong><small>Delete or evict pods, so their workloads restart; delete Trivy vulnerability and SBOM reports, to force a rescan. Up to <span id="maxOps">60</span> min.</small></span></label>
           <label class="choice risky"><input type="radio" name="tier" value="debug">
             <span class="face"><strong>debug</strong><small>Exec into pods, port-forward, ephemeral containers. Up to <span id="maxDebug">15</span> min.</small></span></label>
           <label class="choice destructive"><input type="radio" name="tier" value="storage">
