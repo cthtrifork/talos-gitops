@@ -396,7 +396,7 @@ flowchart LR
 The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in the `app=claude-rc` pod only, through the ClusterIP Service
 `claude-cockpit-ingest`, so a spoofed sender could only change what the page shows.
 
-### On the iPhone Home Screen
+### On the iPhone Home Screen (cockpit and share URLs pages)
 
 The page is made for Safari's "Add to Home Screen": it opens full screen (`apple-mobile-web-app-capable`), has an inline 180 px touch icon, keeps clear of
 the notch and home indicator (`viewport-fit=cover` and `env(safe-area-inset-*)`), uses 44 px touch targets and no hover-only styles, and refreshes on resume
