@@ -396,6 +396,14 @@ flowchart LR
 The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in the `app=claude-rc` pod only, through the ClusterIP Service
 `claude-cockpit-ingest`, so a spoofed sender could only change what the page shows.
 
+### On the iPhone Home Screen (cockpit and share URLs pages)
+
+The page is made for Safari's "Add to Home Screen": it opens full screen (`apple-mobile-web-app-capable`), has an inline 180 px touch icon, keeps clear of
+the notch and home indicator (`viewport-fit=cover` and `env(safe-area-inset-*)`), uses 44 px touch targets and no hover-only styles, and refreshes on resume
+and on a pull down from the top (there is no reload button in a Home Screen app). There is no manifest and no service worker: the page is behind the Omni
+login, and neither request would carry its cookies, so the icon is a data URI and the page needs the network. After changing the icon, remove the Home Screen
+entry and add it again; iOS caches it.
+
 ### Claude usage from the pod
 
 `claude remote-control` is a server without a terminal UI, so its sessions never run a `statusLine`. The `usage-poller` container of
