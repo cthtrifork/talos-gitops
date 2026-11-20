@@ -98,3 +98,22 @@ spec:
       configureImage:
         repository: mirror.gcr.io/library/busybox
         tag: 1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+  # The chart sets no resources on the configure Job (a Helm hook that creates the bucket and key), which Polaris asks for
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Job
+              name: garage-configure
+            patch: |
+              - op: test
+                path: /spec/template/spec/containers/0/name
+                value: configure
+              - op: add
+                path: /spec/template/spec/containers/0/resources
+                value:
+                  requests:
+                    cpu: 10m
+                    memory: 32Mi
+                  limits:
+                    memory: 128Mi

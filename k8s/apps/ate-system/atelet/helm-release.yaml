@@ -28,4 +28,13 @@ spec:
       region: garage
       pathStyle: true
       credentialsSecret: garage-aws-credentials
+    # The chart sets a request but no limit on the node object-store plugin (Polaris wants a memory limit). Not measured: it streams snapshots, so raise it if it is OOMKilled
+    objectStorePlugin:
+      node:
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
     # Talos nodes have no kubelet credential provider (GKE's is at /home/kubernetes/bin), so the chart's host mounts for one stay off

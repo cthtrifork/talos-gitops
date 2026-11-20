@@ -48,6 +48,13 @@ spec:
             - kagent
     # The object-store plugin in ate-api-server reads Garage the same way atelet's does
     objectStorePlugin:
+      control:
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
       extraEnv:
         - name: AWS_REGION
           value: garage
@@ -65,4 +72,88 @@ spec:
             secretKeyRef:
               name: garage-aws-credentials
               key: AWS_SECRET_ACCESS_KEY
+    # Requests and limits the chart leaves empty (Polaris wants them on every container). Not measured on this cluster: the chart's own defaults come from a short load
+    # test on kind, and these are in the same range; raise them if a pod is OOMKilled.
+    ateIdpServer:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          memory: 128Mi
     # Telemetry export is off: no endpoint is set, and this cluster has no OTLP collector for the control plane
+  # What the chart leaves out and Polaris asks for, as patches on the rendered objects (see k8s/infra/policy-system/polaris/helm-release.yaml for what is still exempt).
+  postRenderers:
+    # The router and egress gateway (agentgateway) have no securityContext and no liveness probe. Both listen above 1024 (8080, 8443), so dropping every capability and
+    # privilege escalation costs them nothing; the liveness probe is the readiness endpoint they already serve. Not set, because the image's user and what it writes are
+    # not known: runAsNonRoot and readOnlyRootFilesystem.
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: atenet-router
+            patch: |
+              - op: test
+                path: /spec/template/spec/containers/0/name
+                value: agentgateway
+              - op: add
+                path: /spec/template/spec/containers/0/securityContext
+                value:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                      - ALL
+                  seccompProfile:
+                    type: RuntimeDefault
+              - op: add
+                path: /spec/template/spec/containers/0/livenessProbe
+                value:
+                  httpGet:
+                    path: /healthz/ready
+                    port: readiness
+                  initialDelaySeconds: 15
+                  periodSeconds: 10
+                  failureThreshold: 6
+          - target:
+              kind: Deployment
+              name: atenet-egress
+            patch: |
+              - op: test
+                path: /spec/template/spec/containers/0/name
+                value: agentgateway
+              - op: add
+                path: /spec/template/spec/containers/0/securityContext
+                value:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                      - ALL
+                  seccompProfile:
+                    type: RuntimeDefault
+              - op: add
+                path: /spec/template/spec/containers/0/livenessProbe
+                value:
+                  httpGet:
+                    path: /healthz/ready
+                    port: readiness
+                  initialDelaySeconds: 15
+                  periodSeconds: 10
+                  failureThreshold: 6
+    # The credential provider serves /healthz next to the /readyz the chart already probes
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: k8s-credential-provider
+            patch: |
+              - op: test
+                path: /spec/template/spec/containers/0/name
+                value: k8s-credential-provider
+              - op: add
+                path: /spec/template/spec/containers/0/livenessProbe
+                value:
+                  httpGet:
+                    path: /healthz
+                    port: health
+                  initialDelaySeconds: 10
+                  periodSeconds: 10

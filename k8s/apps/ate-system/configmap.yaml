@@ -1,9 +1,16 @@
 # The one ConfigMap the substrate chart mounts but does not create: ate-api-server mounts ate-api-authentication. The chart renders its own config and
 # environment ConfigMaps.
 ---
-# The JWT issuers ate-api-server trusts for its clients (kubectl-ate, the demos). Kubernetes' own issuer: the controller, atelet and the routers
-# authenticate with pod certificates instead and do not need it. Discovery goes to the issuer URL; if the cluster's issuer is not reachable from the
-# pod, this only affects clients that present a Kubernetes service account token.
+# The JWT issuers ate-api-server trusts for its clients (kubectl-ate, the demos): Kubernetes' own service account issuer. The controller, atelet and the
+# routers authenticate with pod certificates instead and do not need it.
+#
+# ate-api-server verifies a token by fetching the issuer's discovery document and keys. certificateAuthorityFile and discoveryTokenFile are the pod's own service
+# account CA and token, which it needs to read them from the API server; `ate-setup` adds them only when the issuer is exactly https://kubernetes.default.svc, so on
+# any other issuer, as here, every token is rejected (agent-substrate/substrate#3326, fix in #3803). They are set by hand for that reason.
+#
+# Known gap on this cluster: Talos sets the issuer to https://[fdae:41e4:649b:9303::1]:10000, an address pods very likely cannot reach (the discovery document names
+# its keys at the node addresses, which the token covers, but the document itself is fetched from the issuer). If tokens are still rejected, that is why: fixing
+# it means changing the cluster's service-account-issuer, which this PR does not do. Check the API server's logs first.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -16,3 +23,5 @@ data:
       issuer: https://[fdae:41e4:649b:9303::1]:10000
       audiences:
       - api.ate-system.svc
+      certificateAuthorityFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      discoveryTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
