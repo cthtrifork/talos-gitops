@@ -417,12 +417,12 @@
     var parts = $("jobSelect").value.split("/");
     if (parts.length !== 2) return;
     var msg = $("jobMsg");
-    msg.textContent = "Starting…";
+    msg.textContent = "Starting…"; msg.className = "hint";
     $("jobGo").disabled = true;
     fetch("api/v1/jobs", { method: "POST", headers: HEADERS, body: JSON.stringify({ csrf: status.csrf, namespace: parts[0], cronjob: parts[1] }) })
-      .then(function (r) { return r.json().then(function (j) { return r.ok ? "Started " + j.job : "Refused: " + j.error; }); })
-      .catch(function (e) { return e.message; })
-      .then(function (text) { msg.textContent = text; $("jobGo").disabled = false; });
+      .then(function (r) { return r.json().then(function (j) { return r.ok ? { ok: true, text: j.job ? "Started " + j.job + "." : "Job started." } : { text: "Refused: " + j.error }; }); })
+      .catch(function (e) { return { text: "Could not start the job: " + e.message }; })
+      .then(function (res) { msg.textContent = res.text; msg.className = "hint " + (res.ok ? "ok" : "warn"); $("jobGo").disabled = false; });
   });
 
   $("revokeAll").addEventListener("click", function () {

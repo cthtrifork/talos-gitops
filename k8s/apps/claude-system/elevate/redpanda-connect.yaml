@@ -364,6 +364,8 @@ processor_resources:
             }
           processors:
             - resource: post
+          # the API server answers with the created Job; a meta set in request_map does not reach this message
+          result_map: 'meta job_name = this.metadata.name'
       - log:
           message: job started
           fields_mapping: 'root = {"namespace": this.namespace, "cronjob": this.cronjob, "job": metadata("job_name")}'
