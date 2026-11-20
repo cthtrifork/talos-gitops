@@ -3,7 +3,8 @@ name: VEX
 # Checks the OpenVEX documents under vex/ and shows what they do. Pull request: the documents that changed. Manual run: all of them.
 #  - lint: every document against the OpenVEX JSON schema, and vex/index.json against the documents.
 #  - scan: Trivy scans each image a changed document is about, with that document as --vex. The report (with the suppressed findings)
-#    goes to the log and the job summary, and the job fails if a CVE of the document is not shown as suppressed.
+#    goes to the log, the job summary and one comment per image on the PR (updated in place), and the job fails if a CVE of the
+#    document is not shown as suppressed.
 on:
   workflow_dispatch:
   pull_request:
@@ -97,6 +98,7 @@ jobs:
     permissions:
       contents: read
       packages: read # pull ghcr.io/cthtrifork/* images
+      pull-requests: write # the PR comment
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -124,10 +126,31 @@ jobs:
       - name: Show the report
         env:
           REF: ${{ matrix.image.ref }}
+          DOC: ${{ matrix.image.doc }}
         run: |
           trivy convert --format table --show-suppressed --output scan.txt scan.json
           cat scan.txt
-          { echo "### ${REF}"; echo '```'; cat scan.txt; echo '```'; } >> "${GITHUB_STEP_SUMMARY}"
+          jq -r --arg ref "${REF}" --arg doc "${DOC}" --slurpfile d "${DOC}" -f scripts/ci/vex-comment.jq scan.json > comment.md
+      - name: Upload full report
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: scan.json
+          name: trivy-${{ strategy.job-index }}
+          retention-days: 14
+      - name: Add report link
+        env:
+          URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          echo "[Trivy report (JSON)](${URL})" >> comment.md
+          cat comment.md >> "${GITHUB_STEP_SUMMARY}"
+      - name: Comment on the PR
+        # One comment per image, updated in place. Fork PRs get a read-only token; the job summary has the same text.
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+        with:
+          header: vex ${{ matrix.image.ref }}
+          path: comment.md
       - name: Check that every statement is applied
         env:
           DOC: ${{ matrix.image.doc }}
@@ -135,3 +158,18 @@ jobs:
           jq -e -n -r --slurpfile d "${DOC}" --slurpfile s scan.json
           '($d[0].statements | map(.vulnerability.name)) - [$s[0].Results[]?.ExperimentalModifiedFindings[]? | .Finding.VulnerabilityID]
           | if length == 0 then "all statements applied" else error("not suppressed: " + join(", ")) end'
+
+  scan-complete:
+    # Stable single check to require in branch protection: the scan job is skipped when no document changed.
+    name: VEX scan complete
+    needs: [lint, changes, trivy-db, scan]
+    if: always()
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - name: Fail if a job failed or was cancelled
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: ${RESULTS}"
+          case " ${RESULTS} " in *" failure "* | *" cancelled "*) exit 1 ;; esac
