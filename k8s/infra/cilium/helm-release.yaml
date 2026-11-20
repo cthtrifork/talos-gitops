@@ -196,7 +196,9 @@ spec:
       enabled: false
     bpf:
       masquerade: true
-    policyEnforcementMode: default
+    # always: every endpoint is default-deny, also in a namespace without a policy (all namespaces with pods have one,
+    # see the per-namespace default-deny CiliumNetworkPolicies). Host-network pods are not endpoints and are not affected.
+    policyEnforcementMode: always
     policyAuditMode: false # NEVER SET THIS TO TRUE IN PRODUCTION, as it will disable all network policies and allow all traffic
     cgroup:
       autoMount:
