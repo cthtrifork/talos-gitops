@@ -22,8 +22,8 @@ spec:
     - toEntities:
         - kube-apiserver
 ---
-# CoreDNS: queries from every pod and node (cluster), metrics for Prometheus (9153), upstream resolvers on port 53 (LAN
-# and internet, the nodes included).
+# CoreDNS: queries from every pod and node (cluster), metrics for Prometheus (9153), upstream resolvers on port 53 (the LAN
+# 192.168.1.0/24, Cloudflare and Google, the nodes included).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -50,9 +50,18 @@ spec:
               protocol: TCP
   egress:
     - toEntities:
-        - world
         - host
         - remote-node
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toCIDRSet:
+        - cidr: 192.168.1.0/24
+        - cidr: 1.1.1.1/32
+        - cidr: 1.0.0.1/32
+        - cidr: 8.8.8.8/32
+        - cidr: 8.8.4.4/32
       toPorts:
         - ports:
             - port: "53"

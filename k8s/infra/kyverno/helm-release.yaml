@@ -23,6 +23,10 @@ spec:
       retries: 3
   # https://github.com/kyverno/kyverno/blob/main/charts/kyverno/values.yaml
   values:
+    global:
+      image:
+        # ghcr.io instead of reg.kyverno.io: zot mirrors ghcr.io, so Trivy can scan the images without reaching the internet
+        registry: ghcr.io
     backgroundController:
       enabled: false
     cleanupController:
