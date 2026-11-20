@@ -55,14 +55,13 @@ spec:
         - name: rootdisk
           dataVolume:
             name: claude-vm-rootdisk
-        # cloud-init (NoCloud) only runs write_files and runcmd in this image; see "Seeding with cloud-init" in homeserver-bootc docs/claude-vm.
-        # The user data is empty for now. To seed the GitHub App from a Secret, create a SOPS-encrypted Secret claude-vm-cloud-init in this
-        # namespace with a `userdata` key and replace the inline userData below with `secretRef: {name: claude-vm-cloud-init}`. Do not point
-        # secretRef at a Secret that does not exist: the VM would not start.
+        # cloud-init (NoCloud) only runs write_files and runcmd in this image. The user data comes from the Secret claude-vm-cloud-init, which
+        # externalsecret.yaml builds from claude-system/claude-github-app, so the first boot seeds the GitHub App by itself. Until External
+        # Secrets has made that Secret the VM pod waits in ContainerCreating.
         - name: cloudinitdisk
           cloudInitNoCloud:
-            userData: |-
-              #cloud-config
+            secretRef:
+              name: claude-vm-cloud-init
   dataVolumeTemplates:
     - metadata:
         name: claude-vm-rootdisk

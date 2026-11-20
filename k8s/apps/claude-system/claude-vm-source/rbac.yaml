@@ -1,17 +1,18 @@
-# The service account the ClusterSecretStore claude-vm-ghcr uses to read the read:packages token (Secret ghcr-pull) for the claude-vm
-# namespace. It may read that one Secret only.
+# The service account the ClusterSecretStore claude-vm-source uses to copy two Secrets of this namespace into the claude-vm namespace: the
+# read:packages token (ghcr-pull, for the CDI import) and the GitHub App credentials (claude-github-app, to seed the VM). It may read
+# those two Secrets and nothing else.
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ghcr-pull-reader
+  name: claude-vm-source
   namespace: claude-system
 automountServiceAccountToken: false
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: ghcr-pull-reader
+  name: claude-vm-source
   namespace: claude-system
 rules:
   - apiGroups:
@@ -20,6 +21,7 @@ rules:
       - secrets
     resourceNames:
       - ghcr-pull
+      - claude-github-app
     verbs:
       - get
   # the store checks its own permissions when it is created
@@ -33,13 +35,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: ghcr-pull-reader
+  name: claude-vm-source
   namespace: claude-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: ghcr-pull-reader
+  name: claude-vm-source
 subjects:
   - kind: ServiceAccount
-    name: ghcr-pull-reader
+    name: claude-vm-source
     namespace: claude-system
