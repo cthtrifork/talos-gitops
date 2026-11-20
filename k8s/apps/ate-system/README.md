@@ -77,6 +77,24 @@ The API server is the only thing clients call. Actors run in gVisor sandboxes in
 into any worker with room. An actor reaches the network only through `atunnel` and the egress gateway, which denies everything without a policy for that
 actor. Nothing here has run yet, and there are no actors: see `docs/agent-substrate-claude-actor.md` for a first one.
 
+## Ready for kagent
+
+[kagent](https://kagent.dev) 1.0 runs its agents (including a Claude harness: the Claude Code binary plus an adapter) as Substrate actors, and requires Substrate
+v1.0.0. This install sets what kagent's own installer sets on Substrate, taken from its `go/core/pkg/install/plan.go` and `helm/README.md`:
+
+- the preview gates `PerTemplateSnapshotLocation` and `GoldenEgressPolicy` on the API server, the controller and atelet;
+- kagent's controller (`spiffe://cluster.local/ns/kagent/sa/kagent-controller`) as a global owner (it creates atespaces) and as a router client;
+- a credential-provider grant for the atespace `kagent` to the namespace `kagent`, so the egress gateway can inject the Anthropic key without it entering the actor.
+
+Not done, because kagent is not installed here yet: the `kagent` namespace (label `ate.dev/api-access: "true"`, PodSecurity `privileged` if the chart creates its
+worker pool there), a WorkerPool **in the agent's namespace** carrying `kagent.dev/worker-pool-name` and `kagent.dev/worker-pool-namespace` labels (kagent resolves
+the pool in the Agent's namespace, so the pool in `ate-workers` is not used by it), the kagent Helm release and its database, and the egress MITM trust that kagent's
+actors need (`egress-mitm.ate.dev` is projected into them).
+
+Two risks. kagent is built and tested against `github.com/kagent-dev/substrate`, a fork of upstream that adds Helm charts and carries later changes in about 40 Go files
+(the gRPC `api/` is identical to upstream v1.0.0, so clients are compatible, but server behavior differs). And its charts use agentgateway as the router and egress
+gateway, whereas this install uses Envoy, upstream's default: both are supported upstream, and whether kagent works against Envoy is untested.
+
 ## The key pools
 
 Substrate keeps its CAs (pod identity, service DNS, Postgres, actor identity, egress MITM) and the actor JWT signing key in pool Secrets in its
@@ -121,8 +139,8 @@ by hand after editing `configmap.yaml` or after the database passwords change.
   namespaces are PodSecurity `privileged`. gVisor is the boundary between an actor and the node; keep untrusted workloads out of any other use of these nodes.
 - **The Kubernetes credential provider can read Secrets cluster-wide** (its ClusterRole), but serves nothing until `namespace-policy.yaml`
   grants an atespace the namespaces it may read (`policies: []` is default-deny). Review each grant.
-- **Router clients**: `atenet-router` only accepts clients whose certificate has a SPIFFE ID in `--ingress-allowed-spiffe-ids`. The one set
-  is upstream's quickstart example (`ns/ate-system/sa/atenet-client`); add the real clients in `kustomization.yaml`.
+- **Router clients**: `atenet-router` only accepts clients whose certificate has a SPIFFE ID in `--ingress-allowed-spiffe-ids`: kagent's controller and
+  `kubectl ate proxy` (`ns/ate-system/sa/atenet-client`). Add the real clients in `kustomization.yaml`.
 - **JWT clients** (`kubectl ate` and the like) authenticate with a Kubernetes service account token. The provider in `configmap.yaml` uses this
   cluster's issuer; its discovery URL may not be reachable from the pod, which only affects those clients. The control plane itself uses pod certificates.
 - **Not covered yet**: the microVM class (Cloud Hypervisor; `/dev/kvm` exists on `talos-11a-esj` and `talos-tba-msi`, nested virtualization
