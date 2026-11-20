@@ -1,0 +1,129 @@
+name: VEX
+
+# Checks the OpenVEX documents under vex/ and shows what they do. Pull request: the documents that changed. Manual run: all of them.
+#  - lint: every document against the OpenVEX JSON schema, and vex/index.json against the documents.
+#  - scan: Trivy scans each image a changed document is about, with that document as --vex, and lists the suppressed findings
+#    in the job summary. Informational: it never blocks the PR.
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "vex/**"
+      - "scripts/ci/vex-images.py"
+      - "scripts/vex-index.sh"
+      - ".github/workflows/vex.yaml"
+
+concurrency:
+  group: vex-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  TRIVY_VERSION: v0.76.2 # renovate: datasource=github-releases depName=aquasecurity/trivy
+  CHECK_JSONSCHEMA_VERSION: "0.39.0" # renovate: datasource=pypi depName=check-jsonschema
+  # the OpenVEX schema of the spec commit (v0.2.0), pinned by SHA
+  OPENVEX_SCHEMA: https://raw.githubusercontent.com/openvex/spec/93139bd2c65390b504e47f82f11c50451289f93a/openvex_json_schema.json
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint VEX documents
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate documents against the OpenVEX schema
+        if: hashFiles('vex/pkg/**/*.openvex.json') != ''
+        run: git ls-files -z 'vex/pkg/*.openvex.json' | xargs -0 pipx run "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}" --schemafile "${OPENVEX_SCHEMA}"
+      - name: Check vex/index.json
+        # the script stamps updated_at, which is ignored here
+        run: scripts/vex-index.sh && git diff --exit-code -I '"updated_at"' -- vex/index.json
+
+  changes:
+    name: Find changed documents
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      images: ${{ steps.images.outputs.images }}
+      count: ${{ steps.images.outputs.count }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Get changed documents
+        id: changed
+        if: github.event_name == 'pull_request'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            vex/pkg/oci/**/*.openvex.json
+      - name: List the images of the documents
+        id: images
+        env:
+          CHANGED: ${{ steps.changed.outputs.all_changed_files }}
+          EVENT: ${{ github.event_name }}
+        # a manual run lists every document; a pull request only the changed ones (none: nothing to scan)
+        run: |
+          read -ra docs <<< "${CHANGED}"
+          if [[ "${EVENT}" == pull_request && ${#docs[@]} -eq 0 ]]; then images='[]'; else images=$(python3 -I scripts/ci/vex-images.py "${docs[@]}"); fi
+          echo "images=${images}" >> "${GITHUB_OUTPUT}"
+          echo "count=$(jq length <<< "${images}")" >> "${GITHUB_OUTPUT}"
+
+  trivy-db:
+    name: Trivy database
+    needs: changes
+    if: needs.changes.outputs.count != '0'
+    uses: ./.github/workflows/update-trivy-db.yaml
+
+  scan:
+    name: Scan ${{ matrix.image.ref }}
+    needs: [lint, changes, trivy-db]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.changes.outputs.images) }}
+    env:
+      # The databases come from the cache that the trivy-db job fills.
+      TRIVY_SKIP_DB_UPDATE: true
+      TRIVY_SKIP_JAVA_DB_UPDATE: true
+    permissions:
+      contents: read
+      packages: read # pull ghcr.io/cthtrifork/* images
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Login to ghcr.io
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Scan with the document as VEX
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          scan-type: image
+          image-ref: ${{ matrix.image.ref }}
+          format: table
+          output: scan.txt
+          scanners: vuln
+          hide-progress: true
+        env:
+          TRIVY_VEX: ${{ matrix.image.doc }}
+          TRIVY_SHOW_SUPPRESSED: true
+      - name: Summarize
+        env:
+          REF: ${{ matrix.image.ref }}
+        run: |
+          { echo "### ${REF}"; echo '```'; cat scan.txt 2> /dev/null || echo "the scan failed (see the log)"; echo '```'; } >> "${GITHUB_STEP_SUMMARY}"
