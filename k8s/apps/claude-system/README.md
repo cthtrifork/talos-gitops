@@ -294,7 +294,8 @@ Kubernetes API with the pod's own token; the steps and the API are in `elevate/r
 | `storage` | `claude-storage` | 10-15 min | delete PersistentVolumeClaims (both storage classes reclaim with `Delete`: a bound claim loses its data) |
 
 - **Opt-in.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` in its own manifest (`adguard-system`: all three,
-  `renovate-system`: `ops` and `storage`, no `debug` since exec there could read the GitHub App and S3 keys,
+  `arc-runners-system`, `fileserver-system`, `harper-pad`, `renovate-system`: `ops` and `storage` (no `debug`: exec could read secrets),
+  `arc-controller-system`, `registry-system`, `security-system`, `kube-prometheus-stack-system`: `ops` only (their PVC data is kept),
   `external-dns-system`: `ops` only, since exec there could read the DNS API token).
 - **Expiry.** The token expires on the API server by itself and nothing cleans up afterwards: the ServiceAccount, RoleBinding and kubeconfig key left
   behind hold no valid token, and the next grant replaces them. A revoke deletes the ServiceAccount, which kills its tokens at once.

@@ -4,4 +4,5 @@ kind: Namespace
 metadata:
   name: registry-system
   labels:
+    claude-elevate/ops: "true"
     pod-security.kubernetes.io/enforce: privileged
