@@ -236,12 +236,15 @@ processor_resources:
   # a failed branch is left out and named in meta.workflow.failed; the catch clears the error flag so the rest is still answered
   - label: status
     processors:
-      - mapping: 'root = {"generated_at": now().ts_unix()}'
+      # ?drops=15m or 1h picks the window of the dropped-traffic panel (anything else is 1h); the series gets about 15 points either way
+      - mapping: |
+          meta drops_window = if @drops == "15m" { "15m" } else { "1h" }
+          root = {"generated_at": now().ts_unix(), "drops_window": @drops_window}
       - workflow:
           branches:
             drops_total:
               request_map: |
-                meta path = "/api/v1/query?query=" + "sum(increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[1h]))".escape_url_query()
+                meta path = "/api/v1/query?query=" + ("sum(increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[" + @drops_window + "]))").escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
@@ -250,7 +253,9 @@ processor_resources:
             drops_series:
               request_map: |
                 let end = now().ts_unix()
-                meta path = "/api/v1/query_range?query=" + "sum(increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[5m]))".escape_url_query() + "&start=" + ($end - 3600).string() + "&end=" + $end.string() + "&step=300"
+                let short = @drops_window == "15m"
+                let step = if $short { 60 } else { 300 }
+                meta path = "/api/v1/query_range?query=" + ("sum(increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[" + $step.string() + "s]))").escape_url_query() + "&start=" + ($end - (if $short { 900 } else { 3600 })).string() + "&end=" + $end.string() + "&step=" + $step.string()
                 root = ""
               processors:
                 - resource: prom_get
@@ -258,7 +263,7 @@ processor_resources:
 
             drops_top:
               request_map: |
-                meta path = "/api/v1/query?query=" + "topk(3, sum by (source_workload, destination_ip, destination_namespace, destination_workload) (increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[1h])) > 0)".escape_url_query()
+                meta path = "/api/v1/query?query=" + ("topk(3, sum by (source_workload, destination_ip, destination_namespace, destination_workload) (increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[" + @drops_window + "])) > 0)").escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
