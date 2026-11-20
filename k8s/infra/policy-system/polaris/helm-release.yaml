@@ -353,6 +353,17 @@ spec:
             - livenessProbeMissing
             - readinessProbeMissing
             - notReadOnlyRootFilesystem
+        # The router and egress gateway (agentgateway) of the substrate chart set no securityContext at all: root, default capabilities, privilege escalation
+        # allowed, and the egress gateway holds the key of the TLS interception CA. The chart has no value for it. Harden them with a postRenderer once an
+        # install shows what agentgateway needs, and drop this entry then
+        - controllerNames:
+            - atenet-router
+            - atenet-egress
+          rules:
+            - runAsRootAllowed
+            - privilegeEscalationAllowed
+            - insecureCapabilities
+            - linuxHardening
         # atelet restores actors on the node: root, with host paths for the actor state (/var/lib/ate), the kubelet device plugins and /dev
         - controllerNames:
             - atelet
