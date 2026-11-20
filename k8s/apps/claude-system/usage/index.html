@@ -67,13 +67,13 @@
   h1 { font-size: var(--fs-xl); margin: 0; letter-spacing: -0.01em; }
   h2 { font-size: var(--fs-md); margin: 0; font-weight: 650; }
   .sub { color: var(--muted); font-size: var(--fs-sm); }
-  code, .src { font-family: var(--mono); font-size: var(--fs-sm); color: var(--muted); }
+  code, .src { font-family: var(--mono); font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
 
 
   .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
   .group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 2px; }
-  .seg button { all: unset; cursor: pointer; padding: 5px 12px; border-radius: 6px; color: var(--ink-2); font-size: var(--fs-md); }
+  .seg { display: inline-flex; max-width: 100%; overflow-x: auto; scrollbar-width: none; background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 2px; }
+  .seg button { all: unset; cursor: pointer; padding: 5px 12px; border-radius: 6px; color: var(--ink-2); font-size: var(--fs-md); white-space: nowrap; flex: none; }
   .seg button[aria-pressed="true"] { background: var(--page); color: var(--ink); font-weight: 600; }
   .seg button:focus-visible { outline: 2px solid var(--env-rc); outline-offset: 1px; }
 
@@ -82,7 +82,7 @@
   .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: 16px; }
 
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 12px; }
-  .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 14px 16px; }
+  .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 14px 16px; min-width: 0; }
   .tile .k { color: var(--ink-2); font-size: var(--fs-sm); }
   .tile .v { font-size: var(--fs-xl); font-weight: 650; letter-spacing: -0.02em; margin: 2px 0; }
   .tile.hero .v { font-size: calc(var(--fs-xl) * 1.4); }
