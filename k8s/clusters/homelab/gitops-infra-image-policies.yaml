@@ -1,13 +1,12 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/kustomize.toolkit.fluxcd.io/kustomization_v1.json
 ---
 # The ImageValidatingPolicy CRD comes from the Kyverno chart, so this waits for that HelmRelease to be Ready.
+# No gitops.homelab/tier label: the e2e workflow suspends every HelmRelease, so this cannot reconcile there (it is suspended by name).
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: gitops-infra-image-policies
   namespace: flux-system
-  labels:
-    gitops.homelab/tier: infra
 spec:
   interval: 30m
   retryInterval: 2m
