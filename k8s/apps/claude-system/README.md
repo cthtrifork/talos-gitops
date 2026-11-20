@@ -294,6 +294,10 @@ Kubernetes API with the pod's own token; the steps and the API are in `elevate/r
 | `flux` | `claude-flux` | 10-15 min | ask Flux to reconcile a HelmRelease or Kustomization (`reconcile.fluxcd.io/requestedAt`, `forceAt`, `resetAt` annotations only; the admission policy `claude-flux-reconcile-only` rejects any other change) |
 | `storage` | `claude-storage` | 10-15 min | delete PersistentVolumeClaims (both storage classes reclaim with `Delete`: a bound claim loses its data) |
 
+- **Run a job.** The page also runs a CronJob now (`POST /api/v1/jobs`), the way `kubectl create job --from=cronjob/<name>` does. The elevator creates the Job
+  from the CronJob's own template and owner reference; Claude's tokens get no `jobs` rights. Only in namespaces labelled `claude-elevate/jobs: "true"`
+  (`security-system`), enforced by the admission policy `claude-elevator-jobs` (manual annotation, one CronJob owner). The policy cannot compare the pod spec
+  with the CronJob's, so the elevator pod's token (`create jobs` cluster-wide, gated by that label) is the trust boundary, as it already is for tokens and bindings.
 - **Opt-in.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` in its own manifest (`adguard-system`: all three,
   `arc-runners-system`, `fileserver-system`, `harper-pad`, `renovate-system`: `ops` and `storage` (no `debug`: exec could read secrets),
   `arc-controller-system`, `registry-system`, `security-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`: `ops` only (their PVC data is kept),

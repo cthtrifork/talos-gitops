@@ -164,6 +164,15 @@
         <p id="none" class="none">Nothing is elevated.</p>
         <button id="revokeAll" type="button" class="danger" style="margin-top:12px" hidden>Revoke everything</button>
       </section>
+      <section class="card">
+        <h2>Run a job</h2>
+        <p class="none" style="margin-bottom:10px">Runs a CronJob now from its own template, in namespaces that allow it. Claude gets no rights from this.</p>
+        <form id="jobForm" autocomplete="off" novalidate>
+          <select id="jobSelect" aria-label="CronJob" disabled></select>
+          <button id="jobGo" type="submit" class="small" style="margin-top:10px" disabled>Run now</button>
+          <p id="jobMsg" class="hint" role="status"></p>
+        </form>
+      </section>
     </div>
   </div>
 </main>
@@ -253,8 +262,27 @@
     s.className = "summary" + (confirming ? " confirm" : "");
   }
 
+  var jobsKey = "";
+  function buildJobs() {
+    var jobs = status.cronjobs || [];
+    var key = jobs.map(function (j) { return j.namespace + "/" + j.name; }).join(",");
+    if (key === jobsKey) return;
+    jobsKey = key;
+    var keep = $("jobSelect").value, sel = $("jobSelect");
+    clear(sel);
+    jobs.forEach(function (j) {
+      var o = el("option", j.namespace + "/" + j.name + (j.suspended ? " (suspended)" : ""));
+      o.value = j.namespace + "/" + j.name;
+      sel.appendChild(o);
+    });
+    if (keep) sel.value = keep;
+    if (jobs.length === 0) { var e = el("option", "No namespace allows running jobs"); sel.appendChild(e); }
+    sel.disabled = $("jobGo").disabled = jobs.length === 0;
+  }
+
   function render() {
     if (!status) return;
+    buildJobs();
     buildNamespaces();
     var list = $("grants");
     var grants = status.grants || [];
@@ -350,6 +378,19 @@
     var tier = selectedTier(), minutes = selectedMinutes();
     setConfirming(false);
     send("/api/v1/grants", ns.map(function (n) { return { tier: tier, minutes: minutes, namespace: n }; }));
+  });
+
+  $("jobForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var parts = $("jobSelect").value.split("/");
+    if (parts.length !== 2) return;
+    var msg = $("jobMsg");
+    msg.textContent = "Starting…";
+    $("jobGo").disabled = true;
+    fetch("api/v1/jobs", { method: "POST", headers: HEADERS, body: JSON.stringify({ csrf: status.csrf, namespace: parts[0], cronjob: parts[1] }) })
+      .then(function (r) { return r.json().then(function (j) { return r.ok ? "Started " + j.job : "Refused: " + j.error; }); })
+      .catch(function (e) { return e.message; })
+      .then(function (text) { msg.textContent = text; $("jobGo").disabled = false; });
   });
 
   $("revokeAll").addEventListener("click", function () {

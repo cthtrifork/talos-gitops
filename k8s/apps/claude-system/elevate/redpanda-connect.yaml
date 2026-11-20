@@ -8,6 +8,8 @@
 # GET  /api/v1/status     allowed namespaces and max minutes per tier, and the active grants, all read from the API server
 # POST /api/v1/grants     {"tier": "<tier>", "minutes": <n>, "namespace": "<namespace>", "csrf": "<csrf>"}
 # POST /api/v1/revoke     {"tier": "<tier>", "namespace": "<namespace>", "csrf": "<csrf>"}
+# POST /api/v1/jobs       {"namespace": "<namespace>", "cronjob": "<name>", "csrf": "<csrf>"}: runs a CronJob now, like `kubectl create job --from`
+#                         (the elevator, not Claude, creates the Job; only in a namespace labelled claude-elevate/jobs, see the admission policy claude-elevator-jobs)
 # The status carries `csrf`, a hash of the pod's token that only a page reading the status can know, so a form on another site cannot post.
 # (A header cannot do that here: Connect also copies query parameters into the same metadata.) An error answers 502 with the API's message.
 http:
@@ -67,6 +69,13 @@ pipeline:
                 let b = content().parse_json()
                 root = {"tier": $b.tier.escape_url_path(), "namespace": $b.namespace.escape_url_path(), "csrf": $b.csrf}
             - resource: revoke
+
+        - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/jobs"'
+          processors:
+            - mapping: |
+                let b = content().parse_json()
+                root = {"namespace": $b.namespace.escape_url_path(), "cronjob": $b.cronjob.escape_url_path(), "csrf": $b.csrf}
+            - resource: run_job
 
         - processors:
             - mapping: |
@@ -185,8 +194,21 @@ processor_resources:
           processors:
             - resource: get
           result_map: 'meta serviceaccounts = this.items'
+      - branch:
+          request_map: |
+            meta path = "/apis/batch/v1/cronjobs"
+            root = ""
+          processors:
+            - resource: get
+          result_map: 'meta cronjobs = this.items'
       - mapping: |
           root.csrf = @token.hash("sha256").encode("hex")
+          root.cronjobs = @cronjobs.filter(c -> @namespaces.filter(n -> n.metadata.name == c.metadata.namespace && n.metadata.labels.or({}).get("claude-elevate/jobs") == "true").length() > 0).map_each(c -> {
+            "namespace": c.metadata.namespace,
+            "name": c.metadata.name,
+            "schedule": c.spec.schedule,
+            "suspended": c.spec.suspend.or(false)
+          })
           root.max_minutes = @limits.map_each(kv -> kv.value.number())
           root.allowed_namespaces = @limits.map_each(kv -> @namespaces.filter(n -> n.metadata.labels.or({}).get("claude-elevate/" + kv.key) == "true").map_each(n -> n.metadata.name))
           root.grants = @serviceaccounts.filter(s -> s.metadata.annotations.or({}).get("claude-elevate/expires-at").type() == "string").map_each(s -> {
@@ -309,3 +331,46 @@ processor_resources:
             action: revoke
             tier: '${! this.tier }'
       - mapping: 'root = {"revoked": true}'
+
+  # POST /api/v1/jobs: the message is {namespace, cronjob}. A Job from the CronJob's own template, owned by it, as `kubectl create job --from` does it.
+  - label: run_job
+    try:
+      - resource: login
+      - resource: check_csrf
+      - branch:
+          request_map: |
+            meta path = "/apis/batch/v1/namespaces/" + this.namespace + "/cronjobs/" + this.cronjob
+            root = ""
+          processors:
+            - resource: get
+          result_map: 'meta cronjob = this'
+      - branch:
+          request_map: |
+            let cj = metadata("cronjob")
+            let name = $cj.metadata.name.slice(0, 40) + "-manual-" + now().ts_unix().string()
+            meta job_name = $name
+            meta path = "/apis/batch/v1/namespaces/" + this.namespace + "/jobs"
+            root = {
+              "apiVersion": "batch/v1",
+              "kind": "Job",
+              "metadata": {
+                "name": $name,
+                "namespace": $cj.metadata.namespace,
+                "labels": $cj.spec.jobTemplate.metadata.labels.or({}),
+                "annotations": $cj.spec.jobTemplate.metadata.annotations.or({}).merge({"cronjob.kubernetes.io/instantiate": "manual"}),
+                "ownerReferences": [{"apiVersion": "batch/v1", "kind": "CronJob", "name": $cj.metadata.name, "uid": $cj.metadata.uid, "controller": true}]
+              },
+              "spec": $cj.spec.jobTemplate.spec
+            }
+          processors:
+            - resource: post
+      - log:
+          message: job started
+          fields_mapping: 'root = {"namespace": this.namespace, "cronjob": this.cronjob, "job": metadata("job_name")}'
+      - metric:
+          type: counter
+          name: elevate_requests
+          labels:
+            action: run_job
+            tier: jobs
+      - mapping: 'root = {"started": true, "job": metadata("job_name")}'
