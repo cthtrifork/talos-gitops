@@ -7,7 +7,8 @@
 #     it exists before this Job first runs. The Job logs in with it, or sets it on a fresh install. To use your own
 #     password, replace the key `password` in the Secret dependency-track-admin of the namespace secret-store.
 #  2. Teams from teams.json (`sbom-uploader`: key in dependency-track-api-key, used by sbom-hook; `vex-exporter`: key in
-#     dependency-track-vex-api-key, used by vex-export-cronjob.yaml). Permissions are only added, never removed. A key is only
+#     dependency-track-vex-api-key, used by vex-export-cronjob.yaml; `claude-triage`: key in dependency-track-claude-api-key of the namespace claude-system,
+#     used by the claude-rc pod to read findings and record analyses). Permissions are only added, never removed. A key is only
 #     created if its Secret does not exist yet, stored as `api-key`, never printed, and an existing Secret is never touched.
 #  3. Config properties from properties.json (group, name, value as a string), only the declared ones; the rest stays
 #     owned by the UI. An unknown property is a failure.
@@ -79,9 +80,9 @@ spec:
                   fi
                   token=$(cat token.txt)
 
-                  # 2. teams, permissions, API keys: ensure_team TEAM SECRET PERMISSION...
+                  # 2. teams, permissions, API keys: ensure_team TEAM SECRET NAMESPACE PERMISSION...
                   ensure_team() {
-                    team=$1; secret=$2; shift 2
+                    team=$1; secret=$2; ns=$3; shift 3
                     uuid=$(api GET /api/v1/team | jq -r --arg n "$team" '.[] | select(.name == $n) | .uuid')
                     if [ -z "$uuid" ]; then
                       uuid=$(api PUT /api/v1/team -H "$json" -d "$(jq -nc --arg n "$team" '{name: $n}')" | jq -r .uuid)
@@ -91,16 +92,16 @@ spec:
                       code=$(api POST "/api/v1/permission/$perm/team/$uuid" -o /dev/null -w '%{http_code}')
                       case "$code" in 200|304) ;; *) echo "adding $perm to $team failed ($code)" >&2; exit 1;; esac
                     done
-                    if ! kubectl get secret "$secret" >/dev/null 2>&1; then
+                    if ! kubectl -n "$ns" get secret "$secret" >/dev/null 2>&1; then
                       key=$(api PUT "/api/v1/team/$uuid/key" | jq -r .key)
                       [ -n "$key" ] && [ "$key" != null ] || { echo "cannot create an API key for $team" >&2; exit 1; }
-                      kubectl create secret generic "$secret" --from-literal=api-key="$key"
+                      kubectl -n "$ns" create secret generic "$secret" --from-literal=api-key="$key"
                     fi
                   }
                   jq -c '.[]' /config/teams.json > teams.jsonl
                   while read -r t; do
                     # shellcheck disable=SC2046
-                    ensure_team "$(echo "$t" | jq -r .name)" "$(echo "$t" | jq -r .secret)" $(echo "$t" | jq -r '.permissions[]')
+                    ensure_team "$(echo "$t" | jq -r .name)" "$(echo "$t" | jq -r .secret)" "$(echo "$t" | jq -r '.namespace // "security-system"')" $(echo "$t" | jq -r '.permissions[]')
                   done < teams.jsonl
                   failed=0
 

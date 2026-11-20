@@ -39,6 +39,13 @@ it needs (one policy each for Dependency-Track, `sbom-hook`, the trivy operator,
 the Dependency-Track jobs). The scan jobs may reach the trivy server (4954), zot (5000) and the internet;
 clients reach `trivy-service` (4954).
 
+## Assessing findings from the claude-rc pod
+
+The `claude-triage` team (view portfolio and vulnerabilities, read/create/update analysis; no BOM upload, no admin) has its
+key in the Secret `dependency-track-claude-api-key` of `claude-system`, created once by `config-cronjob.yaml` and exposed to
+the pod as `DT_API_KEY` (with `DT_URL`). A session records its assessment with `PUT /api/v1/analysis` (state, justification,
+response, comment); the daily VEX export then turns *not affected* decisions into a pull request. The key is never printed.
+
 ## The Dependency-Track KEK
 
 The chart does not generate the key encryption key. External Secrets generates it once in the cluster store

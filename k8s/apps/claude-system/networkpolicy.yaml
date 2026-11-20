@@ -71,6 +71,15 @@ spec:
         - ports:
             - port: "4195"
               protocol: TCP
+    # Dependency-Track API (query findings, record an analysis with the key of the claude-triage team)
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: security-system
+            k8s:app.kubernetes.io/name: dependency-track-api-server
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
     # URL sharing (asking for a page: GET /?url=...); the pod behind urlshare.portableinfo.cloud, which only lists and returns what the owner approved
     - toEndpoints:
         - matchLabels:
