@@ -1,6 +1,6 @@
 # claude-vm on KubeVirt
 
-[claude-vm-bootc](https://github.com/cthtrifork/homeserver-bootc) (docs/claude-vm) as a KubeVirt VM: 4 vCPU, 8 GiB, 60Gi `local-path` disk,
+[claude-vm-bootc](https://github.com/cthtrifork/homeserver-bootc) (docs/claude-vm) as a KubeVirt VM: 2 vCPU, 8 GiB, 60Gi `local-path` disk,
 UEFI, pod network with an SSH LoadBalancer at 192.168.1.246.
 
 ## Bring-up order

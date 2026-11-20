@@ -21,7 +21,7 @@ spec:
         devices.kubevirt.io/kvm: "1"
       domain:
         cpu:
-          cores: 4
+          cores: 2
         memory:
           guest: 8Gi
         firmware:
