@@ -61,6 +61,12 @@ spec:
         image:
           # renovate: datasource=docker depName=quay.io/prometheus-operator/prometheus-config-reloader versioning=docker
           tag: v0.95.2@sha256:cc74ddedad4ab1c49446971f6d51302ad4303d8660a2018af925c7f62c114304
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 64Mi
       enabled: true
       # The chart's CiliumNetworkPolicy selects on the version and chart labels, which the pod template does not carry,
       # so it matched no pod. The operator is covered by prom-operator in networkpolicy.yaml.
@@ -131,14 +137,6 @@ spec:
           memory: 32Mi
         limits:
           memory: 128Mi
-    prometheusConfigReloader:
-      resources:
-        requests:
-          cpu: 20m
-          memory: 64Mi
-        limits:
-          cpu: 50m
-          memory: 64Mi
     prometheus:
       enabled: true
       podDisruptionBudget:
