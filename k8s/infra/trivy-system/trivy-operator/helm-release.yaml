@@ -208,7 +208,7 @@ spec:
       # Setting this option to true will enable the Client Server mode, managed by the Trivy Operator.
       builtInTrivyServer: true
       exposedSecretScannerEnabled: false # we do not use this feature
-      scannerReportTTL: "${TRIVY_SCANNER_TTL:=24h}"
+      scannerReportTTL: "${TRIVY_SCANNER_TTL:=12h}"
       scanJobTTL: "5m" # set to 1m to keep jobs for a little while for troubleshooting
       # the nodes are control-plane nodes too (etcd, apiserver) and one has ~5 GB RAM: keep few scan jobs, each limited to 4Gi, running at once
       scanJobsConcurrentLimit: "${TRIVY_SCANNER_CONCURRENTLIMIT:=2}"
