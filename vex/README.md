@@ -24,7 +24,7 @@ Statements marked in Dependency-Track are exported here by `k8s/infra/security-s
 3. Run `scripts/vex-index.sh` (needs `jq`) and commit `index.json` with the document.
 
 The scan jobs read the `vex-cache` image (`images/vex-cache`), built from this directory and the Trivy VEX hub by
-`.github/workflows/vex.yaml`. The workflow runs when `vex/` or the image changes on `main`, and by hand; the Trivy
+`.github/workflows/images.yaml`. The workflow runs when `vex/` or the image changes on `main`, and by hand; the Trivy
 VEX hub part only changes when it runs. A new statement reaches a scan after that build, plus the next report regeneration
 (`scannerReportTTL`).
 Statements mark a CVE as `not_affected`, `fixed` or `under_investigation`; Trivy only hides the first two.

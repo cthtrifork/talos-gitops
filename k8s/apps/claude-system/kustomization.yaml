@@ -116,3 +116,4 @@ configMapGenerator:
       - bandwidth-test.md=claude-md/skills/bandwidth-test/SKILL.md
       - ci-k8s-reference.md=claude-md/skills/ci-k8s-reference/SKILL.md
       - urlshare.md=claude-md/skills/urlshare/SKILL.md
+      - dependency-track.md=claude-md/skills/dependency-track/SKILL.md
