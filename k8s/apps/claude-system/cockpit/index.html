@@ -590,10 +590,9 @@ const Chip = ({ state, text, href }) =>
   href ? html`<a class=${"pill " + state} href=${"#" + href}>${text}</a>` : html`<span class=${"pill " + state}>${text}</span>`;
 
 const Strip = (d) => {
-  const all = stripChips(d);
-  const shown = all.filter((c) => c.state !== "ok");
-  const healthy = all.length - shown.length;
-  return html`<nav class="strip" aria-label="Overall status, each item jumps to its panel">${shown.map(Chip)}${healthy > 0 ? Chip({ state: "ok", text: shown.length ? healthy + " healthy" : "All healthy" }) : nothing}</nav>`;
+  const shown = stripChips(d).filter((c) => c.state !== "ok");
+  // Healthy chips stay hidden; "All healthy" only keeps the strip from being empty when nothing needs a look.
+  return html`<nav class="strip" aria-label="Overall status, each item jumps to its panel">${shown.length ? shown.map(Chip) : Chip({ state: "ok", text: "All healthy" })}</nav>`;
 };
 
 const Section = ({ id, title }, children) => html`<section aria-labelledby=${"h-" + id}>
