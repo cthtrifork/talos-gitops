@@ -14,7 +14,7 @@ metadata:
     app.kubernetes.io/version: 3.10.0
     helm.sh/chart: kyverno-3.10.0
 spec:
-  replicas:
+  replicas: 2
   revisionHistoryLimit: 10
   strategy:
     rollingUpdate:
@@ -40,6 +40,14 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: admission-controller
+              app.kubernetes.io/part-of: kyverno
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
       dnsPolicy: ClusterFirst
       affinity:
         podAntiAffinity:
