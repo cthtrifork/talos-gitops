@@ -289,7 +289,7 @@ Kubernetes API with the pod's own token; the steps and the API are in `elevate/r
 
 | Tier | Role | Max | Grants |
 |---|---|---|---|
-| `ops` | `claude-ops` | 10-60 min | delete or evict pods |
+| `ops` | `claude-ops` | 10-60 min | delete or evict pods, delete StatefulSets (to recreate their PVCs) |
 | `debug` | `claude-debug` | 10-15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
 | `storage` | `claude-storage` | 10-15 min | delete PersistentVolumeClaims (both storage classes reclaim with `Delete`: a bound claim loses its data) |
 
