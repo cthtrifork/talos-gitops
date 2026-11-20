@@ -1,8 +1,11 @@
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/validatingpolicy_v1.json
-# No CiliumNetworkPolicy or CiliumClusterwideNetworkPolicy may allow egress to the entities world or all, in any namespace and
-# without exceptions: name the hosts (toFQDNs) or the addresses (toCIDRSet) instead. Only admission is checked, so a policy
+# No CiliumNetworkPolicy or CiliumClusterwideNetworkPolicy may allow egress to the entities world or all, in any namespace
+# except claude-vm: name the hosts (toFQDNs) or the addresses (toCIDRSet) instead. Only admission is checked, so a policy
 # that already exists keeps working until it is next changed. CIDR rules such as 0.0.0.0/0 are not covered.
+# claude-vm is exempt on purpose: the VM runs its own egress gateway (nftables + nginx + dnsmasq, a domain allowlist per
+# agent user), so the pod level does not repeat that list. Only the claude-vm namespace is excluded; a ClusterwideNetworkPolicy
+# is still checked.
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy
 metadata:
@@ -18,6 +21,12 @@ spec:
   webhookConfiguration:
     timeoutSeconds: 10
   matchConstraints:
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - claude-vm
     resourceRules:
       - apiGroups:
           - cilium.io

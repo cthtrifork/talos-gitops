@@ -1,7 +1,6 @@
-# Default deny both ways, then what the VM needs. The VM runs its own egress gateway (nftables + nginx + dnsmasq) that
-# only lets the agent users reach the hosts in homeserver-bootc build_files/claude-vm/egress-allowlist.txt; this is the
-# same list at the pod level, so a bypass inside the VM still stops here. Keep the two in step (the list below was
-# generated from that file). The deny-world-egress policy forbids toEntities world, hence names and CIDRs.
+# Default deny both ways, then what the VM needs. Egress to the world is open at the pod level on purpose: the VM runs its own
+# egress gateway (nftables + nginx + dnsmasq) that only lets the agent users reach the hosts in homeserver-bootc
+# build_files/claude-vm/egress-allowlist.txt. The claude-vm namespace is exempt from the deny-world-egress policy for this.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -26,7 +25,7 @@ spec:
     matchLabels:
       kubevirt.io/vm: claude-vm
   egress:
-    # DNS through kube-dns; the dns rule makes Cilium learn the addresses the FQDN rules below match
+    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -35,10 +34,7 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-          rules:
-            dns:
-              - matchPattern: "*"
-    # Telemetry (otel.portableinfo.cloud) and the Update VMs poll (vm-upgrade.portableinfo.cloud), plain HTTP on the LAN
+    # Telemetry (otel.portableinfo.cloud) and the Update VMs poll (vm-upgrade.portableinfo.cloud): LoadBalancer addresses on the LAN
     - toCIDRSet:
         - cidr: 192.168.1.243/32
         - cidr: 192.168.1.244/32
@@ -46,135 +42,9 @@ spec:
         - ports:
             - port: "80"
               protocol: TCP
-    - toFQDNs:
-        - matchName: anthropic.com
-        - matchPattern: "*.anthropic.com"
-        - matchName: claude.ai
-        - matchPattern: "*.claude.ai"
-        - matchName: claude.com
-        - matchPattern: "*.claude.com"
-        - matchName: frame.claudeusercontent.com
-        - matchPattern: "*.frame.claudeusercontent.com"
-        - matchName: frame.staging.claudeusercontent.com
-        - matchPattern: "*.frame.staging.claudeusercontent.com"
-        - matchName: github.com
-        - matchPattern: "*.github.com"
-        - matchName: githubassets.com
-        - matchPattern: "*.githubassets.com"
-        - matchName: githubcopilot.com
-        - matchPattern: "*.githubcopilot.com"
-        - matchName: githubusercontent.com
-        - matchPattern: "*.githubusercontent.com"
-        - matchName: context7.com
-        - matchPattern: "*.context7.com"
-        - matchName: portableinfo.cloud
-        - matchPattern: "*.portableinfo.cloud"
-        - matchName: npmjs.com
-        - matchPattern: "*.npmjs.com"
-        - matchName: npmjs.org
-        - matchPattern: "*.npmjs.org"
-        - matchName: nodejs.org
-        - matchPattern: "*.nodejs.org"
-        - matchName: bun.sh
-        - matchPattern: "*.bun.sh"
-        - matchName: pypi.org
-        - matchPattern: "*.pypi.org"
-        - matchName: files.pythonhosted.org
-        - matchPattern: "*.files.pythonhosted.org"
-        - matchName: astral.sh
-        - matchPattern: "*.astral.sh"
-        - matchName: proxy.golang.org
-        - matchPattern: "*.proxy.golang.org"
-        - matchName: sum.golang.org
-        - matchPattern: "*.sum.golang.org"
-        - matchName: storage.googleapis.com
-        - matchPattern: "*.storage.googleapis.com"
-        - matchName: blob.core.windows.net
-        - matchPattern: "*.blob.core.windows.net"
-        - matchName: s3.amazonaws.com
-        - matchPattern: "*.s3.amazonaws.com"
-        - matchName: crates.io
-        - matchPattern: "*.crates.io"
-        - matchName: rustup.rs
-        - matchPattern: "*.rustup.rs"
-        - matchName: static.rust-lang.org
-        - matchPattern: "*.static.rust-lang.org"
-        - matchName: rubygems.org
-        - matchPattern: "*.rubygems.org"
-        - matchName: repo.maven.apache.org
-        - matchPattern: "*.repo.maven.apache.org"
-        - matchName: plugins.gradle.org
-        - matchPattern: "*.plugins.gradle.org"
-        - matchName: nuget.org
-        - matchPattern: "*.nuget.org"
-        - matchName: wails.io
-        - matchPattern: "*.wails.io"
-        - matchName: debian.org
-        - matchPattern: "*.debian.org"
-        - matchName: fedoraproject.org
-        - matchPattern: "*.fedoraproject.org"
-        - matchName: docker.io
-        - matchPattern: "*.docker.io"
-        - matchName: docker.com
-        - matchPattern: "*.docker.com"
-        - matchName: gcr.io
-        - matchPattern: "*.gcr.io"
-        - matchName: ghcr.io
-        - matchPattern: "*.ghcr.io"
-        - matchName: quay.io
-        - matchPattern: "*.quay.io"
-        - matchName: registry.k8s.io
-        - matchPattern: "*.registry.k8s.io"
-        - matchName: mcr.microsoft.com
-        - matchPattern: "*.mcr.microsoft.com"
-        - matchName: cgr.dev
-        - matchPattern: "*.cgr.dev"
-        - matchName: registry.access.redhat.com
-        - matchPattern: "*.registry.access.redhat.com"
-        - matchName: developers.redhat.com
-        - matchPattern: "*.developers.redhat.com"
-        - matchName: developer.mozilla.org
-        - matchPattern: "*.developer.mozilla.org"
-        - matchName: developer.apple.com
-        - matchPattern: "*.developer.apple.com"
-        - matchName: webkit.org
-        - matchPattern: "*.webkit.org"
-        - matchName: docs.python.org
-        - matchPattern: "*.docs.python.org"
-        - matchName: go.dev
-        - matchPattern: "*.go.dev"
-        - matchName: kubernetes.io
-        - matchPattern: "*.kubernetes.io"
-        - matchName: fluxcd.io
-        - matchPattern: "*.fluxcd.io"
-        - matchName: readthedocs.io
-        - matchPattern: "*.readthedocs.io"
-        - matchName: wikipedia.org
-        - matchPattern: "*.wikipedia.org"
-        - matchName: stackoverflow.com
-        - matchPattern: "*.stackoverflow.com"
-        - matchName: oneuptime.com
-        - matchPattern: "*.oneuptime.com"
-        - matchName: json.schemastore.org
-        - matchPattern: "*.json.schemastore.org"
-        - matchName: nvd.nist.gov
-        - matchPattern: "*.nvd.nist.gov"
-        - matchName: osv.dev
-        - matchPattern: "*.osv.dev"
-        - matchName: security.snyk.io
-        - matchPattern: "*.security.snyk.io"
-        - matchName: api.first.org
-        - matchPattern: "*.api.first.org"
-        - matchName: www.cisa.gov
-        - matchPattern: "*.www.cisa.gov"
-        - matchName: cloudflare.com
-        - matchPattern: "*.cloudflare.com"
-      toPorts:
-        - ports:
-            - port: "443"
-              protocol: TCP
-            - port: "80"
-              protocol: TCP
+    # Everything else outside the cluster; the VM's own gateway does the filtering
+    - toEntities:
+        - world
 ---
 # SSH from the LAN only (the Service is a MetalLB address with externalTrafficPolicy Local)
 apiVersion: cilium.io/v2
