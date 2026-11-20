@@ -359,17 +359,6 @@ spec:
             - clusterrolebindingPodExecAttach
             - rolebindingClusterAdminRole
             - rolebindingRolePodExecAttach
-        # The "Elevate Claude" tiers: the elevate page creates these RoleBindings per grant (k8s/apps/claude-system/elevate/) and binds
-        # a short-lived ServiceAccount to the narrow ClusterRoles claude-ops, claude-storage and claude-flux
-        # (clusterrole-elevated.yaml). None is cluster-admin: no wildcards, and the flux tier is limited by an admission policy.
-        # Polaris reports the leftover bindings as cluster-admin.
-        - namespace: renovate-system
-          controllerNames:
-            - claude-elevate-flux
-            - claude-elevate-ops
-            - claude-elevate-storage
-          rules:
-            - rolebindingClusterAdminRole
         # Kyverno admission controller: its ClusterRole is an aggregation (rbac.kyverno.io/aggregate-to-admission-controller) with no
         # wildcard rules and no pods/exec, and the :view binding is the built-in view role. The CI audit cannot resolve the
         # aggregation and reports the roles as cluster-admin with pod exec.

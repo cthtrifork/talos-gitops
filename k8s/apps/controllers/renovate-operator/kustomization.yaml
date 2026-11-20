@@ -8,3 +8,4 @@ resources:
   - networkpolicy.yaml
   - external-secrets.yaml
   - ui-service.yaml
+  - role-polaris.yaml
