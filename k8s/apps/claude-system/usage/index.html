@@ -67,13 +67,16 @@
   h1 { font-size: var(--fs-xl); margin: 0; letter-spacing: -0.01em; }
   h2 { font-size: var(--fs-md); margin: 0; font-weight: 650; }
   .sub { color: var(--muted); font-size: var(--fs-sm); }
-  code, .src { font-family: var(--mono); font-size: var(--fs-sm); color: var(--muted); }
+  .back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 2px; color: var(--env-rc); text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  .back:focus-visible { outline: 2px solid var(--env-rc); outline-offset: 2px; border-radius: 3px; }
+  code, .src { font-family: var(--mono); font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
 
 
   .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
   .group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 2px; }
-  .seg button { all: unset; cursor: pointer; padding: 5px 12px; border-radius: 6px; color: var(--ink-2); font-size: var(--fs-md); }
+  .seg { display: inline-flex; max-width: 100%; overflow-x: auto; scrollbar-width: none; background-color: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 2px; }
+  .seg button { all: unset; cursor: pointer; padding: 5px 12px; border-radius: 6px; color: var(--ink-2); font-size: var(--fs-md); white-space: nowrap; flex: none; }
   .seg button[aria-pressed="true"] { background: var(--page); color: var(--ink); font-weight: 600; }
   .seg button:focus-visible { outline: 2px solid var(--env-rc); outline-offset: 1px; }
 
@@ -82,7 +85,7 @@
   .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: 16px; }
 
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 12px; }
-  .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 14px 16px; }
+  .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 14px 16px; min-width: 0; }
   .tile .k { color: var(--ink-2); font-size: var(--fs-sm); }
   .tile .v { font-size: var(--fs-xl); font-weight: 650; letter-spacing: -0.02em; margin: 2px 0; }
   .tile.hero .v { font-size: calc(var(--fs-xl) * 1.4); }
@@ -116,6 +119,15 @@
   .track .seg-b { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: var(--fs-sm); font-weight: 600; min-width: 0; overflow: hidden; }
   .track .neutral { background: var(--bar-neutral); justify-content: flex-start; }
 
+  /* Edge shadows appear only on the side that still has content to scroll to. */
+  .scroll, .seg {
+    background-color: var(--surface);
+    background-image: linear-gradient(to right, var(--surface) 30%, transparent), linear-gradient(to left, var(--surface) 30%, transparent), linear-gradient(to right, var(--axis), transparent), linear-gradient(to left, var(--axis), transparent);
+    background-position: 0 0, 100% 0, 0 0, 100% 0;
+    background-size: 32px 100%, 32px 100%, 12px 100%, 12px 100%;
+    background-repeat: no-repeat;
+    background-attachment: local, local, scroll, scroll;
+  }
   .scroll { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
   th, td { padding: 6px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
@@ -123,11 +135,30 @@
   th:first-child, td:first-child { text-align: left; }
   td.l, th.l { text-align: left; }
   tfoot td { font-weight: 650; border-bottom: 0; }
+  .fold > summary { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; justify-content: space-between; margin: 0; color: var(--ink); font-size: inherit; }
+  .fold[open] > summary { margin-bottom: 12px; }
+  .fold > summary h2 { display: inline; }
+  .fold > summary::-webkit-details-marker { display: none; }
+  .fold > summary h2::before { content: "▸"; display: inline-block; width: 1.2em; color: var(--muted); }
+  .fold[open] > summary h2::before { content: "▾"; }
   details summary { cursor: pointer; color: var(--ink-2); font-size: var(--fs-sm); margin-top: 10px; }
   details summary:focus-visible { outline: 2px solid var(--env-rc); }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-  #error { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 12px; font-size: var(--fs-sm); }
+  #error { position: sticky; top: 0; z-index: 6; background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 12px; font-size: var(--fs-sm); }
   .empty { color: var(--muted); padding: 12px 0; }
+  svg g.col, .track .seg-b { touch-action: pan-y; }
+  .chart { min-width: 0; }
+
+  /* Phones: larger touch targets, controls pinned to the top, tiles without the metric names, Cost across the full row. */
+  @media (pointer: coarse) {
+    .seg button { display: inline-flex; align-items: center; min-height: 40px; }
+  }
+  @media (max-width: 40rem) {
+    .bar { display: contents; }
+    .group { position: sticky; top: 0; z-index: 4; background: var(--page); padding: 8px 0; margin: -8px 0; box-shadow: 0 1px 0 var(--grid); }
+    .tile .src { display: none; }
+    .tile.hero { grid-column: 1 / -1; }
+  }
 </style>
 </head>
 <body>
@@ -166,6 +197,18 @@ const DAILY_SOURCE = {
   pull_requests: "claude_code_pull_request_count{environment}",
 };
 const REFRESH_MS = 60000;
+// On a phone the edit decisions start collapsed; the open state is bound once, so a refresh does not reopen it after the reader toggles it.
+const NARROW = matchMedia("(max-width: 40rem)");
+// The chosen environment, period and metric survive a reload.
+const UI_KEY = "usage-ui";
+const loadUi = () => {
+  const d = { env: "all", period: "7d", metric: "cost" };
+  try {
+    const s = JSON.parse(localStorage.getItem(UI_KEY)) || {};
+    return { env: typeof s.env === "string" ? s.env : d.env, period: s.period in PERIOD_DAYS ? s.period : d.period, metric: METRICS.some(([m]) => m === s.metric) ? s.metric : d.metric };
+  } catch { return d; }
+};
+const saveUi = (ui) => { try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch {} };
 
 // ---- Formatting and data helpers ----
 
@@ -213,7 +256,8 @@ function view(data, ui) {
 
 const tipEvent = (ev, detail) => ev.currentTarget.dispatchEvent(new CustomEvent("usage-tip", { bubbles: true, detail }));
 const showTip = (ev, title, lines) => tipEvent(ev, { x: ev.clientX, y: ev.clientY, title, lines });
-const hideTip = (ev) => tipEvent(ev, null);
+// On touch, lifting the finger fires pointerleave; the tip stays until the next tap elsewhere instead.
+const hideTip = (ev) => { if (ev.pointerType !== "touch") tipEvent(ev, null); };
 
 
 // ---- Building blocks ----
@@ -225,6 +269,11 @@ const Dot = (color) => html`<span class="dot" style="background: ${css(color)}">
 const Segmented = ({ label, id, options, value, onPick }) => html`<div class="seg" role="group" aria-label=${label} id=${id}>${options.map(([v, text]) => html`<button data-value=${v} aria-pressed=${String(value === v)} @click=${() => onPick(v)}>${text}</button>`)}</div>`;
 
 const Table = ({ id, head, rows, foot }) => html`<table id=${id}><thead><tr>${head}</tr></thead><tbody>${rows}</tbody>${foot ? html`<tfoot>${foot}</tfoot>` : nothing}</table>`;
+
+// A panel whose body starts collapsed on a phone. The open state is bound to the viewport at render time and Lit rewrites it only when that changes, so a refresh does not undo the reader's toggle.
+const Fold = ({ title, src, body }) => html`<section class="panel"><details class="fold" ?open=${!NARROW.matches}>
+  <summary><h2>${title}</h2><span class="src">${src}</span></summary>${body}
+</details></section>`;
 
 // ---- Sections ----
 
@@ -247,23 +296,27 @@ const Tiles = (v) => {
 };
 
 // Stacked columns per day, one segment per environment. The pieces inside the <svg> use the svg tag, so they get the SVG namespace.
-const DailyChart = ({ days, v, metric }) => {
+const DailyChart = ({ days, v, metric, width }) => {
   const envs = v.shownEnvs;
   const key = metric === "cost" ? "cost_usd" : metric;
   const val = (d, e) => (d.environments[e] ? d.environments[e][key] : 0);
   const fmt = metric === "cost" ? usd : metric === "tokens" ? compact : num;
   const perDay = days.map((d) => sum(envs.map((e) => val(d, e))));
   const label = "Stacked columns per day by environment";
+  // Wide: a fixed 720 x 240 canvas. Narrow: the canvas is as wide as the container, so the text keeps its real size instead of shrinking with the SVG.
+  const narrow = width > 0 && width < 600;
+  const W = narrow ? Math.round(width) : 720, H = 240;
   if (!days.length || !envs.length || Math.max(0, ...perDay) === 0) {
-    return html`<svg id="daily" viewBox="0 0 720 240" role="img" aria-label=${label}><text x="360" y="120" text-anchor="middle">No usage in this period yet</text></svg>`;
+    return html`<svg id="daily" viewBox="0 0 ${W} ${H}" role="img" aria-label=${label}><text x=${W / 2} y=${H / 2} text-anchor="middle">No usage in this period yet</text></svg>`;
   }
   const max = Math.max(...perDay) * 1.08;
-  const L = 44, R = 78, T = 8, B = 24, W = 720, H = 240;
+  const L = narrow ? 40 : 44, R = narrow ? 8 : 78, T = 8, B = 24;
   const pw = (W - L - R) / days.length;
   const ph = H - T - B;
   const last = days[days.length - 1];
   let stacked = 0;
-  return html`<svg id="daily" viewBox="0 0 720 240" role="img" aria-label=${label}>
+  const step = Math.ceil(days.length / Math.max(2, Math.floor((W - L - R) / 52)));
+  return html`<svg id="daily" viewBox="0 0 ${W} ${H}" role="img" aria-label=${label}>
     ${[0, 0.5, 1].map((f) => {
       const y = T + ph * (1 - f);
       return svg`<line x1=${L} x2=${W - R} y1=${y} y2=${y} class=${f ? "grid" : "axis"} /><text x=${L - 6} y=${y + 4} text-anchor="end">${fmt(max * f)}</text>`;
@@ -273,7 +326,7 @@ const DailyChart = ({ days, v, metric }) => {
       const w = pw * 0.72;
       let acc = 0;
       const lines = [...envs.map((e) => [v.envColor(e), e, fmt(val(d, e))]), ...(envs.length > 1 ? [[null, "Total", fmt(perDay[i])]] : [])];
-      return svg`<g class="col" @pointermove=${(ev) => showTip(ev, d.date, lines)} @pointerleave=${hideTip}>
+      return svg`<g class="col" @pointerdown=${(ev) => showTip(ev, d.date, lines)} @pointermove=${(ev) => showTip(ev, d.date, lines)} @pointerleave=${hideTip}>
         <rect x=${L + i * pw} y=${T} width=${pw} height=${ph} class="hit" />
         ${envs.map((e) => {
           const value = val(d, e);
@@ -282,9 +335,9 @@ const DailyChart = ({ days, v, metric }) => {
           acc += value;
           return h > 0 ? svg`<rect x=${x} y=${y} width=${w} height=${h} rx="3" fill=${css(v.envColor(e))} class="seg-fill" />` : nothing;
         })}
-      </g>${days.length <= 8 || i % Math.ceil(days.length / 8) === 0 || i === days.length - 1 ? svg`<text x=${x + w / 2} y=${H - 6} text-anchor="middle">${d.date.slice(5)}</text>` : nothing}`;
+      </g>${(days.length - 1 - i) % step === 0 ? svg`<text x=${x + w / 2} y=${H - 6} text-anchor="middle">${d.date.slice(5)}</text>` : nothing}`;
     })}
-    ${envs.map((e) => {
+    ${narrow ? nothing : envs.map((e) => {
       const value = val(last, e);
       const mid = T + ph - ((stacked + value / 2) / max) * ph;
       stacked += value;
@@ -293,7 +346,7 @@ const DailyChart = ({ days, v, metric }) => {
   </svg>`;
 };
 
-const PerDay = ({ data, v, metric, setMetric }) => {
+const PerDay = ({ data, v, metric, setMetric, width }) => {
   const all = data.daily ? data.daily.days : [];
   const days = all.slice(-(v.period === "30d" ? 30 : 7));
   const key = metric === "cost" ? "cost_usd" : metric;
@@ -307,7 +360,7 @@ const PerDay = ({ data, v, metric, setMetric }) => {
       ${Segmented({ label: "Metric", id: "metricSeg", options: METRICS, value: metric, onPick: setMetric })}
     </div>
     <div class="legend" id="envLegend">${envs.map((e) => html`<span><i style="background: ${css(v.envColor(e))}"></i>${e}</span>`)}</div>
-    ${DailyChart({ days, v, metric })}
+    <div class="chart">${DailyChart({ days, v, metric, width })}</div>
     <details><summary>View as table</summary><div class="scroll">
       ${Table({
         id: "dailyTable",
@@ -340,7 +393,7 @@ const TokenMix = (v) => {
         <div class="track">${TOKENS.map((t) => {
           const share = (m.tokens[t.k] / total) * 100;
           return html`<div class="seg-b" style="width: ${share}%; flex: 0 0 auto; background: ${css(t.v)}; color: ${css(t.on)}"
-            @pointermove=${(ev) => showTip(ev, name, [[t.v, t.label, compact(m.tokens[t.k]) + " · " + share.toFixed(1) + "%"]])} @pointerleave=${hideTip}>${share >= 9 ? share.toFixed(0) + "%" : nothing}</div>`;
+            @pointerdown=${(ev) => showTip(ev, name, [[t.v, t.label, compact(m.tokens[t.k]) + " · " + share.toFixed(1) + "%"]])} @pointermove=${(ev) => showTip(ev, name, [[t.v, t.label, compact(m.tokens[t.k]) + " · " + share.toFixed(1) + "%"]])} @pointerleave=${hideTip}>${share >= 9 ? share.toFixed(0) + "%" : nothing}</div>`;
         })}</div>
         <div class="val">${(cacheHit(m.tokens) * 100).toFixed(0)}% hit</div>
       </div>`;
@@ -392,10 +445,11 @@ class UsageTooltip extends LitElement {
     super();
     this.tip = null;
     this._on = (e) => { this.tip = e.detail; };
+    this._away = (e) => { if (this.tip && !e.target.closest?.("g.col, .seg-b")) this.tip = null; };
   }
   createRenderRoot() { return this; }
-  connectedCallback() { super.connectedCallback(); document.addEventListener("usage-tip", this._on); }
-  disconnectedCallback() { document.removeEventListener("usage-tip", this._on); super.disconnectedCallback(); }
+  connectedCallback() { super.connectedCallback(); document.addEventListener("usage-tip", this._on); document.addEventListener("pointerdown", this._away); }
+  disconnectedCallback() { document.removeEventListener("usage-tip", this._on); document.removeEventListener("pointerdown", this._away); super.disconnectedCallback(); }
   updated() {
     if (!this.tip) return;
     const el = this.querySelector("#tip");
@@ -410,18 +464,27 @@ class UsageTooltip extends LitElement {
 
 // The page. Assigning to ui, data or error re-renders it; nothing calls a render by hand.
 class UsageApp extends LitElement {
-  static properties = { ui: { state: true }, data: { state: true }, error: { state: true } };
+  static properties = { ui: { state: true }, data: { state: true }, error: { state: true }, chartW: { state: true }, fetchedAt: { state: true } };
   constructor() {
     super();
-    this.ui = { env: "all", period: "7d", metric: "cost" };
+    this.ui = loadUi();
+    this.chartW = 0;
+    this.fetchedAt = null;
     this.data = { summary: null, daily: null, breakdown: null, decisions: null, period: null };
     this.error = null;
     this._period = null;
     this._stop = () => {};
-    this.pick = (key) => (value) => { this.ui = { ...this.ui, [key]: value }; };
+    this.pick = (key) => (value) => { this.ui = { ...this.ui, [key]: value }; saveUi(this.ui); };
   }
   createRenderRoot() { return this; }
-  disconnectedCallback() { this._stop(); this._period = null; super.disconnectedCallback(); }
+  connectedCallback() { super.connectedCallback(); this._ro = new ResizeObserver(() => this._measure()); this._ro.observe(this); }
+  disconnectedCallback() { this._ro.disconnect(); this._stop(); this._period = null; super.disconnectedCallback(); }
+  // The chart draws at the width of its container; a change of a pixel or more re-renders it.
+  _measure() {
+    const w = Math.round(this.querySelector(".chart")?.clientWidth || 0);
+    if (w && w !== this.chartW) this.chartW = w;
+  }
+  updated() { this._measure(); }
   // Polling follows the chosen period: a new period restarts it.
   willUpdate() {
     if (this.ui.period === this._period) return;
@@ -442,6 +505,7 @@ class UsageApp extends LitElement {
         if (seq !== latest) return;
         this.data = { summary, daily, breakdown, decisions, period };
         this.error = null;
+        this.fetchedAt = new Date();
       } catch (e) {
         if (seq === latest) this.error = e.message;
       }
@@ -457,11 +521,12 @@ class UsageApp extends LitElement {
     const range = days?.length
       ? `${days[Math.max(0, days.length - (v.period === "30d" ? 30 : 7))].date} to ${days[days.length - 1].date} · UTC days · from Prometheus`
       : "UTC days · from Prometheus";
+    const stamp = this.fetchedAt ? ` · updated ${this.fetchedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "";
 
     return html`<main>
       <p id="error" role="alert" ?hidden=${!error}>${error ? `Could not load usage: ${error}. Showing the last data received.` : nothing}</p>
       <header class="bar">
-        <div><h1>Claude usage</h1><div class="sub" id="range">${range}</div></div>
+        <div><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><h1>Claude usage</h1><div class="sub" id="range">${range}${stamp}</div></div>
         <div class="group">
           ${Segmented({ label: "Environment", id: "envSeg", options: ["all", ...v.envs].map((e) => [e, e === "all" ? "All" : e]), value: v.env, onPick: this.pick("env") })}
           ${Segmented({ label: "Period", id: "periodSeg", options: PERIODS, value: ui.period, onPick: this.pick("period") })}
@@ -469,9 +534,9 @@ class UsageApp extends LitElement {
       </header>
 
       ${Tiles(v)}
-      ${PerDay({ data, v, metric: ui.metric, setMetric: this.pick("metric") })}
+      ${PerDay({ data, v, metric: ui.metric, setMetric: this.pick("metric"), width: this.chartW })}
 
-      <div class="cols">
+      ${v.models.length ? html`<div class="cols">
         <section class="panel">
           <div class="panel-head"><h2>Cost by model</h2><span class="src">claude_code_cost_usage{model}</span></div>
           ${ModelCost(v)}
@@ -481,12 +546,9 @@ class UsageApp extends LitElement {
           ${TokenMix(v)}
           <div class="sub" style="margin-top:8px">Cache hit = cache read ÷ (input + cache read + cache write).</div>
         </section>
-      </div>
+      </div>` : html`<section class="panel"><div class="panel-head"><h2>Model usage</h2><span class="src">claude_code_cost_usage{model}</span></div>${Empty("No model usage in this period yet.")}</section>`}
 
-      <section class="panel">
-        <div class="panel-head"><h2>By model and environment</h2><span class="src">tokens, cost and lines carry both labels</span></div>
-        <div class="scroll">${ModelTable(v)}</div>
-      </section>
+      ${Fold({ title: "By model and environment", src: "tokens, cost and lines carry both labels", body: html`<div class="scroll">${ModelTable(v)}</div>` })}
 
       <div class="cols">
         <section class="panel">
@@ -494,10 +556,7 @@ class UsageApp extends LitElement {
           <div class="scroll">${ActivityTable(v)}</div>
           <div class="sub" style="margin-top:8px">Cost per commit and per pull request divide the environment's whole cost by its commits or pull requests, so sessions that only read code count against them.</div>
         </section>
-        <section class="panel">
-          <div class="panel-head"><h2>Edit tool decisions</h2><span class="src">claude_code_code_edit_tool_decision</span></div>
-          <div class="scroll">${DecisionTable(v)}</div>
-        </section>
+        ${Fold({ title: "Edit tool decisions", src: "claude_code_code_edit_tool_decision", body: html`<div class="scroll">${DecisionTable(v)}</div>` })}
       </div>
 
       <p class="sub" id="gen">Counts come from <code>increase()</code> of the collector's counters; the first export of a new model or environment is not counted.</p>

@@ -11,7 +11,12 @@ spec:
     kind: OCIRepository
     name: renovate-operator
   install:
+    remediation:
+      retries: 3
     createNamespace: true
+  upgrade:
+    remediation:
+      retries: 3
   # https://github.com/mogenius/renovate-operator/blob/main/charts/renovate-operator/values.yaml
   values:
     fullnameOverride: renovate-operator
@@ -31,6 +36,8 @@ spec:
     # so no volume and no password: the namespace policy lets only the operator and the job pods reach it.
     valkey:
       enabled: true
+      image:
+        registry: mirror.gcr.io
       auth:
         enabled: false
       dataStorage:

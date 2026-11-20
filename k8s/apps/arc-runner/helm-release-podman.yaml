@@ -23,8 +23,13 @@ spec:
     kind: OCIRepository
     name: arc-runners-system
   install:
+    remediation:
+      retries: 3
     createNamespace: false
 
+  upgrade:
+    remediation:
+      retries: 3
   # https://github.com/actions/actions-runner-controller/blob/master/charts/gha-runner-scale-set/values.yaml
   values:
     resourceMeta:

@@ -26,7 +26,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 'c8d6772a50fdac5d545068481e25bd4f1753aeed2a833137f17aa50f8c24c0ad'
+        checksum/config: '32b888307468347d7ba841eeaf6d3fe868b736f527f461a3c9acf910c25cac89'
       labels:
         app: polaris
         app.kubernetes.io/name: polaris
@@ -67,7 +67,7 @@ spec:
             periodSeconds: 20
           resources:
             limits:
-              memory: 128Mi
+              memory: 256Mi
             requests:
               cpu: 25m
               memory: 32Mi

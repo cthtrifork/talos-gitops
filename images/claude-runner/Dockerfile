@@ -31,7 +31,7 @@ ARG KUBECONFORM_VERSION=0.8.0
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VERSION=4.3.2
 # renovate: datasource=github-releases depName=fluxcd/flux2
-ARG FLUX_VERSION=2.10.0
+ARG FLUX_VERSION=2.10.1
 # renovate: datasource=github-releases depName=rhysd/actionlint
 ARG ACTIONLINT_VERSION=1.7.12
 
@@ -145,9 +145,9 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Renovate bumps the version. The linux-x64 checksum is read from the release manifest at build time
 # (https://downloads.claude.ai/claude-code-releases/<version>/manifest.json), so there is nothing to bump by hand.
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG CLAUDE_CODE_VERSION=2.1.325
+ARG CLAUDE_CODE_VERSION=2.1.326
 # renovate: datasource=github-releases depName=controlplaneio-fluxcd/flux-operator
-ARG FLUX_OPERATOR_VERSION=0.62.1
+ARG FLUX_OPERATOR_VERSION=0.63.0
 # renovate: datasource=github-releases depName=siderolabs/talos
 ARG TALOSCTL_VERSION=1.14.6
 # renovate: datasource=github-releases depName=siderolabs/omni

@@ -73,9 +73,45 @@ spec:
             - port: "3000"
               protocol: TCP
   egress:
-    # Upstream resolvers, blocklists, and the LAN (reverse lookups)
-    - toEntities:
-        - world
+    # DNS with the proxy on, so Cilium learns the addresses behind the hosts below
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # DNS-over-HTTPS upstreams and the blocklists
+    - toFQDNs:
+        - matchName: dns.cloudflare.com
+        - matchName: cloudflare-dns.com
+        - matchName: dns.google
+        - matchName: adguardteam.github.io
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # bootstrap and fallback resolvers
+    - toCIDRSet:
+        - cidr: 1.1.1.1/32
+        - cidr: 8.8.8.8/32
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+            - port: "443"
+              protocol: TCP
+    # the LAN (reverse lookups)
+    - toCIDRSet:
+        - cidr: 192.168.1.0/24
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy

@@ -12,6 +12,12 @@ spec:
     name: cert-manager
   driftDetection:
     mode: enabled
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
   values:
     acmesolver:
       image:

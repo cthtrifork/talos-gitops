@@ -18,6 +18,9 @@ spec:
   install:
     strategy:
       name: RetryOnFailure
+  upgrade:
+    remediation:
+      retries: 3
   values:
     installCRDs: true
     # Metrics (8080) are scraped by label, see k8s/infra/kube-prometheus-stack/cilium-clusterwide-networkpolicy.yaml

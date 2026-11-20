@@ -4,6 +4,9 @@ kind: Namespace
 metadata:
   name: arc-runners-system
   labels:
+    claude-elevate/ops: "true"
+    claude-elevate/flux: "true"
+    claude-elevate/storage: "true"
     name: arc-runners-system
     pod-security.kubernetes.io/enforce: privileged
     pod-security.kubernetes.io/audit: privileged

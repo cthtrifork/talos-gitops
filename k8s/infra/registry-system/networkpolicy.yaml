@@ -36,7 +36,8 @@ spec:
         - kube-apiserver
 ---
 # zot (registry and pull-through cache): pulled from by the nodes and the LAN (zot-lb 192.168.1.240 is world),
-# pushed to by the ARC runners, queried by trivy-operator scan jobs, scraped by Prometheus.
+# pushed to by the ARC runners, queried by trivy-operator scan jobs, scraped by Prometheus. Its egress is an allowlist:
+# DNS, the upstream registries by name (443) and the Trivy server.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -60,19 +61,53 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: arc-runners-system
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: security-system
+            k8s:io.kubernetes.pod.namespace: trivy-system
       toPorts:
         - ports:
             - port: "5000"
               protocol: TCP
   egress:
-    # Upstream registries for the sync (ghcr.io, quay.io, registry.k8s.io, ...)
-    - toEntities:
-        - world
+    # DNS with the proxy on, so Cilium learns the addresses behind the hosts below (the namespace-wide DNS rule has no inspection)
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # Upstreams of the sync in zot.json and the hosts their blob redirects point to. An upstream added there needs its hosts here,
+    # or the pull fails (see scripts/claude-drops.sh and the cilium-drops skill). No world.
+    - toFQDNs:
+        # Docker Hub and its mirror
+        - matchName: docker.io
+        - matchName: registry-1.docker.io
+        - matchName: auth.docker.io
+        - matchName: production.cloudflare.docker.com
+        - matchName: mirror.gcr.io
+        # ghcr.io (blobs come from pkg-containers.githubusercontent.com)
+        - matchName: ghcr.io
+        - matchName: pkg-containers.githubusercontent.com
+        # gcr.io
+        - matchName: gcr.io
+        # quay.io (blobs come from cdn*.quay.io)
+        - matchName: quay.io
+        - matchPattern: "cdn*.quay.io"
+        # registry.k8s.io redirects to Artifact Registry and S3
+        - matchName: registry.k8s.io
+        - matchPattern: "*.pkg.dev"
+        - matchPattern: "prod-registry-k8s-io-*.s3.dualstack.*.amazonaws.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
     # Trivy extension
     - toEndpoints:
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: security-system
+            k8s:io.kubernetes.pod.namespace: trivy-system
             k8s:app.kubernetes.io/name: trivy-server
       toPorts:
         - ports:
@@ -80,7 +115,8 @@ spec:
               protocol: TCP
 ---
 # Spegel (node-local mirror): containerd on each node reaches it through the NodePort (host or remote-node), the
-# instances find each other on 5000 and 5001 (TCP and UDP) and use the nodes and the internet as upstream.
+# instances find each other on 5000 and 5001 (TCP and UDP). It serves only what the nodes already hold and never fetches from
+# the internet: containerd falls back to zot and the upstream registry itself.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -108,7 +144,6 @@ spec:
               protocol: TCP
   egress:
     - toEntities:
-        - world
         - host
         - remote-node
     - toEndpoints:

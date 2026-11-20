@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+---
+# Kyverno and its CRDs, applied and waited on before the policies in gitops-infra-image-policies. The namespace and the
+# default-deny policy come from gitops-infra-policy-system.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: gitops-infra-kyverno
+  namespace: flux-system
+  labels:
+    gitops.homelab/tier: infra
+spec:
+  interval: 30m
+  retryInterval: 2m
+  prune: true
+  wait: true
+  timeout: 10m
+  dependsOn:
+    - name: gitops-infra-bootstrap
+    - name: gitops-infra-controllers
+    - name: gitops-infra-policy-system
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ../../k8s/infra/kyverno
+  postBuild:
+    substitute:
+      var_substitution_enabled: "true"

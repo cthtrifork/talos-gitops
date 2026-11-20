@@ -1,43 +1,22 @@
 # security-system
 
-- `trivy-operator/`: vulnerability scanning of running workloads, in client/server mode with one shared
-  `trivy-service`. The trivy server pulls its vulnerability and Java databases (and the policy bundle) from the in-cluster
-  zot registry (`ghcr-cache/aquasecurity/trivy-db` etc.), which syncs them on demand from `ghcr.io`. Scanned images are
-  also pulled through zot via `trivy.registry.mirror`.
+- Trivy (`trivy-operator/`) moved to the namespace `trivy-system` (`k8s/infra/trivy-system/`) and Reloader to `reloader-system`.
+  Dependency-Track queries `trivy-service.trivy-system:4954`, and the trivy operator posts every SBOM to `sbom-hook` here.
 - `dependency-track/`: Dependency-Track 5 with a single-instance CNPG PostgreSQL (`dependency-track-db`).
-
-## VEX hub, ignore file and ignore policy
-
-Trivy filters its findings with three inputs, all generated into ConfigMaps by the `configMapGenerator` in
-`trivy-operator/kustomization.yaml` (fixed names, no hash suffix) from files you edit in Git, and mounted into the
-trivy server and the scan jobs:
-
-- `trivy-operator/vex/repository.yaml` (`vex-repository-config`): the VEX repositories Trivy loads, the Trivy VEX hub
-  (`default`) and our `vex/` directory (`homelab-vexhub`). The data is in the `vex-cache` image (`images/vex-cache`, built
-  by `.github/workflows/build-vex-cache.yaml` from the hub and `vex/`), which the scan jobs mount read-only at
-  `<cache-dir>/vex`. `skip-vex-repo-update` keeps Trivy from downloading anything at scan time, so the URLs in the file
-  are not fetched. The image is rebuilt when `vex/` changes on `main` and when the workflow is run by hand; the Trivy VEX hub
-  part only changes when it runs. VEX statements mark CVEs as not exploitable in a product.
-- `trivy-operator/ignore/trivyignore.yaml` (`trivy-ignorefile`): accepted findings, with an expiry.
-- `trivy-operator/ignore/ignore-policy.rego` (`trivy-ignorepolicy`): a Rego policy, `ignore` is false by default.
-
-They are wired through the `configFile` in `trivy-operator/helm-release.yaml` (`vex`, `ignorefile`, `ignore-policy`).
-A change takes effect for the next scan job; reports are regenerated after `scannerReportTTL`.
-
-## Zot CA trust
-
-zot's certificate comes from `certificate-cluster-issuer`. trust-manager's `portableinfo-ca-bundle` Bundle
-(`k8s/infra/post/trust-manager`) puts the root CA in a ConfigMap of that name (key `ca-bundle.crt`) in every namespace; the
-trivy server, the scan jobs and the operator mount it as `/etc/ssl/certs/zot-ca.crt` (Go reads extra files there), so no
-`dbRepositoryInsecure` is needed. Reloader restarts the trivy server and the operator when the bundle changes (they read
-it at start); a scan job reads it when it starts.
 
 ## Network policies
 
 `networkpolicy.yaml` denies all traffic in both directions for the namespace and then allows, per workload, what Hubble showed
-it needs (one policy each for Dependency-Track, `sbom-hook`, the trivy operator, the trivy server, the scan jobs and
-the Dependency-Track jobs). The scan jobs may reach the trivy server (4954), zot (5000) and the internet;
-clients reach `trivy-service` (4954).
+it needs (one policy each for Dependency-Track, its database, `sbom-hook` and the Dependency-Track jobs). Dependency-Track may
+reach Postgres (5432), `trivy-service` in `trivy-system` (4954) and the vulnerability feeds; `sbom-hook` takes the webhook of the
+trivy operator in `trivy-system` (4195).
+
+## Assessing findings from the claude-rc pod
+
+The `claude-triage` team (view portfolio and vulnerabilities, read/create/update analysis; no BOM upload, no admin) has its
+key in the Secret `dependency-track-claude-api-key` of `claude-system`, created once by `config-cronjob.yaml` and exposed to
+the pod as `DT_API_KEY` (with `DT_URL`). A session records its assessment with `PUT /api/v1/analysis` (state, justification,
+response, comment); the daily VEX export then turns *not affected* decisions into a pull request. The key is never printed.
 
 ## The Dependency-Track KEK
 
@@ -62,14 +41,14 @@ not routed through Traefik). Check the address is free in the pool (`192.168.1.2
 
 Trivy itself has no KEV data, and trivy-operator reports (and its metrics) only carry severity/CVSS. KEV enrichment
 comes from Dependency-Track 5, which has two relevant pieces. Both are stored in its database, so Helm values cannot set
-them; `dependency-track/config-cronjob.yaml` (a CronJob every 20 minutes) applies them through the REST API:
+them; `dependency-track/config-cronjob.yaml` (a CronJob every hour, and Reloader runs it when its ConfigMap changes) applies them through the REST API:
 
 1. **KEV data sources**: CISA KEV and ENISA KEV are enabled. Dependency-Track then flags findings whose CVE (or alias) is
    known exploited, with the required action and a known-ransomware flag. It needs egress to `www.cisa.gov` and
    `raw.githubusercontent.com`. VulnCheck KEV needs a token and is not configured.
-2. **Trivy vulnerability analyzer**: enabled with API URL `http://trivy-service.security-system.svc.cluster.local:4954`.
+2. **Trivy vulnerability analyzer**: enabled with API URL `http://trivy-service.trivy-system.svc.cluster.local:4954`.
    It reuses the trivy server that trivy-operator runs, so the zot-mirrored database is used and the analyzer needs no
-   internet access. The server has no token set.
+   internet access. The server has no token set. It scans libraries and OS packages (`scanOs`), so Debian and Alpine findings show up too.
 
 The settings live in the ConfigMap `dependency-track-config` (`extensions.json`: extension point, extension name, config)
 and are merged over the current settings; add entries there for other analyzers or data sources. Notifications, policies and
@@ -102,7 +81,7 @@ Teams keep their permissions (`sbom-uploader`: `BOM_UPLOAD`, `PROJECT_CREATION_U
 printed or overwritten. While the key Secret is missing, `sbom-hook` logs `DRY RUN: would upload ...` and the VEX export
 prints that it has nothing to export.
 
-**Key rotation / recovery.** Delete the key Secret; the next run (within 20 minutes) creates a new key and Secret. The old
+**Key rotation / recovery.** Delete the key Secret; the next run (within an hour, or run it from the Elevate page) creates a new key and Secret. The old
 key stays valid: revoke it in the UI (Administration, Access Management, Teams, the team's API keys). Then restart the
 consumer, which reads the key at start: `kubectl -n security-system rollout restart deploy/sbom-hook` (the VEX export reads it
 on each run). If the Job created a key but failed to store the Secret, the next run creates another; revoke the unused one.

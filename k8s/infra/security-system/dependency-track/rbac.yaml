@@ -27,6 +27,7 @@ rules:
       - "dependency-track-vex-api-key"
     verbs:
       - "get"
+      - "update" # replace a key the API no longer accepts
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

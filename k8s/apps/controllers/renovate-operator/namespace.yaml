@@ -4,6 +4,9 @@ kind: Namespace
 metadata:
   name: renovate-system
   labels:
+    claude-elevate/ops: "true"
+    claude-elevate/flux: "true"
+    claude-elevate/storage: "true"
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted

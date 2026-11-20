@@ -38,7 +38,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: connect
-          image: mirror.gcr.io/redpandadata/connect:4.118.0@sha256:2c6dd2fe757eaa588eeee90376ec2220a5d1731940d71a2005d8b249296dd2be # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
+          image: mirror.gcr.io/redpandadata/connect:4.119.0@sha256:64a140553f57eaefe897ad9613b9190e30a51e08fa8cdc9ebb02120440654fa7 # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
           args:
             - -c
             - /etc/connect/redpanda-connect.yaml

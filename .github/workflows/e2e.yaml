@@ -46,7 +46,7 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
       - name: Setup Flux Operator CLI
-        uses: controlplaneio-fluxcd/flux-operator/actions/setup@48e2cd76c475be87a1c9a8bd83fe07e064abd725 # v0.62.1
+        uses: controlplaneio-fluxcd/flux-operator/actions/setup@712a9026cd99efdd885d73ed31d0775a2dd2873a # v0.63.0
       - name: Setup Kubernetes Kind
         timeout-minutes: 5
         uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
@@ -116,7 +116,7 @@ jobs:
           kubectl wait --for=condition=Ready fluxinstance flux -n flux-system --timeout=5m
 
       - name: Setup Flux CLI
-        uses: fluxcd/flux2/action@3fa784edd773d56630bb9f62645e08f70c2cff0a # v2.10.0
+        uses: fluxcd/flux2/action@23dcfe98fe672acdf44ecd9c60cbac41b57f5de8 # v2.10.1
         with:
           token: ${{ github.token }}
           version: '2.9.5' # renovate: datasource=github-releases depName=fluxcd/flux2
@@ -136,7 +136,8 @@ jobs:
 
       - name: Suspend workload Kustomizations
         run: |
-          for ks in app-controllers renovate \
+          # gitops-infra-image-policies needs the Kyverno CRD, and the HelmReleases are suspended here
+          for ks in app-controllers renovate gitops-infra-image-policies \
               $(kubectl get kustomization -n flux-system -l gitops.homelab/tier=apps -o name | cut -d/ -f2); do
             flux suspend kustomization "${ks}"
           done
@@ -147,7 +148,7 @@ jobs:
 
       - name: Patch infra Kustomizations for kind
         run: |
-          for ks in gitops-infra-controllers gitops-infra-post; do
+          for ks in gitops-infra-controllers gitops-infra-post gitops-infra-post-workloads; do
             kubectl patch kustomization "${ks}" -n flux-system --type merge --patch-file "scripts/ci/e2e/${ks}.yaml"
           done
           for ks in $(kubectl get kustomization -n flux-system -l gitops.homelab/tier=infra -o name | cut -d/ -f2); do
@@ -161,6 +162,7 @@ jobs:
             flux reconcile kustomization "${ks}" --timeout=8m
           done
           flux reconcile kustomization gitops-infra-post --timeout=8m
+          flux reconcile kustomization gitops-infra-post-workloads --timeout=8m
 
       - name: Dry-run apps against the API server
         timeout-minutes: 3

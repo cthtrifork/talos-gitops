@@ -10,3 +10,4 @@ data:
   ops: "60"
   debug: "15"
   storage: "15"
+  flux: "15"

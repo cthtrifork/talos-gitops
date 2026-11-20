@@ -20,6 +20,8 @@ kind: CronJob
 metadata:
   name: dependency-track-vex-export
   namespace: security-system
+  annotations:
+    claude-elevate/description: Exports the VEX decisions made in Dependency-Track and opens a pull request with the changed documents.
 spec:
   schedule: "43 5 * * *"
   concurrencyPolicy: Forbid

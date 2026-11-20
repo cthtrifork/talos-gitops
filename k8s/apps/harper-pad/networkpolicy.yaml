@@ -1,6 +1,6 @@
-# Default deny for the app pods, then allow only what docs/sync.md lists. The Postgres pod is only
-# restricted on ingress: the CNPG instance manager needs the Kubernetes API, which plain
-# NetworkPolicy cannot allow under Cilium's kube-proxy replacement.
+# Default deny for the app pods, then allow only what docs/sync.md lists. The Postgres pod is only restricted on
+# ingress here (db-ingress); its egress is the CiliumNetworkPolicy in ciliumnetworkpolicy.yaml, because the CNPG
+# instance manager needs the Kubernetes API, which plain NetworkPolicy cannot allow under Cilium's kube-proxy replacement.
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

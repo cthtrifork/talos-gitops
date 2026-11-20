@@ -276,6 +276,19 @@ data:
         - rolebindingClusterAdminRole
         - rolebindingRolePodExecAttach
       - controllerNames:
+        - claude-elevate-flux
+        - claude-elevate-ops
+        - claude-elevate-storage
+        rules:
+        - rolebindingClusterAdminRole
+      - controllerNames:
+        - kyverno:admission-controller
+        namespace: policy-system
+        rules:
+        - clusterrolebindingClusterAdmin
+        - clusterrolebindingPodExecAttach
+        - clusterrolePodExecAttach
+      - controllerNames:
         - adguard-deployment
         rules:
         - privilegeEscalationAllowed

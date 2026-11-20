@@ -71,6 +71,15 @@ spec:
         - ports:
             - port: "4195"
               protocol: TCP
+    # Dependency-Track API (query findings, record an analysis with the key of the claude-triage team)
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: security-system
+            k8s:app.kubernetes.io/name: dependency-track-api-server
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
     # URL sharing (asking for a page: GET /?url=...); the pod behind urlshare.portableinfo.cloud, which only lists and returns what the owner approved
     - toEndpoints:
         - matchLabels:
@@ -128,8 +137,7 @@ spec:
         - matchName: ghcr.io
         - matchName: quay.io
         - matchPattern: "*.quay.io"
-        # index.docker.io is the registry host crane uses for docker.io images; it answers with registry-1.docker.io
-        - matchName: index.docker.io
+        # Docker Hub images are inspected as mirror.gcr.io/<name> (crane resolves docker.io names to a host that is not allowed)
         - matchName: registry-1.docker.io
         - matchName: auth.docker.io
         - matchName: production.cloudflare.docker.com
@@ -277,6 +285,14 @@ spec:
     - fromEntities:
         - host
         - remote-node
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    # The cockpit reads the active grants
+    - fromEndpoints:
+        - matchLabels:
+            k8s:app: claude-cockpit
       toPorts:
         - ports:
             - port: "8080"
@@ -456,6 +472,14 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:app: claude-urlshare
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    # Elevate Claude: the page's listener, for the active grants (GET /api/v1/status; the panel keeps tier, namespace and expiry only)
+    - toEndpoints:
+        - matchLabels:
+            k8s:app: claude-elevate
       toPorts:
         - ports:
             - port: "8080"
