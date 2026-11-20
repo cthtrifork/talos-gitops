@@ -2,7 +2,7 @@
 # Regenerate the vendored KubeVirt and CDI operator manifests (k8s/infra/kubevirt/) at the versions pinned in
 # k8s/infra/kubevirt/versions.env, which Renovate bumps. Renovate cannot edit the manifests itself: bumping only
 # the image line leaves the CRDs, RBAC and versions of the release behind.
-# Also regenerates image-pins.yaml (digests of the images the operators start). Needs yq (mikefarah) and docker buildx. Prints one line per updated file; changes nothing if already current.
+# Needs yq (mikefarah) and docker buildx. Prints one line per updated file; changes nothing if already current.
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
@@ -42,65 +42,12 @@ for target in "${TARGETS[@]}"; do
   echo "${image##*/} ${current} -> ${version}"
 done
 
-# The operators start their own pods from the image references in env vars; the upstream manifests use tags, which the
-# require-image-digest policy denies. Regenerate the pin patch (image-pins.yaml) from the pinned versions every run.
-digest_of() {
-  local ref=$1 digest
-  digest=$(docker buildx imagetools inspect "$ref" --format '{{.Manifest.Digest}}')
-  [[ "$digest" == sha256:* ]] || { echo "no digest for ${ref}" >&2; exit 1; }
-  echo "$digest"
+# image-pins.yaml pins the images the operators start (the require-image-digest policy denies tags). Renovate bumps its tags
+# and digests together with versions.env; fail if they ever disagree, since a pod from another release would run on these CRDs.
+check_pins() { # <image name prefix> <version>
+  local bad
+  bad=$(grep -E "value: quay\.io/kubevirt/$1" k8s/infra/kubevirt/image-pins.yaml | grep -v -E ":$2@sha256:" || true)
+  [[ -z "$bad" ]] || { echo "image-pins.yaml does not match $2:" >&2; echo "$bad" >&2; exit 1; }
 }
-
-env_pin() { # <env name> <image name> <version>
-  echo "            - name: $1"
-  echo "              value: quay.io/kubevirt/$2:$3@$(digest_of "quay.io/kubevirt/$2:$3")"
-}
-
-pins=k8s/infra/kubevirt/image-pins.yaml
-{
-  sed -n '1,/^---$/p' "$pins" | sed '$d'
-  echo '---'
-  cat <<'YAML'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: virt-operator
-  namespace: kubevirt
-spec:
-  template:
-    spec:
-      containers:
-        - name: virt-operator
-          env:
-YAML
-  env_pin VIRT_OPERATOR_IMAGE virt-operator "$KUBEVIRT_VERSION"
-  env_pin VIRT_API_IMAGE virt-api "$KUBEVIRT_VERSION"
-  env_pin VIRT_CONTROLLER_IMAGE virt-controller "$KUBEVIRT_VERSION"
-  env_pin VIRT_HANDLER_IMAGE virt-handler "$KUBEVIRT_VERSION"
-  env_pin VIRT_LAUNCHER_IMAGE virt-launcher "$KUBEVIRT_VERSION"
-  env_pin VIRT_EXPORTPROXY_IMAGE virt-exportproxy "$KUBEVIRT_VERSION"
-  env_pin VIRT_EXPORTSERVER_IMAGE virt-exportserver "$KUBEVIRT_VERSION"
-  env_pin VIRT_SYNCHRONIZATIONCONTROLLER_IMAGE virt-synchronization-controller "$KUBEVIRT_VERSION"
-  cat <<'YAML'
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: cdi-operator
-  namespace: cdi
-spec:
-  template:
-    spec:
-      containers:
-        - name: cdi-operator
-          env:
-YAML
-  env_pin CONTROLLER_IMAGE cdi-controller "$CDI_VERSION"
-  env_pin IMPORTER_IMAGE cdi-importer "$CDI_VERSION"
-  env_pin CLONER_IMAGE cdi-cloner "$CDI_VERSION"
-  env_pin OVIRT_POPULATOR_IMAGE cdi-importer "$CDI_VERSION"
-  env_pin APISERVER_IMAGE cdi-apiserver "$CDI_VERSION"
-  env_pin UPLOAD_SERVER_IMAGE cdi-uploadserver "$CDI_VERSION"
-  env_pin UPLOAD_PROXY_IMAGE cdi-uploadproxy "$CDI_VERSION"
-} >"${pins}.new"
-mv "${pins}.new" "$pins"
+check_pins 'virt-' "$KUBEVIRT_VERSION"
+check_pins 'cdi-' "$CDI_VERSION"

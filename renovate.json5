@@ -186,21 +186,28 @@
       "matchDatasources": [
         "docker"
       ],
-      "matchPackageNames": [
-        "quay.io/kubevirt/virt-operator",
-        "quay.io/kubevirt/cdi-operator"
+      "matchFileNames": [
+        "k8s/infra/kubevirt/*-operator.yaml"
       ],
       "enabled": false
     },
     {
-      "description": "KubeVirt and CDI operator upgrades change CRDs and RBAC: review them, no automerge.",
-      "matchDatasources": [
-        "github-releases"
-      ],
+      "description": "KubeVirt and CDI upgrades change CRDs and RBAC: review them, no automerge. Each release (versions.env) and the digest pins of the images its operator starts (image-pins.yaml) move in one PR.",
       "matchPackageNames": [
         "kubevirt/kubevirt",
-        "kubevirt/containerized-data-importer"
+        "quay.io/kubevirt/virt-*"
       ],
+      "groupName": "kubevirt",
+      "groupSlug": "kubevirt",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": [
+        "kubevirt/containerized-data-importer",
+        "quay.io/kubevirt/cdi-*"
+      ],
+      "groupName": "cdi",
+      "groupSlug": "cdi",
       "automerge": false
     },
     {
@@ -275,6 +282,17 @@
     }
   ],
   "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Image references in env values (the images the KubeVirt and CDI operators start), pinned by tag and digest",
+      "managerFilePatterns": [
+        "/^k8s/infra/kubevirt/image-pins\\.yaml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+value: (?<depName2>[^\\s:@]+):(?<currentValue>[-a-zA-Z0-9.]+)@(?<currentDigest>sha256:[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "{{{datasource}}}"
+    },
     {
       "customType": "regex",
       "description": "npm packages the cockpit and usage pages load from jsDelivr, in their import map or an import (cdn.jsdelivr.net/npm/<package>@<version>/...)",

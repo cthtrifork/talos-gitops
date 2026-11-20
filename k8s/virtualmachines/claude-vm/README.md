@@ -16,7 +16,8 @@ UEFI, pod network with an SSH LoadBalancer at 192.168.1.246.
 - **Node selection:** the VM is pinned to nodes KubeVirt labels `devices.kubevirt.io/kvm`. `talos-2ny-8tx` (a Proxmox VM) has no `/dev/kvm`.
   Drop the `nodeSelector` once every node is bare metal. `local-path` ties the disk to the node it was first scheduled on.
 - **Images by digest:** the `require-image-digest` policy denies tag-only images, so `k8s/infra/kubevirt/image-pins.yaml` pins every image the
-  operators start. `scripts/ci/update-kubevirt-operators.sh` regenerates it with the operator manifests.
+  operators start. Renovate bumps those pins together with `versions.env` (one `kubevirt` and one `cdi` PR), and the "Update KubeVirt operators"
+  workflow regenerates the vendored manifests on that PR. `scripts/ci/update-kubevirt-operators.sh` fails if the pins and `versions.env` disagree.
 - **Egress:** open to `world` at the pod level, because the VM's own egress gateway enforces the host allowlist. The `claude-vm` namespace is
   exempt from the `deny-world-egress` Kyverno policy for this (`k8s/infra/image-policies/`); every other namespace is still checked.
 - **Update VMs button:** the poll listener only lets `192.168.1.138` (the old VM) in. From the cluster the VM arrives from a node or pod address, so
