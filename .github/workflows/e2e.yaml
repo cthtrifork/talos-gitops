@@ -148,7 +148,7 @@ jobs:
 
       - name: Patch infra Kustomizations for kind
         run: |
-          for ks in gitops-infra-controllers gitops-infra-post; do
+          for ks in gitops-infra-controllers gitops-infra-post gitops-infra-post-workloads; do
             kubectl patch kustomization "${ks}" -n flux-system --type merge --patch-file "scripts/ci/e2e/${ks}.yaml"
           done
           for ks in $(kubectl get kustomization -n flux-system -l gitops.homelab/tier=infra -o name | cut -d/ -f2); do
@@ -162,6 +162,7 @@ jobs:
             flux reconcile kustomization "${ks}" --timeout=8m
           done
           flux reconcile kustomization gitops-infra-post --timeout=8m
+          flux reconcile kustomization gitops-infra-post-workloads --timeout=8m
 
       - name: Dry-run apps against the API server
         timeout-minutes: 3
