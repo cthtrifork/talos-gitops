@@ -12,6 +12,7 @@ on:
       - "k8s/**"
       - "scripts/ci/extract-images.py"
       - "scripts/ci/scan-comment.jq"
+      - "scripts/ci/vuln-list.tpl"
       - ".github/workflows/scan-images.yaml"
 
 concurrency:
@@ -182,6 +183,17 @@ jobs:
           [ -s "${new}" ] || new=empty.json
           [ -s "${old}" ] || old=empty.json
           jq -r --arg new_ref "${NEW_REF}" --arg old_ref "${OLD_REF}" --arg run_url "${RUN_URL}" --slurpfile o "${old}" -f scripts/ci/scan-comment.jq "${new}" > out/comment.md
+          # everything in the new image: a Trivy template, rendered whenever the scan produced a report (an empty one gives the header only,
+          # so a broken template fails on any PR); the first 25 rows are used
+          if [ -s out/new.json ]; then
+            trivy convert --format template --template "@scripts/ci/vuln-list.tpl" out/new.json > list.md
+            count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' out/new.json)
+            if [ "${count}" -gt 0 ]; then
+              { echo "<details><summary>All ${count} in the new image</summary>"; echo; head -n 27 list.md; echo
+                [ "${count}" -le 25 ] || { echo "…and $((count - 25)) more in the full report."; echo; }
+                echo "</details>"; echo; } >> out/comment.md
+            fi
+          fi
           # An unzipped artifact is named after its file.
           name="$(sed -E 's/@.*$//; s/[^A-Za-z0-9._-]+/_/g' <<< "${NEW_REF}")"
           [ ! -s out/new.json ] || mv out/new.json "out/${ID}-${name}.trivy.json"
