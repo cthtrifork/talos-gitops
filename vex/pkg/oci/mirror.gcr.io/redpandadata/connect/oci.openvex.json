@@ -3,7 +3,7 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/mirror.gcr.io/redpandadata/connect",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-20T13:17:48Z",
+  "timestamp": "2026-11-20T15:00:00Z",
   "version": 1,
   "statements": [
     {
