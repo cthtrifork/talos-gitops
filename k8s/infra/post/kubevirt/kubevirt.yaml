@@ -13,6 +13,9 @@ spec:
       # that list), so it needs no gate any more.
       featureGates: []
       #- LiveMigration
+    # The virt-template images have no digest env var on the operator, so require-image-digest denies virt-template-apiserver
+    virtTemplateDeployment:
+      enabled: false
     smbios:
       sku: "TalosCloud"
       version: "v0.1.0"
