@@ -1,4 +1,9 @@
 {
-  "updated_at": "2026-11-07T20:40:14Z",
-  "packages": []
+  "updated_at": "2026-11-20T13:17:48Z",
+  "packages": [
+    {
+      "id": "pkg:oci/connect?repository_url=mirror.gcr.io%2Fredpandadata%2Fconnect",
+      "location": "pkg/oci/mirror.gcr.io/redpandadata/connect/oci.openvex.json"
+    }
+  ]
 }

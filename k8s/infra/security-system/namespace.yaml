@@ -5,3 +5,5 @@ metadata:
   name: security-system
   labels:
     claude-elevate/ops: "true"
+    claude-elevate/flux: "true"
+    claude-elevate/jobs: "true"

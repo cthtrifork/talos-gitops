@@ -25,7 +25,7 @@ ARG KUBECONFORM_VERSION=0.8.0
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VERSION=4.3.2
 # renovate: datasource=github-releases depName=fluxcd/flux2
-ARG FLUX_VERSION=2.10.0
+ARG FLUX_VERSION=2.10.1
 # renovate: datasource=github-releases depName=rhysd/actionlint
 ARG ACTIONLINT_VERSION=1.7.12
 # renovate: datasource=pypi depName=yamllint

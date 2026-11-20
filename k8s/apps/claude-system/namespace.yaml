@@ -4,6 +4,8 @@ kind: Namespace
 metadata:
   name: claude-system
   labels:
+    # checked by the Kyverno image policy (ImageValidatingPolicy in k8s/infra/image-policies)
+    gitops.homelab/verify-images: "true"
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted

@@ -1,6 +1,7 @@
 # Break-glass roles, bound by the elevate page (elevate/) to a per-grant ServiceAccount whose token is short-lived.
 # A grant's ServiceAccount has no other rights, so each role includes the reads its commands start with (kubectl gets the target first).
-# No role can patch workloads or Flux objects: a patch is a full write of the pod or Flux spec, which RBAC cannot narrow.
+# No role can patch workloads: a patch is a full write of the pod spec, which RBAC cannot narrow. claude-flux can patch Flux objects, but the
+# admission policy claude-flux-reconcile-only (elevate/) rejects every change except the reconcile annotations.
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
 apiVersion: rbac.authorization.k8s.io/v1
@@ -22,6 +23,25 @@ rules:
       - pods/eviction
     verbs:
       - create
+  # A StatefulSet's volumeClaimTemplates are immutable: changing a PVC's class means deleting the StatefulSet (and the PVCs, tier storage)
+  - apiGroups:
+      - apps
+    resources:
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - delete
+  # Trivy operator reports: deleting one makes the operator scan the workload again (and sbom-hook upload a fresh SBOM)
+  - apiGroups:
+      - aquasecurity.github.io
+    resources:
+      - vulnerabilityreports
+      - sbomreports
+    verbs:
+      - get
+      - list
+      - delete
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
 # Exec reaches whatever the pod can, including its mounted Secrets and ServiceAccount token
@@ -68,3 +88,30 @@ rules:
       - get
       - list
       - delete
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
+# RBAC cannot narrow a patch to annotations: the ValidatingAdmissionPolicy claude-flux-reconcile-only rejects any patch from this tier that
+# changes more than the reconcile.fluxcd.io/requestedAt, forceAt and resetAt annotations (so no spec, no suspend, no source change)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: claude-flux
+rules:
+  - apiGroups:
+      - helm.toolkit.fluxcd.io
+    resources:
+      - helmreleases
+    verbs:
+      - get
+      - list
+      - watch
+      - patch
+  - apiGroups:
+      - kustomize.toolkit.fluxcd.io
+    resources:
+      - kustomizations
+    verbs:
+      - get
+      - list
+      - watch
+      - patch

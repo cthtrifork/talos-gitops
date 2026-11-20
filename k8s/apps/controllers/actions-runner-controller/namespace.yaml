@@ -5,3 +5,4 @@ metadata:
   name: arc-controller-system
   labels:
     claude-elevate/ops: "true"
+    claude-elevate/flux: "true"

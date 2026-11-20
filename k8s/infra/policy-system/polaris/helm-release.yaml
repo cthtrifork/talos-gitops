@@ -24,6 +24,12 @@ spec:
         target:
           kind: Deployment
           name: polaris-dashboard
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
   # https://github.com/FairwindsOps/charts/blob/master/stable/polaris/values.yaml
   values:
     image:
@@ -49,7 +55,7 @@ spec:
           cpu: 25m
           memory: 32Mi
         limits:
-          memory: 128Mi
+          memory: 256Mi
       containerSecurityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -353,6 +359,27 @@ spec:
             - clusterrolebindingPodExecAttach
             - rolebindingClusterAdminRole
             - rolebindingRolePodExecAttach
+        # The "Elevate Claude" tiers: the elevate page creates these RoleBindings per grant (k8s/apps/claude-system/elevate/) and binds
+        # a short-lived ServiceAccount to the narrow ClusterRoles claude-ops, claude-storage and claude-flux
+        # (clusterrole-elevated.yaml). None is cluster-admin: no wildcards, and the flux tier is limited by an admission policy.
+        # Polaris reports the leftover bindings as cluster-admin.
+        - namespace: renovate-system
+          controllerNames:
+            - claude-elevate-flux
+            - claude-elevate-ops
+            - claude-elevate-storage
+          rules:
+            - rolebindingClusterAdminRole
+        # Kyverno admission controller: its ClusterRole is an aggregation (rbac.kyverno.io/aggregate-to-admission-controller) with no
+        # wildcard rules and no pods/exec, and the :view binding is the built-in view role. The CI audit cannot resolve the
+        # aggregation and reports the roles as cluster-admin with pod exec.
+        - namespace: policy-system
+          controllerNames:
+            - kyverno:admission-controller
+          rules:
+            - clusterrolebindingClusterAdmin
+            - clusterrolebindingPodExecAttach
+            - clusterrolePodExecAttach
         # adguard-home runs non-root with only NET_BIND_SERVICE, but its binary's file capability needs
         # allowPrivilegeEscalation (no_new_privs off) to take effect; see the comment in its Deployment
         - controllerNames:
