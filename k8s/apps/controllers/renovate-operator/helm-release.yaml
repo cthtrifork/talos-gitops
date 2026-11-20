@@ -11,7 +11,12 @@ spec:
     kind: OCIRepository
     name: renovate-operator
   install:
+    remediation:
+      retries: 3
     createNamespace: true
+  upgrade:
+    remediation:
+      retries: 3
   # https://github.com/mogenius/renovate-operator/blob/main/charts/renovate-operator/values.yaml
   values:
     fullnameOverride: renovate-operator

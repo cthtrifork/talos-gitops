@@ -20,6 +20,20 @@ rules:
       - serviceaccounts
     verbs:
       - list
+  # the run-job action: read a CronJob and create a Job from it, only where the admission policy claude-elevator-jobs allows
+  - apiGroups:
+      - batch
+    resources:
+      - cronjobs
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - create
   - apiGroups:
       - ""
     resources:
@@ -34,6 +48,7 @@ rules:
       - claude-elevate-ops
       - claude-elevate-debug
       - claude-elevate-storage
+      - claude-elevate-flux
     verbs:
       - patch
       - delete
@@ -45,6 +60,7 @@ rules:
       - claude-elevate-ops
       - claude-elevate-debug
       - claude-elevate-storage
+      - claude-elevate-flux
     verbs:
       - create
   - apiGroups:
@@ -61,6 +77,7 @@ rules:
       - claude-elevate-ops
       - claude-elevate-debug
       - claude-elevate-storage
+      - claude-elevate-flux
     verbs:
       - patch
       - delete
@@ -72,6 +89,7 @@ rules:
       - claude-ops
       - claude-debug
       - claude-storage
+      - claude-flux
     verbs:
       - bind
 ---

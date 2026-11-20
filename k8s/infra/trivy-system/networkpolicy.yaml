@@ -1,0 +1,135 @@
+# Default deny both ways for the namespace, then per workload what Hubble showed it needs. Reverse-direction flows in
+# Hubble are replies on allowed connections and need no rule of their own.
+# Prometheus reaches the pods that carry the label prometheus-scrape through the cluster-wide policy in
+# kube-prometheus-stack, not here. Endpoint selectors without a namespace label mean this namespace, so the peers in
+# security-system, registry-system and kube-system carry theirs.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: trivy-system-default-deny
+  namespace: trivy-system
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: trivy-system-allow-dns-apiserver
+  namespace: trivy-system
+spec:
+  endpointSelector: {}
+  egress:
+    # DNS through kube-dns
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    # Kubernetes API
+    - toEntities:
+        - kube-apiserver
+---
+# trivy-operator: calls the sbom-hook webhook (security-system) and the Trivy server.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: trivy-operator
+  namespace: trivy-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: trivy-operator
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: security-system
+            k8s:app.kubernetes.io/instance: sbom-hook
+      toPorts:
+        - ports:
+            - port: "4195"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: trivy-server
+      toPorts:
+        - ports:
+            - port: "4954"
+              protocol: TCP
+---
+# Trivy server: used by the scan jobs, Dependency-Track (security-system) and the trivy-operator; zot (registry-system) calls it too.
+# Downloads its vulnerability and Java DBs from the internet and pulls images from zot.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: trivy-server
+  namespace: trivy-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: trivy-server
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/managed-by: trivy-operator
+        - matchLabels:
+            app.kubernetes.io/name: trivy-operator
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: security-system
+            k8s:app.kubernetes.io/name: dependency-track-api-server
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: registry-system
+            k8s:app.kubernetes.io/name: zot
+      toPorts:
+        - ports:
+            - port: "4954"
+              protocol: TCP
+  egress:
+    - toEntities:
+        - world
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: registry-system
+            k8s:app.kubernetes.io/name: zot
+      toPorts:
+        - ports:
+            - port: "5000"
+              protocol: TCP
+---
+# Scan jobs started by trivy-operator: the Trivy server, zot (pull-through of the images) and the
+# registries on the internet.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: trivy-scan-jobs
+  namespace: trivy-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: trivy-operator
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: trivy-server
+      toPorts:
+        - ports:
+            - port: "4954"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: registry-system
+            k8s:app.kubernetes.io/name: zot
+      toPorts:
+        - ports:
+            - port: "5000"
+              protocol: TCP
+    - toEntities:
+        - world

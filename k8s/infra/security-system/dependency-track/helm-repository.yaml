@@ -9,8 +9,8 @@ spec:
   interval: 12h
   url: oci://ghcr.io/dependencytrack/helm-charts/dependency-track
   ref:
-    tag: 2.9.0
-    digest: sha256:bad00e1ee9528595ed2b70af6b0193ea6d6d8f76e57a94ea4e5ebd1da6492dc5
+    tag: 2.10.0
+    digest: sha256:d1fe4382efeb00d39b02222a01d4bc431b99ad4866c7158851dc62eba7e46035
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: extract

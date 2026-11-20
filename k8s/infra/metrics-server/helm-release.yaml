@@ -18,6 +18,12 @@ spec:
       interval: 12h
   driftDetection:
     mode: enabled
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
   # https://github.com/kubernetes-sigs/metrics-server/blob/master/charts/metrics-server/values.yaml
   values:
     image:

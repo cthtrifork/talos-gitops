@@ -11,6 +11,10 @@ kind: Deployment
 metadata:
   name: claude-rc
   namespace: claude-system
+  annotations:
+    # only this Secret, not `auto`: the GitHub token Secret refreshes every 30 minutes and a restart ends the session.
+    # A new or rotated key restarts the pod (once, when the config CronJob creates it).
+    secret.reloader.stakater.com/reload: dependency-track-claude-api-key
 spec:
   replicas: 1
   strategy:
@@ -22,6 +26,9 @@ spec:
     metadata:
       labels:
         app: claude-rc
+      annotations:
+        # one-time roll so the pod reads the Secret dependency-track-claude-api-key, which the config CronJob created after the pod started; remove with the next change
+        dt-key-rev: "1"
     spec:
       serviceAccountName: claude # in-cluster token is what lets sessions read the cluster
       terminationGracePeriodSeconds: 30
@@ -45,7 +52,7 @@ spec:
       initContainers:
         - name: private-tmp
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.325-20261118.22@sha256:3be494831f6ed1bac19aae198ca2076e44cda79d30b0637eb483d0546945d565
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.326-20261120.30@sha256:d70f645294fb8d30dd20631a8fd5b295940e14d5a5f08a5d92135d03bc9a4020
           command:
             - "/bin/bash"
             - "-c"
@@ -68,7 +75,7 @@ spec:
       containers:
         - name: claude
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.325-20261118.22@sha256:3be494831f6ed1bac19aae198ca2076e44cda79d30b0637eb483d0546945d565
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.326-20261120.30@sha256:d70f645294fb8d30dd20631a8fd5b295940e14d5a5f08a5d92135d03bc9a4020
           command:
             - "/bin/bash"
             - "-c"
@@ -154,6 +161,14 @@ spec:
                   name: omni-service-account
                   key: OMNI_SERVICE_ACCOUNT_KEY
                   optional: true
+            - name: DT_URL
+              value: http://dependency-track-api-server.security-system.svc:8080
+            - name: DT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dependency-track-claude-api-key # created by the dependency-track-config CronJob (team claude-triage: view, read and write analysis; no BOM upload, no admin)
+                  key: api-key
+                  optional: true
             - name: TALOSCONFIG
               value: /home/claude/.talos/config # written at start by omnictl talosconfig
             - name: CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX
@@ -197,7 +212,7 @@ spec:
         # (undocumented) with the login on the home volume, mounted read-only, and posts only the percentages and reset times.
         - name: usage-poller
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.325-20261118.22@sha256:3be494831f6ed1bac19aae198ca2076e44cda79d30b0637eb483d0546945d565
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.326-20261120.30@sha256:d70f645294fb8d30dd20631a8fd5b295940e14d5a5f08a5d92135d03bc9a4020
           command:
             - "/etc/claude-usage-poller/poll-usage"
           resources:
