@@ -80,7 +80,8 @@ spec:
               protocol: TCP
 ---
 # Spegel (node-local mirror): containerd on each node reaches it through the NodePort (host or remote-node), the
-# instances find each other on 5000 and 5001 (TCP and UDP) and use the nodes and the internet as upstream.
+# instances find each other on 5000 and 5001 (TCP and UDP). It serves only what the nodes already hold and never fetches from
+# the internet: containerd falls back to zot and the upstream registry itself.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -108,7 +109,6 @@ spec:
               protocol: TCP
   egress:
     - toEntities:
-        - world
         - host
         - remote-node
     - toEndpoints:
