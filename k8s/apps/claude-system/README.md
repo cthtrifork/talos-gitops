@@ -300,8 +300,8 @@ Kubernetes API with the pod's own token; the steps and the API are in `elevate/r
   with the CronJob's, so the elevator pod's token (`create jobs` cluster-wide, gated by that label) is the trust boundary, as it already is for tokens and bindings.
 - **Opt-in.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` in its own manifest (`adguard-system`: all three,
   `arc-runners-system`, `fileserver-system`, `harper-pad`, `renovate-system`: `ops` and `storage` (no `debug`: exec could read secrets),
-  `arc-controller-system`, `registry-system`, `security-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`: `ops` only (their PVC data is kept),
-  `flux` in the namespaces that hold HelmReleases and are opted in (`renovate-system`, `arc-runners-system`, `arc-controller-system`, `registry-system`, `security-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`; `flux-system` is managed by the flux-operator and cannot be labelled from Git, so Kustomizations need a manual label),
+  `arc-controller-system`, `registry-system`, `security-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`, `flux-system`: `ops` only (their PVC data is kept),
+  `flux` in the namespaces that hold HelmReleases and are opted in (`renovate-system`, `arc-runners-system`, `arc-controller-system`, `registry-system`, `security-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`; `flux-system` is managed by the flux-operator: its `ops` label comes from a patch in the `FluxInstance`, so Kustomizations there need a manual `flux` label),
   `external-dns-system`: `ops` only, since exec there could read the DNS API token).
 - **Expiry.** The token expires on the API server by itself and nothing cleans up afterwards: the ServiceAccount, RoleBinding and kubeconfig key left
   behind hold no valid token, and the next grant replaces them. A revoke deletes the ServiceAccount, which kills its tokens at once.
