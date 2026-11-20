@@ -41,7 +41,7 @@ not routed through Traefik). Check the address is free in the pool (`192.168.1.2
 
 Trivy itself has no KEV data, and trivy-operator reports (and its metrics) only carry severity/CVSS. KEV enrichment
 comes from Dependency-Track 5, which has two relevant pieces. Both are stored in its database, so Helm values cannot set
-them; `dependency-track/config-cronjob.yaml` (a CronJob every 20 minutes) applies them through the REST API:
+them; `dependency-track/config-cronjob.yaml` (a CronJob every hour, and Reloader runs it when its ConfigMap changes) applies them through the REST API:
 
 1. **KEV data sources**: CISA KEV and ENISA KEV are enabled. Dependency-Track then flags findings whose CVE (or alias) is
    known exploited, with the required action and a known-ransomware flag. It needs egress to `www.cisa.gov` and
@@ -81,7 +81,7 @@ Teams keep their permissions (`sbom-uploader`: `BOM_UPLOAD`, `PROJECT_CREATION_U
 printed or overwritten. While the key Secret is missing, `sbom-hook` logs `DRY RUN: would upload ...` and the VEX export
 prints that it has nothing to export.
 
-**Key rotation / recovery.** Delete the key Secret; the next run (within 20 minutes) creates a new key and Secret. The old
+**Key rotation / recovery.** Delete the key Secret; the next run (within an hour, or run it from the Elevate page) creates a new key and Secret. The old
 key stays valid: revoke it in the UI (Administration, Access Management, Teams, the team's API keys). Then restart the
 consumer, which reads the key at start: `kubectl -n security-system rollout restart deploy/sbom-hook` (the VEX export reads it
 on each run). If the Job created a key but failed to store the Secret, the next run creates another; revoke the unused one.

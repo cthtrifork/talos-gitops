@@ -1,6 +1,6 @@
 # Configuration as code for Dependency-Track: what Helm values and env vars cannot set because it lives in the database.
 # The desired state is data in the ConfigMap below (teams.json, properties.json, extensions.json); the script is a generic
-# loop over it. A CronJob that is safe to run repeatedly (every 20 minutes, which also bootstraps a fresh install and
+# loop over it. A CronJob that is safe to run repeatedly (hourly, and Reloader runs it when the ConfigMap changes; it also bootstraps a fresh install and
 # repairs drift):
 #  1. Admin: the built-in admin/admin must change its password on first login. The password is generated once by External
 #     Secrets (k8s/infra/secret-store/) and copied into the Secret dependency-track-admin (external-secret-admin.yaml), so
@@ -25,8 +25,9 @@ metadata:
   namespace: security-system
   annotations:
     claude-elevate/description: Applies the Dependency-Track configuration (teams, API keys, properties, analyzers) and repairs drift. Safe to repeat.
+    reloader.stakater.com/auto: "true" # Reloader starts a Job when the config ConfigMap changes
 spec:
-  schedule: "*/20 * * * *"
+  schedule: "7 * * * *" # minute 7 of every hour (UTC): minute hour day-of-month month day-of-week
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
