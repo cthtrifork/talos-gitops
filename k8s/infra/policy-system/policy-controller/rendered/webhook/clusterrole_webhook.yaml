@@ -1,0 +1,60 @@
+---
+# Source: policy-controller/templates/webhook/clusterrole_webhook.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: policy-controller-webhook
+  labels:
+    helm.sh/chart: policy-controller-0.10.8
+    app.kubernetes.io/name: policy-controller
+    app.kubernetes.io/instance: policy-controller
+    app.kubernetes.io/version: "0.13.1"
+    app.kubernetes.io/managed-by: Helm
+    control-plane: policy-controller-webhook
+  namespace: policy-system
+rules:
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  # Allow the reconciliation of exactly our validating webhook.
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
+    verbs: ["list", "watch"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
+    verbs: ["get", "update", "delete"]
+    resourceNames:
+      - "policy.sigstore.dev"
+      - "defaulting.clusterimagepolicy.sigstore.dev"
+      - "validating.clusterimagepolicy.sigstore.dev"
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+    # The webhook configured the namespace as the OwnerRef on various cluster-scoped resources,
+    # which requires we can Get the system namespace.
+    resourceNames: ["policy-system"]
+  - apiGroups: [""]
+    resources: ["namespaces/finalizers"]
+    verbs: ["update"]
+    resourceNames: ["policy-system"]
+  # This is needed by k8schain to support fetching pull secrets attached to pod specs
+  # or their service accounts.  If pull secrets aren't used, the "secrets" below can
+  # be safely dropped, but the logic will fetch the service account to check for pull
+  # secrets.
+  - apiGroups: [""]
+    resources: ["serviceaccounts", "secrets"]
+    verbs: ["get"]
+  # Allow reconciliation of the ClusterImagePolic CRDs.
+  - apiGroups: ["policy.sigstore.dev"]
+    resources: ["clusterimagepolicies", "clusterimagepolicies/status"]
+    verbs: ["get", "list", "update", "watch", "patch"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "update", "list"]
+    resourceNames: ["trustroots.policy.sigstore.dev"]
+  - apiGroups: ["policy.sigstore.dev"]
+    resources: ["trustroots", "trustroots/status"]
+    verbs: ["get", "list", "update", "watch", "patch"]

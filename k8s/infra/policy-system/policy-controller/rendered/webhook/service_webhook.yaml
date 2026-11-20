@@ -1,0 +1,50 @@
+---
+# Source: policy-controller/templates/webhook/service_webhook.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    helm.sh/chart: policy-controller-0.10.8
+    app.kubernetes.io/name: policy-controller
+    app.kubernetes.io/instance: policy-controller
+    app.kubernetes.io/version: "0.13.1"
+    app.kubernetes.io/managed-by: Helm
+    control-plane: policy-controller-webhook
+  name: webhook
+  namespace: policy-system
+spec:
+  type: ClusterIP
+  ports:
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: https
+  selector:
+    app.kubernetes.io/name: policy-controller
+    app.kubernetes.io/instance: policy-controller
+    control-plane: policy-controller-webhook
+---
+# Source: policy-controller/templates/webhook/service_webhook.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    helm.sh/chart: policy-controller-0.10.8
+    app.kubernetes.io/name: policy-controller
+    app.kubernetes.io/instance: policy-controller
+    app.kubernetes.io/version: "0.13.1"
+    app.kubernetes.io/managed-by: Helm
+    control-plane: policy-controller-webhook
+  name: policy-controller-webhook-metrics
+  namespace: policy-system
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9090
+      protocol: TCP
+      targetPort: metrics
+  selector:
+    app.kubernetes.io/name: policy-controller
+    app.kubernetes.io/instance: policy-controller
+    control-plane: policy-controller-webhook

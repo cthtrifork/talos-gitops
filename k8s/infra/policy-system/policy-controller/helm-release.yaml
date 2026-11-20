@@ -1,0 +1,35 @@
+---
+# Sigstore policy-controller: admission webhook that verifies cosign signatures against ClusterImagePolicy objects
+# (k8s/infra/image-policies). It only sees pods in namespaces labelled policy.sigstore.dev/include=true.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: policy-controller
+  namespace: policy-system
+spec:
+  interval: 30m
+  timeout: 10m
+  chart:
+    spec:
+      chart: policy-controller
+      version: 0.10.8
+      sourceRef:
+        name: sigstore
+        kind: HelmRepository
+        namespace: policy-system
+  # https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/values.yaml
+  values:
+    webhook:
+      image:
+        repository: ghcr.io/sigstore/policy-controller/policy-controller
+        # The chart's own default (0.13.1) predates cosign v3 and OCI referrers support (0.14 and 0.15), and the images in this repo are
+        # signed with cosign v3 (sigstore bundle in the referrers index), so the app version is newer than the chart's.
+        # renovate: datasource=docker depName=ghcr.io/sigstore/policy-controller/policy-controller versioning=semver
+        version: sha256:0492bb264fb1d9bdc8e3f343ef542cc85b7dd7c7fd8d9524b453c2bd31a1d128 # v0.15.1
+      # Rollout: an outage of the webhook must not block pod creation (claude-rc is in a labelled namespace). Switch to Fail
+      # together with mode enforce on the ClusterImagePolicy.
+      failurePolicy: Ignore
+      replicaCount: 1
+      podDisruptionBudget:
+        # one replica: minAvailable 1 would block every node drain
+        enabled: false

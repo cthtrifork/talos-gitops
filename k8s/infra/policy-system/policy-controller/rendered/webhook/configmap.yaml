@@ -1,0 +1,40 @@
+---
+# Source: policy-controller/templates/webhook/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    helm.sh/chart: policy-controller-0.10.8
+    app.kubernetes.io/name: policy-controller
+    app.kubernetes.io/instance: policy-controller
+    app.kubernetes.io/version: "0.13.1"
+    app.kubernetes.io/managed-by: Helm
+    control-plane: policy-controller-webhook
+  name: policy-controller-webhook-logging
+  namespace: policy-system
+data:
+  zap-logger-config: |-
+    {
+      "level": "info",
+      "development": false,
+      "outputPaths": ["stdout"],
+      "errorOutputPaths": ["stderr"],
+      "encoding": "json",
+      "encoderConfig": {
+        "timeKey": "ts",
+        "levelKey": "level",
+        "nameKey": "logger",
+        "callerKey": "caller",
+        "messageKey": "msg",
+        "stacktraceKey": "stacktrace",
+        "lineEnding": "",
+        "levelEncoder": "",
+        "timeEncoder": "iso8601",
+        "durationEncoder": "",
+        "callerEncoder": ""
+      }
+    }
+  # Log level overrides
+  # Changes are be picked up immediately.
+  loglevel.controller: "info"
+  loglevel.webhook: "info"

@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+---
+# The ClusterImagePolicy CRD comes from the policy-controller chart, so this waits for that HelmRelease to be Ready.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: gitops-infra-image-policies
+  namespace: flux-system
+  labels:
+    gitops.homelab/tier: infra
+spec:
+  interval: 30m
+  retryInterval: 2m
+  prune: true
+  timeout: 10m
+  dependsOn:
+    - name: gitops-infra-policy-system
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: policy-controller
+      namespace: policy-system
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ../../k8s/infra/image-policies

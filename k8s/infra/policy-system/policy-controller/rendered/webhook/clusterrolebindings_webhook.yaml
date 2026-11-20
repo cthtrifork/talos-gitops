@@ -1,0 +1,22 @@
+---
+# Source: policy-controller/templates/webhook/clusterrolebindings_webhook.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: policy-controller-webhook
+  labels:
+    helm.sh/chart: policy-controller-0.10.8
+    app.kubernetes.io/name: policy-controller
+    app.kubernetes.io/instance: policy-controller
+    app.kubernetes.io/version: "0.13.1"
+    app.kubernetes.io/managed-by: Helm
+    control-plane: policy-controller-webhook
+  namespace: policy-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: policy-controller-webhook
+subjects:
+  - kind: ServiceAccount
+    name: policy-controller-webhook
+    namespace: policy-system

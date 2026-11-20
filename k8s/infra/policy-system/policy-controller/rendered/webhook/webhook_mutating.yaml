@@ -1,0 +1,23 @@
+---
+# Source: policy-controller/templates/webhook/webhook_mutating.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: policy.sigstore.dev
+  namespace: policy-system
+webhooks:
+  - name: policy.sigstore.dev
+    namespaceSelector:
+      matchExpressions:
+        - key: policy.sigstore.dev/include
+          operator: In
+          values:
+            - "true"
+    admissionReviewVersions: [v1]
+    clientConfig:
+      service:
+        name: webhook
+        namespace: policy-system
+    failurePolicy: Ignore
+    sideEffects: None
+    reinvocationPolicy: IfNeeded

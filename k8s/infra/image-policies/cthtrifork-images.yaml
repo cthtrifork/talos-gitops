@@ -1,0 +1,23 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policy.sigstore.dev/clusterimagepolicy_v1beta1.json
+# Images built by this repo's workflows must carry a keyless cosign signature from a workflow in this repo, on main.
+# mode warn: a pod that fails the check is admitted with a warning. Switch to enforce once the warnings stay quiet
+# (and failurePolicy of the policy-controller webhook to Fail). Only namespaces labelled policy.sigstore.dev/include=true are checked.
+apiVersion: policy.sigstore.dev/v1beta1
+kind: ClusterImagePolicy
+metadata:
+  name: cthtrifork-images
+spec:
+  mode: warn
+  images:
+    - glob: ghcr.io/cthtrifork/talos-gitops/**
+  authorities:
+    - name: github-actions
+      keyless:
+        url: https://fulcio.sigstore.dev
+        identities:
+          - issuer: https://token.actions.githubusercontent.com
+            # build-*.yaml are the callers and build-release-image.yaml the reusable workflow, whichever the certificate names
+            subjectRegExp: ^https://github\.com/cthtrifork/talos-gitops/\.github/workflows/build-[a-z-]+\.yaml@refs/heads/main$
+      ctlog:
+        url: https://rekor.sigstore.dev
