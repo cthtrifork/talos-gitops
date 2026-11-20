@@ -9,7 +9,7 @@
 #  2. Teams from teams.json (`sbom-uploader`: key in dependency-track-api-key, used by sbom-hook; `vex-exporter`: key in
 #     dependency-track-vex-api-key, used by vex-export-cronjob.yaml; `claude-triage`: key in dependency-track-claude-api-key of the namespace claude-system,
 #     used by the claude-rc pod to read findings and record analyses). Permissions are only added, never removed. A key is only
-#     created if its Secret does not exist yet, stored as `api-key`, never printed, and an existing Secret is never touched.
+#     created if its Secret does not exist yet, or replaced if the stored key is no longer accepted (a recreated database), stored as `api-key` and never printed.
 #  3. Config properties from properties.json (group, name, value as a string), only the declared ones; the rest stays
 #     owned by the UI. An unknown property is a failure.
 #  4. Extension settings (Trivy analyzer, KEV data sources) from extensions.json, merged over the current settings
@@ -92,10 +92,22 @@ spec:
                       code=$(api POST "/api/v1/permission/$perm/team/$uuid" -o /dev/null -w '%{http_code}')
                       case "$code" in 200|304) ;; *) echo "adding $perm to $team failed ($code)" >&2; exit 1;; esac
                     done
-                    if ! kubectl -n "$ns" get secret "$secret" >/dev/null 2>&1; then
+                    mode=create
+                    if kubectl -n "$ns" get secret "$secret" >/dev/null 2>&1; then
+                      # the key is checked with the team's own call, so a key from a database that was recreated is replaced
+                      old=$(kubectl -n "$ns" get secret "$secret" -o jsonpath='{.data.api-key}' | base64 -d)
+                      if [ -n "$old" ] && [ "$(curl -sS -o /dev/null -w '%{http_code}' -H "X-Api-Key: $old" "$DT_URL/api/v1/team/self")" = 200 ]; then
+                        mode=keep
+                      else
+                        mode=replace
+                      fi
+                    fi
+                    if [ "$mode" != keep ]; then
                       key=$(api PUT "/api/v1/team/$uuid/key" | jq -r .key)
                       [ -n "$key" ] && [ "$key" != null ] || { echo "cannot create an API key for $team" >&2; exit 1; }
-                      kubectl -n "$ns" create secret generic "$secret" --from-literal=api-key="$key"
+                      kubectl -n "$ns" create secret generic "$secret" --from-literal=api-key="$key" --dry-run=client -o yaml \
+                        | kubectl -n "$ns" "$( [ "$mode" = replace ] && echo replace || echo create )" -f - >/dev/null
+                      echo "API key of team $team: $mode"
                     fi
                   }
                   jq -c '.[]' /config/teams.json > teams.jsonl
