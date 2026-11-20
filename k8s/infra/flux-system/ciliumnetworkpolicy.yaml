@@ -127,7 +127,7 @@ spec:
             - port: "8080"
               protocol: TCP
 ---
-# Git, Helm and OCI repositories and the LAN registry (world also covers LAN addresses): the operator, source-controller
+# Git, Helm and OCI repositories by name: the operator, source-controller
 # and kustomize-controller. helm-controller only talks to source-controller and the API.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -139,8 +139,32 @@ spec:
     matchLabels:
       app.kubernetes.io/name: flux-operator
   egress:
-    - toEntities:
-        - world
+    # DNS with the proxy on, so Cilium learns the addresses behind the hosts below
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # Git, Helm and OCI repositories by name (GitHub, ghcr.io, quay.io, the chart hosts)
+    - toFQDNs:
+        - matchName: github.com
+        - matchPattern: "*.githubusercontent.com"
+        - matchName: ghcr.io
+        - matchName: quay.io
+        - matchPattern: "cdn*.quay.io"
+        - matchPattern: "*.github.io"
+        - matchName: charts.redpanda.com
+        - matchName: charts.fairwinds.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -156,5 +180,29 @@ spec:
           - source-controller
           - kustomize-controller
   egress:
-    - toEntities:
-        - world
+    # DNS with the proxy on, so Cilium learns the addresses behind the hosts below
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # Git, Helm and OCI repositories by name (GitHub, ghcr.io, quay.io, the chart hosts)
+    - toFQDNs:
+        - matchName: github.com
+        - matchPattern: "*.githubusercontent.com"
+        - matchName: ghcr.io
+        - matchName: quay.io
+        - matchPattern: "cdn*.quay.io"
+        - matchPattern: "*.github.io"
+        - matchName: charts.redpanda.com
+        - matchName: charts.fairwinds.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

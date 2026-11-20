@@ -92,8 +92,32 @@ spec:
         - ports:
             - port: "4954"
               protocol: TCP
-    - toEntities:
-        - world
+    # DNS with the proxy on, so Cilium learns the addresses behind the hosts below
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # vulnerability feeds: the KEV lists in extensions.json, NVD, GitHub advisories and OSV
+    - toFQDNs:
+        - matchName: www.cisa.gov
+        - matchName: raw.githubusercontent.com
+        - matchName: api.github.com
+        - matchName: github.com
+        - matchName: services.nvd.nist.gov
+        - matchName: nvd.nist.gov
+        - matchName: api.osv.dev
+        - matchName: osv-vulnerabilities.storage.googleapis.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
 ---
 # Dependency-Track frontend: Traefik only (the Cloudflare tunnel, see post/security-system/dependency-track-ingressroute.yaml).
 apiVersion: cilium.io/v2
@@ -231,8 +255,21 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    - toEntities:
-        - world
+    # DNS with the proxy on, so Cilium learns the addresses behind the hosts below
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        - matchName: github.com
+        - matchName: api.github.com
       toPorts:
         - ports:
             - port: "443"
