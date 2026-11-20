@@ -1,0 +1,15 @@
+# Read access to Prometheus for the network-assistant sub-agent (agenttemplate.yaml), which runs inside homelab-assistant's sandbox and so uses its egress: the Cilium drop metrics
+# (hubble_drop_total, the same query as scripts/claude-drops.sh) and the alerts. Kept apart from claude-runner-allowlist, which is the same hosts as claude-rc and checked against it
+# (scripts/ci/check-claude-egress-allowlist.sh). The gateway matches the origin only, not the path or the method, so this allows every Prometheus API call, writes included if the
+# server has any enabled (its OTLP and remote-write receivers are not part of this grant, but nothing here narrows the path). Prometheus needs a matching ingress rule
+# (k8s/infra/kube-prometheus-stack/networkpolicy.yaml) and atenet-egress the matching egress one (k8s/apps/ate-system/networkpolicy.yaml).
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/api.kagent.dev/egresspolicy_v1alpha3.json
+apiVersion: api.kagent.dev/v1alpha3
+kind: EgressPolicy
+metadata:
+  name: prometheus-read
+  namespace: kagent
+spec:
+  destinations:
+    - origin: "http://prometheus-operated.kube-prometheus-stack-system.svc:9090"

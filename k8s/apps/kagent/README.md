@@ -69,6 +69,7 @@ token, but anything the agent can be talked into doing with it, such as a push o
 
 ## What it does not do
 
+- Sub-agent: `network-assistant` (`k8s/apps/kagent-agents/agenttemplate.yaml`) is a Shared sub-agent tool of `homelab-assistant`: it runs inside the parent's sandbox and egress, queries Prometheus for Cilium drops and alerts (`egresspolicy-prometheus.yaml`) and drafts policy changes as diffs. The egress gateway matches the origin only, so the parent can call every Prometheus API path. The sub-agent mechanism that gives an agent its own sandbox and harness (`agentRef`) is not served by kagent 1.0.1 yet.
 - No MCP tools: the chart's tool server runs with cluster-admin on everything, so `kagent-tools` is off. Command-line tools come from the image above, once the follow-up lands.
 - The UI has no authentication of its own. It is published through the Omni service exposer (annotations on the `kagent-ui` Service, port 50098, prefix `kagent`), so the Omni login is the only gate, and the `kagent-ui` NetworkPolicy lets in the host network only. `kubectl -n kagent port-forward svc/kagent-ui 8080:8080` still works with the debug tier. Anyone who can open it can run the agents, which spend API money and can use the injected GitHub credential: keep Omni access narrow. Substrate itself has no UI.
 - Backups of the database; telemetry; the codex harness.

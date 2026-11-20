@@ -119,6 +119,15 @@ spec:
         - ports:
             - port: "8083"
               protocol: TCP
+    # Prometheus (read-only queries of the network-assistant sub-agent, k8s/apps/kagent-agents/egresspolicy-prometheus.yaml)
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "9090"
+              protocol: TCP
     # the internet, for the actors' outbound requests (their own egress policy decides which)
     - toEntities:
         - world
