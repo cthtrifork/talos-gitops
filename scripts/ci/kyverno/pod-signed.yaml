@@ -1,0 +1,11 @@
+---
+# claude-runner image built and signed by this repo's workflow (digest from the 2026-11-20 build)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: signed
+  namespace: claude-system
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.326-20261120.35@sha256:42c06af82067557094b37615624a951e54d2cb59a99a38be67a5e85050daa8df
