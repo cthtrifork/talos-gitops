@@ -4,7 +4,7 @@
 # agent has no cluster access). A Harness points at this image with spec.workload.image, by digest (k8s/apps/kagent/README.md).
 #
 # Base: the claude-harness image of the kagent release the charts install (kagent 1.0.1, digest from the chart's files/builtin-harness-images.json). Bump it with the chart.
-# The tag is x.y.z of kagent, so the release of this image is <kagent version>-YYYYMMDD.<run>.
+# The tag is x.y.z of kagent, so the release of this image is <kagent version>-YYYYMMDD.<run>. Every download retries: dl.k8s.io has dropped a TLS connection mid-build.
 ARG KAGENT_VERSION=1.0.1
 FROM ghcr.io/kagent-dev/kagent/claude-harness@sha256:111d28bc8552469b028d91ecd2352c9d44811aba07be12b1e6868db7948f904e
 ARG KAGENT_VERSION
@@ -34,16 +34,16 @@ ARG YAMLLINT_VERSION=1.38.0
 
 RUN apk add --no-cache curl jq shellcheck python3 py3-pip
 
-RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl \
- && echo "$(curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256")  /usr/local/bin/kubectl" | sha256sum -c - \
+RUN curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl \
+ && echo "$(curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256")  /usr/local/bin/kubectl" | sha256sum -c - \
  && chmod +x /usr/local/bin/kubectl
 
 # GitHub CLI, checksum verified against the release's checksums file
 RUN base="https://github.com/cli/cli/releases/download/v${GH_VERSION}" \
  && tarball="gh_${GH_VERSION}_linux_amd64.tar.gz" \
  && cd /tmp \
- && curl -fsSL "${base}/${tarball}" -o "${tarball}" \
- && curl -fsSL "${base}/gh_${GH_VERSION}_checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/${tarball}" -o "${tarball}" \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/gh_${GH_VERSION}_checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
  && tar -xzf "${tarball}" \
  && install -m 0755 "gh_${GH_VERSION}_linux_amd64/bin/gh" /usr/local/bin/gh \
  && rm -rf "${tarball}" "gh_${GH_VERSION}_linux_amd64"
@@ -51,8 +51,8 @@ RUN base="https://github.com/cli/cli/releases/download/v${GH_VERSION}" \
 RUN base="https://github.com/google/go-containerregistry/releases/download/v${CRANE_VERSION}" \
  && tarball="go-containerregistry_Linux_x86_64.tar.gz" \
  && cd /tmp \
- && curl -fsSL "${base}/${tarball}" -o "${tarball}" \
- && curl -fsSL "${base}/checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/${tarball}" -o "${tarball}" \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
  && tar -xzf "${tarball}" crane \
  && install -m 0755 crane /usr/local/bin/crane \
  && rm -rf "${tarball}" crane
@@ -60,8 +60,8 @@ RUN base="https://github.com/google/go-containerregistry/releases/download/v${CR
 # yq (mikefarah): its checksums file lists the hashes in columns, SHA-256 being the 18th hash, so field 19
 RUN base="https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}" \
  && cd /tmp \
- && curl -fsSL "${base}/yq_linux_amd64" -o yq \
- && echo "$(curl -fsSL "${base}/checksums" | awk '$1=="yq_linux_amd64"{print $19}')  yq" | sha256sum -c - \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/yq_linux_amd64" -o yq \
+ && echo "$(curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/checksums" | awk '$1=="yq_linux_amd64"{print $19}')  yq" | sha256sum -c - \
  && install -m 0755 yq /usr/local/bin/yq \
  && rm -f yq
 
@@ -69,8 +69,8 @@ RUN base="https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}" \
 RUN base="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}" \
  && tarball="kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
  && cd /tmp \
- && curl -fsSL "${base}/${tarball}" -o "${tarball}" \
- && curl -fsSL "${base}/checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/${tarball}" -o "${tarball}" \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
  && tar -xzf "${tarball}" kustomize \
  && install -m 0755 kustomize /usr/local/bin/kustomize \
  && rm -rf "${tarball}" kustomize
@@ -78,16 +78,16 @@ RUN base="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomi
 RUN base="https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}" \
  && tarball="kubeconform-linux-amd64.tar.gz" \
  && cd /tmp \
- && curl -fsSL "${base}/${tarball}" -o "${tarball}" \
- && curl -fsSL "${base}/CHECKSUMS" | grep -F "  ${tarball}" | sha256sum -c - \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/${tarball}" -o "${tarball}" \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/CHECKSUMS" | grep -F "  ${tarball}" | sha256sum -c - \
  && tar -xzf "${tarball}" kubeconform \
  && install -m 0755 kubeconform /usr/local/bin/kubeconform \
  && rm -rf "${tarball}" kubeconform
 
 RUN tarball="helm-v${HELM_VERSION}-linux-amd64.tar.gz" \
  && cd /tmp \
- && curl -fsSL "https://get.helm.sh/${tarball}" -o "${tarball}" \
- && curl -fsSL "https://get.helm.sh/${tarball}.sha256sum" | sha256sum -c - \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "https://get.helm.sh/${tarball}" -o "${tarball}" \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "https://get.helm.sh/${tarball}.sha256sum" | sha256sum -c - \
  && tar -xzf "${tarball}" linux-amd64/helm \
  && install -m 0755 linux-amd64/helm /usr/local/bin/helm \
  && rm -rf "${tarball}" linux-amd64
@@ -95,8 +95,8 @@ RUN tarball="helm-v${HELM_VERSION}-linux-amd64.tar.gz" \
 RUN base="https://github.com/fluxcd/flux2/releases/download/v${FLUX_VERSION}" \
  && tarball="flux_${FLUX_VERSION}_linux_amd64.tar.gz" \
  && cd /tmp \
- && curl -fsSL "${base}/${tarball}" -o "${tarball}" \
- && curl -fsSL "${base}/flux_${FLUX_VERSION}_checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/${tarball}" -o "${tarball}" \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/flux_${FLUX_VERSION}_checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
  && tar -xzf "${tarball}" flux \
  && install -m 0755 flux /usr/local/bin/flux \
  && rm -rf "${tarball}" flux
@@ -104,8 +104,8 @@ RUN base="https://github.com/fluxcd/flux2/releases/download/v${FLUX_VERSION}" \
 RUN base="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}" \
  && tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
  && cd /tmp \
- && curl -fsSL "${base}/${tarball}" -o "${tarball}" \
- && curl -fsSL "${base}/actionlint_${ACTIONLINT_VERSION}_checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/${tarball}" -o "${tarball}" \
+ && curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${base}/actionlint_${ACTIONLINT_VERSION}_checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
  && tar -xzf "${tarball}" actionlint \
  && install -m 0755 actionlint /usr/local/bin/actionlint \
  && rm -rf "${tarball}" actionlint
