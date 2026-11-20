@@ -30,6 +30,9 @@
          padding: 20px max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left)); }
   main { width: 100%; max-width: 960px; margin: 0 auto; }
   header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 2px; color: var(--accent); font-size: var(--fs-md); text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  .back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
   h1 { font-size: var(--fs-xl); line-height: 1.25; margin: 0 0 2px; }
   h2 { font-size: var(--fs-lg); margin: 0 0 12px; }
   .sub { margin: 0; color: var(--ink-2); font-size: var(--fs-md); }
@@ -111,6 +114,7 @@
 <main>
   <header>
     <div>
+      <a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a>
       <h1>Elevate Claude</h1>
       <p class="sub">Gives Claude a short-lived token for a tier. The token expires by itself.</p>
     </div>
