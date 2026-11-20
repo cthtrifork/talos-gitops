@@ -1,5 +1,6 @@
 # Markdown for the scan-images PR comment, from the Trivy JSON reports of the new and the old image.
 # Usage: jq -r --arg new_ref <ref> --arg old_ref <ref or ""> --arg run_url <url> --slurpfile o old.json -f scan-comment.jq new.json
+# The list of everything in the new image comes from scripts/ci/vuln-list.tpl (a Trivy template), appended by the workflow.
 # old.json may be {} (a new image, or the old scan failed); new.json may be {} (the scan failed).
 def sev_rank: {CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3}[.] // 4;
 def icon: {CRITICAL: "🟥", HIGH: "🟧", MEDIUM: "🟨", LOW: "🟦"}[.] // "⬜";
@@ -32,5 +33,5 @@ def arrow(o; n): if n > o then "⬆️" elif n < o then "⬇️" else "➖" end;
     "",
     (if $hasold and ($added | length) > 0 then "**🆕 New: \($added | length)**", "", table($added; 10), "" else empty end),
     (if $hasold and ($fixed | length) > 0 then "<details><summary>✅ Fixed: \($fixed | length)</summary>", "", table($fixed; 10), "", "</details>", "" else empty end),
-    (if ($new | length) > 0 then "<details><summary>All \($new | length) in the new image</summary>", "", table($new; 25), "", "</details>", "" else "No CRITICAL or HIGH vulnerabilities. 🎉", "" end)
+    (if ($new | length) == 0 then "No CRITICAL or HIGH vulnerabilities. 🎉", "" else empty end)
   end)
