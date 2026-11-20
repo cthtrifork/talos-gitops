@@ -2,8 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
+<!-- Added to the iPhone Home Screen the page opens full screen, without Safari's bars. The status bar stays "default" (dark text on a
+     light bar, light text on a dark one, following the system), because "black-translucent" would put white text on the light page.
+     There is no manifest on purpose: the page sits behind the Omni login, which a manifest request does not carry cookies for.
+     The touch icon is inline for the same reason (a request for /apple-touch-icon.png would be sent to the login), a 180 px PNG, square
+     because iOS rounds the corners itself. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cockpit">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#f4f4f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
 <title>Cockpit</title>
 <meta name="description" content="Read-only status of the homelab cluster: traffic, alerts, Flux, GitHub and Renovate.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23c4623f'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 17a7.5 7.5 0 1 1 14 0'/%3E%3Cpath d='M12 17l3.5-5'/%3E%3C/g%3E%3C/svg%3E">
@@ -33,9 +46,14 @@
     --calm: #8d8b85; --suspend: #b388ff; --ok: #3cc58a; --warn: #f2d98a; --warn-bg: #3a2f10; --bad: #ff8a80; --bad-bg: #3d1713;
   }
   * { box-sizing: border-box; }
+  /* Phone and Home Screen: no text zoom after a rotation, no grey flash or double-tap zoom delay on a tap, and the page colour
+     behind the rubber band. The insets keep the content clear of the notch (landscape) and the home indicator (bottom). */
+  html { -webkit-text-size-adjust: 100%; background: var(--page); }
+  a, button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   body {
     margin: 0; background: var(--page); color: var(--ink); font: var(--fs-md)/1.45 var(--font);
-    padding-block: 24px 48px;
+    padding-top: max(24px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px));
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
@@ -44,15 +62,18 @@
   h2 { font-size: var(--fs-sm); margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
   h3 { font-size: var(--fs-lg); margin: 0; font-weight: 600; }
   a { color: var(--accent); text-decoration: none; overflow-wrap: anywhere; }
-  a:hover { text-decoration: underline; }
+  @media (hover: hover) { a:hover { text-decoration: underline; } }
   a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
-  button { font: inherit; font-weight: 600; color: var(--accent); background: none; border: 1px solid var(--grid); border-radius: 10px; min-height: 40px; padding: 6px 16px; cursor: pointer; }
-  button:hover { border-color: var(--accent); }
+  button { font: inherit; font-weight: 600; color: var(--accent); background: none; border: 1px solid var(--grid); border-radius: 10px; min-height: 44px; padding: 6px 16px; cursor: pointer; }
+  @media (hover: hover) { button:hover { border-color: var(--accent); } }
+  button:active { border-color: var(--accent); }
   button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
   .num { font-variant-numeric: tabular-nums; }
   .muted { color: var(--muted); }
   header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
-  .strip { display: flex; flex-wrap: wrap; gap: 8px; }
+  .strip { display: flex; flex-wrap: wrap; gap: 0 16px; }
+  /* The chips are links to a panel: 44 px tall, the minimum for a finger. */
+  .strip .pill { min-height: 44px; }
   .pill { display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; font-size: var(--fs-md); font-weight: 600; white-space: nowrap; }
   .pill::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
   .warn { color: var(--warn); }
@@ -68,7 +89,6 @@
   .panel { background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; break-inside: avoid; margin-bottom: 12px; }
   .panel.compact { padding: 10px 16px; gap: 4px; }
   .panel:target { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-  a.pill:hover { text-decoration: underline; }
   a.pill:focus-visible { outline-offset: 1px; border-radius: 999px; }
   .hdr-r { display: flex; align-items: center; gap: 12px; }
   .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -97,7 +117,7 @@
   .row-st[data-st="warn"]::before { background: var(--warn); }
   .row-st[data-st="bad"]::before { background: var(--bad); }
   .mono { font-family: var(--mono); font-size: var(--fs-sm); }
-  a.open { font-size: var(--fs-sm); font-weight: 600; margin-top: auto; }
+  a.open { display: flex; align-items: center; min-height: 44px; font-size: var(--fs-sm); font-weight: 600; margin-top: auto; }
   .src { font-size: var(--fs-sm); color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
   /* Nothing below the header is shown until the first data arrives: content that appears after the fetch would
      push the page down (a layout shift of about 0.8 on the default throttled load). */
@@ -136,6 +156,7 @@ import { Cron } from "croner";
 
 const REFRESH_MS = 60000;
 const STALE_AFTER = 150; // seconds without a poll before a VM counts as not responding (same as the Update VMs page)
+const PULL_PX = 90; // how far a pull down from the top of the page has to go to refresh
 const MAX_ROWS = 5; // longest list shown in any panel; the rest is a count
 // The pages behind a panel, served by the Omni service exposer. A panel with an entry gets an "Open" link at its foot.
 const OMNI = "https://%s-portableinfo.workload.eu-central-1.omni.siderolabs.io/";
@@ -579,17 +600,32 @@ class CockpitApp extends LitElement {
         if (this._inflight === ctl) this._inflight = null;
       }
     };
+    // A Home Screen app has no reload button, so a pull down from the top of the page refreshes (the browser's own gesture is not there).
+    // The page itself does the rubber band; this only notices a long pull that started at the very top.
+    let y0 = null;
+    this._onTouchStart = (e) => { y0 = window.scrollY <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null; };
+    this._onTouchEnd = (e) => {
+      if (y0 !== null && window.scrollY <= 0 && e.changedTouches[0].clientY - y0 > PULL_PX) this.load();
+      y0 = null;
+    };
   }
   createRenderRoot() { return this; }
   connectedCallback() {
     super.connectedCallback();
     this._poll = setInterval(() => { if (!document.hidden) this.load(); }, REFRESH_MS);
     document.addEventListener("visibilitychange", this._onVisible);
+    // Coming back to a Home Screen app from the app switcher can restore the page from memory without a visibilitychange.
+    window.addEventListener("pageshow", this._onVisible);
+    document.addEventListener("touchstart", this._onTouchStart, { passive: true });
+    document.addEventListener("touchend", this._onTouchEnd, { passive: true });
     this.load();
   }
   disconnectedCallback() {
     clearInterval(this._poll);
     document.removeEventListener("visibilitychange", this._onVisible);
+    window.removeEventListener("pageshow", this._onVisible);
+    document.removeEventListener("touchstart", this._onTouchStart);
+    document.removeEventListener("touchend", this._onTouchEnd);
     this._inflight?.abort();
     super.disconnectedCallback();
   }
@@ -601,20 +637,20 @@ class CockpitApp extends LitElement {
       : failedSources.length ? `Some sources did not answer: ${failedSources.join(", ")}.` : "";
     // The time shown is when the data was last good, so a failed refresh cannot look current.
     const updated = error
-      ? html`<span class="pill warn" id="updated">${loadedAt ? "Stale, data from " + new Date(loadedAt).toLocaleTimeString() : "No data yet"}</span>`
-      : html`<span class="muted" id="updated">${d ? "Updated " + new Date(loadedAt).toLocaleTimeString() : "Loading…"}</span>`;
+      ? html`<span class="pill warn" id="updated">${loadedAt ? "Stale, data from " + new Date(loadedAt).toLocaleTimeString([], { timeStyle: "short" }) : "No data yet"}</span>`
+      : html`<span class="muted" id="updated">${d ? "Updated " + new Date(loadedAt).toLocaleTimeString([], { timeStyle: "short" }) : "Loading…"}</span>`;
     // Nothing below the header is shown until the first data arrives (see `main:not(.ready)`): content that appears after the fetch
     // would push the page down.
     return html`<main class=${d ? "ready" : nothing}>
       <header>
         <h1>Cockpit</h1>
-        <div class="hdr-r">${updated}<button type="button" id="refresh" @click=${this.load}>Refresh now</button></div>
+        <div class="hdr-r">${updated}<button type="button" id="refresh" @click=${this.load}>Refresh</button></div>
       </header>
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
       ${d ? html`${Strip(d)}
+        ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
         ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${DiskPanel(d)}`)}
-        ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}
-        ${Section({ id: "home", title: "Homelab" }, html`${VersionsPanel(d)}${UsagePanel(d)}${SharePanel(d)}`)}` : nothing}
+        ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;
   }
 }
