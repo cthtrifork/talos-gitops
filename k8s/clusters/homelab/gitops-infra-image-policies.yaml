@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/kustomize.toolkit.fluxcd.io/kustomization_v1.json
 ---
-# The ClusterImagePolicy CRD comes from the policy-controller chart, so this waits for that HelmRelease to be Ready.
+# The ImageValidatingPolicy CRD comes from the Kyverno chart, so this waits for that HelmRelease to be Ready.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -18,7 +18,7 @@ spec:
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease
-      name: policy-controller
+      name: kyverno
       namespace: policy-system
   sourceRef:
     kind: GitRepository

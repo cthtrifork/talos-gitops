@@ -1,23 +1,43 @@
 ---
-# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policy.sigstore.dev/clusterimagepolicy_v1beta1.json
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/imagevalidatingpolicy_v1.json
 # Images built by this repo's workflows must carry a keyless cosign signature from a workflow in this repo, on main.
-# mode warn: a pod that fails the check is admitted with a warning. Switch to enforce once the warnings stay quiet
-# (and failurePolicy of the policy-controller webhook to Fail). Only namespaces labelled policy.sigstore.dev/include=true are checked.
-apiVersion: policy.sigstore.dev/v1beta1
-kind: ClusterImagePolicy
+# validationActions Warn: a pod that fails the check is admitted with a warning. Switch to Deny once the warnings stay
+# quiet (and failurePolicy to Fail). Only namespaces labelled gitops.homelab/verify-images=true are checked.
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
 metadata:
   name: cthtrifork-images
 spec:
-  mode: warn
-  images:
+  validationActions:
+    - Warn
+  # an outage of the Kyverno webhook must not block pod creation
+  failurePolicy: Ignore
+  evaluation:
+    background:
+      enabled: false
+  webhookConfiguration:
+    timeoutSeconds: 15
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        gitops.homelab/verify-images: "true"
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  matchImageReferences:
     - glob: ghcr.io/cthtrifork/talos-gitops/**
-  authorities:
-    - name: github-actions
-      keyless:
-        url: https://fulcio.sigstore.dev
-        identities:
-          - issuer: https://token.actions.githubusercontent.com
-            # build-*.yaml are the callers and build-release-image.yaml the reusable workflow, whichever the certificate names
-            subjectRegExp: ^https://github\.com/cthtrifork/talos-gitops/\.github/workflows/build-[a-z-]+\.yaml@refs/heads/main$
-      ctlog:
-        url: https://rekor.sigstore.dev
+  attestors:
+    - name: github
+      cosign:
+        keyless:
+          identities:
+            - issuer: https://token.actions.githubusercontent.com
+              # build-*.yaml are the callers and build-release-image.yaml the reusable workflow, whichever the certificate names
+              subjectRegExp: ^https://github\.com/cthtrifork/talos-gitops/\.github/workflows/build-[a-z-]+\.yaml@refs/heads/main$
+        ctlog:
+          url: https://rekor.sigstore.dev
+  validations:
+    - expression: images.containers.map(image, verifyImageSignatures(image, [attestors.github])).all(e, e > 0)
+      message: image is not signed by a build workflow of cthtrifork/talos-gitops

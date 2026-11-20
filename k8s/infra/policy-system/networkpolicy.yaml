@@ -107,17 +107,18 @@ spec:
             - port: "8080"
               protocol: TCP
 ---
-# policy-controller: the API server calls the webhook (8443), and the webhook reads image signatures from the registry and the
-# Sigstore trust root and transparency log. Add a registry here when a ClusterImagePolicy covers images from it.
+# Kyverno admission controller: the API server calls the webhook (9443), and the controller reads image signatures from the
+# registry and the Sigstore trust root and transparency log. Add a registry here when an ImageValidatingPolicy covers images from it.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: policy-controller
+  name: kyverno-admission-controller
   namespace: policy-system
 spec:
   endpointSelector:
     matchLabels:
-      app.kubernetes.io/name: policy-controller
+      app.kubernetes.io/component: admission-controller
+      app.kubernetes.io/part-of: kyverno
   ingress:
     # the API server runs on the host network on Talos
     - fromEntities:
@@ -126,7 +127,7 @@ spec:
         - remote-node
       toPorts:
         - ports:
-            - port: "8443"
+            - port: "9443"
               protocol: TCP
   egress:
     - toEndpoints:
