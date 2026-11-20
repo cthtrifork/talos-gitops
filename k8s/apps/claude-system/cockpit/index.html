@@ -74,8 +74,6 @@
   .strip { display: flex; flex-wrap: wrap; gap: 0 16px; }
   /* The chips are links to a panel: 44 px tall, the minimum for a finger. */
   .strip .pill { min-height: 44px; }
-  .pages { display: flex; flex-wrap: wrap; gap: 0 16px; font-size: var(--fs-md); font-weight: 600; }
-  .pages a { display: inline-flex; align-items: center; min-height: 44px; }
   .pill { display: inline-flex; align-items: center; gap: 8px; padding: 2px 0; font-size: var(--fs-md); font-weight: 600; white-space: nowrap; }
   .pill::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
   .warn { color: var(--warn); }
@@ -172,8 +170,6 @@ const OPEN = {
   "p-share-urls": ["Open Share URLs", "claudeurlshare"],
   "p-claude-usage": ["Open Claude usage", "claudeusage"],
 };
-// The other pages of the homelab, linked from the header. Each of them links back here.
-const PAGES = [["Usage", "claudeusage"], ["Update VMs", "claudevmupgrade"], ["Share URLs", "claudeurlshare"], ["Elevate", "claudeelevate"]];
 
 // ---- Plain helpers: formatting, status levels and the data behind the panels ----
 
@@ -651,7 +647,6 @@ class CockpitApp extends LitElement {
         <h1>Cockpit</h1>
         <div class="hdr-r">${updated}<button type="button" id="refresh" @click=${this.load}>Refresh</button></div>
       </header>
-      <nav class="pages" aria-label="Other pages">${PAGES.map(([label, prefix]) => html`<a href=${OMNI.replace("%s", prefix)}>${label} →</a>`)}</nav>
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
       ${d ? html`${Strip(d)}
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
