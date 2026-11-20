@@ -26,6 +26,9 @@ spec:
     metadata:
       labels:
         app: claude-rc
+      annotations:
+        # one-time roll so the pod reads the Secret dependency-track-claude-api-key, which the config CronJob created after the pod started; remove with the next change
+        dt-key-rev: "1"
     spec:
       serviceAccountName: claude # in-cluster token is what lets sessions read the cluster
       terminationGracePeriodSeconds: 30
