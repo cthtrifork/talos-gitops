@@ -1,4 +1,4 @@
-# Markdown for the scan-images PR comment, from the Trivy JSON reports of the new and the old image.
+# Markdown for the scan PR comment, from the Trivy JSON reports of the new and the old image.
 # Usage: jq -r --arg new_ref <ref> --arg old_ref <ref or ""> --arg run_url <url> --slurpfile o old.json -f scan-comment.jq new.json
 # The list of everything in the new image comes from scripts/ci/vuln-list.tpl (a Trivy template), appended by the workflow.
 # old.json may be {} (a new image, or the old scan failed); new.json may be {} (the scan failed).

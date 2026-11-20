@@ -1,4 +1,4 @@
-{{- /* Markdown table of the vulnerabilities of a Trivy report, one row each, in Trivy's order (severity, then ID). Used by scan-images.yaml. */ -}}
+{{- /* Markdown table of the vulnerabilities of a Trivy report, one row each, in Trivy's order (severity, then ID). Used by images.yaml. */ -}}
 | Severity | CVE | Package | Installed | Fixed in |
 |---|---|---|---|---|
 {{- range . }}
