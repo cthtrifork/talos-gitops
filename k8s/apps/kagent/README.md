@@ -70,7 +70,7 @@ token, but anything the agent can be talked into doing with it, such as a push o
 ## What it does not do
 
 - No MCP tools: the chart's tool server runs with cluster-admin on everything, so `kagent-tools` is off. Command-line tools come from the image above, once the follow-up lands.
-- No UI exposure and no UI authentication: reach it with `kubectl -n kagent port-forward svc/kagent-ui 8080:8080`.
+- The UI has no authentication of its own. It is published through the Omni service exposer (annotations on the `kagent-ui` Service, port 50098, prefix `kagent`), so the Omni login is the only gate, and the `kagent-ui` NetworkPolicy lets in the host network only. `kubectl -n kagent port-forward svc/kagent-ui 8080:8080` still works with the debug tier. Anyone who can open it can run the agents, which spend API money and can use the injected GitHub credential: keep Omni access narrow. Substrate itself has no UI.
 - Backups of the database; telemetry; the codex harness.
 - The worker pods' network policy.
 

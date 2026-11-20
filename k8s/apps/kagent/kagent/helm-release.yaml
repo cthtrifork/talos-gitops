@@ -39,6 +39,14 @@ spec:
         # the substrate chart's default issuer for actor JWTs
         actorJwtIssuer: https://idp.ate-system.svc
     # The pool the Harnesses run on, in this namespace, with the labels kagent selects workers by
+    ui:
+      service:
+        # The Omni service exposer publishes the UI behind the Omni login (like the other UIs in this repo); the NetworkPolicy lets in the host network only
+        annotations:
+          omni-kube-service-exposer.sidero.dev/icon: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iIzViNGJkYiIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMi41Ii8+PHBhdGggZD0iTTEyIDR2M00xMiAxN3YzTTQgMTJoM00xNyAxMmgzIi8+PC9nPjwvc3ZnPg==
+          omni-kube-service-exposer.sidero.dev/label: "kagent"
+          omni-kube-service-exposer.sidero.dev/port: "50098"
+          omni-kube-service-exposer.sidero.dev/prefix: kagent
     substrateWorkerPool:
       create: true
       name: kagent-default

@@ -86,7 +86,7 @@ kubectl -n kagent get actortemplates.ate.dev                  # kagent turns the
 kubectl ate get actors                                        # none until a session starts
 
 kagent agent session create --agent homelab-assistant -n kagent     # the CLI, from kagent's docs
-kubectl -n kagent port-forward svc/kagent-ui 8080:8080              # or the UI at http://localhost:8080
+kubectl -n kagent port-forward svc/kagent-ui 8080:8080              # or the UI from the Omni service exposer (label "kagent")
 ```
 
 In the UI, ask: *What are you, and where are you running?* then *What did I just ask you?* Then:
