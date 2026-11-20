@@ -5,6 +5,7 @@ kind: Kustomization
 resources:
   - kubevirt-operator.yaml
   - cdi-operator.yaml
+  - networkpolicy.yaml
 # The operators start their own pods (virt-api, virt-handler, virt-launcher, the CDI importer, ...) from the image references in
 # the env vars patched below. The upstream manifests use tags only, which the require-image-digest policy denies, so each one is
 # pinned by digest. Renovate bumps every tag and digest here (customManagers in renovate.json5, grouped per project together with

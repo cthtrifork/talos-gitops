@@ -1,0 +1,97 @@
+# Default deny both ways for the kubevirt and cdi namespaces (policyEnforcementMode is always, so a pod without a policy has no
+# network). The operators and the pods they start (virt-api, virt-controller, cdi-apiserver, ...) get DNS, the Kubernetes API,
+# each other, and the webhook and probe ports from the API server and the nodes.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: kubevirt-default-deny
+  namespace: kubevirt
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: kubevirt-allow-base
+  namespace: kubevirt
+spec:
+  endpointSelector: {}
+  ingress:
+    # webhooks and probes: the API server and the nodes
+    - fromEntities:
+        - kube-apiserver
+        - host
+        - remote-node
+    # pods of the namespace talk to each other
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kubevirt
+  egress:
+    # DNS through kube-dns
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    # Kubernetes API
+    - toEntities:
+        - kube-apiserver
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kubevirt
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: cdi-default-deny
+  namespace: cdi
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: cdi-allow-base
+  namespace: cdi
+spec:
+  endpointSelector: {}
+  ingress:
+    # webhooks and probes: the API server and the nodes
+    - fromEntities:
+        - kube-apiserver
+        - host
+        - remote-node
+    # pods of the namespace talk to each other
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cdi
+  egress:
+    # DNS through kube-dns
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    # Kubernetes API
+    - toEntities:
+        - kube-apiserver
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cdi

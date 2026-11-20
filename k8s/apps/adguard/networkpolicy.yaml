@@ -95,6 +95,15 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # DoH upstream addresses: AdGuard resolves the hosts above through the bootstrap resolvers, not kube-dns, so Cilium never learns them for toFQDNs
+    - toCIDRSet:
+        - cidr: 162.159.61.8/32
+        - cidr: 172.64.41.8/32
+        - cidr: 8.8.4.4/32
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
     # bootstrap and fallback resolvers
     - toCIDRSet:
         - cidr: 1.1.1.1/32
