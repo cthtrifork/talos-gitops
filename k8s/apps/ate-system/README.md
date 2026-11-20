@@ -1,23 +1,26 @@
 # Agent Substrate (ate-system)
 
 [Agent Substrate](https://github.com/agent-substrate/substrate) runs sandboxed agents ("actors") on a small pool of warm worker pods
-and snapshots idle actors to object storage. This directory is its control plane at **v1.0.0**, with gVisor as the only sandbox class.
-`k8s/apps/ate-system-pools/` has the `SandboxConfig` and the `WorkerPool`; they wait for the CRDs installed here
+and snapshots idle actors to object storage. This directory is its control plane at **v1.0.1 of kagent's Helm charts** (github.com/kagent-dev/substrate, a build of
+Substrate v1.0.0 plus charts), with gVisor as the only sandbox class. `k8s/apps/ate-system-pools/` has the `WorkerPool`; it waits for the CRDs installed here
 (`app-ate-system` and `app-ate-system-pools` in `k8s/clusters/homelab/app-ate-system.yaml`).
+
+Upstream `agent-substrate/substrate` ships install manifests but no Helm chart. The only charts are kagent's, and kagent 1.0 is tested against them, so this is
+what is installed. They use **agentgateway** as the router and egress gateway; there is no Envoy option.
 
 | Where | What |
 |---|---|
-| `rendered/` | Upstream's install manifests (`manifests/ate-install/` at the tag), CRDs and RBAC, and the Kubernetes credential provider. Generated: see below. |
-| `kustomization.yaml` | The patches that make them fit this cluster (S3 instead of GCS, no GKE credential provider, the router's client allowlist, PodSecurity labels) |
+| `crds/`, `podcert/`, `atelet/`, `substrate/` | One HelmRelease each: the CRDs, the pod certificate controller, atelet (a DaemonSet, upgraded before the API server) and the control and data plane. The values are the cluster-specific part: S3 instead of the bundled RustFS, the database Secrets, kagent's owner and router identity, the credential grant, the preview gates |
 | `garage/` | Garage (S3) for the snapshots, in this namespace and separate from the one Renovate uses |
 | `postgres-cluster.yaml` | CloudNativePG database for `ate-api-server` (Substrate's "bring your own database" layout, with password logins) |
-| `externalsecrets.yaml` | Passwords and keys generated in `k8s/infra/secret-store/` (`ate-garage-*`, `ate-postgres-*`) and copied here; no value is in Git |
-| `configmap.yaml` | What `ate-setup deploy` writes as ConfigMaps at install time: API config, authentication config, API env, OTel config (export off) |
-| `networkpolicy.yaml`, `ingress-networkpolicy.yaml` | Cilium egress policies, and the ingress allows upstream's policies lack for Garage and the database |
+| `externalsecrets.yaml` | Passwords and keys generated in `k8s/infra/secret-store/` (`ate-garage-*`, `ate-postgres-*`) and shaped into the Secrets the charts read: the two connection strings and the Garage key under the AWS variable names |
+| `configmap.yaml` | `ate-api-authentication`, the one ConfigMap the chart mounts but does not create |
+| `networkpolicy.yaml`, `ingress-networkpolicy.yaml` | Cilium egress policies, and the ingress allows the chart's policies lack for Garage and the database |
 | `issuer.yaml`, `certificate.yaml`, `rbac.yaml`, `secretstore.yaml`, `externalsecrets-pools.yaml` | The CA and JWT key pools: cert-manager makes the keys, External Secrets builds the pool Secrets Substrate reads (see below) |
+| `namespace.yaml` | `ate-system`, `podcertificate-controller-system` and `ate-workers` (the charts do not create namespaces) |
 
-`rendered/` holds vendored files, not Helm output. The render workflow rewrites `rendered/` in every directory that has both `helm-release.yaml` and
-`helm-repository.yaml`, which is why Garage is in `garage/` and nothing like that may be added at this level.
+The render workflow rewrites `rendered/` in every directory that has both a `helm-release.yaml` and a `helm-repository.yaml`, so each chart has a directory of its
+own, and nothing like that may be added at this level.
 
 ## Architecture
 
@@ -95,9 +98,8 @@ worker pool there), a WorkerPool **in the agent's namespace** carrying `kagent.d
 the pool in the Agent's namespace, so the pool in `ate-workers` is not used by it), the kagent Helm release and its database, and the egress MITM trust that kagent's
 actors need (`egress-mitm.ate.dev` is projected into them).
 
-Two risks. kagent is built and tested against `github.com/kagent-dev/substrate`, a fork of upstream that adds Helm charts and carries later changes in about 40 Go files
-(the gRPC `api/` is identical to upstream v1.0.0, so clients are compatible, but server behavior differs). And its charts use agentgateway as the router and egress
-gateway, whereas this install uses Envoy, upstream's default: both are supported upstream, and whether kagent works against Envoy is untested.
+One risk is left. kagent is built against `github.com/kagent-dev/substrate`, the fork these charts come from; the gRPC `api/` is identical to upstream v1.0.0, so a client is
+compatible with either. The data plane is agentgateway, as kagent expects.
 
 ## The key pools
 
@@ -123,17 +125,19 @@ Things to know:
 
 ## Updating to a new release
 
-`rendered/` is generated from a tag, and Renovate ignores it (`k8s/**/rendered/**`), so an update is by hand:
+Renovate maintains the four charts (the `OCIRepository` tag and digest in each `helm-repository.yaml`) and Garage. `renovate.json5` groups the four Substrate charts into one pull
+request with no automerge, because they are one release: the version skew policy upgrades atelet before the API server, and the CRDs must match both. The render workflow then
+regenerates `rendered/` in each chart's directory.
 
-1. In a clone of Substrate at the new tag, take `manifests/ate-install/{ate-api-server,ate-controller,ate-idp-server,atelet,atenet-router,atenet-egress,pod-certificate-controller,ate-system-networkpolicies,sandboxconfig-validation}.yaml`,
-   `manifests/egress-credential-injection/{k8s-credential-provider,namespace-policy}.yaml`, and `manifests/ate-install/generated/*.yaml` (CRDs to `rendered/crds/`).
-2. Replace each `ko://go.ate.dev/substrate/cmd/<name>` image with `ghcr.io/agent-substrate/substrate/<name>:<tag>@sha256:<digest>` (`crane digest`;
-   `credential-provider/kubernetes-secrets` is the image `kubernetes-secrets`), `${ENVOY_DATAPLANE_IMAGE}` with `envoy-dataplane`, and the
-   `#ATE_EGRESS_INJECT_FLAGS` marker in `atenet-egress.yaml` with the five `--credential-provider-*` flags that are there now.
-3. Update the `workerImage` in `k8s/apps/ate-system-pools/workerpool.yaml` and the `SandboxConfig` there. If the pool format changed, update the templates in `externalsecrets-pools.yaml`.
-4. Read the release notes first: CRDs are applied by Flux, which does not delete or migrate what a release removes.
+What Renovate does not do, by hand in the same pull request:
 
-Changing a ConfigMap or Secret here does not restart the pods that read it (`ate-setup` stamps an env hash for that). Restart `ate-api-server`
+1. `workerImage` in `k8s/apps/ate-system-pools/workerpool.yaml`: a field on a custom resource that Renovate does not read. Use the same release,
+   `ghcr.io/kagent-dev/substrate/ateworker-gvisor:<tag>@sha256:<digest>` (`crane digest`).
+2. Read the release notes and the chart README first: the CRDs are applied by Flux, which does not delete or migrate what a release removes, and some
+   releases change the node image cache or the database schema.
+3. If the pool format changed, update the templates in `externalsecrets-pools.yaml`.
+
+Changing a ConfigMap or Secret here does not restart the pods that read it. Restart `ate-api-server`
 by hand after editing `configmap.yaml` or after the database passwords change.
 
 ## Things to know
@@ -141,10 +145,10 @@ by hand after editing `configmap.yaml` or after the database passwords change.
 - **atelet is privileged in effect**: root, `hostPath` on `/var/lib/ate`, `/var/lib/kubelet/{plugins,device-plugins}` and `/dev`, priority
   `system-cluster-critical`. The worker pods in `ate-workers` run as root with `SYS_ADMIN`, `NET_ADMIN`, `NET_RAW` and no seccomp. Both
   namespaces are PodSecurity `privileged`. gVisor is the boundary between an actor and the node; keep untrusted workloads out of any other use of these nodes.
-- **The Kubernetes credential provider can read Secrets cluster-wide** (its ClusterRole), but serves nothing until `namespace-policy.yaml`
-  grants an atespace the namespaces it may read (`policies: []` is default-deny). Review each grant.
-- **Router clients**: `atenet-router` only accepts clients whose certificate has a SPIFFE ID in `--ingress-allowed-spiffe-ids`: kagent's controller and
-  `kubectl ate proxy` (`ns/ate-system/sa/atenet-client`). Add the real clients in `kustomization.yaml`.
+- **The Kubernetes credential provider can read Secrets cluster-wide** (its ClusterRole), but serves nothing until `credentialProvider.namespacePolicies` in `substrate/helm-release.yaml`
+  grants an atespace the namespaces it may read (`credentialProvider.namespacePolicies`, empty by default and so default-deny). Review each grant.
+- **Router clients**: `atenet-router` (agentgateway) only accepts clients whose certificate has a SPIFFE ID in `atenetRouter.ingressAllowedSPIFFEIDs`: kagent's controller and
+  `kubectl ate proxy` (`ns/ate-system/sa/atenet-client`). Add the real clients under `atenetRouter.ingressAllowedSPIFFEIDs` in `substrate/helm-release.yaml`.
 - **JWT clients** (`kubectl ate` and the like) authenticate with a Kubernetes service account token. The provider in `configmap.yaml` uses this
   cluster's issuer; its discovery URL may not be reachable from the pod, which only affects those clients. The control plane itself uses pod certificates.
 - **Not covered yet**: the microVM class (Cloud Hypervisor; `/dev/kvm` exists on `talos-11a-esj` and `talos-tba-msi`, nested virtualization

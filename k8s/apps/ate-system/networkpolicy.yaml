@@ -1,6 +1,6 @@
-# Egress policy for the namespaces of Agent Substrate. Ingress is handled by rendered/ate-system-networkpolicies.yaml (a default deny and one
-# policy per component, as Kubernetes NetworkPolicies); the CiliumNetworkPolicies here only deny and allow egress, so the two do not
-# widen each other. Pods that upstream does not know about (the CloudNativePG pods, Garage) get their ingress rules in ingress-networkpolicy.yaml.
+# Egress policy for the namespaces of Agent Substrate. Ingress is handled by the substrate chart (a default deny and one policy per component,
+# as Kubernetes NetworkPolicies); the CiliumNetworkPolicies here only deny and allow egress, so the two do not
+# widen each other. Pods the chart does not know about (the CloudNativePG pods, Garage) get their ingress rules in ingress-networkpolicy.yaml.
 #
 # Two rules are deliberately broad and are worth narrowing once Hubble shows the real traffic (skill cilium-drops):
 #   - atelet reaches the internet on 443: it downloads the gVisor bundle from gs://gvisor and pulls the container images of the actors, and

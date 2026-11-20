@@ -1,0 +1,22 @@
+# The pod certificate controller: signs the certificates the Substrate components use for mTLS (pod identity and service DNS). One per cluster. It reads the
+# CA pools made in certificate.yaml and externalsecrets-pools.yaml, which it waits for.
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: substrate-podcert
+  namespace: ate-system
+spec:
+  interval: 30m
+  releaseName: substrate-podcert
+  targetNamespace: podcertificate-controller-system
+  storageNamespace: podcertificate-controller-system
+  timeout: 10m
+  dependsOn:
+    - name: substrate-crds
+  chartRef:
+    kind: OCIRepository
+    name: substrate-podcert
+  values:
+    # Postgres client certificates are for a bundled database with certificate logins; this install uses CloudNativePG with passwords
+    postgresClients: []

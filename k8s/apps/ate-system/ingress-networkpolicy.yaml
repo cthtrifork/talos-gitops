@@ -1,5 +1,5 @@
-# What upstream's ingress policies (rendered/ate-system-networkpolicies.yaml) do not cover: the pods that are not Substrate's own. That file
-# denies all ingress to the namespace, so each of these needs its own allow.
+# What the substrate chart's NetworkPolicies do not cover: the pods that are not Substrate's own. The chart denies all ingress to the namespace
+# (default-deny-ingress), so each of these needs its own allow.
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

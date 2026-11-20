@@ -9,11 +9,11 @@ has been run.** It needs `k8s/apps/ate-system/` (PR #978) merged and healthy.
 
 ## What you need
 
-- `kubectl` for this cluster, and the `kubectl-ate` plugin built from the Substrate source at the same tag:
+- `kubectl` for this cluster, and the `kubectl-ate` plugin built from the Substrate source at the matching release (v1.0.0 of `agent-substrate/substrate`, or the same tag of the kagent fork):
   `git clone --depth 1 --branch v1.0.0 https://github.com/agent-substrate/substrate && cd substrate && go install ./cmd/kubectl-ate`
   (Go 1.27 or newer; the binary lands in `~/go/bin`, which must be on `PATH` for `kubectl ate` to be found).
 - Rights to create service account tokens in `ate-system`: without `--token-file`, `kubectl ate` acts as the `ate-client` service account, which is the
-  API server's bootstrap owner (`k8s/apps/ate-system/kustomization.yaml`). `kubectl ate proxy` also needs to create `podcertificaterequests`.
+  API server's bootstrap owner (`ateApi.authorization.bootstrapOwners` in `k8s/apps/ate-system/substrate/helm-release.yaml`). `kubectl ate proxy` also needs to create `podcertificaterequests`.
 - An Anthropic API key in your shell as `ANTHROPIC_API_KEY`. **Never paste it into a file in the repo or into a chat.**
 - `envsubst`, to put it into the template at apply time.
 
@@ -190,7 +190,7 @@ curl -s localhost:8000/task -d 'Is /workspace/haiku.txt still there? Print it.' 
 ```
 
 The proxy reaches the actor through `atenet-router`, which only accepts clients whose certificate carries an allowed SPIFFE ID
-(`ns/ate-system/sa/atenet-client` is set in `k8s/apps/ate-system/kustomization.yaml`). If the proxy is refused, that allowlist is the first thing to check.
+(`ns/ate-system/sa/atenet-client` is set in `atenetRouter.ingressAllowedSPIFFEIDs` in `k8s/apps/ate-system/substrate/helm-release.yaml`). If the proxy is refused, that allowlist is the first thing to check.
 
 ### What to look at
 

@@ -27,10 +27,9 @@ memory and must be checked against the kagent 1.0 docs and CRDs before use. **No
 | The Anthropic API key is a Secret in `kagent`, created outside Git | The key is never in a manifest or a chat | `kubectl -n kagent get secret kagent-anthropic` |
 | Substrate has authorized the kagent controller | `ate-api-server` authorizes every call; only `ate-client` is a bootstrap owner today | see "What Substrate must allow" |
 
-Pairing matters. The walkthrough says Substrate 0.0.9 broke the wire format that kagent 0.10.0-beta6 uses, and that the two must be bumped
-together. This repo runs upstream Substrate **v1.0.0** from `ghcr.io/agent-substrate/substrate`, whereas the walkthrough uses kagent's own charts and
-images (`ghcr.io/kagent-dev/substrate`). Before installing, confirm which Substrate release the kagent 1.0 chart targets, and whether the chart expects
-its own packaging. If it only works with its own charts, the choice is between swapping them in for `k8s/apps/ate-system/rendered/` and not using kagent.
+Pairing: this repo installs Substrate with kagent's own Helm charts (`github.com/kagent-dev/substrate`, v1.0.1), which is the combination kagent 1.0 is tested with, so
+there is no version gap to bridge. The walkthrough's warning still applies to upgrades: bump Substrate and kagent together, and read both release notes. These charts use
+agentgateway as the router and egress gateway.
 
 ## What kagent needs configured (HelmRelease values)
 
@@ -43,7 +42,7 @@ controller:
   substrate:
     enabled: true
     ateApiEndpoint: dns:///api.ate-system.svc:443
-    atenetRouterURL: http://atenet-router.ate-system.svc:80   # check the router Service's real port in rendered/atenet-router.yaml
+    atenetRouterURL: http://atenet-router.ate-system.svc:80   # the substrate chart's router Service has http :80 and https :443; kagent 1.0's own default is https :443
     ateApiTokenFile: /var/run/secrets/tokens/ate-api/token
     defaultWorkerPool:
       namespace: ate-workers
@@ -58,7 +57,7 @@ and then fail with `CreateContainerConfigError`.
 ## What Substrate must allow
 
 1. **Authorization.** The controller calls the API with a service account token (audience `api.ate-system.svc`). Its principal is
-   `system:serviceaccount:kagent:kagent-controller`. Either add it to `--authz-bootstrap-owners` in `k8s/apps/ate-system/kustomization.yaml`, or, better, give it a role
+   `system:serviceaccount:kagent:kagent-controller`. `k8s/apps/ate-system/substrate/helm-release.yaml` already lists it (as its pod certificate identity, which is what it presents) under `ateApi.authorization.bootstrapOwners`; better, give it a role
    in an access policy (`kubectl ate create access-policy`, see Substrate's `docs/guides/authorization.md`). A denied call names the principal with `:` encoded as `%3A`.
 2. **Authentication.** The token's issuer must be trusted: `ate-api-authentication` in `k8s/apps/ate-system/configmap.yaml` trusts this cluster's service account
    issuer `https://[fdae:41e4:649b:9303::1]:10000`, and the API server fetches that issuer's keys when it verifies a token. That address has never been

@@ -1,0 +1,68 @@
+# The Agent Substrate control plane and data plane: ate-api-server, ate-controller, ate-idp-server, the credential provider, and the router and egress gateway
+# (agentgateway). The charts are kagent's build of Substrate (github.com/kagent-dev/substrate), which is what kagent 1.0 is tested with; see ../README.md.
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: substrate
+  namespace: ate-system
+spec:
+  interval: 30m
+  releaseName: substrate
+  timeout: 10m
+  dependsOn:
+    - name: substrate-atelet
+  chartRef:
+    kind: OCIRepository
+    name: substrate
+  values:
+    preview:
+      - PerTemplateSnapshotLocation
+      - GoldenEgressPolicy
+    # The database is CloudNativePG (../postgres-cluster.yaml); the DSNs are in the Secrets the chart names by default (../externalsecrets.yaml), and its
+    # default roles and schema are what the database is set up with. Snapshots are in Garage, not the chart's bundled RustFS; atelet has its own release.
+    rustfs:
+      enabled: false
+    atelet:
+      enabled: false
+    ateApi:
+      # The cluster-wide default snapshot location; kagent sets one per Harness. gs:// is the scheme Substrate's own S3 setup uses.
+      snapshotLocation: gs://ate-snapshots/
+      authorization:
+        # ate-api-server exits without a bootstrap owner. The first is kagent's controller (its pod certificate identity; it must create atespaces), the
+        # second the shared service account `kubectl ate` acts as without --token-file: anyone who can create a token for it in ate-system, in practice a
+        # cluster admin, is a global owner. Replace it with your own principals once access policies exist.
+        bootstrapOwners:
+          - spiffe://cluster.local/ns/kagent/sa/kagent-controller
+          - system:serviceaccount:ate-system:ate-client
+    atenetRouter:
+      # Who may call actors through the router: kagent's controller, and `kubectl ate proxy` (its client certificate identity)
+      ingressAllowedSPIFFEIDs:
+        - spiffe://cluster.local/ns/kagent/sa/kagent-controller
+        - spiffe://cluster.local/ns/ate-system/sa/atenet-client
+    credentialProvider:
+      # An atespace may only have the credentials of the namespaces named here; an empty list denies all. kagent keeps its model keys in `kagent`.
+      namespacePolicies:
+        - atespace: kagent
+          allowedNamespaces:
+            - kagent
+    # The object-store plugin in ate-api-server reads Garage the same way atelet's does
+    objectStorePlugin:
+      extraEnv:
+        - name: AWS_REGION
+          value: garage
+        - name: AWS_ENDPOINT_URL
+          value: http://garage.ate-system.svc:3900
+        - name: AWS_S3_USE_PATH_STYLE
+          value: "true"
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: garage-aws-credentials
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: garage-aws-credentials
+              key: AWS_SECRET_ACCESS_KEY
+    # Telemetry export is off: no endpoint is set, and this cluster has no OTLP collector for the control plane

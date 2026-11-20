@@ -335,8 +335,8 @@ spec:
             - cpuRequestsMissing
             - memoryRequestsMissing
             - memoryLimitsMissing
-        # Agent Substrate (k8s/apps/ate-system/rendered) is upstream's v1.0.0 manifests: they set no requests or limits, and no probes
-        # or read-only root filesystem on most containers. Sizing them needs the usage of a running install, so this is a follow-up
+        # Agent Substrate (the charts under k8s/apps/ate-system, rendered in each chart's rendered/): the charts set requests and limits, but not every probe or a
+        # read-only root filesystem. Trim this list to what the audit still reports once an install is running
         - controllerNames:
             - ate-api-server
             - ate-controller

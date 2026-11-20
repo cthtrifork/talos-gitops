@@ -1,4 +1,5 @@
-# The warm capacity actors are placed on: standby worker pods running gVisor. An actor's memory and filesystem are snapshotted to Garage
+# The SandboxConfig gvisor-default is installed by the substrate chart. The worker image is kagent's build of Substrate, from the same release as the charts
+# in ../ate-system/. The warm capacity actors are placed on: standby worker pods running gVisor. An actor's memory and filesystem are snapshotted to Garage
 # when it is idle and restored into any worker with room, so a worker is a shared budget (spec.template.resources.limits), not a
 # per-actor reservation. Size it for the actors that should run together; the cluster's nodes are 8, 4 and 2 CPUs.
 ---
@@ -12,7 +13,7 @@ metadata:
     pool: gvisor
 spec:
   replicas: 2
-  workerImage: ghcr.io/agent-substrate/substrate/ateworker-gvisor:v1.0.0@sha256:f8987236c6256f58c4b2625e543b43f4ae4bdded6ee6821c03d966effb7c0f17
+  workerImage: ghcr.io/kagent-dev/substrate/ateworker-gvisor:v1.0.1@sha256:97ca74cd2cabc3fd28ac67790ed3b1f25b7b4247709a316ff374a428822c420e
   sandboxClasses:
     - name: gvisor
       configRef:

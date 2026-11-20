@@ -1,0 +1,31 @@
+# atelet, the node supervisor: a DaemonSet that restores and suspends actors on its node (root, hostPath on /var/lib/ate, the kubelet's plugin directories and
+# /dev). Its own release, installed before the control plane: Substrate's version skew policy upgrades atelet before ate-api-server.
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: substrate-atelet
+  namespace: ate-system
+spec:
+  interval: 30m
+  releaseName: substrate-atelet
+  timeout: 10m
+  dependsOn:
+    - name: substrate-crds
+    - name: substrate-podcert
+  chartRef:
+    kind: OCIRepository
+    name: substrate-atelet
+  values:
+    # The preview gates must match the control plane's: kagent configures snapshot storage per Harness and bootstraps with a golden egress policy
+    preview:
+      - PerTemplateSnapshotLocation
+      - GoldenEgressPolicy
+    # Snapshots go to Garage (../garage/). The Secret has AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY (../externalsecrets.yaml)
+    objectStore:
+      backend: s3
+      endpoint: http://garage.ate-system.svc:3900
+      region: garage
+      pathStyle: true
+      credentialsSecret: garage-aws-credentials
+    # Talos nodes have no kubelet credential provider (GKE's is at /home/kubernetes/bin), so the chart's host mounts for one stay off

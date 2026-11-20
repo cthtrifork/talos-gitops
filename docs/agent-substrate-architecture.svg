@@ -2,15 +2,15 @@
 <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
 <rect width="1400" height="920" fill="#ffffff"/>
 <text x="30" y="34" font-size="22" fill="#0f172a" text-anchor="start" font-weight="700">Agent Substrate on the homelab cluster: the whole solution (PR #978)</text>
-<text x="30" y="56" font-size="13" fill="#475569" text-anchor="start">Envoy data plane, gVisor workers. Solid: in the PR. Dashed: planned or not built. Nothing here has run yet.</text>
+<text x="30" y="56" font-size="13" fill="#475569" text-anchor="start">kagent's Substrate Helm charts (agentgateway data plane), gVisor workers. Solid: in the PR. Dashed: planned or not built. Nothing has run yet.</text>
 <rect x="20" y="70" width="1360" height="120" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
 <text x="32" y="90" font-size="13" font-weight="700" fill="#334155">Delivery and secrets (GitOps, no secret in Git)</text>
 <rect x="40" y="105" width="200" height="64" rx="7" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
 <text x="140.0" y="133.0" font-size="13" font-weight="600" text-anchor="middle" fill="#0f172a">talos-gitops PR #978</text>
 <text x="140.0" y="149.0" font-size="11" text-anchor="middle" fill="#475569">k8s/apps/ate-system, -pools</text>
 <rect x="300" y="105" width="240" height="64" rx="7" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
-<text x="420.0" y="133.0" font-size="13" font-weight="600" text-anchor="middle" fill="#0f172a">Flux Kustomizations</text>
-<text x="420.0" y="149.0" font-size="11" text-anchor="middle" fill="#475569">app-ate-system, app-ate-system-pools</text>
+<text x="420.0" y="133.0" font-size="13" font-weight="600" text-anchor="middle" fill="#0f172a">Flux, four HelmReleases</text>
+<text x="420.0" y="149.0" font-size="11" text-anchor="middle" fill="#475569">crds, podcert, atelet, substrate</text>
 <rect x="600" y="105" width="420" height="64" rx="7" fill="#fff7ed" stroke="#f97316" stroke-width="1.5"/>
 <text x="810.0" y="125.0" font-size="13" font-weight="600" text-anchor="middle" fill="#0f172a">cert-manager + secret-store + External Secrets</text>
 <text x="810.0" y="141.0" font-size="11" text-anchor="middle" fill="#475569">CA and JWT pools, DB and S3 passwords</text>
@@ -45,13 +45,13 @@
 <text x="262" y="425" font-size="13" font-weight="700" fill="#334155">Data plane</text>
 <rect x="265" y="440" width="175" height="62" rx="7" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
 <text x="352.5" y="467.0" font-size="13" font-weight="600" text-anchor="middle" fill="#0f172a">atenet-egress</text>
-<text x="352.5" y="483.0" font-size="11" text-anchor="middle" fill="#475569">Envoy, egress gateway</text>
+<text x="352.5" y="483.0" font-size="11" text-anchor="middle" fill="#475569">agentgateway, egress</text>
 <rect x="455" y="440" width="185" height="62" rx="7" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
 <text x="547.5" y="467.0" font-size="13" font-weight="600" text-anchor="middle" fill="#0f172a">k8s-credential-provider</text>
 <text x="547.5" y="483.0" font-size="11" text-anchor="middle" fill="#475569">reads Secrets</text>
 <rect x="655" y="440" width="175" height="62" rx="7" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
 <text x="742.5" y="467.0" font-size="13" font-weight="600" text-anchor="middle" fill="#0f172a">atenet-router</text>
-<text x="742.5" y="483.0" font-size="11" text-anchor="middle" fill="#475569">Envoy, ingress</text>
+<text x="742.5" y="483.0" font-size="11" text-anchor="middle" fill="#475569">agentgateway, ingress</text>
 <rect x="845" y="440" width="175" height="62" rx="7" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
 <text x="932.5" y="467.0" font-size="13" font-weight="600" text-anchor="middle" fill="#0f172a">atelet</text>
 <text x="932.5" y="483.0" font-size="11" text-anchor="middle" fill="#475569">DaemonSet, one per node</text>
@@ -114,7 +114,7 @@
 <text x="30" y="790" font-size="13" fill="#0f172a" text-anchor="start" font-weight="700">Key facts</text>
 <text x="30" y="810" font-size="12" fill="#475569" text-anchor="start">- The router accepts only clients whose certificate carries an allowed SPIFFE ID (kagent's controller, kubectl ate proxy). Actors reach the network only through atunnel and</text>
 <text x="30" y="828" font-size="12" fill="#475569" text-anchor="start">  the egress gateway, which denies without a policy.</text>
-<text x="30" y="850" font-size="12" fill="#475569" text-anchor="start">- kagent holds the Anthropic key at the gateway (credential provider grant for the kagent atespace), so the key never enters the actor. kagent's charts use agentgateway;</text>
-<text x="30" y="868" font-size="12" fill="#475569" text-anchor="start">  this install keeps Envoy, untested with kagent.</text>
+<text x="30" y="850" font-size="12" fill="#475569" text-anchor="start">- kagent holds the Anthropic key at the gateway (credential provider grant for the kagent atespace), so the key never enters the actor. The charts are kagent's, so the data</text>
+<text x="30" y="868" font-size="12" fill="#475569" text-anchor="start">  plane is agentgateway, as kagent expects. Renovate bumps the four charts as one pull request.</text>
 <text x="30" y="890" font-size="12" fill="#475569" text-anchor="start">- Not built: the kagent release and namespace, a WorkerPool in kagent's namespace, an egress policy per actor, the microVM class, telemetry, backups.</text>
 </svg>
