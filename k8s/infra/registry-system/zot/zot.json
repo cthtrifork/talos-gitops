@@ -53,11 +53,14 @@
           "deleteUntagged": true,
           "keepUntagged": {
             "mostRecentlyPushedCount": 1,
-            "mostRecentlyPulledCount": 1
+            "mostRecentlyPulledCount": 1,
+            "pulledWithin": "720h",
+            "pushedWithin": "720h"
           },
           "keepTags": [
             {
-              "pulledWithin": "168h",
+              "pulledWithin": "720h",
+              "pushedWithin": "720h",
               "mostRecentlyPushedCount": 1
             }
           ]
@@ -68,7 +71,9 @@
           "deleteUntagged": true,
           "keepUntagged": {
             "mostRecentlyPushedCount": 1,
-            "mostRecentlyPulledCount": 1
+            "mostRecentlyPulledCount": 1,
+            "pulledWithin": "720h",
+            "pushedWithin": "720h"
           },
           "keepTags": [
             {
@@ -77,7 +82,8 @@
             {
               "mostRecentlyPushedCount": 1,
               "mostRecentlyPulledCount": 1,
-              "pulledWithin": "168h"
+              "pulledWithin": "720h",
+              "pushedWithin": "720h"
             }
           ]
         },
@@ -87,7 +93,9 @@
           "deleteUntagged": true,
           "keepUntagged": {
             "mostRecentlyPushedCount": 1,
-            "mostRecentlyPulledCount": 1
+            "mostRecentlyPulledCount": 1,
+            "pulledWithin": "720h",
+            "pushedWithin": "720h"
           },
           "keepTags": [
             {

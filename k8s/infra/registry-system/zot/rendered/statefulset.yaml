@@ -111,4 +111,4 @@ spec:
       resources:
         requests:
           storage: 60Gi
-      storageClassName: local-path
+      storageClassName: openebs-hostpath-xfs
