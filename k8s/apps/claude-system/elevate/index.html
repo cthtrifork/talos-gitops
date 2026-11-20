@@ -77,8 +77,12 @@
   button.small { width: auto; min-height: 44px; padding: 8px 16px; font-weight: 500; }
   button:focus-visible, .tiny:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   button:disabled { opacity: .5; cursor: default; }
+  button[aria-busy=true] { cursor: progress; }
   .hint { margin: 8px 0 0; font-size: var(--fs-md); color: var(--ink-2); min-height: 1.4em; white-space: pre-line; }
   .hint.warn { color: var(--warn); }
+  .hint.ok { color: var(--ok); margin-top: 0; }
+  .hint:empty { display: none; }
+  .summary.danger { background: var(--warn-bg); color: var(--ink); border-left: 4px solid var(--danger); }
 
   ul { list-style: none; margin: 0; padding: 0; }
   li.grant { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
@@ -153,7 +157,8 @@
           <button id="cancel" type="button" class="ghost">Cancel</button>
           <button id="confirm" type="submit" class="danger">Confirm</button>
         </div>
-        <p id="error" class="hint warn" role="status"></p>
+        <p id="notice" class="hint ok" role="status"></p>
+        <p id="error" class="hint warn" role="alert"></p>
       </div>
     </form>
 
@@ -187,6 +192,9 @@
   var builtFor = "";
   var grantsKey = "";
   var minutesKey = "";
+  var busy = false;
+  var noticeTimer = 0;
+  var expiredSeen = false;
 
   function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
   function el(tag, text, cls) {
@@ -229,7 +237,7 @@
     var box = $("namespaces");
     clear(box);
     if (names.length === 0) { box.appendChild(el("p", "No namespaces are allowed for this tier.", "empty")); }
-    names.forEach(function (n) { box.appendChild(choice("checkbox", "ns", n, n, false, "mono")); });
+    names.forEach(function (n) { box.appendChild(choice("checkbox", "ns", n, n, names.length === 1, "mono")); });
     $("toggleAll").hidden = names.length < 2;
   }
 
@@ -250,16 +258,18 @@
   function summaryText() {
     var ns = selectedNamespaces();
     if (ns.length === 0) return "Pick at least one namespace.";
-    return "Give Claude " + selectedTier() + " rights in " + ns.join(", ") + " for " + human(selectedMinutes()) + ".";
+    var base = "Give Claude " + selectedTier() + " rights in " + ns.join(", ") + " for " + human(selectedMinutes()) + ".";
+    return confirming && selectedTier() === "storage" ? base + " This can delete data." : base;
   }
   function updateForm() {
     var ns = selectedNamespaces();
-    $("go").disabled = ns.length === 0;
+    $("go").disabled = ns.length === 0 || busy;
+    $("go").textContent = ns.length ? "Elevate " + selectedTier() + " · " + human(selectedMinutes()) : "Elevate";
     var all = ns.length === document.querySelectorAll("#namespaces input").length;
     $("toggleAll").textContent = all ? "Clear" : "Select all";
     var s = $("summary");
     s.textContent = confirming ? "Are you sure? " + summaryText() : (ns.length ? summaryText() : "");
-    s.className = "summary" + (confirming ? " confirm" : "");
+    s.className = "summary" + (confirming ? " confirm" : "") + (confirming && selectedTier() === "storage" ? " danger" : "");
   }
 
   var jobsKey = "";
@@ -285,7 +295,7 @@
     buildJobs();
     buildNamespaces();
     var list = $("grants");
-    var grants = status.grants || [];
+    var grants = (status.grants || []).slice().sort(function (a, b) { return Date.parse(a.expires_at) - Date.parse(b.expires_at); });
     var key = grants.map(function (g) { return g.tier + "|" + g.namespace + "|" + g.expires_at; }).join(",");
     if (key !== grantsKey) {
       grantsKey = key;
@@ -304,12 +314,13 @@
         var b = el("button", "Revoke", "small ghost");
         b.type = "button";
         b.setAttribute("aria-label", "Revoke " + g.tier + " in " + g.namespace);
-        b.addEventListener("click", function () { send("/api/v1/revoke", [{ tier: g.tier, namespace: g.namespace }]); });
+        b.addEventListener("click", function () { send("/api/v1/revoke", [{ tier: g.tier, namespace: g.namespace }], "Revoked " + g.tier + " in " + g.namespace + "."); });
         li.appendChild(b);
         list.appendChild(li);
       });
     }
     tick();
+    document.title = grants.length ? "Elevate Claude (" + grants.length + " active)" : "Elevate Claude";
     $("none").hidden = grants.length > 0;
     $("revokeAll").hidden = grants.length === 0;
   }
@@ -320,6 +331,7 @@
       var r = remaining(n.getAttribute("data-expires"));
       n.textContent = r.text;
       n.className = "left" + (r.soon ? " soon" : "");
+      if (Date.parse(n.getAttribute("data-expires")) <= Date.now() && !expiredSeen) { expiredSeen = true; load().then(function () { expiredSeen = false; }); }
     });
   }
 
@@ -336,16 +348,35 @@
   }
 
   // one request per namespace; each answers by itself, and an error carries the API's reason
-  function send(path, bodies) {
+  function setBusy(on) {
+    busy = on;
+    var go = $("go");
+    go.setAttribute("aria-busy", on ? "true" : "false");
+    $("revokeAll").disabled = on;
+    Array.prototype.forEach.call(document.querySelectorAll("#grants button"), function (b) { b.disabled = on; });
+    updateForm();
+  }
+  function notify(text) {
+    var n = $("notice");
+    n.textContent = text;
+    clearTimeout(noticeTimer);
+    if (text) noticeTimer = setTimeout(function () { n.textContent = ""; }, 4000);
+  }
+
+  function send(path, bodies, doneText) {
     $("error").textContent = "";
+    notify("");
+    setBusy(true);
     return Promise.all(bodies.map(function (body) {
       return fetch(path.replace(/^\//, ""), { method: "POST", headers: HEADERS, body: JSON.stringify(Object.assign({ csrf: status.csrf }, body)) })
         .then(function (r) { return r.ok ? "" : r.json().then(function (j) { return j.error; }); })
         .catch(function (e) { return e.message; })
         .then(function (error) { return error ? body.namespace + ": " + error : ""; });
     })).then(function (errors) {
-      $("error").textContent = errors.filter(Boolean).join("\n");
-      return load();
+      var failed = errors.filter(Boolean);
+      $("error").textContent = failed.join("\n");
+      if (failed.length < bodies.length) notify(doneText);
+      return load().then(function () { setBusy(false); });
     });
   }
 
@@ -362,6 +393,7 @@
     setConfirming(false);
   });
   $("cancel").addEventListener("click", function () { setConfirming(false); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && confirming) { setConfirming(false); $("go").focus(); } });
   $("toggleAll").addEventListener("click", function () {
     var boxes = document.querySelectorAll("#namespaces input");
     var all = selectedNamespaces().length === boxes.length;
@@ -377,7 +409,7 @@
     if (!confirming) { setConfirming(true); return; }
     var tier = selectedTier(), minutes = selectedMinutes();
     setConfirming(false);
-    send("/api/v1/grants", ns.map(function (n) { return { tier: tier, minutes: minutes, namespace: n }; }));
+    send("/api/v1/grants", ns.map(function (n) { return { tier: tier, minutes: minutes, namespace: n }; }), "Elevated " + tier + " in " + ns.join(", ") + " for " + human(minutes) + ".");
   });
 
   $("jobForm").addEventListener("submit", function (ev) {
@@ -394,7 +426,7 @@
   });
 
   $("revokeAll").addEventListener("click", function () {
-    send("/api/v1/revoke", (status.grants || []).map(function (g) { return { tier: g.tier, namespace: g.namespace }; }));
+    send("/api/v1/revoke", (status.grants || []).map(function (g) { return { tier: g.tier, namespace: g.namespace }; }), "Revoked everything.");
   });
 
   load();
