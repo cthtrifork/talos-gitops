@@ -207,7 +207,8 @@ processor_resources:
             "namespace": c.metadata.namespace,
             "name": c.metadata.name,
             "schedule": c.spec.schedule,
-            "suspended": c.spec.suspend.or(false)
+            "suspended": c.spec.suspend.or(false),
+            "description": c.metadata.annotations.or({}).get("claude-elevate/description").or("")
           })
           root.max_minutes = @limits.map_each(kv -> kv.value.number())
           root.allowed_namespaces = @limits.map_each(kv -> @namespaces.filter(n -> n.metadata.labels.or({}).get("claude-elevate/" + kv.key) == "true").map_each(n -> n.metadata.name))
@@ -364,6 +365,8 @@ processor_resources:
             }
           processors:
             - resource: post
+          # the API server answers with the created Job; a meta set in request_map does not reach this message
+          result_map: 'meta job_name = this.metadata.name'
       - log:
           message: job started
           fields_mapping: 'root = {"namespace": this.namespace, "cronjob": this.cronjob, "job": metadata("job_name")}'
