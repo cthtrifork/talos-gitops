@@ -66,6 +66,16 @@
   .hint { margin: 0 0 12px; font-size: var(--fs-md); color: var(--ink-2); }
   .hint:empty { display: none; }
   .hint.warn { color: var(--warn); }
+  .flow { margin-top: 24px; }
+  .flow h2 { margin-bottom: 8px; }
+  .flow p, .flow li { font-size: var(--fs-md); color: var(--ink-2); }
+  .flow ol { margin: 0 0 16px; padding-left: 1.4em; }
+  .flow li { margin-bottom: 6px; }
+  .flow li b, .flow td:first-child { color: var(--ink); }
+  .flow table { width: 100%; border-collapse: collapse; font-size: var(--fs-md); }
+  .flow th, .flow td { text-align: left; padding: 8px 10px 8px 0; border-top: 1px solid var(--line); vertical-align: top; }
+  .flow th { color: var(--ink-2); font-weight: 600; border-top: 0; }
+  .flow .tablewrap { overflow-x: auto; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -76,6 +86,28 @@
   <p class="sub">Runs <code>bootc upgrade --apply</code> on a VM. A VM that finds no new image does not reboot.</p>
   <p id="error" class="banner" role="status"></p>
   <div id="cards"></div>
+
+  <section class="card flow" aria-labelledby="flow-title">
+    <h2 id="flow-title">How an update runs, and how long it takes</h2>
+    <ol>
+      <li><b>Click.</b> The request is held in the cluster for <b>10 minutes</b> and is used by the first poll that sees it.</li>
+      <li><b>The VM picks it up: up to about 1 minute.</b> Each VM asks every minute (the timer waits 60 s after the previous poll ends). Right after a boot the first poll comes after 2 minutes.</li>
+      <li><b>Download and stage: depends on the image size and the connection.</b> The VM runs <code>bootc upgrade --apply</code>. With no new image nothing happens and nothing reboots; the page just shows the same version again.</li>
+      <li><b>Reboot: a few minutes.</b> With a new image the VM reboots into it and anything running on it ends. The card shows <i>VM not responding</i> after 2.5 minutes without a poll, until the first poll after the boot (about 2 to 3 minutes after it starts).</li>
+      <li><b>The card catches up.</b> The page refreshes every 5 seconds, but <i>Latest</i> comes from the registry and is cached for 5 minutes, so an image published just now can take that long to show.</li>
+    </ol>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>What</th><th>Claude VM</th><th>Home server</th></tr></thead>
+        <tbody>
+          <tr><td>Automatic update</td><td>Daily at 03:00 (a missed run happens at the next boot). Reboots when a new image exists.</td><td>10 minutes after boot, then 10 minutes after each run ends. Reboots when a new image exists.</td></tr>
+          <tr><td>Button</td><td>Starts the same update at once instead of waiting for 03:00.</td><td>Starts the same update at once; saves at most 10 minutes.</td></tr>
+          <tr><td>Limit</td><td colspan="2">One button update per VM per hour. A click made inside that hour is kept for 10 minutes and, if it is not used by then, dropped: click again later.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>So the usual wait from click to the VM running the new image is about a minute plus the download plus the reboot. A new image only exists a while after the change is merged, because the image build and publish come first.</p>
+  </section>
 </main>
 
 <template id="card">
