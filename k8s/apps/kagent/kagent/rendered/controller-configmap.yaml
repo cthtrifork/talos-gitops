@@ -1,18 +1,4 @@
----
-# Source: kagent/templates/controller-configmap.yaml
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kagent-controller
-  namespace: kagent
-  labels:
-    helm.sh/chart: kagent-1.0.1
-    app.kubernetes.io/name: kagent
-    app.kubernetes.io/instance: kagent
-    app.kubernetes.io/version: "1.0.1"
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: kagent
-    app.kubernetes.io/component: controller
 data:
   controller.yaml: |
     database:
@@ -83,3 +69,15 @@ data:
       clientCertFile: /run/substrate-podidentity/credential-bundle.pem
       routerUrl: https://atenet-router.ate-system.svc:443
     telemetry: {}
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kagent
+    app.kubernetes.io/part-of: kagent
+    app.kubernetes.io/version: 1.0.1
+    helm.sh/chart: kagent-1.0.1
+  name: kagent-controller
+  namespace: kagent

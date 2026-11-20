@@ -1,17 +1,4 @@
----
-# Source: kagent/templates/ui-nginx-configmap.yaml
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kagent-ui-config
-  namespace: kagent
-  labels:
-    helm.sh/chart: kagent-1.0.1
-    app.kubernetes.io/name: kagent
-    app.kubernetes.io/instance: kagent
-    app.kubernetes.io/version: "1.0.1"
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/part-of: kagent
 data:
   nginx.conf: |
     pid /tmp/nginx.pid;
@@ -165,3 +152,14 @@ data:
             }
         }
     }
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kagent
+    app.kubernetes.io/part-of: kagent
+    app.kubernetes.io/version: 1.0.1
+    helm.sh/chart: kagent-1.0.1
+  name: kagent-ui-config
+  namespace: kagent

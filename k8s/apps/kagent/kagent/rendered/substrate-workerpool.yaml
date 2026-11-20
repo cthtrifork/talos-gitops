@@ -1,10 +1,6 @@
----
-# Source: kagent/templates/substrate-workerpool.yaml
 apiVersion: ate.dev/v1
 kind: WorkerPool
 metadata:
-  name: "kagent-default"
-  namespace: kagent
   labels:
     app.kubernetes.io/instance: kagent
     app.kubernetes.io/managed-by: Helm
@@ -14,12 +10,14 @@ metadata:
     helm.sh/chart: kagent-1.0.1
     kagent.dev/worker-pool-name: kagent-default
     kagent.dev/worker-pool-namespace: kagent
+  name: kagent-default
+  namespace: kagent
 spec:
   replicas: 2
-  workerImage: "ghcr.io/kagent-dev/substrate/ateworker-gvisor:v1.0.1@sha256:97ca74cd2cabc3fd28ac67790ed3b1f25b7b4247709a316ff374a428822c420e"
   sandboxClasses:
-    - name: "gvisor"
-      configRef:
-        name: "gvisor-default"
+  - configRef:
+      name: gvisor-default
+    name: gvisor
   template:
     serviceAccountName: kagent-default
+  workerImage: ghcr.io/kagent-dev/substrate/ateworker-gvisor:v1.0.1@sha256:97ca74cd2cabc3fd28ac67790ed3b1f25b7b4247709a316ff374a428822c420e
