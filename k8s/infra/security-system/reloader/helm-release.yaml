@@ -16,6 +16,9 @@ spec:
   install:
     strategy:
       name: RetryOnFailure
+  upgrade:
+    remediation:
+      retries: 3
   values:
     image:
       # renovate: datasource=docker depName=ghcr.io/stakater/reloader versioning=docker

@@ -24,6 +24,12 @@ spec:
         target:
           kind: Deployment
           name: polaris-dashboard
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
   # https://github.com/FairwindsOps/charts/blob/master/stable/polaris/values.yaml
   values:
     image:
