@@ -289,7 +289,7 @@ Kubernetes API with the pod's own token; the steps and the API are in `elevate/r
 
 | Tier | Role | Max | Grants |
 |---|---|---|---|
-| `ops` | `claude-ops` | 10-60 min | delete or evict pods, delete StatefulSets (to recreate their PVCs) |
+| `ops` | `claude-ops` | 10-60 min | delete or evict pods, delete StatefulSets (to recreate their PVCs), delete Trivy `vulnerabilityreports` and `sbomreports` (to force a rescan) |
 | `debug` | `claude-debug` | 10-15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
 | `flux` | `claude-flux` | 10-15 min | ask Flux to reconcile a HelmRelease or Kustomization (`reconcile.fluxcd.io/requestedAt`, `forceAt`, `resetAt` annotations only; the admission policy `claude-flux-reconcile-only` rejects any other change) |
 | `storage` | `claude-storage` | 10-15 min | delete PersistentVolumeClaims (both storage classes reclaim with `Delete`: a bound claim loses its data) |
