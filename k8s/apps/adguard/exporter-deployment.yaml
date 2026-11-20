@@ -14,15 +14,13 @@ spec:
     metadata:
       labels:
         app: adguard-exporter
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "9618"
     spec:
       containers:
         - name: exporter
           image: ghcr.io/henrywhitaker3/adguard-exporter:v1.2.3@sha256:27244b698034a190d657417fe1231db02cf2d22931d238495fd1a32bd0957185
           ports:
-            - containerPort: 9618
+            - name: metrics
+              containerPort: 9618
           env:
             - name: ADGUARD_SERVERS
               value: "http://adguard-web.adguard-system.svc.cluster.local"
