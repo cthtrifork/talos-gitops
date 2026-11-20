@@ -49,6 +49,8 @@ jobs:
           ACTIONLINT_VERSION: "1.7.12" # renovate: datasource=github-releases depName=rhysd/actionlint
       - name: Secrets are SOPS-encrypted
         run: ./scripts/ci/check-secrets-encrypted.sh k8s
+      - name: Claude agents reach the same hosts as claude-rc
+        run: ./scripts/ci/check-claude-egress-allowlist.sh
   manifests:
     runs-on: ubuntu-latest
     steps:

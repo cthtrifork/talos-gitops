@@ -37,6 +37,7 @@ and External Secrets for the CA and JWT key pools, Cilium egress policy, and one
 | Anthropic credential | Your login, on a PVC | An API key in the template: in the database and in every snapshot | Held at the gateway and injected on egress; the actor does not see it (kagent docs) |
 | Defined as | A Deployment in Git | `kubectl ate` calls, by hand | `Agent` and `Harness` resources in Git |
 | Cluster access | Read-only RBAC, elevation on request | None | None |
+| Network allowlist | 35 hosts, TCP 443 (Cilium, by name) | The same 35, read from claude-rc's policy by the script (pass-through) | The same 35, in `k8s/apps/kagent-agents/egresspolicy.yaml`; CI fails if they differ |
 | Isolation | Pod, read-only root filesystem | gVisor sandbox | gVisor sandbox |
 | Extra moving parts | None | Substrate only | Substrate and kagent (controller, UI, database), version-paired |
 | Status | In use | Runbook written, not run | Runbook written from docs, not run; kagent not installed |

@@ -16,6 +16,8 @@ REMOTE_ACTOR="claude-remote-1"
 REMOTE_NAME="${REMOTE_NAME:-homelab-actor}" # the session name in claude.ai/code
 REMOTE_MODEL="${REMOTE_MODEL:-sonnet}"      # a Claude Code model alias or id
 LOCAL_PORT="${LOCAL_PORT:-8000}"
+# The actors reach the same hosts as the claude-rc pod: its Cilium egress allowlist is read from the repo each time, so the two cannot drift (and CI checks the kagent copy).
+ALLOWLIST_FILE="${ALLOWLIST_FILE:-$(dirname "$0")/../k8s/apps/claude-system/networkpolicy.yaml}"
 
 usage() {
   cat <<USAGE
@@ -24,6 +26,7 @@ Usage: $0 <command>
   check       list the workers (is the API reachable, and is there capacity?)
   lifecycle   create the atespace, a template and an actor; run it, suspend, resume; compare what survived
   headless    create the template, actor and egress policy of the headless Claude actor (needs ANTHROPIC_API_KEY)
+  policy      print the egress policy the headless and remote actors get (the hosts of claude-rc's allowlist)
   ask TEXT    send TEXT to the headless actor through a port-forward, and time the answer
   remote      create an actor that runs 'claude remote-control' on Sonnet with a claude.ai login you made for it
               (needs CLAUDE_CREDENTIALS_FILE: the credentials file of that separate login; it is stored in the template)
@@ -53,6 +56,32 @@ ensure_template() { # name, manifest on stdin. Templates are immutable: an exist
 
 ensure_actor() { # actor, template
   ate get actor "$1" -a "${ATESPACE}" >/dev/null 2>&1 || ate create actor "$1" -a "${ATESPACE}" --template "$2"
+}
+
+allowlist_hosts() { # the toFQDNs names and patterns of the claude-egress-allowlist policy, lowercase, without the bare "*" of its DNS rule
+  [ -r "${ALLOWLIST_FILE}" ] || { echo "cannot read ${ALLOWLIST_FILE}: run this from a clone of talos-gitops, or set ALLOWLIST_FILE" >&2; return 1; }
+  awk '
+    /^---/ { doc = "" }
+    /^  name: / { doc = $2 }
+    doc == "claude-egress-allowlist" && /^ +- match(Name|Pattern): / { v = $3; gsub(/"/, "", v); if (v != "*") print tolower(v) }
+  ' "${ALLOWLIST_FILE}" | sort -u
+}
+
+egress_policy_yaml() { # an EgressPolicy letting the actor reach those hosts on 443 without inspection (tlsPassthrough: no trust bundle needed, WebSocket allowed)
+  local hosts
+  hosts="$(allowlist_hosts)"
+  [ -n "${hosts}" ] || { echo "no hosts found in ${ALLOWLIST_FILE}" >&2; return 1; }
+  echo "rules:"
+  echo "  - tlsPassthrough:"
+  echo "      hostnames:"
+  while read -r host; do printf '        - "%s"\n' "${host}"; done <<<"${hosts}"
+  echo "      ports:"
+  echo "        numbers:"
+  echo "          - 443"
+}
+
+ensure_egress_policy() { # actor
+  ate get egress-policy "$1" -a "${ATESPACE}" >/dev/null 2>&1 || egress_policy_yaml | ate create egress-policy "$1" -a "${ATESPACE}" -f -
 }
 
 last_tick() { # the number after the last "tick" in the actor's container output
@@ -221,9 +250,7 @@ cmd_headless() {
   # shellcheck disable=SC2016 # envsubst takes the variable name literally, on purpose
   headless_template | envsubst '${ANTHROPIC_API_KEY}' | ensure_template claude-headless
   ensure_actor "${HEADLESS_ACTOR}" claude-headless
-  ate get egress-policy "${HEADLESS_ACTOR}" -a "${ATESPACE}" >/dev/null 2>&1 ||
-    printf 'rules:\n  - tlsPassthrough:\n      hostnames:\n        - api.anthropic.com\n' |
-      ate create egress-policy "${HEADLESS_ACTOR}" -a "${ATESPACE}" -f -
+  ensure_egress_policy "${HEADLESS_ACTOR}"
   echo "ready: $0 ask 'Write a haiku about snapshots to /workspace/haiku.txt, then print it.'"
 }
 
@@ -296,11 +323,9 @@ cmd_remote() {
   remote_template | envsubst '${CLAUDE_CREDENTIALS_B64}' | ensure_template claude-remote
   unset CLAUDE_CREDENTIALS_B64
   ensure_actor "${REMOTE_ACTOR}" claude-remote
-  # remote-control keeps a long-lived connection (WebSocket) to claude.ai, which the egress gateway blocks unless a tlsPassthrough rule matches the host. The two hosts are what
-  # claude-rc is allowed (k8s/apps/claude-system/networkpolicy.yaml); add more here if the logs show a name that does not resolve.
-  ate get egress-policy "${REMOTE_ACTOR}" -a "${ATESPACE}" >/dev/null 2>&1 ||
-    printf 'rules:\n  - tlsPassthrough:\n      hostnames:\n        - api.anthropic.com\n        - anthropic.com\n' |
-      ate create egress-policy "${REMOTE_ACTOR}" -a "${ATESPACE}" -f -
+  # remote-control keeps a long-lived connection (WebSocket) to claude.ai, which the egress gateway blocks unless a tlsPassthrough rule matches the host: that is why the policy is
+  # pass-through (the list includes claude.ai, platform.claude.com and *.claudeusercontent.com, which claude-rc needs for sign-in and Remote Control).
+  ensure_egress_policy "${REMOTE_ACTOR}"
   ate resume actor "${REMOTE_ACTOR}" -a "${ATESPACE}"
   echo "started. Nothing suspends it, so it stays up and holds a worker. Look for its session '${REMOTE_NAME}' in claude.ai/code, and read its output:"
   echo "  kubectl ate logs actor ${REMOTE_ACTOR} -a ${ATESPACE} -c claude"
@@ -333,6 +358,7 @@ case "${1:-}" in
   ask) shift; cmd_ask "${1:-}" ;;
   remote) cmd_remote ;;
   clean) cmd_clean ;;
+  policy) egress_policy_yaml ;;
   -h | --help | help | "") usage ;;
   *) usage >&2; exit 2 ;;
 esac

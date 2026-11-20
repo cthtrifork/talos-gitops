@@ -168,11 +168,17 @@ YAML
 # only ANTHROPIC_API_KEY is substituted; the rendered file holds the key, so do not keep it
 envsubst '${ANTHROPIC_API_KEY}' < claude-headless-template.yaml | kubectl ate create actor-template -f -
 
+# the hosts of claude-rc's allowlist (k8s/apps/claude-system/networkpolicy.yaml), as a pass-through rule on 443; `scripts/ate-actor-test.sh policy` prints the full 35-host list
 cat > egress-policy.yaml <<'YAML'
 rules:
   - tlsPassthrough:
       hostnames:
         - api.anthropic.com
+        - anthropic.com
+        # ... the rest of the list; wildcards like "*.github.com" match exactly one label
+      ports:
+        numbers:
+          - 443
 YAML
 kubectl ate create actor claude-1 -a claude --template claude-headless
 kubectl ate create egress-policy claude-1 -a claude -f egress-policy.yaml
@@ -217,6 +223,13 @@ The proxy reaches the actor through `atenet-router`, which only accepts clients 
 - **Changing anything:** templates are immutable. For a new image or script, create a new template and a new actor, or point a suspended actor at
   the new template with `kubectl ate update actor`.
 
+## The network allowlist
+
+The `headless` and `remote` actors get the same egress allowlist as the `claude-rc` pod: the script reads `claude-egress-allowlist` in `k8s/apps/claude-system/networkpolicy.yaml` every time and builds the policy from it
+(pass-through, port 443, a wildcard matching exactly one label in both systems), so the two cannot drift. A pass-through rule is not inspected and injects no credentials. The `lifecycle` actor has no network on purpose:
+it only runs `claude --version`. A `tlsPassthrough` rule **must** carry `ports`; a policy without it is rejected. Adding a host means editing the Cilium policy (and, for kagent, the copy in
+`k8s/apps/kagent-agents/egresspolicy.yaml`: CI fails if they differ).
+
 ## Cleaning up
 
 ```sh
@@ -240,8 +253,8 @@ kubectl ate logs actor claude-remote-1 -a claude -c claude        # the session 
 ```
 
 What it does: the template's start script writes the login to `~/.claude/.credentials.json` on a durable volume mounted at `/home/claude` **only if the file is absent** (so refreshed tokens survive,
-and the value in the template becomes stale), sets the model, and runs `claude remote-control --name homelab-actor`. The egress policy is a `tlsPassthrough` rule for `api.anthropic.com` and
-`anthropic.com`, the hosts `claude-rc` is allowed: the egress gateway blocks WebSocket and CONNECT unless a pass-through rule matches the host ([#3885](https://github.com/agent-substrate/substrate/issues/3885)).
+and the value in the template becomes stale), sets the model, and runs `claude remote-control --name homelab-actor`. The egress policy is a `tlsPassthrough` rule on port 443 for **every host `claude-rc` is allowed** (35 names and wildcards, including `claude.ai`, `platform.claude.com` and `*.claudeusercontent.com`,
+which sign-in and Remote Control need): the egress gateway blocks WebSocket and CONNECT unless a pass-through rule matches the host ([#3885](https://github.com/agent-substrate/substrate/issues/3885)).
 Nothing suspends an actor by itself, so it stays up and holds one of the two workers.
 
 **Read before running, because the login is a credential:**

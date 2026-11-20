@@ -101,9 +101,10 @@ In the UI, ask: *What are you, and where are you running?* then *What did I just
 - **Where the key lives.** kagent compiles the model's API key into a destination-scoped binding; the actor gets an inert placeholder, and Substrate's egress gateway swaps in the real key (header `x-api-key` for Anthropic), reading
   it from the Secret through the credential provider. The key should be in no environment variable of the actor: check `kubectl ate get actor-template <name> -a kagent -o yaml` for it. A rotated Secret reaches the gateway
   within about five minutes, without restarting the agent.
-- **Egress.** kagent compiles the model call's egress (for `api.anthropic.com`) into the agent's policy; if the agent cannot reach the API, `kubectl ate get egress-policy <actor> -a kagent -o yaml` shows what was granted.
-  Anything else the agent should reach needs an `EgressPolicy` (`api.kagent.dev/v1alpha3`) referenced from `spec.egressPolicyRefs`. TLS to the model is inspected by the gateway, so the actor must trust the gateway's CA,
-  which kagent's templates project into the actor; **(unverified here)** that this works with the cert-manager CA of this install.
+- **Egress.** The agent has the same allowlist as the `claude-rc` pod: an `EgressPolicy` `claude-runner-allowlist` (35 hosts, copied from its Cilium policy; CI fails if they differ) referenced from the agent's
+  `egressPolicyRefs`. kagent adds the model call's host itself. Anything else needs an addition to both policies. If the agent cannot reach a host, `kubectl ate get egress-policy <actor> -a kagent -o yaml`
+  shows what was granted. TLS to these hosts is inspected by the gateway (`https` origins), so the actor must trust the gateway's CA, which kagent's templates project into the actor; **(unverified here)**
+  that this works with the cert-manager CA of this install.
 - **History** is described as readable without waking the sandbox, with checkpoints and forks: try them from the UI.
 
 ## When it does not work

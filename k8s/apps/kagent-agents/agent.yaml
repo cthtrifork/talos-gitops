@@ -16,3 +16,5 @@ spec:
         answer from what you are told, and say when you would need a tool you do not have.
   harnessRef:
     name: claude-default
+  egressPolicyRefs:
+    - name: claude-runner-allowlist
