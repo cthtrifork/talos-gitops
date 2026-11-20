@@ -16,6 +16,8 @@ if [[ ! -d /tmp/flux-crd-schemas ]]; then
     done
 fi
 
+built="$(mktemp)"
+trap 'rm -f "$built"' EXIT
 status=0
 while IFS= read -r path; do
     # paths are written relative to the cluster directory, but Flux resolves them from the repo root
@@ -25,7 +27,7 @@ while IFS= read -r path; do
         continue
     fi
     echo "INFO - building $path"
-    if ! kustomize build "$path" --load-restrictor=LoadRestrictionsNone |
+    if ! kustomize build "$path" --load-restrictor=LoadRestrictionsNone | tee "$built" |
         kubeconform -strict -ignore-missing-schemas -skip=Secret,RenovateJob,Password,GithubAccessToken -summary \
             -schema-location default \
             -schema-location /tmp/flux-crd-schemas \
@@ -33,5 +35,7 @@ while IFS= read -r path; do
         echo "ERROR - $path failed to build or validate" >&2
         status=1
     fi
+    # a HelmRelease made by a patch or generator is only visible in the build output
+    python3 scripts/ci/check-helmrelease-remediation.py - < "$built" || status=1
 done < <(yq e '.spec.path | select(. != null)' "$cluster_dir"/*.yaml | grep -v '^---' | sort -u)
 exit "$status"

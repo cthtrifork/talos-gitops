@@ -175,6 +175,10 @@ jobs:
           yq 'select(.kind == "Namespace")' "${RUNNER_TEMP}/apps.yaml" | kubectl apply -f -
           yq 'select(has("sops") | not)' "${RUNNER_TEMP}/apps.yaml" | kubectl apply --dry-run=server -f -
 
+      - name: HelmReleases self-heal
+        # the HelmReleases are suspended, so this checks the spec Flux accepted, not the behaviour
+        run: kubectl get helmrelease -A -o json | python3 scripts/ci/check-helmrelease-remediation.py -
+
       - name: List deployed resources
         timeout-minutes: 2
         if: always()

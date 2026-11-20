@@ -39,6 +39,8 @@ jobs:
           python3 scripts/ci/check_manifest_filenames.py
       - name: No YAML anchors
         run: python3 scripts/ci/check-no-yaml-anchors.py
+      - name: HelmRelease remediation
+        run: python3 scripts/ci/check-helmrelease-remediation.py
       - name: shellcheck
         run: shellcheck scripts/*.sh scripts/ci/*.sh
       - name: actionlint
