@@ -1,7 +1,5 @@
-# Markdown for the scan PR comment, from the Trivy JSON reports of the new and the old image.
-# Usage: jq -r --arg new_ref <ref> --arg old_ref <ref or ""> --arg run_url <url> --slurpfile o old.json -f scan-comment.jq new.json
-# The list of everything in the new image comes from scripts/ci/vuln-list.tpl (a Trivy template), appended by the workflow.
-# old.json may be {} (a new image, or the old scan failed); new.json may be {} (the scan failed).
+# PR comment from the Trivy reports of the new and the old image; {} stands in for a missing report.
+# jq -r --arg new_ref <ref> --arg old_ref <ref|""> --arg run_url <url> --slurpfile o old.json -f scan-comment.jq new.json
 def sev_rank: {CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3}[.] // 4;
 def icon: {CRITICAL: "🟥", HIGH: "🟧", MEDIUM: "🟨", LOW: "🟦"}[.] // "⬜";
 def vulns: [.Results[]?.Vulnerabilities[]?];

@@ -3,8 +3,7 @@ name: Update Trivy database cache
 # Downloads the Trivy vulnerability databases into the cache that aquasecurity/trivy-action restores
 # (key cache-trivy-<date>), so scan jobs can skip the download. Runs daily for PRs to reuse from the
 # default branch, and is called by images.yaml so a PR never scans without a database.
-# The single place of the Trivy version for the workflows: the caller scans with the `version` output, so the binary, the database and the
-# cache keys always match. (images/vex-cache/Dockerfile pins its own Trivy image; images.yaml checks that it agrees.)
+# The one place that pins the Trivy version; callers get it as the `version` output.
 on:
   schedule:
     - cron: "17 3 * * *"

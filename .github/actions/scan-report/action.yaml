@@ -1,13 +1,11 @@
 name: Scan report
-description: >-
-  Uploads a Trivy JSON report, appends the link to the Markdown comment, writes the comment to the job summary and posts it on the
-  pull request (one comment per header, updated in place; not for fork PRs, whose token is read-only).
+description: Uploads a Trivy JSON report and posts the Markdown comment on the PR (updated in place) and in the job summary.
 inputs:
   comment:
     description: Path of the Markdown comment
     required: true
   report:
-    description: Path of the JSON report; its file name is the artifact name, so it must be unique in the run. Skipped if the file is missing.
+    description: JSON report to upload; its file name is the artifact name, so it must be unique in the run
     required: true
   header:
     description: Identifies the sticky comment

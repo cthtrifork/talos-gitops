@@ -1,15 +1,7 @@
 name: Images
 
-# The Trivy version and the database cache come from update-trivy-db.yaml (its `version` output); nothing here pins them.
-# Everything that scans or builds container images, in one workflow so the setup (change detection, Trivy version and database, ghcr login,
-# report upload, PR comment) is shared. The steps both scans use are the composite actions in .github/actions/.
-#  - scan-k8s: the images a PR adds or re-tags under k8s/, old against new: one comment per image with the CRITICAL/HIGH delta (counts,
-#    new and fixed CVEs, the full list collapsed). Findings never fail the job; a scan that could not run (registry rate limit, missing
-#    tag) does. Manual runs scan every image under k8s/ without a comparison.
-#  - lint, scan-vex: the OpenVEX documents under vex/ against the OpenVEX schema and vex/index.json; each image a changed document is
-#    about is scanned with that document as --vex, with a comment per image, and the job fails if a CVE of the document is not suppressed.
-#  - build-and-publish: the vex-cache image (images/vex-cache) the trivy-operator scan jobs mount, when vex/ or the image changed.
-#    Pull request: dry run. Push to main: published. Manual run: always built and published.
+# Image scans, VEX checks and the vex-cache build. The Trivy version and database cache come from update-trivy-db.yaml;
+# the steps both scans share are in .github/actions/.
 on:
   pull_request:
     branches:
@@ -26,7 +18,7 @@ concurrency:
 env:
   PYYAML_VERSION: "6.0.3" # renovate: datasource=pypi depName=PyYAML
   CHECK_JSONSCHEMA_VERSION: "0.39.0" # renovate: datasource=pypi depName=check-jsonschema
-  # the OpenVEX JSON schema (v0.2.0) lives on the spec repo's main branch only (no release tag has it); Renovate bumps the commit
+  # no release tag has the schema, so Renovate tracks the commit
   OPENVEX_SCHEMA_SHA: "93139bd2c65390b504e47f82f11c50451289f93a" # renovate: depName=https://github.com/openvex/spec branch=main
 
 permissions:
@@ -50,7 +42,6 @@ jobs:
           fetch-depth: 0 # the old manifests are read from the base commit
           persist-credentials: false
 
-      # vex/ and the vex-cache image
       - name: Get changed VEX files
         id: vex_changed
         if: github.event_name != 'workflow_dispatch'
@@ -83,14 +74,13 @@ jobs:
         env:
           CHANGED: ${{ steps.vex_docs.outputs.all_changed_files }}
           EVENT: ${{ github.event_name }}
-        # a manual run lists every document; a pull request only the changed ones (none: nothing to scan); a push scans nothing
+        # manual run: every document; pull request: the changed ones; push: none
         run: |
           read -ra docs <<< "${CHANGED}"
           if [[ "${EVENT}" == push || ( "${EVENT}" == pull_request && ${#docs[@]} -eq 0 ) ]]; then images='[]'; else images=$(python3 -I scripts/ci/vex-images.py "${docs[@]}"); fi
           echo "images=${images}" >> "${GITHUB_OUTPUT}"
           echo "count=$(jq length <<< "${images}")" >> "${GITHUB_OUTPUT}"
 
-      # the images under k8s/ (not on a push: nothing is compared there)
       - name: Get changed k8s YAML files
         id: k8s_changed
         if: github.event_name == 'pull_request'
@@ -141,7 +131,7 @@ jobs:
           echo "images=$(cat images.json)" >> "${GITHUB_OUTPUT}"
           echo "count=$(jq length images.json)" >> "${GITHUB_OUTPUT}"
 
-  # The databases are cached per day; each scan job is skipped with its database job when it has nothing to scan.
+  # one per scan type, so a scan job is skipped with its database job when there is nothing to scan
   trivy-db-k8s:
     name: Trivy database (k8s)
     needs: changes
@@ -164,10 +154,10 @@ jobs:
       matrix:
         image: ${{ fromJson(needs.changes.outputs.k8s_images) }}
     env:
-      # The databases come from the cache that the trivy-db job fills.
+      # from the cache the trivy-db job fills
       TRIVY_SKIP_DB_UPDATE: true
       TRIVY_SKIP_JAVA_DB_UPDATE: true
-      # Same values as the trivy-operator scans (the ignore files below too).
+      # as in the trivy-operator scans
       TRIVY_IGNORE_STATUS: not_affected,will_not_fix
     permissions:
       contents: read
@@ -179,7 +169,6 @@ jobs:
         with:
           persist-credentials: false
       - run: mkdir out
-      # A failed scan (missing tag, registry down) leaves no output file; the comment then says so.
       - name: Scan new image
         id: new
         uses: ./.github/actions/trivy-scan
@@ -203,21 +192,20 @@ jobs:
           trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
           ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
       - name: Write the comment
-        # Image references come from the PR's manifests, so they only reach the shell through env.
+        # image references come from the PR: env only
         env:
           NEW_REF: ${{ matrix.image.ref }}
           OLD_REF: ${{ matrix.image.oldref }}
           ID: ${{ matrix.image.id }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          # a failed scan leaves no report: the comment then says so (an empty object stands in, the files in out/ stay as they are)
+          # a failed scan has no report: an empty object stands in and the comment says so
           echo '{}' > empty.json
           new=out/new.json old=out/old.json
           [ -s "${new}" ] || new=empty.json
           [ -s "${old}" ] || old=empty.json
           jq -r --arg new_ref "${NEW_REF}" --arg old_ref "${OLD_REF}" --arg run_url "${RUN_URL}" --slurpfile o "${old}" -f scripts/ci/scan-comment.jq "${new}" > out/comment.md
-          # everything in the new image: a Trivy template, rendered whenever the scan produced a report (an empty one gives the header only,
-          # so a broken template fails on any PR); the first 25 rows are used
+          # the list of everything in the new image: the first 25 rows of the Trivy template
           if [ -s out/new.json ]; then
             trivy convert --format template --template "@scripts/ci/vuln-list.tpl" out/new.json > list.md
             count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' out/new.json)
@@ -227,7 +215,7 @@ jobs:
                 echo "</details>"; echo; } >> out/comment.md
             fi
           fi
-          # An unzipped artifact is named after its file.
+          # an unzipped artifact is named after its file
           name="$(sed -E 's/@.*$//; s/[^A-Za-z0-9._-]+/_/g' <<< "${NEW_REF}")"
           [ ! -s out/new.json ] || mv out/new.json "out/${ID}-${name}.trivy.json"
       - name: Report
@@ -237,8 +225,7 @@ jobs:
           report: out/*.trivy.json
           header: scan-images ${{ matrix.image.oldref }} ${{ matrix.image.ref }}
       - name: Fail if a scan failed
-        # After the comment, which says so too. Findings never fail the job; a scan that could not run does, so a green check always
-        # means the image was scanned. A re-run usually fixes a transient error.
+        # findings never fail the job; a scan that could not run does (usually a transient registry error: re-run)
         if: steps.new.outputs.outcome == 'failure' || steps.old.outputs.outcome == 'failure'
         run: |
           echo "::error::A Trivy scan failed (see the scan step above); re-run the job"
@@ -261,7 +248,7 @@ jobs:
           schema="https://raw.githubusercontent.com/openvex/spec/${OPENVEX_SCHEMA_SHA}/openvex_json_schema.json"
           git ls-files -z 'vex/pkg/*.openvex.json' | xargs -0 pipx run "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}" --schemafile "${schema}"
       - name: Check that the Trivy versions agree
-        # the vex-cache image pins its own Trivy (with a digest, bumped by Renovate); it must be the version the scans use
+        # the vex-cache Dockerfile pins its own Trivy image
         run: |
           version=$(grep -oP 'TRIVY_VERSION: v\K[0-9.]+' .github/workflows/update-trivy-db.yaml)
           grep -q "trivy:${version}@" images/vex-cache/Dockerfile
@@ -396,7 +383,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   complete:
-    # Stable single check to require in branch protection: the other jobs are skipped when nothing relevant changed.
+    # the one check to require in branch protection
     name: Images complete
     needs: [changes, trivy-db-k8s, scan-k8s, trivy-db-vex, lint, scan-vex, build-and-publish]
     if: always()

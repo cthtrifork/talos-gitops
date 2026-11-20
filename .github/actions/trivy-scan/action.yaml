@@ -1,7 +1,5 @@
 name: Trivy scan
-description: >-
-  Logs in to ghcr.io and scans one image with Trivy into a JSON report. The scan never fails the step (a failed scan leaves no report);
-  the caller reads the outcome output, so it can comment first and fail afterwards.
+description: Logs in to ghcr.io and scans an image with Trivy. A failed scan does not fail the step; see the outcome output.
 inputs:
   image:
     description: Image reference
@@ -13,7 +11,7 @@ inputs:
     description: Trivy version
     required: true
   skip-setup:
-    description: "true when Trivy and its database are already in place from an earlier scan in the job"
+    description: Trivy and its database are already set up by an earlier scan in the job
     default: "false"
   severity:
     description: Severities to report (all if empty)
@@ -39,7 +37,7 @@ runs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ github.token }}
-    # trivy-action installs Trivy and caches its vulnerability databases per day. An empty TRIVY_VEX is ignored by Trivy.
+    # an empty TRIVY_VEX is ignored
     - name: Scan
       id: scan
       continue-on-error: true

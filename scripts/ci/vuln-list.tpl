@@ -1,4 +1,4 @@
-{{- /* Markdown table of the vulnerabilities of a Trivy report, one row each, in Trivy's order (severity, then ID). Used by images.yaml. */ -}}
+{{- /* one row per vulnerability, in Trivy's order */ -}}
 | Severity | CVE | Package | Installed | Fixed in |
 |---|---|---|---|---|
 {{- range . }}
