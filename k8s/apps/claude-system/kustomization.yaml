@@ -13,6 +13,7 @@ resources:
   - externalsecret.yaml
   - claude-github-app.enc.yaml
   - ghcr-pull.enc.yaml
+  - ghcr-pull-reader.yaml
   - claude-cloudflare.enc.yaml
   - omni-service-account.enc.yaml
   - prometheusrule.yaml

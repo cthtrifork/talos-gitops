@@ -46,6 +46,28 @@ spec:
     - toEntities:
         - world
 ---
+# The CDI importer pod that fills the disk runs in this namespace too, and pulls the containerDisk from ghcr.io
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-vm-cdi-importer-egress
+  namespace: claude-vm
+spec:
+  endpointSelector:
+    matchLabels:
+      app: containerized-data-importer
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - world
+---
 # SSH from the LAN only (the Service is a MetalLB address with externalTrafficPolicy Local)
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
