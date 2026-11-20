@@ -42,12 +42,12 @@ for target in "${TARGETS[@]}"; do
   echo "${image##*/} ${current} -> ${version}"
 done
 
-# image-pins.yaml pins the images the operators start (the require-image-digest policy denies tags). Renovate bumps its tags
+# kustomization.yaml pins the images the operators start (the require-image-digest policy denies tags). Renovate bumps its tags
 # and digests together with versions.env; fail if they ever disagree, since a pod from another release would run on these CRDs.
 check_pins() { # <image name prefix> <version>
   local bad
-  bad=$(grep -E "value: quay\.io/kubevirt/$1" k8s/infra/kubevirt/image-pins.yaml | grep -v -E ":$2@sha256:" || true)
-  [[ -z "$bad" ]] || { echo "image-pins.yaml does not match $2:" >&2; echo "$bad" >&2; exit 1; }
+  bad=$(grep -E "value: quay\.io/kubevirt/$1" k8s/infra/kubevirt/kustomization.yaml | grep -v -E ":$2@sha256:" || true)
+  [[ -z "$bad" ]] || { echo "kustomization.yaml does not match $2:" >&2; echo "$bad" >&2; exit 1; }
 }
 check_pins 'virt-' "$KUBEVIRT_VERSION"
 check_pins 'cdi-' "$CDI_VERSION"

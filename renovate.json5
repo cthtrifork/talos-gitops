@@ -192,7 +192,7 @@
       "enabled": false
     },
     {
-      "description": "KubeVirt and CDI upgrades change CRDs and RBAC: review them, no automerge. Each release (versions.env) and the digest pins of the images its operator starts (image-pins.yaml) move in one PR.",
+      "description": "KubeVirt and CDI upgrades change CRDs and RBAC: review them, no automerge. Each release (versions.env) and the digest pins of the images its operator starts (kustomization.yaml) move in one PR.",
       "matchPackageNames": [
         "kubevirt/kubevirt",
         "quay.io/kubevirt/virt-*"
@@ -286,7 +286,7 @@
       "customType": "regex",
       "description": "Image references in env values (the images the KubeVirt and CDI operators start), pinned by tag and digest",
       "managerFilePatterns": [
-        "/^k8s/infra/kubevirt/image-pins\\.yaml$/"
+        "/^k8s/infra/kubevirt/kustomization\\.yaml$/"
       ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+value: (?<depName2>[^\\s:@]+):(?<currentValue>[-a-zA-Z0-9.]+)@(?<currentDigest>sha256:[a-f0-9]+)"
