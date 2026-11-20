@@ -62,3 +62,53 @@ spec:
       message: only the ServiceAccount claude-elevate-<tier> of the same namespace may be bound
     - expression: 'namespaceObject.metadata.?labels["claude-elevate/" + variables.tier].orValue("") == "true"'
       message: the namespace has not opted in to this tier (label claude-elevate/<tier>)
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
+# The flux tier may only ask Flux to reconcile: an update from claude-elevate-flux must leave the spec, labels, finalizers and owner references
+# alone and may only add, change or remove the three reconcile.fluxcd.io annotations below (the ones `flux reconcile [--force|--reset]` sets).
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: claude-flux-reconcile-only
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - helm.toolkit.fluxcd.io
+        apiVersions:
+          - "*"
+        operations:
+          - UPDATE
+        resources:
+          - helmreleases
+      - apiGroups:
+          - kustomize.toolkit.fluxcd.io
+        apiVersions:
+          - "*"
+        operations:
+          - UPDATE
+        resources:
+          - kustomizations
+  matchConditions:
+    - name: from-the-flux-tier
+      expression: request.userInfo.username.startsWith("system:serviceaccount:") && request.userInfo.username.endsWith(":claude-elevate-flux")
+  variables:
+    - name: before
+      expression: oldObject.metadata.?annotations.orValue({})
+    - name: after
+      expression: object.metadata.?annotations.orValue({})
+    - name: allowed
+      expression: '["reconcile.fluxcd.io/requestedAt", "reconcile.fluxcd.io/forceAt", "reconcile.fluxcd.io/resetAt"]'
+  validations:
+    - expression: object.spec == oldObject.spec
+      message: the flux tier may not change the spec
+    - expression: >-
+        object.metadata.?labels.orValue({}) == oldObject.metadata.?labels.orValue({}) &&
+        object.metadata.?finalizers.orValue([]) == oldObject.metadata.?finalizers.orValue([]) &&
+        object.metadata.?ownerReferences.orValue([]) == oldObject.metadata.?ownerReferences.orValue([])
+      message: the flux tier may not change labels, finalizers or owner references
+    - expression: >-
+        variables.after.all(k, k in variables.allowed || (k in variables.before && variables.before[k] == variables.after[k])) &&
+        variables.before.all(k, k in variables.allowed || k in variables.after)
+      message: the flux tier may only set the annotations reconcile.fluxcd.io/requestedAt, forceAt and resetAt
