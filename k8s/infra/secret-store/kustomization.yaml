@@ -7,3 +7,4 @@ resources:
   - clustersecretstore.yaml
   - password.yaml
   - pushsecret.yaml
+  - networkpolicy.yaml
