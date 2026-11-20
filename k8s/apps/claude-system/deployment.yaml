@@ -11,6 +11,10 @@ kind: Deployment
 metadata:
   name: claude-rc
   namespace: claude-system
+  annotations:
+    # only this Secret, not `auto`: the GitHub token Secret refreshes every 30 minutes and a restart ends the session.
+    # A new or rotated key restarts the pod (once, when the config CronJob creates it).
+    secret.reloader.stakater.com/reload: dependency-track-claude-api-key
 spec:
   replicas: 1
   strategy:
