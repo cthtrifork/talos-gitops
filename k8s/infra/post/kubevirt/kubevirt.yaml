@@ -7,9 +7,12 @@ metadata:
 spec:
   configuration:
     developerConfiguration:
-      featureGates:
-        #- LiveMigration
-        - NetworkBindingPlugins
+      # Since v1.9 every Beta feature gate is on by default and Alpha ones stay off: featureGates only needs Alpha gates, and
+      # disabledFeatureGates switches a Beta one off. The Beta set changes with each release (feature-gates.json in the release
+      # assets), so review it on every KubeVirt bump (renovate "kubevirt" group). NetworkBindingPlugins is GA in v1.10 (it is not in
+      # that list), so it needs no gate any more.
+      featureGates: []
+      #- LiveMigration
     smbios:
       sku: "TalosCloud"
       version: "v0.1.0"
