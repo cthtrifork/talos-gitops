@@ -18,6 +18,8 @@ resources:
   - gitops-infra-registry-system.yaml
   - gitops-infra-secret-store.yaml
   - gitops-infra-security-system.yaml
+  - gitops-infra-trivy-system.yaml
+  - gitops-infra-reloader-system.yaml
   #- gitops-infra-external-dns.yaml
   - gitops-infra-post.yaml
   - gitops-infra-post-workloads.yaml
