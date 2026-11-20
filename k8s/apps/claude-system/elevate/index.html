@@ -62,6 +62,22 @@
   .choice.risky input:checked + .face { border-color: var(--warn); background: var(--warn-bg); }
   .choice.destructive input:checked + .face { border-color: var(--danger); background: var(--warn-bg); }
   .choice input:focus-visible + .face { outline: 3px solid var(--accent); outline-offset: 2px; }
+  /* a mark besides the colour, so the selection does not rely on colour alone */
+  .choice input:checked + .face { position: relative; }
+  .choice input:checked + .face::after { content: "\2713"; position: absolute; top: 10px; right: 12px; font-weight: 700; color: var(--accent); }
+  .chips .choice input:checked + .face::after { position: static; margin-left: 8px; }
+  .choice.risky input:checked + .face::after { color: var(--warn); }
+  .choice.destructive input:checked + .face::after { color: var(--danger); }
+  .tiers .choice .face { border-left-width: 5px; }
+  .tiers .choice.risky .face { border-left-color: var(--warn); }
+  .tiers .choice.destructive .face { border-left-color: var(--danger); }
+  .tiers .choice input:checked + .face { padding-right: 34px; }
+  .jump { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 999px; background: var(--accent-bg); color: var(--accent);
+          font-size: var(--fs-md); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .jump:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .jobrow { display: grid; gap: 10px; }
+  .desc { margin: 0; color: var(--ink-2); font-size: var(--fs-md); min-height: 1.4em; }
+  section.card { scroll-margin-top: 12px; }
   .empty { margin: 0; color: var(--ink-2); font-size: var(--fs-md); }
 
   .actions { position: sticky; bottom: 0; z-index: 2; margin: 0 -16px -16px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
@@ -101,7 +117,9 @@
   [hidden] { display: none !important; }
 
   @media (min-width: 560px) { .tiers { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
+  @media (min-width: 560px) { .jobrow { grid-template-columns: minmax(0, 1fr) auto; align-items: start; } .jobrow select { min-width: 0; } .jobrow .desc, .jobrow .hint { grid-column: 1 / -1; } }
   @media (min-width: 880px) {
+    .jump { display: none; }
     body { padding-top: 32px; }
     .layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; gap: 18px; }
     .card { padding: 20px; }
@@ -124,6 +142,7 @@
       <h1>Elevate Claude</h1>
       <p class="sub">Gives Claude a short-lived token for a tier. The token expires by itself.</p>
     </div>
+    <a id="jump" class="jump" href="#active" hidden></a>
   </header>
 
   <div class="layout">
@@ -165,20 +184,22 @@
     </form>
 
     <div class="stack">
-      <section class="card">
-        <h2>Active</h2>
+      <section class="card" id="active" aria-labelledby="activeTitle">
+        <h2 id="activeTitle">Active</h2>
         <ul id="grants"></ul>
         <p id="none" class="none">Nothing is elevated.</p>
         <button id="revokeAll" type="button" class="danger" style="margin-top:12px" hidden>Revoke everything</button>
       </section>
       <section class="card">
         <h2>Run a job</h2>
-        <p class="none" style="margin-bottom:10px">Runs a CronJob now from its own template, in namespaces that allow it. Claude gets no rights from this.</p>
+        <p class="none" style="margin-bottom:12px">Runs a CronJob now from its own template, in namespaces that allow it. Claude gets no rights from this.</p>
         <form id="jobForm" autocomplete="off" novalidate>
-          <select id="jobSelect" aria-label="CronJob" disabled></select>
-          <p id="jobDesc" class="none" style="margin-top:8px"></p>
-          <button id="jobGo" type="submit" class="small" style="margin-top:10px" disabled>Run now</button>
-          <p id="jobMsg" class="hint" role="status"></p>
+          <div class="jobrow">
+            <select id="jobSelect" aria-label="CronJob" aria-describedby="jobDesc" disabled></select>
+            <button id="jobGo" type="submit" disabled>Run now</button>
+            <p id="jobDesc" class="desc"></p>
+            <p id="jobMsg" class="hint" role="status"></p>
+          </div>
         </form>
       </section>
     </div>
@@ -331,6 +352,9 @@
     }
     tick();
     document.title = grants.length ? "Elevate Claude (" + grants.length + " active)" : "Elevate Claude";
+    var jump = $("jump");
+    jump.hidden = grants.length === 0;
+    jump.textContent = grants.length + " active \u2193";
     $("none").hidden = grants.length > 0;
     $("revokeAll").hidden = grants.length === 0;
   }
@@ -428,12 +452,12 @@
     var parts = $("jobSelect").value.split("/");
     if (parts.length !== 2) return;
     var msg = $("jobMsg");
-    msg.textContent = "Starting…"; msg.className = "hint";
-    $("jobGo").disabled = true;
+    msg.textContent = ""; msg.className = "hint";
+    $("jobGo").disabled = true; $("jobGo").textContent = "Starting…";
     fetch("api/v1/jobs", { method: "POST", headers: HEADERS, body: JSON.stringify({ csrf: status.csrf, namespace: parts[0], cronjob: parts[1] }) })
       .then(function (r) { return r.json().then(function (j) { return r.ok ? { ok: true, text: j.job ? "Started " + j.job + "." : "Job started." } : { text: "Refused: " + j.error }; }); })
       .catch(function (e) { return { text: "Could not start the job: " + e.message }; })
-      .then(function (res) { msg.textContent = res.text; msg.className = "hint " + (res.ok ? "ok" : "warn"); $("jobGo").disabled = false; });
+      .then(function (res) { msg.textContent = res.text; msg.className = "hint " + (res.ok ? "ok" : "warn"); $("jobGo").disabled = false; $("jobGo").textContent = "Run now"; });
   });
 
   $("revokeAll").addEventListener("click", function () {
