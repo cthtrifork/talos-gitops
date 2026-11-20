@@ -1,0 +1,14 @@
+# kagent's CRDs (Agent, Harness, ModelConfig, EgressPolicy, ...), a chart of their own so they exist before the agents do.
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kagent-crds
+  namespace: kagent
+spec:
+  interval: 30m
+  releaseName: kagent-crds
+  timeout: 10m
+  chartRef:
+    kind: OCIRepository
+    name: kagent-crds

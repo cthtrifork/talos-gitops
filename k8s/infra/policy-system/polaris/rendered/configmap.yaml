@@ -233,6 +233,29 @@ data:
         - memoryRequestsMissing
         - memoryLimitsMissing
       - controllerNames:
+        - ate-api-server
+        - ate-idp-server
+        rules:
+        - notReadOnlyRootFilesystem
+      - controllerNames:
+        - ate-controller
+        - podcertificate-controller
+        rules:
+        - livenessProbeMissing
+        - readinessProbeMissing
+      - controllerNames:
+        - atenet-router
+        - atenet-egress
+        rules:
+        - runAsRootAllowed
+        - notReadOnlyRootFilesystem
+      - controllerNames:
+        - atelet
+        rules:
+        - runAsRootAllowed
+        - hostPathSet
+        - notReadOnlyRootFilesystem
+      - controllerNames:
         - kubevirt-operator
         rules:
         - clusterrolePodExecAttach

@@ -1,0 +1,250 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: atenet-egress
+  namespace: ate-system
+---
+apiVersion: v1
+data:
+  config.yaml: |
+    # yaml-language-server: $schema=https://agentgateway.dev/schema/config
+    frontendPolicies:
+      connect:
+        mode: tunnel
+      accessLog:
+        add:
+          substrate.connect.authority: 'destination.address + ":" + string(destination.port)'
+      # Authorize the actor identity at CONNECT-accept, before any tunnel
+      # (HTTP, TLS, or opaque TCP) is terminated. Fails closed when the
+      # control plane is unreachable.
+      substrateEgressActorResolution:
+        host: api.ate-system.svc:443
+        policies:
+          backendTLS:
+            cert: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+            key: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+            root: /run/servicedns.podcert.ate.dev/trust-bundle.pem
+
+    # Bind the CONNECT front door to the pod IP so tunnel re-entry selects
+    # the wildcard internal listener instead of this gateway again.
+    gateways:
+      egress:
+        port: 8443
+        bindAddress: $POD_IP
+        protocol: HTTPS
+        tls:
+          cert: /run/servicedns.podcert.ate.dev/credential-bundle.pem
+          key: /run/servicedns.podcert.ate.dev/credential-bundle.pem
+          root: /run/actor-id-ca-certs/ca.crt
+
+    binds:
+    - mode: internal
+      protocol: AUTO
+      listeners:
+      - protocol: HTTPS
+        tls:
+          mode: dynamicCa
+          cert: /run/egress-mitm/tls.crt
+          key: /run/egress-mitm/tls.key
+        routes:
+        - backends:
+          - dynamic: {}
+            policies:
+              backendTLS:
+                root: /etc/ssl/certs/ca-certificates.crt
+          policies:
+            substrateEgress:
+              host: api.ate-system.svc:443
+              policies:
+                backendTLS:
+                  cert: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+                  key: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+                  root: /run/servicedns.podcert.ate.dev/trust-bundle.pem
+              credentialProviders:
+              - uriAuthority: k8s.io
+                target:
+                  host: k8s-credential-provider.ate-system.svc:50051
+                  policies:
+                    backendTLS:
+                      cert: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+                      key: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+                      root: /run/servicedns.podcert.ate.dev/trust-bundle.pem
+      - protocol: HTTP
+        routes:
+        - backends:
+          - dynamic:
+              target: 'destination.address + ":" + string(destination.port)'
+          policies:
+            substrateEgress:
+              host: api.ate-system.svc:443
+              policies:
+                backendTLS:
+                  cert: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+                  key: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+                  root: /run/servicedns.podcert.ate.dev/trust-bundle.pem
+              credentialProviders:
+              - uriAuthority: k8s.io
+                target:
+                  host: k8s-credential-provider.ate-system.svc:50051
+                  policies:
+                    backendTLS:
+                      cert: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+                      key: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+                      root: /run/servicedns.podcert.ate.dev/trust-bundle.pem
+      - protocol: TLS
+        tcpRoutes:
+        - backends:
+          - dynamic: {}
+kind: ConfigMap
+metadata:
+  name: atenet-egress-agentgateway-config
+  namespace: ate-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: atenet-egress
+  namespace: ate-system
+spec:
+  ipFamilyPolicy: PreferDualStack
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: https
+  selector:
+    app: atenet-egress
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: atenet-egress
+  name: atenet-egress
+  namespace: ate-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: atenet-egress
+  template:
+    metadata:
+      labels:
+        app: atenet-egress
+    spec:
+      containers:
+      - args:
+        - -f
+        - /etc/agentgateway/config.yaml
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: RUST_LOG
+          value: info
+        image: cr.agentgateway.dev/agentgateway:v1.7.0@sha256:60216aafb03d37f94e952ff3d51d2f630a65b10ecaebdc0a864882f92610c45b
+        livenessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /healthz/ready
+            port: readiness
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        name: agentgateway
+        ports:
+        - containerPort: 8443
+          name: https
+        - containerPort: 15021
+          name: readiness
+        - containerPort: 15020
+          name: stats
+        readinessProbe:
+          httpGet:
+            path: /healthz/ready
+            port: readiness
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: "2"
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 60
+          httpGet:
+            path: /healthz/ready
+            port: readiness
+          periodSeconds: 1
+        volumeMounts:
+        - mountPath: /run/egress-mitm
+          name: egress-mitm
+          readOnly: true
+        - mountPath: /etc/agentgateway
+          name: config
+          readOnly: true
+        - mountPath: /run/servicedns.podcert.ate.dev
+          name: servicedns
+          readOnly: true
+        - mountPath: /run/podidentity.podcert.ate.dev
+          name: podidentity
+          readOnly: true
+        - mountPath: /run/actor-id-ca-certs
+          name: actor-id-ca-certs
+          readOnly: true
+      securityContext:
+        sysctls:
+        - name: net.ipv4.ip_unprivileged_port_start
+          value: "0"
+      serviceAccountName: atenet-egress
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - name: egress-mitm
+        secret:
+          items:
+          - key: tls.crt
+            path: tls.crt
+          - key: tls.key
+            path: tls.key
+          secretName: egress-mitm-ca-pool
+      - configMap:
+          name: atenet-egress-agentgateway-config
+        name: config
+      - name: servicedns
+        projected:
+          sources:
+          - podCertificate:
+              credentialBundlePath: credential-bundle.pem
+              keyType: ECDSAP256
+              signerName: servicedns.podcert.ate.dev/identity
+          - clusterTrustBundle:
+              labelSelector:
+                matchLabels:
+                  podcert.ate.dev/canarying: live
+              path: trust-bundle.pem
+              signerName: servicedns.podcert.ate.dev/identity
+      - name: podidentity
+        projected:
+          sources:
+          - podCertificate:
+              credentialBundlePath: credential-bundle.pem
+              keyType: ECDSAP256
+              signerName: podidentity.podcert.ate.dev/identity
+          - clusterTrustBundle:
+              labelSelector:
+                matchLabels:
+                  podcert.ate.dev/canarying: live
+              path: trust-bundle.pem
+              signerName: podidentity.podcert.ate.dev/identity
+      - name: actor-id-ca-certs
+        secret:
+          secretName: actor-id-ca-certs

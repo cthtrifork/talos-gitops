@@ -1,0 +1,14 @@
+# kagent runs its agents as Substrate actors on a WorkerPool in this namespace (a Harness can only use a pool in its own namespace), and worker pods run as root with
+# SYS_ADMIN, NET_ADMIN and NET_RAW and an unconfined seccomp profile, so the namespace is privileged, controller and UI included. A split with a separate namespace for the
+# agents would keep those restricted; it is more wiring (a shared ModelConfig, another credential grant) and not done here.
+# ate.dev/api-access admits this namespace's pods to the Substrate API server (its ingress policy lists the namespaces that may call it).
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kagent
+  labels:
+    ate.dev/api-access: "true"
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged

@@ -1,0 +1,142 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/component: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/version: v2.5.0
+    prometheus-scrape: "true"
+  name: garage-configure
+  namespace: ate-system
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: garage
+        app.kubernetes.io/instance: garage
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: garage
+        app.kubernetes.io/version: v2.5.0
+        prometheus-scrape: "true"
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - /scripts/configure.sh
+        env:
+        - name: GARAGE_RPC_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: rpcSecret
+              name: garage-secrets
+        - name: GARAGE_ADMIN_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: adminToken
+              name: garage-secrets
+        - name: KEY_ID_ATE
+          valueFrom:
+            secretKeyRef:
+              key: access-key-id
+              name: garage-s3-key
+        - name: SECRET_KEY_ATE
+          valueFrom:
+            secretKeyRef:
+              key: secret-access-key
+              name: garage-s3-key
+        image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+        imagePullPolicy: IfNotPresent
+        name: configure
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /shared
+          name: garage-bin
+        - mountPath: /scripts
+          name: configure-script
+      initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - cp /bin/busybox /tools/busybox && chmod +x /tools/busybox
+        image: mirror.gcr.io/library/busybox:1.38-musl@sha256:80e38f9a1b39188b8bdb28879178edb322a4402b081a9aedda1924609decd6f6
+        imagePullPolicy: IfNotPresent
+        name: get-busybox-tools
+        resources:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /tools
+          name: tools
+      - command:
+        - /tools/busybox
+        - sh
+        - -c
+        - /tools/busybox cp /garage /shared/garage
+        image: mirror.gcr.io/dxflrs/garage:v2.5.0@sha256:677e5b758e4425a325b811c425c026bf35a4bf42f7ddbaa773de3f4fd779a5a5
+        imagePullPolicy: IfNotPresent
+        name: get-garage-bin
+        resources:
+          limits:
+            cpu: 50m
+            memory: 100Mi
+          requests:
+            cpu: 50m
+            memory: 100Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /tools
+          name: tools
+        - mountPath: /shared
+          name: garage-bin
+      restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: garage
+      volumes:
+      - emptyDir: {}
+        name: tools
+      - emptyDir: {}
+        name: garage-bin
+      - name: configure-script
+        secret:
+          defaultMode: 493
+          secretName: garage-configure-script

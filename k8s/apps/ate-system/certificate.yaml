@@ -1,0 +1,148 @@
+# The root CAs and the JWT signing key of Agent Substrate, made by cert-manager. Substrate does not read these Secrets: externalsecrets-pools.yaml
+# turns each into the pool Secret it expects. Substrate's own installer makes CAs valid for 365 days and nothing renews them; here cert-manager
+# renews them a year before they expire (five-year life).
+#
+# rotationPolicy Never keeps the private key across renewals, so a renewal only issues a new certificate for the same key: what Substrate trusts
+# is the key, and every certificate issued from the old root still verifies. Do not change it to Always without reading the pool format
+# (internal/localca): a new key replaces the only CA in the pool and invalidates everything it signed.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: actor-id-ca
+  namespace: ate-system
+spec:
+  isCA: true
+  commonName: actor-id-ca
+  secretName: actor-id-ca-source
+  duration: 43800h
+  renewBefore: 8760h
+  usages:
+    - digital signature
+    - cert sign
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    encoding: PKCS8
+    rotationPolicy: Never
+  issuerRef:
+    name: ate-selfsigned
+    kind: Issuer
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: egress-mitm-ca
+  namespace: ate-system
+spec:
+  isCA: true
+  commonName: egress-mitm-ca
+  secretName: egress-mitm-ca-source
+  duration: 43800h
+  renewBefore: 8760h
+  usages:
+    - digital signature
+    - cert sign
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    encoding: PKCS8
+    rotationPolicy: Never
+  issuerRef:
+    name: ate-selfsigned
+    kind: Issuer
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: service-dns-ca
+  namespace: podcertificate-controller-system
+spec:
+  isCA: true
+  commonName: service-dns-ca
+  secretName: service-dns-ca-source
+  duration: 43800h
+  renewBefore: 8760h
+  usages:
+    - digital signature
+    - cert sign
+  privateKey:
+    algorithm: Ed25519
+    encoding: PKCS8
+    rotationPolicy: Never
+  issuerRef:
+    name: ate-selfsigned
+    kind: Issuer
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pod-identity-ca
+  namespace: podcertificate-controller-system
+spec:
+  isCA: true
+  commonName: pod-identity-ca
+  secretName: pod-identity-ca-source
+  duration: 43800h
+  renewBefore: 8760h
+  usages:
+    - digital signature
+    - cert sign
+  privateKey:
+    algorithm: Ed25519
+    encoding: PKCS8
+    rotationPolicy: Never
+  issuerRef:
+    name: ate-selfsigned
+    kind: Issuer
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: postgres-ca
+  namespace: podcertificate-controller-system
+spec:
+  isCA: true
+  commonName: postgres-ca
+  secretName: postgres-ca-source
+  duration: 43800h
+  renewBefore: 8760h
+  usages:
+    - digital signature
+    - cert sign
+  privateKey:
+    algorithm: Ed25519
+    encoding: PKCS8
+    rotationPolicy: Never
+  issuerRef:
+    name: ate-selfsigned
+    kind: Issuer
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: actor-id-jwt
+  namespace: ate-system
+spec:
+  isCA: true
+  commonName: actor-id-jwt
+  secretName: actor-id-jwt-source
+  duration: 43800h
+  renewBefore: 8760h
+  usages:
+    - digital signature
+    - cert sign
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    encoding: PKCS8
+    rotationPolicy: Never
+  issuerRef:
+    name: ate-selfsigned
+    kind: Issuer

@@ -1,0 +1,23 @@
+# Agent Substrate (https://github.com/agent-substrate/substrate), as kagent's Helm charts install it (github.com/kagent-dev/substrate). Each chart is a
+# HelmRelease in its own directory (the render workflow replaces rendered/ in every directory that has a helm-release.yaml and a helm-repository.yaml);
+# everything else is what the charts expect to exist already or do not provide. See README.md.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - garage
+  - postgres-cluster.yaml
+  - externalsecrets.yaml
+  - issuer.yaml
+  - certificate.yaml
+  - rbac.yaml
+  - secretstore.yaml
+  - externalsecrets-pools.yaml
+  - configmap.yaml
+  - networkpolicy.yaml
+  - ingress-networkpolicy.yaml
+  - crds
+  - podcert
+  - atelet
+  - substrate

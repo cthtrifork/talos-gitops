@@ -1,0 +1,107 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ate-idp-server
+  namespace: ate-system
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: ate-idp-server
+---
+apiVersion: v1
+automountServiceAccountToken: false
+kind: ServiceAccount
+metadata:
+  name: ate-idp-server
+  namespace: ate-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: idp
+  namespace: ate-system
+spec:
+  ports:
+  - appProtocol: https
+    name: https
+    port: 443
+    targetPort: https
+  selector:
+    app: ate-idp-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ate-idp-server
+  namespace: ate-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ate-idp-server
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: ate-idp-server
+    spec:
+      containers:
+      - args:
+        - --issuer=https://idp.ate-system.svc
+        - --actor-id-jwt-pool=/run/actor-id-jwt-pool/pool.json
+        - --server-cred-bundle=/run/servicedns.podcert.ate.dev/credential-bundle.pem
+        image: ghcr.io/kagent-dev/substrate/ate-idp-server:v1.0.1
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+          periodSeconds: 10
+        name: ate-idp-server
+        ports:
+        - containerPort: 8443
+          name: https
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+          periodSeconds: 5
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+        volumeMounts:
+        - mountPath: /run/servicedns.podcert.ate.dev
+          name: servicedns
+        - mountPath: /run/actor-id-jwt-pool
+          name: actor-id-jwt-pool
+      serviceAccountName: ate-idp-server
+      volumes:
+      - name: servicedns
+        projected:
+          sources:
+          - podCertificate:
+              credentialBundlePath: credential-bundle.pem
+              keyType: ECDSAP256
+              signerName: servicedns.podcert.ate.dev/identity
+      - name: actor-id-jwt-pool
+        projected:
+          sources:
+          - secret:
+              items:
+              - key: pool
+                path: pool.json
+              name: actor-id-jwt-pool

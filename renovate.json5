@@ -160,6 +160,34 @@
       "groupSlug": "harper-pad-images"
     },
     {
+      "description": "The four Agent Substrate charts (CRDs, pod certificate controller, atelet, control plane) are one release: Substrate's version skew policy needs atelet upgraded before the API server, and the CRDs must match both. One pull request moves them, with no automerge. The WorkerPool image in k8s/apps/ate-system-pools/workerpool.yaml is not a field Renovate reads: bump it by hand to the same release.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "ghcr.io/kagent-dev/substrate/helm/substrate-crds",
+        "ghcr.io/kagent-dev/substrate/helm/substrate-podcert",
+        "ghcr.io/kagent-dev/substrate/helm/substrate-atelet",
+        "ghcr.io/kagent-dev/substrate/helm/substrate"
+      ],
+      "groupName": "agent-substrate charts",
+      "groupSlug": "agent-substrate-charts",
+      "automerge": false
+    },
+    {
+      "description": "The kagent CRDs and the kagent chart are one release. kagent is built against a Substrate release (its Go module replaces go.ate.dev/substrate with the kagent-dev fork, and its README names the Substrate version it needs): read both release notes, and bump the Substrate charts (agent-substrate charts) in step. One pull request, no automerge. The workerImage in the kagent HelmRelease values is not a field Renovate reads: bump it by hand to the Substrate release.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "ghcr.io/kagent-dev/kagent/helm/kagent-crds",
+        "ghcr.io/kagent-dev/kagent/helm/kagent"
+      ],
+      "groupName": "kagent charts",
+      "groupSlug": "kagent-charts",
+      "automerge": false
+    },
+    {
       "description": "The Dependency-Track api-server and frontend are released together at the same version.",
       "matchDatasources": [
         "docker"
@@ -209,6 +237,7 @@
       "matchPackageNames": [
         "ghcr.io/cthtrifork/talos-gitops/github-actions-runner",
         "ghcr.io/cthtrifork/talos-gitops/claude-runner",
+        "ghcr.io/cthtrifork/talos-gitops/kagent-claude-harness",
         "ghcr.io/cthtrifork/talos-gitops/fileserver"
       ],
       "ignoreUnstable": false
@@ -220,7 +249,13 @@
       "allowedVersions": "/^0\\.0\\.0-/"
     },
     {
-      "description": "The tools in the Claude runner image move in one pull request, so one image build covers them. Claude Code itself stays out: its patch releases automerge, and the new image tag then reaches the pod through the claude-runner rule above.",
+      "description": "The kagent claude-harness base of the harness target is bumped by hand with the kagent chart (its Claude Code version is pinned by the adapter).",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/kagent-dev/kagent/claude-harness"],
+      "enabled": false
+    },
+    {
+      "description": "The tools of images/claude-runner/Dockerfile (shared by the runner and the kagent harness targets) move in one pull request, so one image build covers them. Claude Code itself stays out: its patch releases automerge, and the new image tag then reaches the pod through the claude-runner rule above.",
       "matchFileNames": ["images/claude-runner/Dockerfile"],
       "matchPackageNames": ["!@anthropic-ai/claude-code"],
       "groupName": "claude-runner tools",

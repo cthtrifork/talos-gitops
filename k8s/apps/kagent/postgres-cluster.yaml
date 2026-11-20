@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/postgresql.cnpg.io/cluster_v1.json
+# kagent's own database (its chart reads two connection strings: kagent-postgres-owner and kagent-postgres-readwrite), set up as kagent's installer does it
+# (go/core/pkg/postgressetup/setup.sql in the kagent sources) with password logins. One instance, no backups: it holds sessions and agent definitions of a test install.
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: kagent-db
+  namespace: kagent
+spec:
+  instances: 1
+  enablePDB: false
+  enableSuperuserAccess: false
+  storage:
+    size: 2Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: 50m
+      memory: 192Mi
+    limits:
+      memory: 384Mi
+  bootstrap:
+    initdb:
+      database: kagent
+      owner: kagent_owner_user
+      encoding: UTF8
+      secret:
+        name: kagent-db-owner
+      # setup.sql minus the logins (managed below): the two NOLOGIN roles, the schema owned by the owner role, and the default privileges that give the
+      # read/write role what the owner's migrations create. Runs once, as the superuser, in the application database.
+      postInitApplicationSQL:
+        - CREATE ROLE kagent_owner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
+        - CREATE ROLE kagent_readwrite NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
+        - GRANT kagent_owner TO kagent_owner_user
+        - CREATE SCHEMA kagent AUTHORIZATION kagent_owner
+        - REVOKE CREATE ON SCHEMA public FROM PUBLIC
+        - REVOKE ALL ON SCHEMA kagent FROM PUBLIC
+        - GRANT USAGE ON SCHEMA kagent TO kagent_readwrite
+        - ALTER DEFAULT PRIVILEGES FOR ROLE kagent_owner IN SCHEMA kagent GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kagent_readwrite
+        - ALTER DEFAULT PRIVILEGES FOR ROLE kagent_owner IN SCHEMA kagent GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO kagent_readwrite
+        - ALTER DEFAULT PRIVILEGES FOR ROLE kagent_owner IN SCHEMA kagent GRANT EXECUTE ON ROUTINES TO kagent_readwrite
+        - ALTER DEFAULT PRIVILEGES FOR ROLE kagent_owner IN SCHEMA kagent GRANT USAGE ON TYPES TO kagent_readwrite
+  managed:
+    roles:
+      - name: kagent_owner_user
+        ensure: present
+        login: true
+        inherit: false
+        passwordSecret:
+          name: kagent-db-owner
+        inRoles:
+          - kagent_owner
+        comment: kagent controller, schema owner; it applies the migrations
+      - name: kagent_readwrite_user
+        ensure: present
+        login: true
+        inherit: false
+        passwordSecret:
+          name: kagent-db-readwrite
+        inRoles:
+          - kagent_readwrite
+        comment: kagent controller, runtime queries; rows only, no DDL
+  inheritedMetadata:
+    labels:
+      prometheus-scrape: "true"
+  monitoring:
+    enablePodMonitor: true

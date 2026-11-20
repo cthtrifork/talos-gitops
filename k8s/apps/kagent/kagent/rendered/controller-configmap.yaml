@@ -1,0 +1,89 @@
+apiVersion: v1
+data:
+  controller.yaml: |
+    database:
+      owner:
+        role: kagent_owner
+        urlFile: /etc/kagent/secrets/database-owner-url
+      readWrite:
+        role: kagent_readwrite
+        urlFile: /etc/kagent/secrets/database-readwrite-url
+      schema: kagent
+      skipMigrations: false
+      vectorEnabled: false
+      vectorSchema: extensions
+    gateway:
+      publicUrl: http://kagent-controller.kagent.svc.cluster.local:8083
+    harnessImages:
+      claude: ghcr.io/kagent-dev/kagent/claude-harness@sha256:111d28bc8552469b028d91ecd2352c9d44811aba07be12b1e6868db7948f904e
+      codex: ghcr.io/kagent-dev/kagent/codex-harness@sha256:6885f229b4ee70c9babf37f89ef5d93438eab049875e5bc129799fef6e4cfd19
+      kagent: ghcr.io/kagent-dev/kagent/golang-adk@sha256:d3b1151d39c529a6f921a58a995ff699963012001d2e5075f69bf613abebc24d
+      release: 1.0.1
+    kubernetes:
+      namespace: kagent
+      watchNamespaces:
+      - kagent
+    logging:
+      level: info
+    metrics:
+      bindAddress: "0"
+      secure: true
+    push:
+      allowHttp: false
+      allowPrivateNetworks: false
+      issuer: http://kagent-controller.kagent.svc.cluster.local:8083
+      maxConcurrency: 10
+      recoveryInterval: 60s
+      sendTimeout: 5s
+    runtimeDefaults:
+      builtinTools:
+        bashVenvPath: ""
+        disableAskUser: false
+        disableBash: false
+        disableFileSearch: false
+      controlPlaneUrl: http://kagent-controller.kagent.svc.cluster.local:8083
+      cpu: "1"
+      gatewayUrl: http://kagent-controller.kagent.svc.cluster.local:8083
+      logging:
+        level: info
+      memory: 1Gi
+      telemetry:
+        metrics:
+          endpoint: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
+          protocol: http/protobuf
+    sandboxes:
+      cpu: "1"
+      defaultTtl: 3600s
+      guestImage: ""
+      maxTtl: 86400s
+      memory: 1Gi
+    server:
+      auth:
+        mode: insecure
+      bindAddress: :8083
+      grpcReflection: false
+    sessions:
+      idleTtl: 604800s
+      shareMaxTtl: 0s
+    substrate:
+      actorJwtIssuer: https://idp.ate-system.svc
+      apiEndpoint: dns:///api.ate-system.svc:443
+      caFile: /run/substrate-servicedns/trust-bundle.pem
+      clientCertFile: /run/substrate-podidentity/credential-bundle.pem
+      routerUrl: https://atenet-router.ate-system.svc:443
+    telemetry:
+      metrics:
+        endpoint: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
+        protocol: http/protobuf
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kagent
+    app.kubernetes.io/part-of: kagent
+    app.kubernetes.io/version: 1.0.1
+    helm.sh/chart: kagent-1.0.1
+  name: kagent-controller
+  namespace: kagent

@@ -1,0 +1,13 @@
+# kagent (https://github.com/kagent-dev/kagent) on the Agent Substrate install in ../ate-system, for testing. The charts are in crds/ and kagent/ (one directory each: the render
+# workflow replaces rendered/ in every directory that has a helm-release.yaml and a helm-repository.yaml). The agents are in ../kagent-agents, and the Anthropic key is a SOPS file in
+# ../kagent-secrets that you add. See README.md.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - postgres-cluster.yaml
+  - externalsecrets.yaml
+  - networkpolicy.yaml
+  - crds
+  - kagent

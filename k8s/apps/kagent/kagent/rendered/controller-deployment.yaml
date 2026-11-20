@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kagent
+    app.kubernetes.io/part-of: kagent
+    app.kubernetes.io/version: 1.0.1
+    helm.sh/chart: kagent-1.0.1
+  name: kagent-controller
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/name: kagent
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: e4f900a5f0f48ebd8a2f1b002af177f21d51bbd0be7a82a64f74adaaeee3b98b
+      labels:
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/instance: kagent
+        app.kubernetes.io/name: kagent
+    spec:
+      containers:
+      - args:
+        - --config=/etc/kagent/controller.yaml
+        env:
+        - name: K8S_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: K8S_POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        - name: K8S_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION
+          value: explicit_bucket_histogram
+        image: ghcr.io/kagent-dev/kagent/controller:1.0.1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        name: controller
+        ports:
+        - containerPort: 8083
+          name: http
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 30
+        resources:
+          limits:
+            cpu: 2
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 15
+        volumeMounts:
+        - mountPath: /etc/kagent
+          name: controller-config
+          readOnly: true
+        - mountPath: /etc/kagent/secrets
+          name: controller-secrets
+          readOnly: true
+        - mountPath: /run/substrate-servicedns
+          name: substrate-servicedns
+          readOnly: true
+        - mountPath: /run/substrate-podidentity
+          name: substrate-podidentity
+          readOnly: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: kagent-controller
+      volumes:
+      - configMap:
+          name: kagent-controller
+        name: controller-config
+      - name: controller-secrets
+        projected:
+          sources:
+          - secret:
+              items:
+              - key: readWriteConnectionString
+                path: database-readwrite-url
+              name: kagent-postgres-readwrite
+          - secret:
+              items:
+              - key: ownerConnectionString
+                path: database-owner-url
+              name: kagent-postgres-owner
+      - name: substrate-servicedns
+        projected:
+          sources:
+          - clusterTrustBundle:
+              labelSelector:
+                matchLabels:
+                  podcert.ate.dev/canarying: live
+              path: trust-bundle.pem
+              signerName: servicedns.podcert.ate.dev/identity
+      - name: substrate-podidentity
+        projected:
+          sources:
+          - podCertificate:
+              credentialBundlePath: credential-bundle.pem
+              keyType: ECDSAP256
+              signerName: podidentity.podcert.ate.dev/identity

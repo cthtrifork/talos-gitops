@@ -1,0 +1,19 @@
+# One self-signed Issuer per namespace, only to mint the root CAs of Agent Substrate (certificate.yaml). Nothing else is issued from them.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/issuer_v1.json
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: ate-selfsigned
+  namespace: ate-system
+spec:
+  selfSigned: {}
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/issuer_v1.json
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: ate-selfsigned
+  namespace: podcertificate-controller-system
+spec:
+  selfSigned: {}
