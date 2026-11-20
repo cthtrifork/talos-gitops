@@ -16,34 +16,30 @@ spec:
         app: adguard-exporter
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "9617"
+        prometheus.io/port: "9618"
     spec:
       containers:
         - name: exporter
-          image: ebrianne/adguard-exporter:v1.14@sha256:44bb9e0e98f490e7e40c84461a38a59a41e03a21837b70105e048121e7962cb6
+          image: ghcr.io/henrywhitaker3/adguard-exporter:v1.2.3@sha256:27244b698034a190d657417fe1231db02cf2d22931d238495fd1a32bd0957185
           ports:
-            - containerPort: 9617
+            - containerPort: 9618
           env:
-            - name: adguard_protocol
-              value: "http"
-            - name: adguard_hostname
-              value: "adguard-web.adguard-system.svc.cluster.local"
-            - name: adguard_username
+            - name: ADGUARD_SERVERS
+              value: "http://adguard-web.adguard-system.svc.cluster.local"
+            - name: ADGUARD_USERNAMES
               value: "admin"
-            - name: adguard_password
+            - name: ADGUARD_PASSWORDS
               valueFrom:
                 secretKeyRef:
                   name: adguard-credentials
                   key: password
-            - name: adguard_port
-              value: "80"
           readinessProbe:
             tcpSocket:
-              port: 9617
+              port: 9618
             periodSeconds: 20
           livenessProbe:
             tcpSocket:
-              port: 9617
+              port: 9618
             initialDelaySeconds: 15
             periodSeconds: 30
           resources:
@@ -59,5 +55,5 @@ spec:
             readOnlyRootFilesystem: true # one static binary, config from env, logs to stdout
             allowPrivilegeEscalation: false
             privileged: false
-            runAsUser: 65534
-            runAsGroup: 65534
+            runAsUser: 65532
+            runAsGroup: 65532

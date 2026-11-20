@@ -39,7 +39,7 @@ spec:
               protocol: TCP
             - port: "9187"
               protocol: TCP
-            - port: "9617"
+            - port: "9618"
               protocol: TCP
             # cert-manager (controller, webhook and cainjector metrics)
             - port: "9402"
