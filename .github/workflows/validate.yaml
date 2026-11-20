@@ -84,13 +84,15 @@ jobs:
       - name: Build Flux Kustomization paths
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
   kyverno:
-    # The image policy: its CEL must compile and a pod with a signed image of this repo must pass.
+    # The image policy: its CEL must compile, a pod with a signed image of this repo must pass and one from another workflow must fail.
     runs-on: ubuntu-latest
     env:
       KYVERNO_VERSION: "1.20.0" # renovate: datasource=github-releases depName=kyverno/kyverno
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup yq
+        uses: fluxcd/pkg/actions/yq@e270089eb56404fcf3822b96bad2f423e9f45862 # main
       - name: Install the Kyverno CLI
         run: |
           base="https://github.com/kyverno/kyverno/releases/download/v${KYVERNO_VERSION}"
