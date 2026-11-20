@@ -93,6 +93,15 @@ spec:
         - ports:
             - port: "8443"
               protocol: TCP
+    # metrics: OTLP to Prometheus (config.telemetry in kagent/helm-release.yaml)
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "9090"
+              protocol: TCP
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy

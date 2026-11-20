@@ -161,5 +161,5 @@ by hand after editing `configmap.yaml` or after the database passwords change.
   the egress gateway (which holds the TLS interception CA's key), `ate-api-server`, `ate-idp-server` and atelet. What is exempt in Polaris, and why, is commented in
   `k8s/infra/policy-system/polaris/helm-release.yaml`; the resource numbers were not measured on this cluster.
 - **Not covered yet**: the microVM class (Cloud Hypervisor; `/dev/kvm` exists on `talos-11a-esj` and `talos-tba-msi`, nested virtualization
-  is not confirmed), telemetry export (there is no OTLP collector for it), Prometheus scraping of the Substrate components, and backups of
+  is not confirmed), traces and logs (only metrics are exported, as OTLP to Prometheus: the `otel` values in `substrate/` and `atelet/`, and the egress rule `ate-system-allow-otlp`), Prometheus scraping of the Substrate components, and backups of
   the database and of Garage.

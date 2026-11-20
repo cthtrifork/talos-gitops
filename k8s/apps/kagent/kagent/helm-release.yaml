@@ -29,10 +29,25 @@ spec:
         apiKeySecretRef: kagent-anthropic
         apiKeySecretKey: ANTHROPIC_API_KEY
     controller:
+      # Prometheus takes explicit-bucket histograms only (native histograms are off), and kagent's default is exponential buckets
+      env:
+        - name: OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION
+          value: explicit_bucket_histogram
       # mTLS to the Substrate API server and router with the pod's own certificate (the service DNS and pod identity signers of ../../ate-system/podcert)
       substrateClientCertificate:
         enabled: true
     config:
+      # Metrics only, to the OTLP receiver of Prometheus (../../../infra/kube-prometheus-stack), for the controller and for the agent runtimes (the Claude harness reports Claude Code's metrics).
+      # A signal that is not listed is off. The runtimes reach Prometheus through the egress gateway: kagent adds the endpoint's origin to their egress, and ../../kagent-agents/egresspolicy-prometheus.yaml grants it.
+      telemetry:
+        metrics:
+          endpoint: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
+          protocol: http/protobuf
+      runtimeDefaults:
+        telemetry:
+          metrics:
+            endpoint: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
+            protocol: http/protobuf
       substrate:
         apiEndpoint: dns:///api.ate-system.svc:443
         routerUrl: https://atenet-router.ate-system.svc:443

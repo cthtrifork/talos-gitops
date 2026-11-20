@@ -20,7 +20,7 @@ and External Secrets for the CA and JWT key pools, Cilium egress policy, and one
 |---|---|
 | Control plane, data plane (agentgateway), atelet, pod certificate controller | The Anthropic key for kagent: you add it as a SOPS file (`k8s/apps/kagent/README.md`) |
 | Garage, CloudNativePG, the key pools, Cilium and ingress policies, a default deny and narrow allows for the worker pods | Verification of the worker network policy on a running actor |
-| Preview gates, owners, router clients and credential grant that kagent needs | The microVM class, telemetry export, backups |
+| Preview gates, owners, router clients and credential grant that kagent needs | The microVM class, traces and logs, backups (metrics go to Prometheus over OTLP) |
 | A kagent test install: namespace, database, two charts, worker pool, Cilium policy, one test agent with no tools | kagent's tools, UI exposure and authentication |
 | A bare-actor test script (`scripts/ate-actor-test.sh`), two runbooks, a checklist, this overview | Any actor actually created: the script and the agent have not run |
 

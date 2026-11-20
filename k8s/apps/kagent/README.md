@@ -72,7 +72,16 @@ token, but anything the agent can be talked into doing with it, such as a push o
 - Sub-agent: `network-assistant` (`k8s/apps/kagent-agents/agenttemplate.yaml`) is a Shared sub-agent tool of `homelab-assistant`: it runs inside the parent's sandbox and egress, queries Prometheus for Cilium drops and alerts (`egresspolicy-prometheus.yaml`) and drafts policy changes as diffs. The egress gateway matches the origin only, so the parent can call every Prometheus API path. The sub-agent mechanism that gives an agent its own sandbox and harness (`agentRef`) is not served by kagent 1.0.1 yet.
 - No MCP tools: the chart's tool server runs with cluster-admin on everything, so `kagent-tools` is off. Command-line tools come from the image above, once the follow-up lands.
 - The UI has no authentication of its own. It is published through the Omni service exposer (annotations on the `kagent-ui` Service, port 50098, prefix `kagent`), so the Omni login is the only gate, and the `kagent-ui` NetworkPolicy lets in the host network only. `kubectl -n kagent port-forward svc/kagent-ui 8080:8080` still works with the debug tier. Anyone who can open it can run the agents, which spend API money and can use the injected GitHub credential: keep Omni access narrow. Substrate itself has no UI.
-- Backups of the database; telemetry; the codex harness.
+- Backups of the database; traces and logs; the codex harness.
+
+## Metrics
+
+Metrics only, as OTLP to the receiver Prometheus already has for Claude Code (`/api/v1/otlp/v1/metrics`, `k8s/infra/kube-prometheus-stack/helm-release.yaml`): `config.telemetry` is the controller and
+`config.runtimeDefaults.telemetry` the agent runtimes (the Claude harness reports Claude Code's metrics, the same series as claude-rc's). The Substrate components do the same through the `otel` values of their charts. A signal that is
+not configured is off. The controller reaches Prometheus directly (its Cilium policy), the runtimes through the egress gateway (`kagent-agents/egresspolicy-prometheus.yaml`).
+Not verified: that Prometheus accepts everything the runtimes send. kagent's default is exponential-bucket histograms, which need native histograms, and Prometheus here has them off; the controller is switched to explicit buckets
+by an environment variable, the runtimes have no such setting. If histogram series are missing or Prometheus logs OTLP rejections, enable native histograms or look for a runtime setting. Check with
+`curl -G $P/api/v1/label/__name__/values | jq` for series from the `kagent` and `ate` services.
 - Verification of the worker pods' network policy (`kagent-workers`, and `ate-workers-lockdown` in `k8s/apps/ate-system-pools/`): ports come from the worker's sources, nothing has run, so the first actor is the test. Look for drops from the workers (skill `cilium-drops`).
 
 The runbook is `docs/substrate/kagent-claude-runbook.md`; the overview and tradeoffs are `docs/substrate/overview.md`.

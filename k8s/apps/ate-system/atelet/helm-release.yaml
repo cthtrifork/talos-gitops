@@ -21,6 +21,16 @@ spec:
     preview:
       - PerTemplateSnapshotLocation
       - GoldenEgressPolicy
+    # Metrics only, pushed to the OTLP receiver of Prometheus (../../../infra/kube-prometheus-stack): a signal's own endpoint is used as it is, so it carries the receiver's path.
+    # Traces and logs stay off (actor events go to stdout). The Go SDK sends http/protobuf, which is what Prometheus accepts.
+    otel:
+      traces:
+        enabled: false
+      logs:
+        enabled: false
+      metrics:
+        enabled: true
+        endpoint: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
     # Snapshots go to Garage (../garage/). The Secret has AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY (../externalsecrets.yaml)
     objectStore:
       backend: s3

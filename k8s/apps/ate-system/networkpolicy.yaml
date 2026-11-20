@@ -39,6 +39,24 @@ spec:
     - toEntities:
         - kube-apiserver
 ---
+# Metrics: every component pushes OTLP to Prometheus (the otel values of substrate/ and atelet/)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ate-system-allow-otlp
+  namespace: ate-system
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "9090"
+              protocol: TCP
+---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
