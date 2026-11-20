@@ -84,15 +84,13 @@ jobs:
       - name: Build Flux Kustomization paths
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
   kyverno:
-    # The image policy: its CEL must compile, a pod with a signed image of this repo must pass and one from another workflow must fail.
+    # Lints the Kyverno policies: each must load and its CEL must compile (the schema is checked by the manifests job).
     runs-on: ubuntu-latest
     env:
       KYVERNO_VERSION: "1.20.0" # renovate: datasource=github-releases depName=kyverno/kyverno
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Setup yq
-        uses: fluxcd/pkg/actions/yq@e270089eb56404fcf3822b96bad2f423e9f45862 # main
       - name: Install the Kyverno CLI
         run: |
           base="https://github.com/kyverno/kyverno/releases/download/v${KYVERNO_VERSION}"
@@ -103,8 +101,8 @@ jobs:
           tar -xzf "${archive}" kyverno
           sudo install kyverno /usr/local/bin/kyverno
           kyverno version
-      - name: Test the image policy
-        run: ./scripts/ci/test-image-policy.sh
+      - name: Lint the policies
+        run: ./scripts/ci/lint-kyverno-policies.sh
   polaris:
     # The in-cluster Polaris dashboard only sees a change after it is merged and applied; this audits the manifests in the PR
     # with the same version and config (k8s/infra/policy-system/polaris/helm-release.yaml).

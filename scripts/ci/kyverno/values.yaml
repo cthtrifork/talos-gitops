@@ -1,8 +1,0 @@
----
-# the namespace labels the policy's namespaceSelector matches (set on claude-system by k8s/apps/claude-system)
-apiVersion: cli.kyverno.io/v1alpha1
-kind: Values
-namespaceSelector:
-  - name: claude-system
-    labels:
-      gitops.homelab/verify-images: "true"
