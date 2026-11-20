@@ -6,14 +6,12 @@ on:
     paths:
       - k8s/**
       - scripts/kind.yaml
-      - scripts/ci/verify-images.sh
       - .github/workflows/e2e.yaml
   push:
     branches: [ main ]
     paths:
       - k8s/**
       - scripts/kind.yaml
-      - scripts/ci/verify-images.sh
       - .github/workflows/e2e.yaml
 
 permissions:
@@ -175,7 +173,22 @@ jobs:
           flux resume kustomization gitops-infra-image-policies
           flux reconcile kustomization gitops-infra-image-policies --timeout=5m
           kubectl wait imagevalidatingpolicy/cthtrifork-images --for=jsonpath='{.status.conditionStatus.ready}'=true --timeout=3m
-          ./scripts/ci/verify-images.sh
+          # every digest-pinned image of ours in k8s/ must be admitted; unsigned ones denied, in any namespace
+          check() { # <admit|deny> <namespace> <image>
+            rc=0
+            out=$(printf 'apiVersion: v1\nkind: Pod\nmetadata:\n  name: verify\nspec:\n  containers:\n    - name: c\n      image: %s\n' "$3" |
+              kubectl create -n "$2" --dry-run=server -f - 2>&1) || rc=$?
+            if [ "$1" = admit ]; then [ "${rc}" -eq 0 ] || { echo "FAIL admit $3: ${out}"; return 1; }
+            else [ "${rc}" -ne 0 ] && grep -q cthtrifork-images <<<"${out}" || { echo "FAIL deny $3: ${out}"; return 1; }; fi
+            echo "ok $1 $3"
+          }
+          images=$(grep -rhoE 'ghcr\.io/cthtrifork/(talos-gitops/|harper-pad-)[A-Za-z0-9_./-]+(:[A-Za-z0-9_.-]+)?@sha256:[a-f0-9]{64}' k8s | sort -u)
+          [ -n "${images}" ]
+          for image in ${images}; do check admit default "${image}"; done
+          check deny default ghcr.io/cthtrifork/talos-gitops/unsigned:test
+          check deny default ghcr.io/cthtrifork/harper-pad-unsigned:test
+          check deny kube-system ghcr.io/cthtrifork/talos-gitops/unsigned:test
+          check admit default mirror.gcr.io/library/busybox:latest
 
       - name: Dry-run apps against the API server
         timeout-minutes: 3
