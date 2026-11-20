@@ -117,8 +117,6 @@ spec:
               protocol: TCP
             - port: "9402"
               protocol: TCP
-            - port: "9617"
-              protocol: TCP
             - port: "9962"
               protocol: TCP
             - port: "9963"

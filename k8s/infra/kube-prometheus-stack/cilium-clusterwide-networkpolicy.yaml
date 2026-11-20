@@ -16,7 +16,7 @@ spec:
       toPorts:
         - ports:
             # zot, the Prometheus config-reloader and the operator-managed exporters, Dependency-Track management,
-            # Prometheus itself, the Harper Pad sync and database metrics, the AdGuard exporter, the Claude usage API
+            # Prometheus itself, the Harper Pad sync and database metrics, the Claude usage API
             # (Redpanda Connect, 4195), the fileserver metrics (9102 to 9104)
             - port: "4195"
               protocol: TCP
@@ -38,8 +38,6 @@ spec:
             - port: "9104"
               protocol: TCP
             - port: "9187"
-              protocol: TCP
-            - port: "9617"
               protocol: TCP
             # cert-manager (controller, webhook and cainjector metrics)
             - port: "9402"

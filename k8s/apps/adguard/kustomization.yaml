@@ -6,7 +6,6 @@ resources:
   - deployment.yaml
   #- pdb.yaml
   - certificate.yaml
-  - exporter-deployment.yaml
   - service.yaml
   - namespace.yaml
   - networkpolicy.yaml
