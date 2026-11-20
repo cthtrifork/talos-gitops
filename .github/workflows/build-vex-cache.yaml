@@ -97,6 +97,8 @@ jobs:
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ steps.prep.outputs.BUILD_TAG }}
           no-cache: true
+          secrets: |
+            github_token=${{ secrets.GITHUB_TOKEN }}
           sbom: false
           provenance: false # keep a plain image manifest: it is mounted as a volume, not run
 
