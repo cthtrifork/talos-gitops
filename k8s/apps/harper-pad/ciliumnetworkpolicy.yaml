@@ -1,0 +1,33 @@
+---
+# PostgreSQL egress: a CiliumNetworkPolicy because the CNPG instance manager needs the Kubernetes API (a plain
+# NetworkPolicy cannot allow it, see the header). Only DNS, the API and the other instances of the cluster.
+# Ingress stays with db-ingress above.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: db-egress
+  namespace: harper-pad
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: harper-pad-db
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - kube-apiserver
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: harper-pad-db
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+            - port: "8000"
+              protocol: TCP
