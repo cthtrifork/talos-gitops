@@ -139,9 +139,8 @@ spec:
                   initialDelaySeconds: 15
                   periodSeconds: 10
                   failureThreshold: 6
-    # The credential provider serves /healthz next to the /readyz the chart already probes
-    - kustomize:
-        patches:
+          # The credential provider serves /healthz next to the /readyz the chart already probes. One postRenderers entry for all of them: the render workflow
+          # (scripts/ci/render-manifests.sh) takes the patches of the first entry only
           - target:
               kind: Deployment
               name: k8s-credential-provider
