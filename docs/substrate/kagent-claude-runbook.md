@@ -16,7 +16,7 @@ install. **A test install is in PR #978** (`k8s/apps/kagent/` and `k8s/apps/kage
 | Namespace `kagent` | One namespace for the control plane, the agents and the worker pool: PodSecurity `privileged` (worker pods need it, and a Harness can only use a pool in its own namespace) and labeled `ate.dev/api-access` |
 | Database | Its own CloudNativePG cluster `kagent-db`, set up as kagent's installer does, password logins; passwords generated in the cluster store |
 | Charts | `kagent-crds` and `kagent` 1.0.1 as HelmReleases, pinned by digest and grouped by Renovate |
-| Values | Anthropic as the default provider (`claude-sonnet-5-5`), the controller's client certificate on, kagent's endpoints for our Substrate, `global.watchNamespaces: [kagent]` (Roles instead of ClusterRoles), `kagent-tools` **off** (the chart gives it cluster-admin on everything), the codex harness off |
+| Values | Anthropic as the default provider (`claude-haiku-5-5`, the cheaper model, for testing), the controller's client certificate on, kagent's endpoints for our Substrate, `global.watchNamespaces: [kagent]` (Roles instead of ClusterRoles), `kagent-tools` **off** (the chart gives it cluster-admin on everything), the codex harness off |
 | Worker pool | `kagent-default`, two gVisor workers, created by the chart in `kagent` with the labels kagent selects on, using the fork's worker image |
 | Network | Cilium default-deny for kagent's pods plus what each needs; the Substrate egress gateway may call the controller (actors call it back). The worker pods are not denied |
 | Agent | `homelab-assistant` in `k8s/apps/kagent-agents/`: the `claude-default` Harness, `default-model-config`, a system prompt, no tools |
@@ -128,6 +128,12 @@ kubectl -n kagent delete agent homelab-assistant
 ```
 
 If the agent is in Git, remove it there instead: Flux prunes it.
+
+## Cost and your Claude Pro
+
+kagent's Claude harness needs an **Anthropic API key** (a Console account with its own billing, pay per token): its docs list Anthropic, Bedrock and Vertex models, and its gateway injection supports API keys
+and rejects OAuth-style credentials. **Your Claude Pro login cannot be used with it.** The test install uses Haiku to keep the spend small; set a spend limit on the key's workspace in the Console. A suspended
+agent costs nothing; a turn costs tokens. For Pro-billed Claude, see Stage 3 of [Runbook A](claude-actor-runbook.md).
 
 ## What this route does not give you
 

@@ -32,7 +32,7 @@ and External Secrets for the CA and JWT key pools, Cilium egress policy, and one
 | Where you use it | claude.ai/code, your subscription login | `curl` through `kubectl ate proxy` | kagent's UI, CLI, A2A or MCP |
 | Many agents | One pod each | Many actors on a few workers | Many agents on a few workers |
 | Idle cost | A pod, always | None while suspended | None while suspended |
-| Who suspends | n/a | You (`kubectl ate suspend`); Substrate has no idle detection ([#483](https://github.com/agent-substrate/substrate/issues/483)) | kagent's controller, after each turn |
+| Who suspends | n/a (stage 3 `remote`: nothing; it stays up) | You (`kubectl ate suspend`); Substrate has no idle detection ([#483](https://github.com/agent-substrate/substrate/issues/483)) | kagent's controller, after each turn |
 | Conversation memory | In the session | None: each `claude --print` is fresh | Durable sessions, checkpoints and forks (kagent docs) |
 | Anthropic credential | Your login, on a PVC | An API key in the template: in the database and in every snapshot | Held at the gateway and injected on egress; the actor does not see it (kagent docs) |
 | Defined as | A Deployment in Git | `kubectl ate` calls, by hand | `Agent` and `Harness` resources in Git |
@@ -44,6 +44,19 @@ and External Secrets for the CA and JWT key pools, Cilium egress policy, and one
 
 How to choose: a few long-lived sessions you drive by hand → keep `claude-rc` or use Runbook A. Many agents that wake and sleep on their own, with history and a key the actor never holds →
 Runbook B. Run the [checklist](stage1-checklist.md) first either way: it is the only thing that tells you whether suspend and resume work on these nodes.
+
+## Who pays for the model
+
+| Agent | How it authenticates | Billing | Costs when |
+|---|---|---|---|
+| `claude-rc` (running today) | Your claude.ai login | Subscription limits | You use it |
+| Runbook A, stage 3: `remote` | A claude.ai login you make for it, stored in the template | **Subscription (Pro)**, shared with everything else on the account | The session is used |
+| Runbook A, stage 2: `headless` / `ask` | `ANTHROPIC_API_KEY` in the template | **API, per token** | Each request |
+| Runbook A, stage 1: `lifecycle` | None | Free | It runs `claude --version` and a counter |
+| Runbook B: kagent `homelab-assistant` | `kagent-anthropic`, injected at the gateway | **API, per token** (Haiku for testing) | Each turn |
+| Substrate, Garage, databases | None | None | |
+
+kagent cannot use a subscription; the `remote` actor cannot use the API. Both are untested.
 
 ## Decisions already made
 
@@ -57,6 +70,7 @@ Runbook B. Run the [checklist](stage1-checklist.md) first either way: it is the 
 | Sandbox class | gVisor | microVM | `/dev/kvm` exists on two nodes but nested virtualization is unconfirmed |
 | kagent namespaces | One privileged `kagent` namespace for everything | A split with a restricted control plane | A Harness can only use a pool in its own namespace; the split needs a shared ModelConfig and another credential grant. Catch: kagent's controller and UI run privileged |
 | kagent database | Its own CloudNativePG cluster | A second database in `substrate-db` | Isolation and easy deletion. Catch: another database to look after |
+| kagent's model | Haiku (`claude-haiku-5-5`) | Sonnet | Cheaper for a test; the chart's own default is Haiku too |
 | Anthropic key for kagent | A SOPS file you add | An ExternalSecret from the cluster store | Your choice. Catch: the key is in Git, encrypted; the install waits for the file |
 | kagent tools | Off | The chart's tool server | It runs with cluster-admin on everything. Catch: the test agent has no tools |
 | Claude workload | Both runbooks are implemented for testing | One | Run the checklist first |

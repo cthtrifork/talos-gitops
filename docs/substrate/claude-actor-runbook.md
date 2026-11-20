@@ -9,7 +9,7 @@ has been run.** It needs `k8s/apps/ate-system/` (PR #978) merged and healthy: ru
 kagent and with `claude-rc`, see [the overview](overview.md); the kagent route is [Runbook B](kagent-claude-runbook.md).
 
 **Script.** `scripts/ate-actor-test.sh` runs this runbook's steps: `lifecycle` (Stage 1, with a PASS or FAIL on whether the counter continued across a suspend and resume), `headless` (Stage 2: the template,
-actor and egress policy), `ask 'prompt'` (a request through the port-forward, timed), `clean`, and `check`. It needs the same things as below, reads the key from `ANTHROPIC_API_KEY` in your shell only,
+actor and egress policy), `ask 'prompt'` (a request through the port-forward, timed), `remote` (Stage 3: `claude remote-control` on Sonnet with your claude.ai login), `clean`, and `check`. It needs the same things as below, reads the key from `ANTHROPIC_API_KEY` in your shell only,
 and was checked with `shellcheck` and by rendering its templates, not run against a cluster. The manual commands below are what it does.
 
 ## What you need
@@ -228,11 +228,33 @@ kubectl ate delete actor-template claude-lifecycle -a claude
 
 The template with the key is also in the database: delete it when done.
 
-## Not pursued: `claude remote-control` per actor
+## Stage 3: `claude remote-control` on Sonnet, with your Claude Pro login
 
-It needs a claude.ai login that an actor cannot be given interactively (and a login in a template or file would sit in every snapshot), and it holds an
-outbound connection that nothing wakes after a suspend. If it is wanted later, the actor needs the `tlsPassthrough` rule for `api.anthropic.com` and
-`anthropic.com` (what `claude-rc` is allowed), and the open question is whether the session reappears at claude.ai/code after a resume.
+The actor runs `claude remote-control`, so it appears as a session in claude.ai/code, like `claude-rc` does, on the model `sonnet` (a Claude Code alias; set `REMOTE_MODEL` for another).
+It **bills your subscription, not the API**: its usage counts against your Pro limits, shared with claude.ai and every other Claude Code session. An always-on session you leave running
+can use that allowance up. Substrate's side is the same as before: a gVisor actor, with the egress policy below.
+
+```sh
+CLAUDE_CREDENTIALS_FILE=/path/to/.credentials.json scripts/ate-actor-test.sh remote
+kubectl ate logs actor claude-remote-1 -a claude -c claude        # the session name and its link
+```
+
+What it does: the template's start script writes the login to `~/.claude/.credentials.json` on a durable volume mounted at `/home/claude` **only if the file is absent** (so refreshed tokens survive,
+and the value in the template becomes stale), sets the model, and runs `claude remote-control --name homelab-actor`. The egress policy is a `tlsPassthrough` rule for `api.anthropic.com` and
+`anthropic.com`, the hosts `claude-rc` is allowed: the egress gateway blocks WebSocket and CONNECT unless a pass-through rule matches the host ([#3885](https://github.com/agent-substrate/substrate/issues/3885)).
+Nothing suspends an actor by itself, so it stays up and holds one of the two workers.
+
+**Read before running, because the login is a credential:**
+
+- **It goes into the template**, which is in Substrate's database and in every snapshot of the actor. Use a login made for this actor (run `claude` and `/login` on your own machine) and revoke it in your
+  claude.ai account when you delete the actor. **Do not copy `claude-rc`'s login**: two sessions that share one refresh token can invalidate each other, and that login is not mine to copy.
+- **The script reads the file from your shell; it never goes through me or a chat.**
+- **Untested, and the reasons it may not work:** whether `remote-control` accepts such credentials in a sandbox, whether it needs hosts beyond the two (a name that does not resolve in the logs is the
+  sign; add it to the policy), whether its connection survives a suspend and resume (do not suspend it unless you are testing that), and whether the token refresh works from a snapshot. A long-lived
+  token from `claude setup-token` is **not** assumed to work for remote control (I believe it is inference-only; unverified).
+- A Pro plan's Remote Control availability and Sonnet access are your account's, not something I can check.
+
+To stop: `scripts/ate-actor-test.sh clean`, then revoke the login.
 
 ## Known gaps
 

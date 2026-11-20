@@ -24,7 +24,7 @@ spec:
     providers:
       default: anthropic
       anthropic:
-        model: claude-sonnet-5-5
+        model: claude-haiku-5-5
         # The Secret is the SOPS file you add (README.md): the chart only references it, so no key is in the values
         apiKeySecretRef: kagent-anthropic
         apiKeySecretKey: ANTHROPIC_API_KEY

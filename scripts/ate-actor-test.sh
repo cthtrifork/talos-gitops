@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Tests a bare Agent Substrate actor running the claude-runner image (docs/substrate/claude-actor-runbook.md): `lifecycle` checks that an actor suspends and resumes with its
-# memory and its files intact; `headless` creates an actor that answers prompts over HTTP with `claude --print`; `ask` sends it one; `clean` deletes what this script made.
+# memory and its files intact; `headless` creates an actor that answers prompts over HTTP with `claude --print` (API billing); `ask` sends it one; `remote` creates an actor that runs
+# `claude remote-control` on Sonnet with your claude.ai login (subscription billing; see the warnings at `remote`); `clean` deletes what this script made.
 #
 # Needs: kubectl, the kubectl-ate plugin (built from the release the charts install), and for `headless` an Anthropic key in the environment (ANTHROPIC_API_KEY, never in this
 # file or the repo; it ends up in the template, which is in Substrate's database and in the actor's snapshots) plus envsubst and curl for `ask`.
@@ -11,6 +12,9 @@ IMAGE="${IMAGE:-ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.325-20261118.2
 POOL_LABEL="${POOL_LABEL:-pool=gvisor}" # the label of the WorkerPool the template may use (k8s/apps/ate-system-pools/workerpool.yaml)
 LIFECYCLE_ACTOR="lifecycle-1"
 HEADLESS_ACTOR="claude-1"
+REMOTE_ACTOR="claude-remote-1"
+REMOTE_NAME="${REMOTE_NAME:-homelab-actor}" # the session name in claude.ai/code
+REMOTE_MODEL="${REMOTE_MODEL:-sonnet}"      # a Claude Code model alias or id
 LOCAL_PORT="${LOCAL_PORT:-8000}"
 
 usage() {
@@ -21,6 +25,8 @@ Usage: $0 <command>
   lifecycle   create the atespace, a template and an actor; run it, suspend, resume; compare what survived
   headless    create the template, actor and egress policy of the headless Claude actor (needs ANTHROPIC_API_KEY)
   ask TEXT    send TEXT to the headless actor through a port-forward, and time the answer
+  remote      create an actor that runs 'claude remote-control' on Sonnet with a claude.ai login you made for it
+              (needs CLAUDE_CREDENTIALS_FILE: the credentials file of that separate login; it is stored in the template)
   clean       delete the actors and templates this script made
 
 Environment: ATESPACE (default ${ATESPACE}), IMAGE, POOL_LABEL (default ${POOL_LABEL}), LOCAL_PORT (default ${LOCAL_PORT}).
@@ -221,6 +227,85 @@ cmd_headless() {
   echo "ready: $0 ask 'Write a haiku about snapshots to /workspace/haiku.txt, then print it.'"
 }
 
+remote_template() { # needs CLAUDE_CREDENTIALS_B64 and, for the name and model, REMOTE_NAME and REMOTE_MODEL in the environment; envsubst puts only CLAUDE_CREDENTIALS_B64 in
+  cat <<YAML
+metadata:
+  atespace: ${ATESPACE}
+  name: claude-remote
+workerSelector:
+  matchLabels:
+    ${POOL_LABEL%%=*}: ${POOL_LABEL#*=}
+containers:
+  - name: claude
+    image: ${IMAGE}
+    command: ["/bin/bash", "-c"]
+    args:
+      - |
+        set -eu
+        mkdir -p "\$HOME/.claude"
+        # seed the login once: after that the file on the durable volume holds the refreshed tokens, and the value in the environment is stale
+        if [ ! -s "\$HOME/.claude/.credentials.json" ]; then
+          printf '%s' "\$CLAUDE_CREDENTIALS_B64" | base64 -d > "\$HOME/.claude/.credentials.json"
+          chmod 600 "\$HOME/.claude/.credentials.json"
+        fi
+        [ -s "\$HOME/.claude/settings.json" ] || printf '{"model":"%s"}\n' "${REMOTE_MODEL}" > "\$HOME/.claude/settings.json"
+        exec claude remote-control --name "${REMOTE_NAME}"
+    env:
+      - name: CLAUDE_CREDENTIALS_B64
+        value: "\${CLAUDE_CREDENTIALS_B64}"
+      - name: ANTHROPIC_MODEL
+        value: "${REMOTE_MODEL}"
+      - name: DISABLE_AUTOUPDATER
+        value: "1"
+      - name: DISABLE_TELEMETRY
+        value: "1"
+      - name: CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY
+        value: "1"
+      - name: CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL
+        value: "1"
+    volumeMounts:
+      - name: home
+        mountPath: /home/claude
+volumes:
+  - name: home
+    durableDir: {}
+resources:
+  limits:
+    cpuMillicores: 1000
+    memoryBytes: 2147483648
+snapshotConfig:
+  preferredFidelity: SNAPSHOT_FIDELITY_MEMORY
+YAML
+}
+
+cmd_remote() {
+  need kubectl
+  need envsubst
+  need base64
+  # WARNING, read before running: the login goes into the template, which is in Substrate's database and in every snapshot of the actor. Use a login made for this actor
+  # (claude, then /login, on your own machine, then copy nothing from claude-rc: two sessions sharing one refresh token invalidate each other), and revoke it in your claude.ai
+  # account when you delete the actor. Whether remote-control accepts such credentials in a sandbox, and keeps its connection across a suspend, is untested.
+  if [ -z "${CLAUDE_CREDENTIALS_FILE:-}" ] || [ ! -s "${CLAUDE_CREDENTIALS_FILE}" ]; then
+    echo "set CLAUDE_CREDENTIALS_FILE to the .credentials.json of a separate claude.ai login (see the warning in this script)" >&2
+    exit 1
+  fi
+  CLAUDE_CREDENTIALS_B64="$(base64 -w0 "${CLAUDE_CREDENTIALS_FILE}")"
+  export CLAUDE_CREDENTIALS_B64 REMOTE_NAME REMOTE_MODEL
+  ensure_atespace
+  # shellcheck disable=SC2016 # envsubst takes the variable name literally, on purpose
+  remote_template | envsubst '${CLAUDE_CREDENTIALS_B64}' | ensure_template claude-remote
+  unset CLAUDE_CREDENTIALS_B64
+  ensure_actor "${REMOTE_ACTOR}" claude-remote
+  # remote-control keeps a long-lived connection (WebSocket) to claude.ai, which the egress gateway blocks unless a tlsPassthrough rule matches the host. The two hosts are what
+  # claude-rc is allowed (k8s/apps/claude-system/networkpolicy.yaml); add more here if the logs show a name that does not resolve.
+  ate get egress-policy "${REMOTE_ACTOR}" -a "${ATESPACE}" >/dev/null 2>&1 ||
+    printf 'rules:\n  - tlsPassthrough:\n      hostnames:\n        - api.anthropic.com\n        - anthropic.com\n' |
+      ate create egress-policy "${REMOTE_ACTOR}" -a "${ATESPACE}" -f -
+  ate resume actor "${REMOTE_ACTOR}" -a "${ATESPACE}"
+  echo "started. Nothing suspends it, so it stays up and holds a worker. Look for its session '${REMOTE_NAME}' in claude.ai/code, and read its output:"
+  echo "  kubectl ate logs actor ${REMOTE_ACTOR} -a ${ATESPACE} -c claude"
+}
+
 cmd_ask() {
   need kubectl
   need curl
@@ -236,8 +321,8 @@ cmd_ask() {
 
 cmd_clean() {
   need kubectl
-  for a in "${LIFECYCLE_ACTOR}" "${HEADLESS_ACTOR}"; do ate delete actor "${a}" -a "${ATESPACE}" 2>/dev/null || true; done
-  for t in claude-lifecycle claude-headless; do ate delete actor-template "${t}" -a "${ATESPACE}" 2>/dev/null || true; done
+  for a in "${LIFECYCLE_ACTOR}" "${HEADLESS_ACTOR}" "${REMOTE_ACTOR}"; do ate delete actor "${a}" -a "${ATESPACE}" 2>/dev/null || true; done
+  for t in claude-lifecycle claude-headless claude-remote; do ate delete actor-template "${t}" -a "${ATESPACE}" 2>/dev/null || true; done
   echo "deleted; the atespace ${ATESPACE} is left"
 }
 
@@ -246,6 +331,7 @@ case "${1:-}" in
   lifecycle) cmd_lifecycle ;;
   headless) cmd_headless ;;
   ask) shift; cmd_ask "${1:-}" ;;
+  remote) cmd_remote ;;
   clean) cmd_clean ;;
   -h | --help | help | "") usage ;;
   *) usage >&2; exit 2 ;;

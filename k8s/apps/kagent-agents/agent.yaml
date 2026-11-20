@@ -1,5 +1,5 @@
 # The test agent: Claude, run by the claude-default Harness (the Claude Code binary and kagent's adapter) on the kagent-default WorkerPool, with no tools.
-# default-model-config is the ModelConfig the chart makes from providers.default (Anthropic, claude-sonnet-5-5). Its own Flux Kustomization, because Agent is a CRD of the kagent chart.
+# default-model-config is the ModelConfig the chart makes from providers.default (Anthropic, claude-haiku-5-5). Its own Flux Kustomization, because Agent is a CRD of the kagent chart.
 ---
 apiVersion: api.kagent.dev/v1alpha3
 kind: Agent
