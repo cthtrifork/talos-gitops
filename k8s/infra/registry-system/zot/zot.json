@@ -53,7 +53,8 @@
           "deleteUntagged": true,
           "keepUntagged": {
             "mostRecentlyPushedCount": 1,
-            "mostRecentlyPulledCount": 1
+            "mostRecentlyPulledCount": 1,
+            "pulledWithin": "72h"
           },
           "keepTags": [
             {
@@ -68,7 +69,8 @@
           "deleteUntagged": true,
           "keepUntagged": {
             "mostRecentlyPushedCount": 1,
-            "mostRecentlyPulledCount": 1
+            "mostRecentlyPulledCount": 1,
+            "pulledWithin": "72h"
           },
           "keepTags": [
             {
@@ -87,7 +89,8 @@
           "deleteUntagged": true,
           "keepUntagged": {
             "mostRecentlyPushedCount": 1,
-            "mostRecentlyPulledCount": 1
+            "mostRecentlyPulledCount": 1,
+            "pulledWithin": "72h"
           },
           "keepTags": [
             {
