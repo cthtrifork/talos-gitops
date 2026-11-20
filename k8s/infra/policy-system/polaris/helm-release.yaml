@@ -24,6 +24,25 @@ spec:
         target:
           kind: Deployment
           name: polaris-dashboard
+  postRenderers:
+    - kustomize:
+        patches:
+          # The chart mounts config.yaml with a subPath, and the kubelet can lose the volume-subpaths directory when a pod
+          # starts during another pod's volume cleanup (runc: "mounting .../volume-subpaths/config/dashboard/0 ... no such file
+          # or directory"). polaris-refresh restarts the dashboard on every main revision, so mount the ConfigMap as a directory.
+          - target:
+              kind: Deployment
+              name: polaris-dashboard
+            patch: |
+              - op: replace
+                path: /spec/template/spec/containers/0/command/3
+                value: /opt/app/config/config.yaml
+              - op: replace
+                path: /spec/template/spec/containers/0/volumeMounts/0
+                value:
+                  name: config
+                  mountPath: /opt/app/config
+                  readOnly: true
   install:
     remediation:
       retries: 3
