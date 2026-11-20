@@ -94,6 +94,7 @@ spec:
             readOnlyRootFilesystem: true
           args:
             - "--log-level=info"
+            - "--reload-on-create=true"
             - "--reload-strategy=annotations"
           resources:
             limits:
