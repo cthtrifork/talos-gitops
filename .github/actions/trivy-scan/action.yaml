@@ -1,0 +1,63 @@
+name: Trivy scan
+description: >-
+  Logs in to ghcr.io and scans one image with Trivy into a JSON report. The scan never fails the step (a failed scan leaves no report);
+  the caller reads the outcome output, so it can comment first and fail afterwards.
+inputs:
+  image:
+    description: Image reference
+    required: true
+  output:
+    description: Path of the JSON report
+    required: true
+  version:
+    description: Trivy version
+    required: true
+  skip-setup:
+    description: "true when Trivy and its database are already in place from an earlier scan in the job"
+    default: "false"
+  severity:
+    description: Severities to report (all if empty)
+    default: ""
+  trivyignores:
+    default: ""
+  ignore-policy:
+    default: ""
+  vex:
+    description: OpenVEX document to apply, with the suppressed findings in the report
+    default: ""
+outputs:
+  outcome:
+    description: success or failure of the scan
+    value: ${{ steps.scan.outcome }}
+runs:
+  using: composite
+  steps:
+    - name: Login to ghcr.io
+      if: inputs.skip-setup != 'true'
+      uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+    # trivy-action installs Trivy and caches its vulnerability databases per day. An empty TRIVY_VEX is ignored by Trivy.
+    - name: Scan
+      id: scan
+      continue-on-error: true
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      with:
+        version: ${{ inputs.version }}
+        skip-setup-trivy: ${{ inputs.skip-setup == 'true' }}
+        cache: ${{ inputs.skip-setup != 'true' }}
+        scan-type: image
+        image-ref: ${{ inputs.image }}
+        format: json
+        output: ${{ inputs.output }}
+        scanners: vuln
+        severity: ${{ inputs.severity }}
+        trivyignores: ${{ inputs.trivyignores }}
+        ignore-policy: ${{ inputs.ignore-policy }}
+        ignore-unfixed: false
+        hide-progress: true
+      env:
+        TRIVY_VEX: ${{ inputs.vex }}
+        TRIVY_SHOW_SUPPRESSED: ${{ inputs.vex != '' }}
