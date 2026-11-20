@@ -45,6 +45,10 @@ spec:
       enabled: false
     crds:
       enabled: false
+      upgradeJob:
+        image:
+          busybox:
+            registry: mirror.gcr.io
     defaultRules:
       create: false
     alertmanager:

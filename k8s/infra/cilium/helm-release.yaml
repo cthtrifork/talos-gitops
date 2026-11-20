@@ -23,6 +23,12 @@ spec:
     mode: enabled
   # https://github.com/cilium/cilium/blob/main/install/kubernetes/cilium/values.yaml
   values:
+    authentication:
+      mutual:
+        spire:
+          install:
+            initImage:
+              repository: mirror.gcr.io/library/busybox
     cluster:
       name: ${CLUSTER_NAME:=default}
       id: ${CLUSTER_ID:=0}

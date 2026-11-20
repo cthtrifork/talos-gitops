@@ -22,7 +22,7 @@ spec:
     metadata:
       annotations:
         # ensure pods roll when configmap updates
-        cilium.io/cilium-configmap-checksum: "5a65408b78c0019411306b4c8d2f6079d874fbcbdce027833653f87ec9438e7c"
+        cilium.io/cilium-configmap-checksum: "22b583570c3d0bdd9d8e4b6f28f9f3834fc219084328f911a1e7c1976bbe8f49"
         kubectl.kubernetes.io/default-container: cilium-agent
       labels:
         k8s-app: cilium

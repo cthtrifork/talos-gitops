@@ -96,7 +96,6 @@ spec:
           "ghcr.io": zot.registry-system.svc.cluster.local:5000/ghcr-cache
           "mirror.gcr.io": zot.registry-system.svc.cluster.local:5000/docker-hub-cache
           "registry-1.docker.io": zot.registry-system.svc.cluster.local:5000/docker-hub-cache
-          "index.docker.io": zot.registry-system.svc.cluster.local:5000/docker-hub-cache
           "docker.io": zot.registry-system.svc.cluster.local:5000/docker-hub-cache
           "quay.io": zot.registry-system.svc.cluster.local:5000/quay-cache
           "registry.k8s.io": zot.registry-system.svc.cluster.local:5000/k8s-cache

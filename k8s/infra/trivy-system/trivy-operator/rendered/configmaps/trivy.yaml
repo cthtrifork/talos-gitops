@@ -40,7 +40,6 @@ data:
   trivy.mode: ClientServer
   trivy.registry.mirror.docker.io: zot.registry-system.svc.cluster.local:5000/docker-hub-cache
   trivy.registry.mirror.ghcr.io: zot.registry-system.svc.cluster.local:5000/ghcr-cache
-  trivy.registry.mirror.index.docker.io: zot.registry-system.svc.cluster.local:5000/docker-hub-cache
   trivy.registry.mirror.mirror.gcr.io: zot.registry-system.svc.cluster.local:5000/docker-hub-cache
   trivy.registry.mirror.quay.io: zot.registry-system.svc.cluster.local:5000/quay-cache
   trivy.registry.mirror.registry-1.docker.io: zot.registry-system.svc.cluster.local:5000/docker-hub-cache

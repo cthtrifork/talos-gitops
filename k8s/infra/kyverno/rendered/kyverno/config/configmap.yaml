@@ -16,7 +16,7 @@ metadata:
     helm.sh/resource-policy: "keep"
 data:
   enableDefaultRegistryMutation: "true"
-  defaultRegistry: "docker.io"
+  defaultRegistry: "mirror.gcr.io"
   generateSuccessEvents: "false"
   excludeGroups: "system:nodes"
   resourceFilters: >-

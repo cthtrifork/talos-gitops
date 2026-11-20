@@ -27,6 +27,9 @@ spec:
   values:
     analytics:
       enabled: false
+    helperPod:
+      image:
+        registry: mirror.gcr.io
     localpv:
       image:
         # renovate: datasource=docker depName=ghcr.io/openebs/dev/provisioner-localpv versioning=docker
