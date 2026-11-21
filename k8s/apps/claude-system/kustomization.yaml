@@ -15,6 +15,8 @@ resources:
   - ghcr-pull.enc.yaml
   - claude-vm-source/rbac.yaml
   - claude-vm-source/clustersecretstore.yaml
+  - homeserver-vm-source/rbac.yaml
+  - homeserver-vm-source/clustersecretstore.yaml
   - claude-cloudflare.enc.yaml
   - omni-service-account.enc.yaml
   - prometheusrule.yaml
