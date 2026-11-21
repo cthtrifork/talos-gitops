@@ -43,7 +43,7 @@ jobs:
         timeout-minutes: 5
         uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
-          install_args: "yq kubeconform kustomize helm aqua:controlplaneio-fluxcd/flux-operator aqua:cilium/cilium-cli"
+          install_args: "yq kubeconform kustomize helm aqua:controlplaneio-fluxcd/flux-operator aqua:cilium/cilium-cli kind"
       - name: Build Flux Kustomization paths
         timeout-minutes: 3
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
@@ -60,13 +60,17 @@ jobs:
             yq ".nodes[0].image = \"${image%@*}\"" > "${RUNNER_TEMP}/kind.yaml"
       - name: Setup Kubernetes Kind
         timeout-minutes: 5
-        uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
         env:
           # the node shares the network namespace of the runner pod, where Cilium reaches zot by its service name
           KIND_EXPERIMENTAL_DOCKER_NETWORK: host
-        with:
-          config: ${{ runner.temp }}/kind.yaml
-          cluster_name: homelab
+        run: |
+          # kind exports the kubeconfig from the published API server port, which the host network does not have: that last step
+          # fails (the cluster is complete by then, --retain keeps it), so read the admin kubeconfig from the node
+          kind create cluster --name homelab --config "${RUNNER_TEMP}/kind.yaml" --retain || true
+          docker exec homelab-control-plane test -f /etc/kubernetes/admin.conf
+          mkdir -p ~/.kube
+          docker exec homelab-control-plane cat /etc/kubernetes/admin.conf > ~/.kube/config
+          kubectl get nodes
       - name: Pull through the cluster zot only
         timeout-minutes: 2
         run: ./scripts/ci/e2e/zot-mirror.sh homelab-control-plane /usr/local/share/ca-certificates/private-ca.crt
