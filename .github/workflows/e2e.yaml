@@ -59,8 +59,11 @@ jobs:
           curl -fsSLo talosctl "https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/talosctl-linux-amd64"
           sudo install -m 0755 talosctl /usr/local/bin/talosctl
           rm talosctl
-          # zot by its service name: the cluster nodes are containers inside this pod, and the zot-lb address (192.168.1.240) times out from there
+          # The nodes are containers in the pod's Docker: Cilium translates the zot-lb address and the service address only for
+          # sockets in the pod's own network namespace, so both time out from a node. Relay through this pod instead:
+          # the node maps the zot service name to the Docker gateway (scripts/ci/e2e/talos.yaml), the TLS certificate still matches.
           zot=zot.registry-system.svc.cluster.local:5000
+          nohup socat "TCP-LISTEN:5000,fork,reuseaddr" "TCP:${zot}" > "${RUNNER_TEMP}/zot-relay.log" 2>&1 &
           curl -fsS --cacert /usr/local/share/ca-certificates/private-ca.crt "https://${zot}/v2/" && echo " zot reachable"
           # the e2e cluster must not fall back to the upstream registries: a missing zot cache then fails the run
           sed "s|192.168.1.240:5000|${zot}|g" patches/11-zot-mirrors.yaml |

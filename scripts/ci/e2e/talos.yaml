@@ -10,3 +10,10 @@ cluster:
       - 10.244.0.0/16
     serviceSubnets:
       - 10.96.0.0/16
+machine:
+  network:
+    extraHostEntries:
+      # zot by name (the certificate is issued for it), reached through the relay on the Docker gateway of the runner pod
+      - ip: 10.5.0.1
+        aliases:
+          - zot.registry-system.svc.cluster.local
