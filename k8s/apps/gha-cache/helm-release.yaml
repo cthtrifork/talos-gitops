@@ -20,6 +20,18 @@ spec:
   upgrade:
     remediation:
       retries: 3
+  # The chart has no strategy value, and a rolling update would run two pods on the same SQLite file and volume
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: gha-cache
+            patch: |
+              - op: add
+                path: /spec/strategy
+                value:
+                  type: Recreate
   # https://github.com/falcondev-oss/github-actions-cache-server/blob/dev/install/kubernetes/github-actions-cache-server/values.yaml
   values:
     # the service is gha-cache.gha-cache-system.svc.cluster.local:3000, which is also the default API_BASE_URL of the chart
@@ -34,6 +46,9 @@ spec:
     persistentVolumeClaim:
       storage: 20Gi
       storageClassName: local-path
+    # the server does not talk to the Kubernetes API
+    serviceAccount:
+      automount: false
     podSecurityContext:
       fsGroup: 1000
       seccompProfile:
