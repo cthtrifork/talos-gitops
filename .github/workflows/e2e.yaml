@@ -53,6 +53,9 @@ jobs:
         run: |
           # mirror.gcr.io is served by the zot Docker Hub cache; load the image into Docker under its mirror.gcr.io name so kind finds it locally
           skopeo copy "docker://${ZOT}/docker-hub-cache/${KIND_NODE_IMAGE#mirror.gcr.io/}" "docker-daemon:${KIND_NODE_IMAGE}"
+      - name: Render the kind config
+        timeout-minutes: 1
+        run: POD_IP="$(hostname -i | awk '{print $1}')" envsubst '${POD_IP}' < scripts/kind.yaml > "${RUNNER_TEMP}/kind.yaml"
       - name: Setup Kubernetes Kind
         timeout-minutes: 5
         uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
@@ -60,7 +63,7 @@ jobs:
           # the node shares the network namespace of the runner pod, where Cilium reaches zot by its service name
           KIND_EXPERIMENTAL_DOCKER_NETWORK: host
         with:
-          config: scripts/kind.yaml
+          config: ${{ runner.temp }}/kind.yaml
           cluster_name: homelab
           node_image: ${{ env.KIND_NODE_IMAGE }}
       - name: Pull through the cluster zot only

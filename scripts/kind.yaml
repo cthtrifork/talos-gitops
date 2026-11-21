@@ -12,6 +12,16 @@ networking:
   # (pods 10.244.0.0/16, services 10.96.0.0/12), so use ranges that do not overlap them (or the LAN, 192.168.1.0/24).
   serviceSubnet: "10.201.0.0/16"
   podSubnet: "10.200.0.0/16"
+# On the host network kind finds no node IP ("invalid IP" for apiserver-advertise-address), so the workflow renders
+# the runner pod's IP into this file (envsubst)
+kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    localAPIEndpoint:
+      advertiseAddress: "${POD_IP}"
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-ip: "${POD_IP}"
 nodes:
   # A single node (control plane, schedulable) boots faster and needs less memory than control plane + worker.
   - role: control-plane
