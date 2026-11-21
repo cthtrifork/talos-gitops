@@ -87,6 +87,8 @@ spec:
         - cluster
       toPorts:
         - ports:
+            - port: "3000"
+              protocol: TCP
             - port: "4195"
               protocol: TCP
             - port: "3903"
