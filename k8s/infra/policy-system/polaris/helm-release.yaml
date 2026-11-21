@@ -346,25 +346,21 @@ spec:
           rules:
             - memoryLimitsMissing
             - notReadOnlyRootFilesystem
-        # The pods the operators create (the operator owns and reconciles their specs, so a patch here is reverted): no limits, probes
-        # or read-only root from the upstream templates
-        - namespace: kubevirt
-          controllerNames:
-            - virt-api
-            - virt-controller
-            - virt-exportproxy
-          rules:
-            - memoryLimitsMissing
-            - livenessProbeMissing
+        # The pods the operators create: their limits and probes are set through customizeComponents in post/kubevirt/kubevirt.yaml and
+        # cdi.yaml. What stays is what the operator's templates fix: the CDI pods run with a writable root filesystem, and
+        # cdi-deployment has only an exec readiness probe (its /tmp/ready file, which a liveness probe would turn into restarts)
         - namespace: cdi
           controllerNames:
             - cdi-apiserver
             - cdi-deployment
             - cdi-uploadproxy
           rules:
-            - memoryLimitsMissing
-            - livenessProbeMissing
             - notReadOnlyRootFilesystem
+        - namespace: cdi
+          controllerNames:
+            - cdi-deployment
+          rules:
+            - livenessProbeMissing
         # virt-handler runs the VMs on the node: privileged, root, host PID and host paths (/dev/kvm, kubelet and device-plugin
         # directories, the seccomp profile)
         - namespace: kubevirt
