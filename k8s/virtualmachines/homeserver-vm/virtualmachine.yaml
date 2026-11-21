@@ -26,7 +26,7 @@ spec:
         cpu:
           cores: 2
         memory:
-          guest: 32Gi
+          guest: 24Gi
         firmware:
           bootloader:
             efi:
@@ -45,9 +45,9 @@ spec:
                   protocol: TCP
         resources:
           requests:
-            memory: 32Gi
+            memory: 24Gi
           limits:
-            memory: 34Gi
+            memory: 26Gi
       networks:
         - name: default
           pod: {}
