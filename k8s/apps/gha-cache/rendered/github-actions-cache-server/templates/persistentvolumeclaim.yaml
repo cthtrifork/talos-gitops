@@ -1,21 +1,19 @@
----
-# Source: github-actions-cache-server/templates/persistentvolumeclaim.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  labels:
+    app.kubernetes.io/instance: gha-cache
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: github-actions-cache-server
+    app.kubernetes.io/version: 10.0.1
+    helm.sh/chart: github-actions-cache-server-2.0.1
   name: gha-cache-data
   namespace: gha-cache-system
-  labels:
-    helm.sh/chart: github-actions-cache-server-2.0.1
-    app.kubernetes.io/name: github-actions-cache-server
-    app.kubernetes.io/instance: gha-cache
-    app.kubernetes.io/version: "10.0.1"
-    app.kubernetes.io/managed-by: Helm
 spec:
   accessModes:
-    - ReadWriteOnce
+  - ReadWriteOnce
   resources:
     requests:
       storage: 20Gi
-  volumeMode: Filesystem
   storageClassName: local-path
+  volumeMode: Filesystem
