@@ -4,6 +4,21 @@ kind: CDI
 metadata:
   name: cdi
 spec:
+  # Memory limits and liveness probes the upstream deployments lack (Polaris). cdi-deployment keeps its exec readiness probe only.
+  customizeComponents:
+    patches:
+      - resourceType: Deployment
+        resourceName: cdi-apiserver
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"cdi-apiserver","resources":{"limits":{"memory":"512Mi"}},"livenessProbe":{"httpGet":{"path":"/healthz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":30,"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":6}}]}}}}'
+      - resourceType: Deployment
+        resourceName: cdi-deployment
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"cdi-deployment","resources":{"limits":{"memory":"1Gi"}}}]}}}}'
+      - resourceType: Deployment
+        resourceName: cdi-uploadproxy
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"cdi-uploadproxy","resources":{"limits":{"memory":"512Mi"}},"livenessProbe":{"httpGet":{"path":"/healthz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":30,"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":6}}]}}}}'
   config:
     scratchSpaceStorageClass: local-path
     podResourceRequirements:
