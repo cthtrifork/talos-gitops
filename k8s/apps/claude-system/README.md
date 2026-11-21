@@ -253,7 +253,7 @@ sequenceDiagram
 | `:8081` poll | MetalLB `claude-vm-upgrade-lb`, 192.168.1.244, plain HTTP, only from the VMs | `POST /api/v1/vms/<vm>/report`: the VM's booted and staged ostree deployment (also counts as a poll); `POST /api/v1/vms/<vm>/claim`: answers `{"upgrade": true}` once per click, then clears the flag |
 
 `<vm>` is `claude-vm` or `homeserver` (the list is `vm_names` in `redpanda-connect.yaml`); anything else is a 404. A third VM needs its name there, two more lines in
-the `/api/v1/status` handler, its address in `CiliumNetworkPolicy/claude-vm-upgrade`, and a label in `index.html`.
+the `/api/v1/status` handler, its pod selector in `CiliumNetworkPolicy/claude-vm-upgrade` (ingress and egress), and a label in `index.html`.
 
 The flag lives 10 minutes and is cleared by the first claim, so one click is at most one upgrade; a pod restart drops an unclaimed click.
 The poll listener has no way to queue an upgrade, and the page listener has no `claim`.
