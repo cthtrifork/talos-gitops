@@ -14,7 +14,7 @@ spec:
       labels:
         kubevirt.io/vm: homeserver-vm
     spec:
-      # Only nodes with /dev/kvm (the Proxmox-hosted talos node has none)
+      # Only nodes with /dev/kvm (virt-handler labels them schedulable)
       nodeSelector:
         kubevirt.io/schedulable: "true"
       # The guest cannot reach kube-dns or any pod IP (only the world), so DHCP hands it the LAN router instead of the cluster DNS.
