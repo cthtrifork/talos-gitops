@@ -1,0 +1,16 @@
+# Per machine, for talos-11a-esj and talos-vt2-qp8 only (each has a 4 TB USB disk): a large, slow volume at /var/mnt/local-path-usb, used by the
+# StorageClass openebs-hostpath-usb (k8s/infra/openebs-system/storageclass.yaml) for bulk data that does not need speed (caches, archives).
+# The disk must be empty: wipe it first (k8s/apps/disk-wipe), and remove the old `openebs` user volume from talos-vt2-qp8, which grabbed the
+# disk after the wipe.
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: local-path-usb
+provisioning:
+  diskSelector:
+    match: disk.transport == 'usb'
+  minSize: 1TB
+  grow: true
+filesystem:
+  type: xfs
+  # Needed by the OpenEBS hostpath provisioner's XFS quotas (the same as patches/03-local-path-provisioner.yaml).
+  projectQuotaSupport: true

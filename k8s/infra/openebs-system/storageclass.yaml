@@ -27,3 +27,32 @@ allowedTopologies:
       - key: kubernetes.io/hostname
         values:
           - talos-2jc-qux
+---
+# The OpenEBS hostpath class for the 4 TB USB disks of talos-11a-esj and talos-vt2-qp8 (patches/17-local-path-usb.yaml): big and slow, for bulk
+# data. Quota-enforced like the others; allowedTopologies keeps pods off the nodes without the volume.
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/storage.k8s.io/storageclass_v1.json
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-hostpath-usb
+  annotations:
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+      - name: StorageType
+        value: "hostpath"
+      - name: BasePath
+        value: "/var/mnt/local-path-usb/openebs"
+      - name: XFSQuota
+        enabled: "true"
+        data:
+          softLimitGrace: "0%"
+          hardLimitGrace: "0%"
+provisioner: openebs.io/local
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: kubernetes.io/hostname
+        values:
+          - talos-11a-esj
+          - talos-vt2-qp8

@@ -1,0 +1,16 @@
+# Cluster-wide: a second NVMe volume that takes the space the first one (patches/03-local-path-provisioner.yaml, at most 600GB, and it
+# cannot be resized) leaves free, mounted at /var/mnt/local-path-extra. The local-path provisioner lists it as a second path of the
+# `local-path` class for each node (k8s/infra/local-path-provisioner), so every PVC of that class can use the space. Talos creates it
+# after the existing partitions, so it gets the free space behind them (tba about 800GB, 2jc about 560GB, 11a and vt2 about 140 to 160GB).
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: local-path-extra
+provisioning:
+  diskSelector:
+    match: disk.transport == 'nvme'
+  minSize: 20GB
+  grow: true
+filesystem:
+  type: xfs
+  # Needed by the OpenEBS hostpath provisioner's XFS quotas (the same as patches/03-local-path-provisioner.yaml).
+  projectQuotaSupport: true
