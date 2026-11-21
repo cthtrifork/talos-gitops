@@ -76,6 +76,10 @@ spec:
               - dockerd
               - --host=unix:///var/run/docker.sock
               - --group=$(DOCKER_GROUP_GID)
+              # The pod network is WireGuard encrypted (MTU about 1420), a Docker network of 1500 blackholes large packets
+              # (TLS handshakes to the Talos API server time out), so keep Docker's networks below it
+              - --mtu=1400
+              - --default-network-opt=bridge=com.docker.network.driver.mtu=1400
             env:
               - name: DOCKER_GROUP_GID
                 value: "123"
