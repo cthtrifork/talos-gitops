@@ -29,6 +29,7 @@ resources:
   - app-arc-runner.yaml
   - app-claude-system.yaml
   - app-fileserver.yaml
+  - app-gha-cache.yaml
   - app-harper-pad.yaml
   - renovate.yaml
   - virtualmachines.yaml
