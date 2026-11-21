@@ -1,0 +1,11 @@
+# hostNetwork is not allowed by the restricted Pod Security level of net-test-system, so the host-network test has its own namespace.
+# Host-network pods are not Cilium endpoints: the network policies of net-test-system do not apply to them.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: net-test-host-system
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged

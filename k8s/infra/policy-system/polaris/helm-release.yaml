@@ -83,6 +83,18 @@ spec:
         # efficiency
         cpuLimitsMissing: ignore
       exemptions:
+        # Temporary (k8s/apps/net-test/host): the node to node network test runs iperf3 on the host network of every node
+        - namespace: net-test-host-system
+          controllerNames:
+            - iperf-host-server-talos-11a-esj
+            - iperf-host-server-talos-2ny-8tx
+            - iperf-host-server-talos-tba-msi
+            - iperf-host-client-talos-11a-esj
+            - iperf-host-client-talos-2ny-8tx
+            - iperf-host-client-talos-tba-msi
+          rules:
+            - hostNetworkSet
+            - hostPortSet
         # Ignore checks for cilium and hubble
         - namespace: kube-system
           controllerNames:

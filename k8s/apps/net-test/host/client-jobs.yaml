@@ -1,0 +1,224 @@
+# One client Job per node on the host network, each testing the servers of all three nodes by node IP (itself included). The Jobs start 5 minutes
+# apart. Read them with: kubectl -n net-test-host-system logs job/iperf-host-client-<node>
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iperf-host-client-talos-11a-esj
+  namespace: net-test-host-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 2400
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: iperf-host-client
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/hostname: talos-11a-esj
+      automountServiceAccountToken: false
+      hostNetwork: true
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: iperf3
+          image: mirror.gcr.io/mlabbe/iperf3:3.19.1-r1@sha256:2bd525abbc4f5303ea65e587df669907f6eef670c2d93a56b283a71f2e56f2eb # renovate: datasource=docker depName=docker.io/mlabbe/iperf3 versioning=docker
+          command:
+            - /bin/sh
+            - -c
+            - |
+              sleep 0
+              echo "client node: $NODE_NAME (host network), congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control)"
+              for t in talos-11a-esj:192.168.1.184 talos-2ny-8tx:192.168.1.12 talos-tba-msi:192.168.1.146; do
+                target=${t%%:*}; S=${t##*:}
+                echo "##### $NODE_NAME -> $target ($S)"
+                until timeout 10 iperf3 -c "$S" -t 1 >/dev/null 2>&1; do sleep 5; done
+                for d in "" "-R"; do echo "=== iperf3 -c -t 10 -i 1 $d"; timeout 30 iperf3 -c "$S" -t 10 -i 1 $d 2>&1 | tail -16; done
+                for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R"; do
+                  echo "=== iperf3 -c -t 8 $args"
+                  timeout 30 iperf3 -c "$S" -t 8 $args 2>&1 | grep -E "sender|receiver|error|unable|refused|Connection" | tail -3
+                done
+              done
+              echo done
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iperf-host-client-talos-2ny-8tx
+  namespace: net-test-host-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 2400
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: iperf-host-client
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/hostname: talos-2ny-8tx
+      automountServiceAccountToken: false
+      hostNetwork: true
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: iperf3
+          image: mirror.gcr.io/mlabbe/iperf3:3.19.1-r1@sha256:2bd525abbc4f5303ea65e587df669907f6eef670c2d93a56b283a71f2e56f2eb # renovate: datasource=docker depName=docker.io/mlabbe/iperf3 versioning=docker
+          command:
+            - /bin/sh
+            - -c
+            - |
+              sleep 300
+              echo "client node: $NODE_NAME (host network), congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control)"
+              for t in talos-11a-esj:192.168.1.184 talos-2ny-8tx:192.168.1.12 talos-tba-msi:192.168.1.146; do
+                target=${t%%:*}; S=${t##*:}
+                echo "##### $NODE_NAME -> $target ($S)"
+                until timeout 10 iperf3 -c "$S" -t 1 >/dev/null 2>&1; do sleep 5; done
+                for d in "" "-R"; do echo "=== iperf3 -c -t 10 -i 1 $d"; timeout 30 iperf3 -c "$S" -t 10 -i 1 $d 2>&1 | tail -16; done
+                for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R"; do
+                  echo "=== iperf3 -c -t 8 $args"
+                  timeout 30 iperf3 -c "$S" -t 8 $args 2>&1 | grep -E "sender|receiver|error|unable|refused|Connection" | tail -3
+                done
+              done
+              echo done
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iperf-host-client-talos-tba-msi
+  namespace: net-test-host-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 2400
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: iperf-host-client
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/hostname: talos-tba-msi
+      automountServiceAccountToken: false
+      hostNetwork: true
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: iperf3
+          image: mirror.gcr.io/mlabbe/iperf3:3.19.1-r1@sha256:2bd525abbc4f5303ea65e587df669907f6eef670c2d93a56b283a71f2e56f2eb # renovate: datasource=docker depName=docker.io/mlabbe/iperf3 versioning=docker
+          command:
+            - /bin/sh
+            - -c
+            - |
+              sleep 600
+              echo "client node: $NODE_NAME (host network), congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control)"
+              for t in talos-11a-esj:192.168.1.184 talos-2ny-8tx:192.168.1.12 talos-tba-msi:192.168.1.146; do
+                target=${t%%:*}; S=${t##*:}
+                echo "##### $NODE_NAME -> $target ($S)"
+                until timeout 10 iperf3 -c "$S" -t 1 >/dev/null 2>&1; do sleep 5; done
+                for d in "" "-R"; do echo "=== iperf3 -c -t 10 -i 1 $d"; timeout 30 iperf3 -c "$S" -t 10 -i 1 $d 2>&1 | tail -16; done
+                for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R"; do
+                  echo "=== iperf3 -c -t 8 $args"
+                  timeout 30 iperf3 -c "$S" -t 8 $args 2>&1 | grep -E "sender|receiver|error|unable|refused|Connection" | tail -3
+                done
+              done
+              echo done
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
