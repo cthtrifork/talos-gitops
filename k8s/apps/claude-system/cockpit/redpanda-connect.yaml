@@ -309,14 +309,20 @@ processor_resources:
                     timeout: 15s
                 - mapping: |
                     let failing = this.Results.map_each(r -> [
-                      r.Results.or({}).values(),
-                      r.PodResult.Results.or({}).values(),
-                      r.PodResult.ContainerResults.or([]).map_each(c -> c.Results.or({}).values()).flatten()
-                    ].flatten()).flatten().filter(x -> x.Success == false)
+                      r.Results.or({}).key_values(),
+                      r.PodResult.Results.or({}).key_values(),
+                      r.PodResult.ContainerResults.or([]).map_each(c -> c.Results.or({}).key_values()).flatten()
+                    ].flatten().filter(x -> x.value.Success == false).map_each(x -> {
+                      "workload": r.Namespace.or("cluster") + "/" + r.Name,
+                      "check": x.key,
+                      "severity": x.value.Severity,
+                      "message": x.value.Message
+                    })).flatten()
                     root.score = this.Score
                     root.audit_time = this.AuditTime
-                    root.danger = $failing.filter(x -> x.Severity == "danger").length()
-                    root.warning = $failing.filter(x -> x.Severity == "warning").length()
+                    root.danger = $failing.filter(x -> x.severity == "danger").length()
+                    root.warning = $failing.filter(x -> x.severity == "warning").length()
+                    root.top = $failing.filter(x -> x.severity == "danger" || x.severity == "warning").sort_by(x -> (if x.severity == "danger" { "0" } else { "1" }) + x.workload + x.check).slice(0, 5)
               result_map: 'root.polaris = this'
 
             flux_ks:
