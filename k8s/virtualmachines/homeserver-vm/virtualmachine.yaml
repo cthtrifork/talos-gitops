@@ -71,4 +71,4 @@ spec:
           storageClassName: local-path
           resources:
             requests:
-              storage: 256Gi # keep in step with config-homeserver.toml in homeserver-bootc
+              storage: 110Gi # the disk is 100 GiB plus boot partitions; keep in step with config-homeserver.toml in homeserver-bootc
