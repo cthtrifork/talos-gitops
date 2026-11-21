@@ -53,7 +53,8 @@ jobs:
           # the node image of scripts/kind.yaml (mirror.gcr.io is served by the zot Docker Hub cache, pulled by digest), loaded into
           # Docker under its tag only: a digest reference would not match a loaded image and kind would pull from mirror.gcr.io
           image="$(yq '.nodes[0].image' scripts/kind.yaml)"
-          skopeo copy "docker://${ZOT}/docker-hub-cache/${image#mirror.gcr.io/}" "docker-daemon:${image%@*}"
+          repo="${image#mirror.gcr.io/}"; repo="${repo%%:*}"
+          skopeo copy "docker://${ZOT}/docker-hub-cache/${repo}@${image#*@}" "docker-daemon:${image%@*}"
           # the rendered kind config refers to the loaded image
           POD_IP="$(hostname -i | awk '{print $1}')" envsubst '${POD_IP}' < scripts/kind.yaml |
             yq ".nodes[0].image = \"${image%@*}\"" > "${RUNNER_TEMP}/kind.yaml"
@@ -72,23 +73,16 @@ jobs:
       - name: Install cilium
         timeout-minutes: 3
         run: |
-          # the chart and its version are those of the real cluster, pulled through the zot quay cache
+          # the chart, its version and its values are those of the real cluster (pulled through the zot quay cache), with the changes of cilium-values.yaml
           version="$(yq 'select(.kind == "OCIRepository") | .spec.ref.tag' k8s/infra/cilium/helm-repository.yaml)"
+          # Flux's ${VAR:=default} placeholders become their defaults
+          yq 'select(.kind == "HelmRelease") | .spec.values' k8s/infra/cilium/helm-release.yaml |
+            sed -E 's/\$\{[A-Za-z_]+:=([^}]*)\}/\1/g' > "${RUNNER_TEMP}/cilium-values.yaml"
+          POD_IP="$(hostname -i | awk '{print $1}')" envsubst '${POD_IP}' < scripts/ci/e2e/cilium-values.yaml > "${RUNNER_TEMP}/cilium-e2e-values.yaml"
           helm install cilium "oci://${ZOT}/quay-cache/cilium/charts/cilium" --version "${version}" \
             --namespace kube-system \
-            --set hostPort.enabled=true \
-            --set nodePort.enabled=true \
-            --set ipam.mode=kubernetes \
-            --set k8sServicePort=6443 \
-            --set encryption.enabled=true \
-            --set encryption.type=wireguard \
-            --set operator.replicas=1 \
-            --set bpf.masquerade=true \
-            --set policyAuditMode=true \
-            --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
-            --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
-            --set cgroup.autoMount.enabled=false \
-            --set cgroup.hostRoot=/sys/fs/cgroup
+            --values "${RUNNER_TEMP}/cilium-values.yaml" \
+            --values "${RUNNER_TEMP}/cilium-e2e-values.yaml"
 
       - name: Wait for cilium to be ready
         timeout-minutes: 6

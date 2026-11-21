@@ -7,6 +7,7 @@ containerdConfigPatches:
       config_path = "/etc/containerd/certs.d"
 networking:
   disableDefaultCNI: true
+  kubeProxyMode: "none" # Cilium replaces kube-proxy, as in the cluster
   apiServerPort: 6443
   # The node shares the network namespace of the runner pod (host network), which lives in the cluster's own ranges
   # (pods 10.244.0.0/16, services 10.96.0.0/12), so use ranges that do not overlap them (or the LAN, 192.168.1.0/24).
