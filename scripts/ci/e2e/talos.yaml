@@ -1,0 +1,12 @@
+---
+# Config patch of the e2e cluster (talosctl cluster create docker): the same networking as the real cluster minus the
+# CNI, which the workflow installs. Image pulls go through zot with patches/11-zot-mirrors.yaml.
+cluster:
+  allowSchedulingOnControlPlanes: true
+  network:
+    cni:
+      name: none
+    podSubnets:
+      - 10.244.0.0/16
+    serviceSubnets:
+      - 10.96.0.0/16

@@ -5,13 +5,15 @@ on:
   pull_request:
     paths:
       - k8s/**
-      - scripts/kind.yaml
+      - scripts/ci/e2e/**
+      - patches/11-zot-mirrors.yaml
       - .github/workflows/e2e.yaml
   push:
     branches: [ main ]
     paths:
       - k8s/**
-      - scripts/kind.yaml
+      - scripts/ci/e2e/**
+      - patches/11-zot-mirrors.yaml
       - .github/workflows/e2e.yaml
 
 permissions:
@@ -19,6 +21,7 @@ permissions:
 
 env:
   CILIUM_CLI_VERSION: v0.20.3 # renovate: datasource=github-releases depName=cilium/cilium-cli
+  TALOS_VERSION: v1.13.0 # renovate: datasource=github-releases depName=siderolabs/talos
   CILIUM_VERSION: v1.20.5 # renovate: datasource=github-releases depName=cilium/cilium
   #INTERACTIVE: false
 
@@ -29,7 +32,9 @@ concurrency:
 
 jobs:
   e2e-test:
-    runs-on: ubuntu-latest
+    # ARC runner in the cluster (k8s/apps/arc-runner/helm-release-talos-gitops-e2e.yaml); the repository is public, so no fork PRs
+    runs-on: arc-e2e-talos-gitops
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -47,12 +52,18 @@ jobs:
         uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
       - name: Setup Flux Operator CLI
         uses: controlplaneio-fluxcd/flux-operator/actions/setup@712a9026cd99efdd885d73ed31d0775a2dd2873a # v0.63.0
-      - name: Setup Kubernetes Kind
-        timeout-minutes: 5
-        uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
-        with:
-          config: scripts/kind.yaml
-          cluster_name: homelab
+      - name: Create Talos cluster in Docker
+        timeout-minutes: 8
+        run: |
+          # nodes pull through the cluster zot (RegistryMirrorConfig from the Talos patches), the origin is the fallback
+          curl -fsSLo talosctl "https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/talosctl-linux-amd64"
+          sudo install -m 0755 talosctl /usr/local/bin/talosctl
+          rm talosctl
+          talosctl cluster create docker --name homelab --workers 0 \
+            --config-patch @scripts/ci/e2e/talos.yaml \
+            --config-patch @patches/11-zot-mirrors.yaml
+          talosctl kubeconfig --force --nodes 10.5.0.2
+          kubectl get nodes
       - name: Install cilium CLI
         timeout-minutes: 2
         run: |
@@ -146,7 +157,7 @@ jobs:
         run: |
           flux reconcile kustomization gitops-infra-bootstrap --timeout=5m
 
-      - name: Patch infra Kustomizations for kind
+      - name: Patch infra Kustomizations for the e2e cluster
         run: |
           for ks in gitops-infra-controllers gitops-infra-kubevirt gitops-infra-post gitops-infra-post-workloads; do
             kubectl patch kustomization "${ks}" -n flux-system --type merge --patch-file "scripts/ci/e2e/${ks}.yaml"
@@ -186,6 +197,7 @@ jobs:
         timeout-minutes: 3
         if: failure()
         run: |
+          talosctl --nodes 10.5.0.2 dmesg | tail -50 || true
           kubectl get pods -A
           kubectl get events -A --sort-by=.lastTimestamp | tail -50
           kubectl -n flux-system get all
