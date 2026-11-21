@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 9b88657b8563057fe6f99fecc545cc1fa6c913167220acdec5e526d9cdf35e9
+    actions.github.com/values-hash: 8d0b65a0ee817e06c848bb7a4b8b763d9f2fe66a2846d17e9abf1d09995d944
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -60,6 +60,15 @@ spec:
       kubernetes.io/ingress-bandwidth: 300M
   template:
     spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: github-actions-cache-server
+              namespaces:
+                - gha-cache-system
+              topologyKey: kubernetes.io/hostname
       imagePullSecrets:
         - name: github-auth
       securityContext:
@@ -155,6 +164,7 @@ spec:
       containers:
         - name: runner
           command:
+            - /usr/local/bin/use-cache-server
             - /home/runner/run.sh
           image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261121.18@sha256:4b8914adb35f05531e8341a48abeef0a214f1141a479defc24da77198db42dc6
           imagePullPolicy: IfNotPresent
@@ -181,6 +191,8 @@ spec:
               value: chroot
             - name: BUILDAH_LAYERS
               value: "true"
+            - name: ACTIONS_RESULTS_URL
+              value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
             - name: RUNNER_UPDATE_CA_CERTS
               value: "1"
             - name: FILESERVER_TOKEN
