@@ -54,14 +54,15 @@ jobs:
       - name: Build Flux Kustomization paths
         timeout-minutes: 3
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
-      - name: Pull the kind node image through zot
+      - name: Pull the kind node image from mirror.gcr.io
         timeout-minutes: 5
         run: |
-          # the node image of scripts/kind.yaml (Docker Hub, served by the zot Docker Hub cache, pulled by digest), loaded into
-          # Docker under its tag only: a digest reference would not match a loaded image and kind would pull from Docker Hub
+          # Pull the pinned image from the mirror and tag it with the Docker Hub name from scripts/kind.yaml.
+          # A digest reference would not match a loaded image, so kind must use the tag only.
           image="$(yq '.nodes[0].image' scripts/kind.yaml)"
           repo="${image%%:*}"
-          skopeo copy "docker://${ZOT}/docker-hub-cache/${repo}@${image#*@}" "docker-daemon:${image%@*}"
+          skopeo copy "docker://mirror.gcr.io/${repo}@${image#*@}" "docker-daemon:mirror.gcr.io/${image%@*}"
+          docker tag "mirror.gcr.io/${image%@*}" "${image%@*}"
           # the rendered kind config refers to the loaded image
           POD_IP="$(hostname -i | awk '{print $1}')" envsubst "\${POD_IP}" < scripts/kind.yaml |
             yq ".nodes[0].image = \"${image%@*}\"" > "${RUNNER_TEMP}/kind.yaml"
