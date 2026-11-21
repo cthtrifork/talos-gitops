@@ -1,0 +1,15 @@
+---
+# The cache and the SQLite database of the cache server. local-path: the volume is created on the node of the first pod
+# that uses it (the nodeSelector of the HelmRelease); losing it only costs a cold cache.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gha-cache-data-v2
+  namespace: gha-cache-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi
