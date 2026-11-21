@@ -19,6 +19,11 @@ spec:
       # advertise the devices.kubevirt.io/kvm resource the launcher requests. v1.10 sets no devices.kubevirt.io/kvm node label.
       nodeSelector:
         kubevirt.io/schedulable: "true"
+      # The guest cannot reach kube-dns or any pod IP (only the world), so DHCP hands it the LAN router instead of the cluster DNS.
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 192.168.1.1
       domain:
         cpu:
           cores: 2
