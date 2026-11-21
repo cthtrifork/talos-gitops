@@ -49,19 +49,27 @@ jobs:
         run: |
           # The nodes are containers in the pod's Docker: Cilium translates the zot-lb address and the service address only for
           # sockets in the pod's own network namespace, so both time out from a node. Relay through this pod instead:
-          # the node maps the zot service name to the Docker gateway (scripts/ci/e2e/talos.yaml), the TLS certificate still matches.
+          # the nodes map the zot service name to the Docker gateway (StaticHostConfig below), the TLS certificate still matches.
           zot=zot.registry-system.svc.cluster.local:5000
           nohup socat "TCP-LISTEN:5000,fork,reuseaddr" "TCP:${zot}" > "${RUNNER_TEMP}/zot-relay.log" 2>&1 &
           curl -fsS --cacert /usr/local/share/ca-certificates/private-ca.crt "https://${zot}/v2/" && echo " zot reachable"
           # the e2e cluster must not fall back to the upstream registries: a missing zot cache then fails the run
           sed "s|192.168.1.240:5000|${zot}|g" patches/11-zot-mirrors.yaml |
             yq '(select(.kind == "RegistryMirrorConfig") | .skipFallback) = true' > "${RUNNER_TEMP}/zot-mirrors.yaml"
-          talosctl cluster create docker --name homelab --workers 0 \
-            --config-patch @scripts/ci/e2e/talos.yaml \
+          # zot by name (the certificate is issued for it), through the relay on the Docker gateway
+          cat >> "${RUNNER_TEMP}/zot-mirrors.yaml" <<EOF
+          ---
+          apiVersion: v1alpha1
+          kind: StaticHostConfig
+          name: 10.5.0.1
+          hostnames:
+            - zot.registry-system.svc.cluster.local
+          EOF
+          # one worker: Talos keeps the NoSchedule taint on the control plane
+          talosctl cluster create docker --name homelab --workers 1 \
+            --config-patch-controlplanes @scripts/ci/e2e/talos.yaml \
             --config-patch "@${RUNNER_TEMP}/zot-mirrors.yaml"
           talosctl kubeconfig --force --nodes 10.5.0.2
-          # the only node is a control plane (Talos 1.14 moved allowSchedulingOnControlPlanes into KubeNodeConfig)
-          kubectl taint nodes --all node-role.kubernetes.io/control-plane:NoSchedule-
           kubectl get nodes
       - name: Install cilium
         timeout-minutes: 3
