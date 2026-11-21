@@ -140,6 +140,8 @@ data:
   datapath-mode: "veth"
   enable-bpf-masquerade: "true"
   enable-masquerade-to-route-source: "false"
+  enable-wireguard: "true"
+  wireguard-persistent-keepalive: "0s"
   enable-xt-socket-fallback: "true"
   install-no-conntrack-iptables-rules: "false"
   iptables-random-fully: "false"

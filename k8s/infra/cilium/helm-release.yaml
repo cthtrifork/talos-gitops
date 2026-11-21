@@ -194,10 +194,10 @@ spec:
     dashboards:
       enabled: true
     kubeProxyReplacement: true
-    # TEMPORARY: off to test whether the WireGuard path is why every pod-to-pod path through talos-11a-esj runs at about 20 Mbit/s
-    # (k8s/apps/net-test); turn it back on if it makes no difference
+    # Tested off (pod network test, #1144 and #1153): it costs 25 to 40% on a 1 Gbit path (480 to 800 Mbit/s with it between two nodes,
+    # 930 without) and makes no difference to the 5 to 60 Mbit/s of every path through talos-11a-esj
     encryption:
-      enabled: false
+      enabled: true
       type: wireguard
     k8sServiceHost: localhost # sidero specific
     k8sServicePort: 7445 # sidero specific
