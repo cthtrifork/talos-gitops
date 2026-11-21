@@ -29,5 +29,5 @@ kubeadmConfigPatches:
 nodes:
   # A single node (control plane, schedulable) boots faster and needs less memory than control plane + worker.
   - role: control-plane
-    # Renovate tracks Docker Hub (it cannot look up digests on mirror.gcr.io); the e2e pulls from the mirror and retags it
+    # Renovate tracks Docker Hub (it cannot look up digests on mirror.gcr.io); the e2e pulls through zot and retags it
     image: kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed
