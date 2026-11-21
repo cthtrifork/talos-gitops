@@ -29,6 +29,20 @@ data:
       topologySpreadConstraint: ignore
     exemptions:
       - controllerNames:
+        - disk-wipe-talos-tba-msi-1
+        - disk-wipe-talos-2jc-qux-1
+        - disk-wipe-talos-11a-esj-1
+        - disk-wipe-talos-vt2-qp8-1
+        namespace: disk-wipe-system
+        rules:
+        - runAsPrivileged
+        - runAsRootAllowed
+        - privilegeEscalationAllowed
+        - linuxHardening
+        - insecureCapabilities
+        - notReadOnlyRootFilesystem
+        - hostPIDSet
+      - controllerNames:
         - cilium
         - hubble-ui
         - hubble-relay
