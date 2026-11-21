@@ -6,7 +6,7 @@ node pair both ways, and each node against itself as the baseline). It answers w
 seconds) and whether a node is the cause (talos-2ny-8tx is the Proxmox VM; the test pods tolerate its control plane taint), without exec
 access to the nodes.
 
-Read the results with `kubectl -n net-test-system logs job/iperf-client-<node>`; the Jobs start 5 minutes apart so no two clients share a
+Read the results with `kubectl -n net-test-system logs job/iperf-client-<node>-r2`; the Jobs start 5 minutes apart so no two clients share a
 server. The runs compare the default congestion control (the cluster runs BBR on the pods), CUBIC and BBR, and the default and a small
 segment size (a path MTU blackhole stalls only with the large one), each way; the default test prints every second, so a stall shows as intervals at 0.
 

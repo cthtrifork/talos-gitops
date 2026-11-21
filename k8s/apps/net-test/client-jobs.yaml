@@ -1,10 +1,10 @@
 # One client Job per node, each testing the servers of all three nodes (itself included, as the same-node baseline). The Jobs start 5 minutes apart
-# so two clients never share a server. Read them with: kubectl -n net-test-system logs job/iperf-client-<node>
+# so two clients never share a server. Read them with: kubectl -n net-test-system logs job/iperf-client-<node>-r2
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: iperf-client-talos-11a-esj
+  name: iperf-client-talos-11a-esj-r2
   namespace: net-test-system
 spec:
   backoffLimit: 0
@@ -41,6 +41,8 @@ spec:
               for target in talos-11a-esj talos-2ny-8tx talos-tba-msi; do
                 S=iperf-server-$target.net-test-system.svc.cluster.local
                 echo "##### $NODE_NAME -> $target"
+                # wait for the server (it may still be starting)
+                until timeout 10 iperf3 -c "$S" -t 1 >/dev/null 2>&1; do sleep 5; done
                 # the default test every second, so a stall shows as intervals at 0 bits/sec
                 for d in "" "-R"; do echo "=== iperf3 -c -t 10 -i 1 $d"; timeout 30 iperf3 -c "$S" -t 10 -i 1 $d 2>&1 | tail -16; done
                 # the congestion control and a small segment size (a path MTU blackhole stalls only with the large default size)
@@ -67,11 +69,18 @@ spec:
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: iperf-client-talos-2ny-8tx
+  name: iperf-client-talos-2ny-8tx-r2
   namespace: net-test-system
 spec:
   backoffLimit: 0
@@ -108,6 +117,8 @@ spec:
               for target in talos-11a-esj talos-2ny-8tx talos-tba-msi; do
                 S=iperf-server-$target.net-test-system.svc.cluster.local
                 echo "##### $NODE_NAME -> $target"
+                # wait for the server (it may still be starting)
+                until timeout 10 iperf3 -c "$S" -t 1 >/dev/null 2>&1; do sleep 5; done
                 # the default test every second, so a stall shows as intervals at 0 bits/sec
                 for d in "" "-R"; do echo "=== iperf3 -c -t 10 -i 1 $d"; timeout 30 iperf3 -c "$S" -t 10 -i 1 $d 2>&1 | tail -16; done
                 # the congestion control and a small segment size (a path MTU blackhole stalls only with the large default size)
@@ -134,11 +145,18 @@ spec:
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: iperf-client-talos-tba-msi
+  name: iperf-client-talos-tba-msi-r2
   namespace: net-test-system
 spec:
   backoffLimit: 0
@@ -175,6 +193,8 @@ spec:
               for target in talos-11a-esj talos-2ny-8tx talos-tba-msi; do
                 S=iperf-server-$target.net-test-system.svc.cluster.local
                 echo "##### $NODE_NAME -> $target"
+                # wait for the server (it may still be starting)
+                until timeout 10 iperf3 -c "$S" -t 1 >/dev/null 2>&1; do sleep 5; done
                 # the default test every second, so a stall shows as intervals at 0 bits/sec
                 for d in "" "-R"; do echo "=== iperf3 -c -t 10 -i 1 $d"; timeout 30 iperf3 -c "$S" -t 10 -i 1 $d 2>&1 | tail -16; done
                 # the congestion control and a small segment size (a path MTU blackhole stalls only with the large default size)
@@ -201,3 +221,10 @@ spec:
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
