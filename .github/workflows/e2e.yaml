@@ -39,6 +39,13 @@ jobs:
       - name: Checkout
         timeout-minutes: 2
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Show the cache endpoints
+        timeout-minutes: 1
+        run: |
+          # ACTIONS_RESULTS_URL must be the in-cluster cache server (http://gha-cache...), not GitHub's results-receiver
+          echo "v2 flag: ${ACTIONS_CACHE_SERVICE_V2:-unset}"
+          echo "results: ${ACTIONS_RESULTS_URL:-unset} (the pod's value; only JavaScript actions get the runner's own)"
+          echo "cache:   ${ACTIONS_CACHE_URL:-unset}"
       - name: Install tools
         timeout-minutes: 5
         uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
@@ -180,6 +187,12 @@ jobs:
           yq 'select(.kind == "Namespace")' "${RUNNER_TEMP}/apps.yaml" | kubectl apply -f -
           yq 'select(has("sops") | not)' "${RUNNER_TEMP}/apps.yaml" | kubectl apply --dry-run=server -f -
 
+      - name: Show the cache server requests
+        timeout-minutes: 1
+        if: always()
+        run: |
+          # non-zero counters mean actions/cache (mise-action) went through the in-cluster server, zero that it fell back to GitHub
+          curl -fsS --max-time 20 "${ACTIONS_RESULTS_URL}metrics" | grep -E '^cache_(requests|uploads)_total' || true
       - name: List deployed resources
         timeout-minutes: 2
         if: always()
