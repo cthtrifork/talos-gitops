@@ -55,11 +55,20 @@ spec:
         type: RuntimeDefault
     securityContext:
       allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
       capabilities:
         drop:
           - ALL
       runAsNonRoot: true
       runAsUser: 1000
+    # the root filesystem is read-only, so scratch space is a volume (the cache and the database are on the data volume)
+    extraVolumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+    extraVolumeMounts:
+      - name: tmp
+        mountPath: /tmp
     resources:
       requests:
         cpu: 50m
