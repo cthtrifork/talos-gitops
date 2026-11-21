@@ -192,6 +192,8 @@ jobs:
           talosctl --nodes 10.5.0.2 dmesg | tail -50 || true
           kubectl -n kube-system logs ds/cilium --all-containers --tail=30 || true
           kubectl -n flux-system logs deploy/flux-operator --tail=40 --previous || true
+          kubectl -n flux-system describe pod -l app.kubernetes.io/name=flux-operator | tail -30 || true
+          kubectl describe node | grep -A8 -E 'Taints|Allocated' || true
           kubectl get pods -A
           kubectl get events -A --sort-by=.lastTimestamp | tail -50
           kubectl -n flux-system get all
