@@ -194,8 +194,8 @@ spec:
     dashboards:
       enabled: true
     kubeProxyReplacement: true
-    # Tested off (k8s/apps/net-test): it costs 25 to 40% on a 1 Gbit path (talos-2ny-8tx to talos-tba-msi: 480 to 800 Mbit/s with it,
-    # 930 without) and makes no difference to the 20 to 60 Mbit/s of every path through talos-11a-esj
+    # Tested off (pod network test, #1144 and #1153): it costs 25 to 40% on a 1 Gbit path (480 to 800 Mbit/s with it between two nodes,
+    # 930 without) and makes no difference to the 5 to 60 Mbit/s of every path through talos-11a-esj
     encryption:
       enabled: true
       type: wireguard
