@@ -1,0 +1,7 @@
+---
+# gitops-infra-image-policies is suspended in e2e (it needs the Kyverno CRD and the HelmReleases are suspended), so a
+# dependency on it would never be ready. Keep the other dependencies.
+spec:
+  dependsOn:
+    - name: gitops-infra-bootstrap
+    - name: gitops-infra-controllers
