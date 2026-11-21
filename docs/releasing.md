@@ -1,6 +1,6 @@
 # Releasing
 
-The three images in `images/` (`github-actions-runner`, `claude-runner`, `fileserver`) are built, signed and released
+The images in `images/` (`github-actions-runner`, `github-actions-runner-cache`, `claude-runner`, `fileserver`) are built, signed and released
 automatically. There is no draft to publish and no repo-wide version.
 
 ## Write Conventional Commit PR titles
@@ -15,6 +15,7 @@ Each image has a small workflow that calls `.github/workflows/build-release-imag
 | Image                   | Workflow                           | Runs on                                              |
 | ----------------------- | ---------------------------------- | ---------------------------------------------------- |
 | `github-actions-runner` | `build-github-actions-runner.yaml` | merge to `images/github-actions-runner/**`, weekly, manual |
+| `github-actions-runner-cache` | `build-github-actions-runner-cache.yaml` | merge to `images/github-actions-runner-cache/**`, manual |
 | `claude-runner`         | `build-claude-runner.yaml`         | merge to `images/claude-runner/**`, weekly, manual   |
 | `fileserver`            | `build-fileserver.yaml`            | merge to `images/fileserver/**`, manual              |
 
@@ -25,6 +26,7 @@ The weekly runs pick up new packages.
 | Image                   | Tool version                                                        | Image tag                | Release                       |
 | ----------------------- | ------------------------------------------------------------------- | ------------------------ | ----------------------------- |
 | `github-actions-runner` | actions/runner of the base image (`ARG RUNNER_VERSION`)             | `2.338.2-20261114.58`    | `runner-2.338.2-20261114.58`  |
+| `github-actions-runner-cache` | none: the runner image with a patch, so `0.0.0`                | `0.0.0-20261114.58`      | `runner-cache-0.0.0-20261114.58` |
 | `claude-runner`         | Claude Code (`ARG CLAUDE_CODE_VERSION`)                             | `2.1.311-20261114.58`    | `claude-2.1.311-20261114.58`  |
 | `fileserver`            | none: our own code, so `0.0.0`                                      | `0.0.0-20261114.58`      | `fileserver-0.0.0-20261114.58` |
 

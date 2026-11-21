@@ -1,0 +1,42 @@
+name: Build and release the GitHub Actions runner image with the cache patch
+
+# A merge to images/github-actions-runner-cache (Renovate bumps its base, the github-actions-runner image) or a manual run publishes
+# and releases the image; a pull request builds it to check it. No weekly run: the base image is pinned, so there are no new packages.
+# See docs/releasing.md and build-release-image.yaml.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - images/github-actions-runner-cache/**
+      - .github/workflows/build-github-actions-runner-cache.yaml
+      - .github/workflows/build-release-image.yaml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - images/github-actions-runner-cache/**
+      - .github/workflows/build-github-actions-runner-cache.yaml
+      - .github/workflows/build-release-image.yaml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # only a pull request build is superseded. For pushes to main a newer push replaces a pending run, which is fine:
+  # the build of the latest commit covers it, and the notes list every commit since the previous release.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    permissions:
+      contents: write # create the release and its tag
+      id-token: write # sign the image and its provenance attestation (OIDC)
+      packages: write # push the image to ghcr.io
+      attestations: write # store the provenance attestation
+    uses: ./.github/workflows/build-release-image.yaml
+    with:
+      name: github-actions-runner-cache
+      tag-prefix: runner-cache
