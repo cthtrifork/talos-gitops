@@ -22,7 +22,6 @@ permissions:
   contents: read
 
 env:
-  KIND_NODE_IMAGE: mirror.gcr.io/kindest/node:v1.36.4 # renovate: datasource=docker depName=mirror.gcr.io/kindest/node
   ZOT: zot.registry-system.svc.cluster.local:5000
 
 concurrency:
@@ -51,11 +50,13 @@ jobs:
       - name: Pull the kind node image through zot
         timeout-minutes: 5
         run: |
-          # mirror.gcr.io is served by the zot Docker Hub cache; load the image into Docker under its mirror.gcr.io name so kind finds it locally
-          skopeo copy "docker://${ZOT}/docker-hub-cache/${KIND_NODE_IMAGE#mirror.gcr.io/}" "docker-daemon:${KIND_NODE_IMAGE}"
-      - name: Render the kind config
-        timeout-minutes: 1
-        run: POD_IP="$(hostname -i | awk '{print $1}')" envsubst '${POD_IP}' < scripts/kind.yaml > "${RUNNER_TEMP}/kind.yaml"
+          # the node image of scripts/kind.yaml (mirror.gcr.io is served by the zot Docker Hub cache, pulled by digest), loaded into
+          # Docker under its tag only: a digest reference would not match a loaded image and kind would pull from mirror.gcr.io
+          image="$(yq '.nodes[0].image' scripts/kind.yaml)"
+          skopeo copy "docker://${ZOT}/docker-hub-cache/${image#mirror.gcr.io/}" "docker-daemon:${image%@*}"
+          # the rendered kind config refers to the loaded image
+          POD_IP="$(hostname -i | awk '{print $1}')" envsubst '${POD_IP}' < scripts/kind.yaml |
+            yq ".nodes[0].image = \"${image%@*}\"" > "${RUNNER_TEMP}/kind.yaml"
       - name: Setup Kubernetes Kind
         timeout-minutes: 5
         uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
@@ -65,7 +66,6 @@ jobs:
         with:
           config: ${{ runner.temp }}/kind.yaml
           cluster_name: homelab
-          node_image: ${{ env.KIND_NODE_IMAGE }}
       - name: Pull through the cluster zot only
         timeout-minutes: 2
         run: ./scripts/ci/e2e/zot-mirror.sh homelab-control-plane /usr/local/share/ca-certificates/private-ca.crt

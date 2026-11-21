@@ -16,6 +16,9 @@ networking:
 # the runner pod's IP into this file (envsubst)
 kubeadmConfigPatches:
   - |
+    kind: ClusterConfiguration
+    controlPlaneEndpoint: "${POD_IP}:6443"
+  - |
     kind: InitConfiguration
     localAPIEndpoint:
       advertiseAddress: "${POD_IP}"
@@ -25,3 +28,5 @@ kubeadmConfigPatches:
 nodes:
   # A single node (control plane, schedulable) boots faster and needs less memory than control plane + worker.
   - role: control-plane
+    # Renovate keeps the tag and digest current; the e2e pulls it through zot before kind starts
+    image: mirror.gcr.io/kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed
