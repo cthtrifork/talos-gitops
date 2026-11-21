@@ -38,8 +38,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
+        timeout-minutes: 2
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install tools
+        timeout-minutes: 5
         uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
           install_args: "yq kubeconform kustomize helm aqua:controlplaneio-fluxcd/flux-operator aqua:cilium/cilium-cli talosctl"
@@ -64,6 +66,7 @@ jobs:
           talosctl kubeconfig --force --nodes 10.5.0.2
           kubectl get nodes
       - name: Install latest cilium
+        timeout-minutes: 3
         run: |
          helm repo add cilium https://helm.cilium.io/
 
@@ -103,6 +106,7 @@ jobs:
           --wait --timeout 2m
 
       - name: Deploy flux instance
+        timeout-minutes: 2
         run: |
           sed "s|ref: \"refs/heads/main\"|ref: \"${SYNC_REF}\"|" k8s/clusters/homelab/flux-instance.yaml |
             tee "${RUNNER_TEMP}/flux-instance.yaml" | grep -F "ref: "
@@ -116,6 +120,7 @@ jobs:
           kubectl wait --for=condition=Ready fluxinstance flux -n flux-system --timeout=5m
 
       - name: Setup Flux CLI
+        timeout-minutes: 2
         uses: fluxcd/flux2/action@23dcfe98fe672acdf44ecd9c60cbac41b57f5de8 # v2.10.1
         with:
           token: ${{ github.token }}
@@ -135,6 +140,7 @@ jobs:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Suspend workload Kustomizations
+        timeout-minutes: 2
         run: |
           # gitops-infra-image-policies needs the Kyverno CRD, and the HelmReleases are suspended here
           for ks in app-controllers renovate gitops-infra-image-policies \
@@ -147,6 +153,7 @@ jobs:
           flux reconcile kustomization gitops-infra-bootstrap --timeout=5m
 
       - name: Patch infra Kustomizations for the e2e cluster
+        timeout-minutes: 2
         run: |
           for ks in gitops-infra-controllers gitops-infra-kubevirt gitops-infra-post gitops-infra-post-workloads; do
             kubectl patch kustomization "${ks}" -n flux-system --type merge --patch-file "scripts/ci/e2e/${ks}.yaml"
