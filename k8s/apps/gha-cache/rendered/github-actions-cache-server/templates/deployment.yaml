@@ -84,11 +84,14 @@ spec:
           capabilities:
             drop:
             - ALL
+          readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 1000
         volumeMounts:
         - mountPath: /data
           name: data
+        - mountPath: /tmp
+          name: tmp
       securityContext:
         fsGroup: 1000
         seccompProfile:
@@ -98,3 +101,6 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: gha-cache-data
+      - emptyDir:
+          sizeLimit: 1Gi
+        name: tmp
