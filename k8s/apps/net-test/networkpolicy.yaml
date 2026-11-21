@@ -1,4 +1,4 @@
-# Default deny both ways, then DNS and iperf3 (5201) from the client Jobs to the server.
+# Default deny both ways, then DNS and iperf3 (5201) from the client Jobs to the servers.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
