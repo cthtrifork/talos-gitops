@@ -80,10 +80,9 @@ spec:
               - name: DOCKER_GROUP_GID
                 value: "123"
             resources:
-              # The Talos control plane and worker (etcd, kubelets, Cilium, Flux) run inside this container. The e2e starved
-              # on the 2 CPU node (etcd and kubelet health checks timed out), so the request keeps it on a larger one.
+              # The Talos control plane and worker (etcd, kubelets, Cilium, Flux) run inside this container
               requests:
-                cpu: "3"
+                cpu: 500m
                 memory: 6Gi
               limits:
                 memory: 10Gi
