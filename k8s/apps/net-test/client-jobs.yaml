@@ -1,0 +1,132 @@
+# One client Job per placement: cross-node (podAntiAffinity to the server) and the same node (podAffinity). Read the result with
+# kubectl -n net-test-system logs job/iperf-client-cross-node (and ...-same-node).
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iperf-client-cross-node
+  namespace: net-test-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: iperf-client
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: iperf-server
+      containers:
+        - name: iperf3
+          image: mirror.gcr.io/mlabbe/iperf3:3.19.1-r1@sha256:2bd525abbc4f5303ea65e587df669907f6eef670c2d93a56b283a71f2e56f2eb # renovate: datasource=docker depName=docker.io/mlabbe/iperf3 versioning=docker
+          command:
+            - /bin/sh
+            - -c
+            - |
+              S=iperf-server.net-test-system.svc.cluster.local
+              echo "client node: $NODE_NAME, server: $S, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control), allowed: $(cat /proc/sys/net/ipv4/tcp_allowed_congestion_control)"
+              # the default test, every second, so a stall shows as intervals at 0 bits/sec
+              for d in "" "-R"; do echo "=== iperf3 -c -t 15 -i 1 $d"; timeout 40 iperf3 -c "$S" -t 15 -i 1 $d 2>&1 | tail -22; echo "rc=$?"; done
+              # the congestion control, the segment size (a path MTU problem shows as a stall with the default size and not with a small one), streams, UDP
+              for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R" "-M 1200" "-M 1200 -R" "-M 1300" "-P 4" "-P 4 -R" "-u -b 300M" "-u -b 300M -R"; do
+                echo "=== iperf3 -c -t 10 $args"
+                timeout 40 iperf3 -c "$S" -t 10 $args 2>&1 | grep -E "sender|receiver|error|unable|refused|Connection|0.00-10" | tail -4
+              done
+              echo done
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iperf-client-same-node
+  namespace: net-test-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 1500
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: iperf-client
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: iperf-server
+      containers:
+        - name: iperf3
+          image: mirror.gcr.io/mlabbe/iperf3:3.19.1-r1@sha256:2bd525abbc4f5303ea65e587df669907f6eef670c2d93a56b283a71f2e56f2eb # renovate: datasource=docker depName=docker.io/mlabbe/iperf3 versioning=docker
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # the cross-node Job runs first (about 5 minutes): two clients at once would share the server
+              sleep 420
+              S=iperf-server.net-test-system.svc.cluster.local
+              echo "client node: $NODE_NAME, server: $S, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control), allowed: $(cat /proc/sys/net/ipv4/tcp_allowed_congestion_control)"
+              # the default test, every second, so a stall shows as intervals at 0 bits/sec
+              for d in "" "-R"; do echo "=== iperf3 -c -t 15 -i 1 $d"; timeout 40 iperf3 -c "$S" -t 15 -i 1 $d 2>&1 | tail -22; echo "rc=$?"; done
+              # the congestion control, the segment size (a path MTU problem shows as a stall with the default size and not with a small one), streams, UDP
+              for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R" "-M 1200" "-M 1200 -R" "-M 1300" "-P 4" "-P 4 -R" "-u -b 300M" "-u -b 300M -R"; do
+                echo "=== iperf3 -c -t 10 $args"
+                timeout 40 iperf3 -c "$S" -t 10 $args 2>&1 | grep -E "sender|receiver|error|unable|refused|Connection|0.00-10" | tail -4
+              done
+              echo done
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

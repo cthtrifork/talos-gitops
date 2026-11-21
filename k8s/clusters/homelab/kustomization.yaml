@@ -31,5 +31,6 @@ resources:
   - app-fileserver.yaml
   - app-gha-cache.yaml
   - app-harper-pad.yaml
+  - app-net-test.yaml
   - renovate.yaml
   - virtualmachines.yaml

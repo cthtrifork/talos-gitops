@@ -1,0 +1,68 @@
+# iperf3 server for the pod network test (see README). Temporary: delete the app when the test is done.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iperf-server
+  namespace: net-test-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iperf-server
+  template:
+    metadata:
+      labels:
+        app: iperf-server
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: iperf3
+          image: mirror.gcr.io/mlabbe/iperf3:3.19.1-r1@sha256:2bd525abbc4f5303ea65e587df669907f6eef670c2d93a56b283a71f2e56f2eb # renovate: datasource=docker depName=docker.io/mlabbe/iperf3 versioning=docker
+          args:
+            - -s
+          ports:
+            - name: iperf
+              containerPort: 5201
+          readinessProbe:
+            tcpSocket:
+              port: iperf
+          livenessProbe:
+            tcpSocket:
+              port: iperf
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iperf-server
+  namespace: net-test-system
+spec:
+  selector:
+    app: iperf-server
+  ports:
+    - name: tcp
+      port: 5201
+      targetPort: iperf
+      protocol: TCP
+    - name: udp
+      port: 5201
+      targetPort: 5201
+      protocol: UDP
