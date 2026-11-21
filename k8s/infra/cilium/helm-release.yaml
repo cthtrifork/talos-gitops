@@ -194,8 +194,10 @@ spec:
     dashboards:
       enabled: true
     kubeProxyReplacement: true
+    # TEMPORARY: off to test whether the WireGuard path is why every pod-to-pod path through talos-11a-esj runs at about 20 Mbit/s
+    # (k8s/apps/net-test); turn it back on if it makes no difference
     encryption:
-      enabled: true
+      enabled: false
       type: wireguard
     k8sServiceHost: localhost # sidero specific
     k8sServicePort: 7445 # sidero specific

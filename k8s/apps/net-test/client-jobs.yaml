@@ -1,10 +1,10 @@
 # One client Job per node, each testing the servers of all three nodes (itself included, as the same-node baseline). The Jobs start 5 minutes apart
-# so two clients never share a server. Read them with: kubectl -n net-test-system logs job/iperf-client-<node>-r2
+# so two clients never share a server. Read them with: kubectl -n net-test-system logs job/iperf-client-<node>-r3
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: iperf-client-talos-11a-esj-r2
+  name: iperf-client-talos-11a-esj-r3
   namespace: net-test-system
 spec:
   backoffLimit: 0
@@ -36,7 +36,7 @@ spec:
             - /bin/sh
             - -c
             - |
-              sleep 0
+              sleep 600
               echo "client node: $NODE_NAME, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control), allowed: $(cat /proc/sys/net/ipv4/tcp_allowed_congestion_control)"
               for target in talos-11a-esj talos-2ny-8tx talos-tba-msi; do
                 S=iperf-server-$target.net-test-system.svc.cluster.local
@@ -80,7 +80,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: iperf-client-talos-2ny-8tx-r2
+  name: iperf-client-talos-2ny-8tx-r3
   namespace: net-test-system
 spec:
   backoffLimit: 0
@@ -112,7 +112,7 @@ spec:
             - /bin/sh
             - -c
             - |
-              sleep 300
+              sleep 900
               echo "client node: $NODE_NAME, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control), allowed: $(cat /proc/sys/net/ipv4/tcp_allowed_congestion_control)"
               for target in talos-11a-esj talos-2ny-8tx talos-tba-msi; do
                 S=iperf-server-$target.net-test-system.svc.cluster.local
@@ -156,7 +156,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: iperf-client-talos-tba-msi-r2
+  name: iperf-client-talos-tba-msi-r3
   namespace: net-test-system
 spec:
   backoffLimit: 0
@@ -188,7 +188,7 @@ spec:
             - /bin/sh
             - -c
             - |
-              sleep 600
+              sleep 1200
               echo "client node: $NODE_NAME, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control), allowed: $(cat /proc/sys/net/ipv4/tcp_allowed_congestion_control)"
               for target in talos-11a-esj talos-2ny-8tx talos-tba-msi; do
                 S=iperf-server-$target.net-test-system.svc.cluster.local
