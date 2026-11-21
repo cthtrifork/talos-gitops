@@ -4,5 +4,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - networkpolicy.yaml
-  - server.yaml
+  - deployment.yaml
+  - service.yaml
   - client-jobs.yaml
