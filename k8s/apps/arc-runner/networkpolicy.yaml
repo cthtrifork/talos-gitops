@@ -66,6 +66,9 @@ spec:
         - matchName: tuf-repo-cdn.sigstore.dev
 
         # Tool downloads in the workflows and the image builds
+        # mise (jdx/mise-action in the workflows; the tools themselves come from github.com)
+        - matchName: mise.jdx.dev
+        - matchName: mise-versions.jdx.dev
         - matchName: get.helm.sh
         - matchName: dl.k8s.io
         - matchName: helm.cilium.io
