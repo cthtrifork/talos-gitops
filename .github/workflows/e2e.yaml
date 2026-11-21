@@ -60,6 +60,8 @@ jobs:
             --config-patch @scripts/ci/e2e/talos.yaml \
             --config-patch "@${RUNNER_TEMP}/zot-mirrors.yaml"
           talosctl kubeconfig --force --nodes 10.5.0.2
+          # the only node is a control plane (Talos 1.14 moved allowSchedulingOnControlPlanes into KubeNodeConfig)
+          kubectl taint nodes --all node-role.kubernetes.io/control-plane:NoSchedule-
           kubectl get nodes
       - name: Install cilium
         timeout-minutes: 3
