@@ -83,6 +83,22 @@ spec:
         # efficiency
         cpuLimitsMissing: ignore
       exemptions:
+        # Temporary (k8s/apps/disk-wipe): one-shot Jobs that wipe unused disks and partitions of the nodes, so they run privileged
+        # with the host PID namespace (they read the host's mounts to refuse a mounted device)
+        - namespace: disk-wipe-system
+          controllerNames:
+            - disk-wipe-talos-tba-msi-1
+            - disk-wipe-talos-2jc-qux-1
+            - disk-wipe-talos-11a-esj-1
+            - disk-wipe-talos-vt2-qp8-1
+          rules:
+            - runAsPrivileged
+            - runAsRootAllowed
+            - privilegeEscalationAllowed
+            - linuxHardening
+            - insecureCapabilities
+            - notReadOnlyRootFilesystem
+            - hostPIDSet
         # Ignore checks for cilium and hubble
         - namespace: kube-system
           controllerNames:
