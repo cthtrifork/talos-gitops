@@ -44,7 +44,7 @@ spec:
         initContainers:
           - name: init-dind-externals
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261121.18@sha256:4b8914adb35f05531e8341a48abeef0a214f1141a479defc24da77198db42dc6
             imagePullPolicy: IfNotPresent
             command:
               - "cp"
@@ -109,9 +109,11 @@ spec:
         containers:
           - name: runner
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261121.18@sha256:4b8914adb35f05531e8341a48abeef0a214f1141a479defc24da77198db42dc6
             imagePullPolicy: IfNotPresent
+            # patches the runner so it keeps ACTIONS_RESULTS_URL (images/github-actions-runner/use-cache-server); fails the pod when it cannot
             command:
+              - "/usr/local/bin/use-cache-server"
               - "/home/runner/run.sh"
             resources:
               requests:
@@ -127,6 +129,10 @@ spec:
                 value: unix:///var/run/docker.sock
               - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
                 value: "120"
+              # the in-cluster cache server (k8s/apps/gha-cache): actions/cache and the tool caches (mise) stay in the cluster.
+              # The trailing slash is required. Artifacts are passed on to GitHub by the server.
+              - name: ACTIONS_RESULTS_URL
+                value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
               # installs the CA mounted below
               - name: RUNNER_UPDATE_CA_CERTS
                 value: "1"
