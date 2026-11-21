@@ -50,6 +50,8 @@ spec:
           value: "90"
         - name: ORPHANED_STORAGE_GRACE_PERIOD_HOURS
           value: "24"
+        - name: DEBUG
+          value: "true"
         - name: STORAGE_DRIVER
           value: filesystem
         - name: STORAGE_FILESYSTEM_PATH
