@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Start a command (the runner) with the cache-server patch applied. The stock runner overwrites ACTIONS_RESULTS_URL with GitHub's
+# address before every action; this renames the string it assigns to (ACTIONS_RESULTS_URL becomes ACTIONS_RESULTS_ORL), so the value
+# set on the pod stays and actions/cache talks to the in-cluster cache server (k8s/apps/gha-cache). A scale set opts in with
+#   command: ["/usr/local/bin/use-cache-server", "/home/runner/run.sh"]
+# and sets ACTIONS_RESULTS_URL (with a trailing slash). Without this wrapper the image behaves like the stock runner.
+# https://gha-cache-server.falcondev.io/getting-started#binary-patch
+set -euo pipefail
+export LC_ALL=C
+
+f=/home/runner/bin/Runner.Worker.dll
+old='A\x00C\x00T\x00I\x00O\x00N\x00S\x00_\x00R\x00E\x00S\x00U\x00L\x00T\x00S\x00_\x00U\x00R\x00L\x00'
+new='A\x00C\x00T\x00I\x00O\x00N\x00S\x00_\x00R\x00E\x00S\x00U\x00L\x00T\x00S\x00_\x00O\x00R\x00L\x00'
+
+# no patch, no cache server: fail the pod rather than run jobs that silently use GitHub's cache
+if grep -qaP "$old" "$f"; then
+  sed -i "s/$old/$new/g" "$f"
+fi
+grep -qaP "$new" "$f"
+if grep -qaP "$old" "$f"; then
+  exit 1
+fi
+
+exec "$@"
