@@ -28,7 +28,8 @@ spec:
     - toEntities:
         - world
 ---
-# The CDI importer pod that fills the disk runs in this namespace too, and pulls the containerDisk from ghcr.io
+# The CDI importer pod that fills the disk runs in this namespace too: it pulls the containerDisk from ghcr.io and the CDI
+# controller reads its progress
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -38,6 +39,15 @@ spec:
   endpointSelector:
     matchLabels:
       app: containerized-data-importer
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cdi
+            k8s:cdi.kubevirt.io: cdi-deployment
+      toPorts:
+        - ports:
+            - port: "8443"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:
