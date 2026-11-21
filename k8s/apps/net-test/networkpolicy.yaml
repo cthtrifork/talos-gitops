@@ -1,0 +1,71 @@
+# Default deny both ways, then DNS and iperf3 (5201) from the client Jobs to the servers.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: net-test-system-default-deny
+  namespace: net-test-system
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: net-test-system-allow-dns
+  namespace: net-test-system
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: iperf-server
+  namespace: net-test-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: iperf-server
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app: iperf-client
+      toPorts:
+        - ports:
+            - port: "5201"
+              protocol: TCP
+            - port: "5201"
+              protocol: UDP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: iperf-client
+  namespace: net-test-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: iperf-client
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app: iperf-server
+      toPorts:
+        - ports:
+            - port: "5201"
+              protocol: TCP
+            - port: "5201"
+              protocol: UDP

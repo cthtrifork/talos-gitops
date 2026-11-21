@@ -176,7 +176,7 @@ jobs:
         timeout-minutes: 3
         run: |
           # the app-* Kustomizations; renovate needs CRDs from app-controllers, which is suspended here
-          for app in adguard arc-runner claude-system fileserver gha-cache harper-pad; do
+          for app in adguard arc-runner claude-system fileserver gha-cache harper-pad net-test; do
             kustomize build "k8s/apps/${app}" --load-restrictor=LoadRestrictionsNone
             echo "---"
           done > "${RUNNER_TEMP}/apps.yaml"
