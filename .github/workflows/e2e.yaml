@@ -197,6 +197,8 @@ jobs:
         timeout-minutes: 3
         if: failure()
         run: |
+          nproc; free -m; grep -E 'nr_throttled|throttled_usec' /sys/fs/cgroup/cpu.stat || true
+          docker stats --no-stream || true
           docker ps -a || true
           docker logs --tail 60 homelab-controlplane-1 || true
           talosctl --nodes 10.5.0.2 dmesg | tail -50 || true
