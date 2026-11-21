@@ -21,9 +21,6 @@ on:
 permissions:
   contents: read
 
-env:
-  #INTERACTIVE: false
-
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
