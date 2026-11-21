@@ -1,0 +1,69 @@
+# Default deny both ways, then what the VM needs. Egress to the world is open at the pod level on purpose: the homeserver
+# is a general-purpose box (bootc upgrade, pinggy, container pulls, dnf). The homeserver-vm namespace is exempt from the
+# deny-world-egress policy for this.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: homeserver-vm-default-deny
+  namespace: homeserver-vm
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: homeserver-vm-egress
+  namespace: homeserver-vm
+spec:
+  endpointSelector:
+    matchLabels:
+      kubevirt.io/vm: homeserver-vm
+  egress:
+    - toEntities:
+        - world
+---
+# The CDI importer pod that fills the disk runs in this namespace too, and pulls the containerDisk from ghcr.io
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: homeserver-vm-cdi-importer-egress
+  namespace: homeserver-vm
+spec:
+  endpointSelector:
+    matchLabels:
+      app: containerized-data-importer
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - world
+---
+# SSH from the LAN only (the Service is a MetalLB address with externalTrafficPolicy Local)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: homeserver-vm-ssh
+  namespace: homeserver-vm
+spec:
+  endpointSelector:
+    matchLabels:
+      kubevirt.io/vm: homeserver-vm
+  ingress:
+    - fromCIDRSet:
+        - cidr: 192.168.1.0/24
+      toPorts:
+        - ports:
+            - port: "22"
+              protocol: TCP
