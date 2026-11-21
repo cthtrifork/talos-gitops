@@ -8,8 +8,10 @@ containerdConfigPatches:
 networking:
   disableDefaultCNI: true
   apiServerPort: 6443
-  serviceSubnet: "10.96.0.0/16"
-  podSubnet: "10.244.0.0/16"
+  # The node shares the network namespace of the runner pod (host network), which lives in the cluster's own ranges
+  # (pods 10.244.0.0/16, services 10.96.0.0/12), so use ranges that do not overlap them (or the LAN, 192.168.1.0/24).
+  serviceSubnet: "10.201.0.0/16"
+  podSubnet: "10.200.0.0/16"
 nodes:
   # A single node (control plane, schedulable) boots faster and needs less memory than control plane + worker.
   - role: control-plane
