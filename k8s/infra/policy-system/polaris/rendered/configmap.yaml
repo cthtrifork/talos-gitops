@@ -29,6 +29,18 @@ data:
       topologySpreadConstraint: ignore
     exemptions:
       - controllerNames:
+        - openebs-lvm-node
+        - openebs-lvm-controller
+        namespace: openebs-system
+        rules:
+        - runAsPrivileged
+        - runAsRootAllowed
+        - privilegeEscalationAllowed
+        - linuxHardening
+        - insecureCapabilities
+        - notReadOnlyRootFilesystem
+        - hostPathSet
+      - controllerNames:
         - disk-wipe-talos-tba-msi-1
         - disk-wipe-talos-2jc-qux-1
         - disk-wipe-talos-11a-esj-1
