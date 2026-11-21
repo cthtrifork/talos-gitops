@@ -1,14 +1,14 @@
-# One client Job per node, each testing the servers of all three nodes (itself included, as the same-node baseline). The Jobs start 5 minutes apart
-# so two clients never share a server. Read them with: kubectl -n net-test-system logs job/iperf-client-<node>-r3
+# One client Job per node, each testing the servers of all 4 nodes (itself included, as the same-node baseline). The Jobs start 4 minutes
+# apart so two clients never share a server. Read them with: kubectl -n net-test-system logs job/iperf-client-<node>-r4
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: iperf-client-talos-11a-esj-r3
+  name: iperf-client-talos-11a-esj-r4
   namespace: net-test-system
 spec:
   backoffLimit: 0
-  activeDeadlineSeconds: 2400
+  activeDeadlineSeconds: 3000
   ttlSecondsAfterFinished: 86400
   template:
     metadata:
@@ -16,9 +16,9 @@ spec:
         app: iperf-client
     spec:
       restartPolicy: Never
-      automountServiceAccountToken: false
       nodeSelector:
         kubernetes.io/hostname: talos-11a-esj
+      automountServiceAccountToken: false
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
@@ -36,17 +36,16 @@ spec:
             - /bin/sh
             - -c
             - |
-              sleep 600
-              echo "client node: $NODE_NAME, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control), allowed: $(cat /proc/sys/net/ipv4/tcp_allowed_congestion_control)"
-              for target in talos-11a-esj talos-2ny-8tx talos-tba-msi; do
+              sleep 0
+              echo "client node: $NODE_NAME, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control)"
+              for target in talos-11a-esj talos-2jc-qux talos-tba-msi talos-vt2-qp8; do
                 S=iperf-server-$target.net-test-system.svc.cluster.local
                 echo "##### $NODE_NAME -> $target"
                 # wait for the server (it may still be starting)
                 until timeout 10 iperf3 -c "$S" -t 1 >/dev/null 2>&1; do sleep 5; done
                 # the default test every second, so a stall shows as intervals at 0 bits/sec
                 for d in "" "-R"; do echo "=== iperf3 -c -t 10 -i 1 $d"; timeout 30 iperf3 -c "$S" -t 10 -i 1 $d 2>&1 | tail -16; done
-                # the congestion control and a small segment size (a path MTU blackhole stalls only with the large default size)
-                for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R" "-M 1200" "-M 1200 -R"; do
+                for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R"; do
                   echo "=== iperf3 -c -t 8 $args"
                   timeout 30 iperf3 -c "$S" -t 8 $args 2>&1 | grep -E "sender|receiver|error|unable|refused|Connection" | tail -3
                 done
@@ -80,11 +79,11 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: iperf-client-talos-2ny-8tx-r3
+  name: iperf-client-talos-2jc-qux-r4
   namespace: net-test-system
 spec:
   backoffLimit: 0
-  activeDeadlineSeconds: 2400
+  activeDeadlineSeconds: 3000
   ttlSecondsAfterFinished: 86400
   template:
     metadata:
@@ -92,9 +91,9 @@ spec:
         app: iperf-client
     spec:
       restartPolicy: Never
-      automountServiceAccountToken: false
       nodeSelector:
-        kubernetes.io/hostname: talos-2ny-8tx
+        kubernetes.io/hostname: talos-2jc-qux
+      automountServiceAccountToken: false
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
@@ -112,17 +111,16 @@ spec:
             - /bin/sh
             - -c
             - |
-              sleep 900
-              echo "client node: $NODE_NAME, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control), allowed: $(cat /proc/sys/net/ipv4/tcp_allowed_congestion_control)"
-              for target in talos-11a-esj talos-2ny-8tx talos-tba-msi; do
+              sleep 240
+              echo "client node: $NODE_NAME, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control)"
+              for target in talos-11a-esj talos-2jc-qux talos-tba-msi talos-vt2-qp8; do
                 S=iperf-server-$target.net-test-system.svc.cluster.local
                 echo "##### $NODE_NAME -> $target"
                 # wait for the server (it may still be starting)
                 until timeout 10 iperf3 -c "$S" -t 1 >/dev/null 2>&1; do sleep 5; done
                 # the default test every second, so a stall shows as intervals at 0 bits/sec
                 for d in "" "-R"; do echo "=== iperf3 -c -t 10 -i 1 $d"; timeout 30 iperf3 -c "$S" -t 10 -i 1 $d 2>&1 | tail -16; done
-                # the congestion control and a small segment size (a path MTU blackhole stalls only with the large default size)
-                for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R" "-M 1200" "-M 1200 -R"; do
+                for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R"; do
                   echo "=== iperf3 -c -t 8 $args"
                   timeout 30 iperf3 -c "$S" -t 8 $args 2>&1 | grep -E "sender|receiver|error|unable|refused|Connection" | tail -3
                 done
@@ -156,11 +154,11 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: iperf-client-talos-tba-msi-r3
+  name: iperf-client-talos-tba-msi-r4
   namespace: net-test-system
 spec:
   backoffLimit: 0
-  activeDeadlineSeconds: 2400
+  activeDeadlineSeconds: 3000
   ttlSecondsAfterFinished: 86400
   template:
     metadata:
@@ -168,9 +166,9 @@ spec:
         app: iperf-client
     spec:
       restartPolicy: Never
-      automountServiceAccountToken: false
       nodeSelector:
         kubernetes.io/hostname: talos-tba-msi
+      automountServiceAccountToken: false
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
@@ -188,17 +186,91 @@ spec:
             - /bin/sh
             - -c
             - |
-              sleep 1200
-              echo "client node: $NODE_NAME, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control), allowed: $(cat /proc/sys/net/ipv4/tcp_allowed_congestion_control)"
-              for target in talos-11a-esj talos-2ny-8tx talos-tba-msi; do
+              sleep 480
+              echo "client node: $NODE_NAME, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control)"
+              for target in talos-11a-esj talos-2jc-qux talos-tba-msi talos-vt2-qp8; do
                 S=iperf-server-$target.net-test-system.svc.cluster.local
                 echo "##### $NODE_NAME -> $target"
                 # wait for the server (it may still be starting)
                 until timeout 10 iperf3 -c "$S" -t 1 >/dev/null 2>&1; do sleep 5; done
                 # the default test every second, so a stall shows as intervals at 0 bits/sec
                 for d in "" "-R"; do echo "=== iperf3 -c -t 10 -i 1 $d"; timeout 30 iperf3 -c "$S" -t 10 -i 1 $d 2>&1 | tail -16; done
-                # the congestion control and a small segment size (a path MTU blackhole stalls only with the large default size)
-                for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R" "-M 1200" "-M 1200 -R"; do
+                for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R"; do
+                  echo "=== iperf3 -c -t 8 $args"
+                  timeout 30 iperf3 -c "$S" -t 8 $args 2>&1 | grep -E "sender|receiver|error|unable|refused|Connection" | tail -3
+                done
+              done
+              echo done
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iperf-client-talos-vt2-qp8-r4
+  namespace: net-test-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3000
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: iperf-client
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/hostname: talos-vt2-qp8
+      automountServiceAccountToken: false
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: iperf3
+          image: mirror.gcr.io/mlabbe/iperf3:3.19.1-r1@sha256:2bd525abbc4f5303ea65e587df669907f6eef670c2d93a56b283a71f2e56f2eb # renovate: datasource=docker depName=docker.io/mlabbe/iperf3 versioning=docker
+          command:
+            - /bin/sh
+            - -c
+            - |
+              sleep 720
+              echo "client node: $NODE_NAME, congestion control: $(cat /proc/sys/net/ipv4/tcp_congestion_control)"
+              for target in talos-11a-esj talos-2jc-qux talos-tba-msi talos-vt2-qp8; do
+                S=iperf-server-$target.net-test-system.svc.cluster.local
+                echo "##### $NODE_NAME -> $target"
+                # wait for the server (it may still be starting)
+                until timeout 10 iperf3 -c "$S" -t 1 >/dev/null 2>&1; do sleep 5; done
+                # the default test every second, so a stall shows as intervals at 0 bits/sec
+                for d in "" "-R"; do echo "=== iperf3 -c -t 10 -i 1 $d"; timeout 30 iperf3 -c "$S" -t 10 -i 1 $d 2>&1 | tail -16; done
+                for args in "-C cubic" "-C cubic -R" "-C bbr" "-C bbr -R"; do
                   echo "=== iperf3 -c -t 8 $args"
                   timeout 30 iperf3 -c "$S" -t 8 $args 2>&1 | grep -E "sender|receiver|error|unable|refused|Connection" | tail -3
                 done
