@@ -29,6 +29,17 @@ data:
       topologySpreadConstraint: ignore
     exemptions:
       - controllerNames:
+        - iperf-host-server-talos-11a-esj
+        - iperf-host-server-talos-2ny-8tx
+        - iperf-host-server-talos-tba-msi
+        - iperf-host-client-talos-11a-esj
+        - iperf-host-client-talos-2ny-8tx
+        - iperf-host-client-talos-tba-msi
+        namespace: net-test-host-system
+        rules:
+        - hostNetworkSet
+        - hostPortSet
+      - controllerNames:
         - cilium
         - hubble-ui
         - hubble-relay
