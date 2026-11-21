@@ -1,0 +1,183 @@
+---
+# Scale set for the e2e workflow of cthtrifork/talos-gitops: Talos in Docker needs a Docker daemon, so the pod carries the same
+# Docker-in-Docker sidecar as helm-release.yaml, but with nothing shared: every pod gets its own ephemeral volumes, so
+# runs can go in parallel and leave nothing behind. talos-gitops is a public repository, so the workflow only runs
+# on this scale set for pushes, manual runs and pull requests from branches of the repository itself, never from forks.
+#
+# Select it with `runs-on: arc-e2e-talos-gitops`. minRunners is 0, so it costs nothing while unused. Uses the Secret
+# github-auth, so the runner GitHub App must be installed on talos-gitops.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: arc-runners-talos-gitops-e2e
+  namespace: arc-runners-system
+spec:
+  interval: 30m
+  releaseName: arc-runners-talos-gitops-e2e
+  chartRef:
+    kind: OCIRepository
+    name: arc-runners-system
+  install:
+    remediation:
+      retries: 3
+    createNamespace: false
+
+  upgrade:
+    remediation:
+      retries: 3
+  # https://github.com/actions/actions-runner-controller/blob/master/charts/gha-runner-scale-set/values.yaml
+  values:
+    controllerServiceAccount:
+      name: gha-runner-scale-set-controller-gha-rs-controller
+      namespace: arc-controller-system
+
+    githubConfigUrl: https://github.com/cthtrifork/talos-gitops
+    runnerScaleSetName: arc-e2e-talos-gitops # runs-on: arc-e2e-talos-gitops
+
+    maxRunners: 2 # a Talos-in-Docker cluster with Cilium and Flux takes about 4 GiB
+    minRunners: 0
+
+    githubConfigSecret: github-auth
+    containerMode: {} # we use custom
+    template:
+      spec:
+        initContainers:
+          - name: init-dind-externals
+            # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+            imagePullPolicy: IfNotPresent
+            command:
+              - "cp"
+              - "-r"
+              - "/home/runner/externals/."
+              - "/home/runner/tmpDir/"
+            volumeMounts:
+              - name: dind-externals
+                mountPath: /home/runner/tmpDir
+            resources:
+              limits:
+                memory: 1Gi
+              requests:
+                cpu: 25m
+                memory: 128Mi
+            securityContext:
+              runAsUser: 1001
+              runAsGroup: 1001
+              runAsNonRoot: true
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - ALL
+          - name: dind
+            # renovate: datasource=docker depName=mirror.gcr.io/library/docker versioning=docker
+            image: mirror.gcr.io/library/docker:29.10.0-dind@sha256:4bbc7223f81db790097c6dea42fb93e05b8fead4f0431fbe6ccaba6e8473201c
+            imagePullPolicy: IfNotPresent
+            args:
+              - dockerd
+              - --host=unix:///var/run/docker.sock
+              - --group=$(DOCKER_GROUP_GID)
+            env:
+              - name: DOCKER_GROUP_GID
+                value: "123"
+            resources:
+              requests:
+                cpu: 500m
+                memory: 2Gi
+              limits:
+                memory: 8Gi # the Talos node (control plane, Cilium, Flux and the infra HelmReleases) runs inside this container
+            securityContext:
+              privileged: true
+            restartPolicy: Always
+            startupProbe:
+              exec:
+                command:
+                  - docker
+                  - info
+              initialDelaySeconds: 0
+              failureThreshold: 24
+              periodSeconds: 5
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+              - name: dind-sock
+                mountPath: /var/run
+              - name: dind-externals
+                mountPath: /home/runner/externals
+              - name: docker-lib
+                mountPath: /var/lib/docker
+        containers:
+          - name: runner
+            # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+            imagePullPolicy: IfNotPresent
+            command:
+              - "/home/runner/run.sh"
+            resources:
+              requests:
+                cpu: 250m
+                memory: 1Gi
+              limits:
+                memory: 4Gi
+            securityContext:
+              runAsUser: 1001
+              runAsGroup: 1001
+            env:
+              - name: DOCKER_HOST
+                value: unix:///var/run/docker.sock
+              - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+                value: "120"
+              # installs the CA mounted below
+              - name: RUNNER_UPDATE_CA_CERTS
+                value: "1"
+            volumeMounts:
+              - name: ca-certs
+                mountPath: /usr/local/share/ca-certificates/private-ca.crt
+                subPath: ca.crt
+              - name: work
+                mountPath: /home/runner/_work
+              - name: dind-sock
+                mountPath: /var/run
+        imagePullSecrets:
+          - name: github-auth
+        securityContext:
+          fsGroup: 1001
+        volumes:
+          - name: ca-certs
+            # trust-manager keeps this in step with the root CA
+            configMap:
+              name: portableinfo-ca-bundle
+              items:
+                - key: ca-bundle.crt
+                  path: ca.crt
+          - name: work
+            emptyDir:
+              sizeLimit: 10Gi
+          - name: dind-sock
+            emptyDir: {}
+          - name: dind-externals
+            emptyDir:
+              sizeLimit: 2Gi
+          - name: docker-lib
+            emptyDir:
+              sizeLimit: 20Gi
+    listenerTemplate:
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+          - name: listener
+            securityContext:
+              runAsUser: 1000
+              runAsNonRoot: true
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - ALL
+            resources:
+              limits:
+                memory: 256Mi
+              requests:
+                cpu: 15m
+                memory: 64Mi

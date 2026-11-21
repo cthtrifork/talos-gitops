@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - helm-release.yaml
   - helm-release-podman.yaml
+  - helm-release-talos-gitops-e2e.yaml
   - helm-release-bootc-files.yaml
   - helm-release-bootc-iso.yaml
   - configmap.yaml
