@@ -22,7 +22,6 @@ permissions:
   contents: read
 
 env:
-  CILIUM_VERSION: v1.20.5 # renovate: datasource=github-releases depName=cilium/cilium
   #INTERACTIVE: false
 
 concurrency:
@@ -65,12 +64,12 @@ jobs:
             --config-patch "@${RUNNER_TEMP}/zot-mirrors.yaml"
           talosctl kubeconfig --force --nodes 10.5.0.2
           kubectl get nodes
-      - name: Install latest cilium
+      - name: Install cilium
         timeout-minutes: 3
         run: |
-         helm repo add cilium https://helm.cilium.io/
-
-         helm install cilium cilium/cilium --version ${CILIUM_VERSION#v} \
+         # the chart and its version are those of the real cluster, pulled through the zot quay cache
+         version="$(yq 'select(.kind == "OCIRepository") | .spec.ref.tag' k8s/infra/cilium/helm-repository.yaml)"
+         helm install cilium "oci://zot.registry-system.svc.cluster.local:5000/quay-cache/cilium/charts/cilium" --version "${version}" \
           --namespace kube-system \
           --set hostPort.enabled=true \
           --set nodePort.enabled=true \
@@ -87,8 +86,6 @@ jobs:
           --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
           --set cgroup.autoMount.enabled=false \
           --set cgroup.hostRoot=/sys/fs/cgroup
-        env:
-          CILIUM_VERSION: ${{env.CILIUM_VERSION}}
 
       - name: Wait for cilium to be ready
         timeout-minutes: 6

@@ -1,19 +1,25 @@
 ---
-# Config patch of the e2e cluster (talosctl cluster create docker): the same networking as the real cluster minus the
-# CNI, which the workflow installs. Image pulls go through zot with patches/11-zot-mirrors.yaml.
-cluster:
-  allowSchedulingOnControlPlanes: true
-  network:
-    cni:
-      name: none
-    podSubnets:
-      - 10.244.0.0/16
-    serviceSubnets:
-      - 10.96.0.0/16
-machine:
-  network:
-    extraHostEntries:
-      # zot by name (the certificate is issued for it), reached through the relay on the Docker gateway of the runner pod
-      - ip: 10.5.0.1
-        aliases:
-          - zot.registry-system.svc.cluster.local
+# Config patch of the e2e cluster (talosctl cluster create docker): the same networking as the real cluster minus flannel
+# and kube-proxy, which Cilium replaces (kubeProxyReplacement in the workflow). Image pulls go through zot with
+# patches/11-zot-mirrors.yaml.
+apiVersion: v1alpha1
+kind: KubeNetworkConfig
+podSubnets:
+  - 10.244.0.0/16
+serviceSubnets:
+  - 10.96.0.0/16
+---
+apiVersion: v1alpha1
+kind: KubeFlannelCNIConfig
+$patch: delete
+---
+apiVersion: v1alpha1
+kind: KubeProxyConfig
+$patch: delete
+---
+# zot by name (the certificate is issued for it), reached through the relay on the Docker gateway of the runner pod
+apiVersion: v1alpha1
+kind: StaticHostConfig
+name: 10.5.0.1
+hostnames:
+  - zot.registry-system.svc.cluster.local
