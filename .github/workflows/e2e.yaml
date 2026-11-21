@@ -57,10 +57,10 @@ jobs:
       - name: Pull the kind node image through zot
         timeout-minutes: 5
         run: |
-          # the node image of scripts/kind.yaml (mirror.gcr.io is served by the zot Docker Hub cache, pulled by digest), loaded into
-          # Docker under its tag only: a digest reference would not match a loaded image and kind would pull from mirror.gcr.io
+          # the node image of scripts/kind.yaml (Docker Hub, served by the zot Docker Hub cache, pulled by digest), loaded into
+          # Docker under its tag only: a digest reference would not match a loaded image and kind would pull from Docker Hub
           image="$(yq '.nodes[0].image' scripts/kind.yaml)"
-          repo="${image#mirror.gcr.io/}"; repo="${repo%%:*}"
+          repo="${image%%:*}"
           skopeo copy "docker://${ZOT}/docker-hub-cache/${repo}@${image#*@}" "docker-daemon:${image%@*}"
           # the rendered kind config refers to the loaded image
           POD_IP="$(hostname -i | awk '{print $1}')" envsubst "\${POD_IP}" < scripts/kind.yaml |
