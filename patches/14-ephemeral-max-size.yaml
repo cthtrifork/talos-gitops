@@ -1,0 +1,10 @@
+# Per machine, for talos-2jc-qux only (the worker with a 1 TB NVMe): the EPHEMERAL volume grows to the whole disk unless capped, and on a
+# fresh install it was created before the local-path volume (patches/03-local-path-provisioner.yaml), which then found no space ("1 have
+# not enough space") and left every local-path PVC on the node stuck. The cap keeps room for that volume.
+apiVersion: v1alpha1
+kind: VolumeConfig
+name: EPHEMERAL
+provisioning:
+  diskSelector:
+    match: system_disk
+  maxSize: 200GB

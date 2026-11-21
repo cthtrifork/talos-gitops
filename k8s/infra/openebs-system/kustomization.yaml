@@ -6,3 +6,4 @@ resources:
   - networkpolicy.yaml
   - helm-repository.yaml
   - helm-release.yaml
+  - storageclass.yaml

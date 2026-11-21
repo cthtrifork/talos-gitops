@@ -1,0 +1,29 @@
+# The OpenEBS hostpath class for the SATA volume of talos-2jc-qux (patches/15-local-path-sata.yaml). Like openebs-hostpath-xfs (created by
+# the chart from the HelmRelease values) with another base path; allowedTopologies keeps pods off the nodes that do not have the volume,
+# where /var/mnt is read-only and the pod would hang.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/storage.k8s.io/storageclass_v1.json
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-hostpath-sata
+  annotations:
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+      - name: StorageType
+        value: "hostpath"
+      - name: BasePath
+        value: "/var/mnt/local-path-sata/openebs"
+      - name: XFSQuota
+        enabled: "true"
+        data:
+          softLimitGrace: "0%"
+          hardLimitGrace: "0%"
+provisioner: openebs.io/local
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: kubernetes.io/hostname
+        values:
+          - talos-2jc-qux

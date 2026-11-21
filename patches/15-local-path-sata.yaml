@@ -1,0 +1,16 @@
+# Per machine, for talos-2jc-qux only (a SATA SSD next to the NVMe): a second local-path volume, at /var/mnt/local-path-sata. Another
+# machine with a SATA disk (talos-tba-msi) must not get it, so this is not a cluster-wide patch. Used by the StorageClass
+# openebs-hostpath-sata (k8s/infra/openebs-system/storageclass.yaml). Wipe the disk before the first install: it can hold leftovers.
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: local-path-sata
+provisioning:
+  diskSelector:
+    match: disk.transport == 'sata' && !system_disk
+  minSize: 100GB
+  maxSize: 240GB
+  grow: true
+filesystem:
+  type: xfs
+  # Needed by the OpenEBS hostpath provisioner's XFS quotas (the same as patches/03-local-path-provisioner.yaml).
+  projectQuotaSupport: true
