@@ -44,6 +44,8 @@ spec:
         - matchPattern: "**.github.com"
         - matchPattern: "**.githubusercontent.com"
         - matchPattern: "*.blob.core.windows.net"
+        # GitHub Pages: the CRD schema catalog (datreeio.github.io)
+        - matchName: datreeio.github.io
         # Runner updates, release assets, Git LFS, raw files (install scripts, schemas)
         - matchName: github-cloud.s3.amazonaws.com
         # GitHub Packages and ghcr.io (image pulls and pushes, trivy-db, the blob redirects)
