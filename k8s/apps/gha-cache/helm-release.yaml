@@ -43,6 +43,8 @@ spec:
       # 15 GiB of the 20Gi volume, least recently used entries are evicted first
       cacheMaxSizeBytes: 16106127360
       cacheCleanupOlderThanDays: 30
+      # logs every request; the first e2e upload through it stalls at 0 bytes, so see where it hangs (turn off afterwards)
+      debug: true
     persistentVolumeClaim:
       storage: 20Gi
       storageClassName: local-path
