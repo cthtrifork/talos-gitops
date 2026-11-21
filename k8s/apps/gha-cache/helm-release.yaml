@@ -50,6 +50,9 @@ spec:
     # 5 MB/s in this cluster (see helm-release-bootc-iso.yaml) and a cache upload from a runner on another node stalled
     nodeSelector:
       kubernetes.io/hostname: talos-11a-esj
+    # opt in to the Prometheus scrape (cluster-wide policy prometheus-scrape; PodMonitor in this app)
+    podLabels:
+      prometheus-scrape: "true"
     # the server does not talk to the Kubernetes API
     serviceAccount:
       automount: false

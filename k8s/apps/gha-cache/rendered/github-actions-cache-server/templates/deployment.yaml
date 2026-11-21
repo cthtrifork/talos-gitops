@@ -25,6 +25,7 @@ spec:
         app.kubernetes.io/name: github-actions-cache-server
         app.kubernetes.io/version: 10.0.1
         helm.sh/chart: github-actions-cache-server-2.0.1
+        prometheus-scrape: "true"
     spec:
       containers:
       - env:
