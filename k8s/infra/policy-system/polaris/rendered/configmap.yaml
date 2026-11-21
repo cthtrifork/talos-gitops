@@ -244,22 +244,17 @@ data:
         - memoryLimitsMissing
         - notReadOnlyRootFilesystem
       - controllerNames:
-        - virt-api
-        - virt-controller
-        - virt-exportproxy
-        namespace: kubevirt
-        rules:
-        - memoryLimitsMissing
-        - livenessProbeMissing
-      - controllerNames:
         - cdi-apiserver
         - cdi-deployment
         - cdi-uploadproxy
         namespace: cdi
         rules:
-        - memoryLimitsMissing
-        - livenessProbeMissing
         - notReadOnlyRootFilesystem
+      - controllerNames:
+        - cdi-deployment
+        namespace: cdi
+        rules:
+        - livenessProbeMissing
       - controllerNames:
         - virt-handler
         namespace: kubevirt
