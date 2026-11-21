@@ -43,9 +43,13 @@ spec:
       # 15 GiB of the 20Gi volume, least recently used entries are evicted first
       cacheMaxSizeBytes: 16106127360
       cacheCleanupOlderThanDays: 30
+    # Own claim (pvc.yaml) instead of the chart's: the old claim sits on another node, and a local-path volume cannot move
     persistentVolumeClaim:
-      storage: 20Gi
-      storageClassName: local-path
+      enabled: false
+    # Same node as the e2e runners (their podAffinity follows this pod): a pod-to-pod transfer between two nodes runs at 3 to
+    # 5 MB/s in this cluster (see helm-release-bootc-iso.yaml) and a cache upload from a runner on another node stalled
+    nodeSelector:
+      kubernetes.io/hostname: talos-11a-esj
     # the server does not talk to the Kubernetes API
     serviceAccount:
       automount: false
@@ -63,10 +67,15 @@ spec:
       runAsUser: 1000
     # the root filesystem is read-only, so scratch space is a volume (the cache and the database are on the data volume)
     extraVolumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: gha-cache-data-v2
       - name: tmp
         emptyDir:
           sizeLimit: 1Gi
     extraVolumeMounts:
+      - name: data
+        mountPath: /data
       - name: tmp
         mountPath: /tmp
     resources:

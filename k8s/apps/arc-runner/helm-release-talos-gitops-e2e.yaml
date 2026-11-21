@@ -41,6 +41,18 @@ spec:
     containerMode: {} # we use custom
     template:
       spec:
+        # Same node as the cache server: a pod-to-pod transfer between two nodes runs at 3 to 5 MB/s in this cluster (see
+        # helm-release-bootc-iso.yaml) and the cache upload of mise-action stalled. The server's volume is node-local, so it
+        # never moves. If that node has no room for a runner the job waits.
+        affinity:
+          podAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                namespaces:
+                  - gha-cache-system
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: github-actions-cache-server
         initContainers:
           - name: init-dind-externals
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
