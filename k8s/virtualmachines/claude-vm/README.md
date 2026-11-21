@@ -24,5 +24,4 @@ UEFI, pod network with an SSH LoadBalancer at 192.168.1.246.
   and the signing key (`claude-vm-signing-key`) are still done by hand over SSH.
 - **Egress:** open to `world` at the pod level, because the VM's own egress gateway enforces the host allowlist. The `claude-vm` namespace is
   exempt from the `deny-world-egress` Kyverno policy for this (`k8s/infra/image-policies/`); every other namespace is still checked.
-- **Update VMs button:** the poll listener only lets `192.168.1.138` (the old VM) in. From the cluster the VM arrives from a node or pod address, so
-  add it to `CiliumNetworkPolicy/claude-vm-upgrade` at cutover.
+- **Update VMs button:** the VM polls `vm-upgrade.portableinfo.cloud` (the MetalLB address 192.168.1.244); `CiliumNetworkPolicy/claude-vm-upgrade` lets the VM pod and the nodes in on 8081.
