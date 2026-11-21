@@ -104,7 +104,7 @@ spec:
           rules:
             dns:
               - matchPattern: "*"
-    # vulnerability feeds: the KEV lists in extensions.json, NVD, GitHub advisories and OSV, plus Go module and PyPI metadata
+    # vulnerability feeds: the KEV lists in extensions.json, NVD, GitHub advisories and OSV, plus Go module, PyPI and Maven Central metadata
     - toFQDNs:
         - matchName: www.cisa.gov
         - matchName: raw.githubusercontent.com
@@ -116,6 +116,7 @@ spec:
         - matchName: osv-vulnerabilities.storage.googleapis.com
         - matchName: proxy.golang.org
         - matchName: pypi.org
+        - matchName: repo1.maven.org
       toPorts:
         - ports:
             - port: "443"
