@@ -334,8 +334,7 @@ spec:
             - cpuRequestsMissing
             - memoryRequestsMissing
             - memoryLimitsMissing
-        # The upstream KubeVirt and CDI operator bundles in k8s/infra/kubevirt are not deployed (kustomization.yaml has no resources).
-        # The operator ClusterRole execs into pods by design. Revisit when they are deployed.
+        # The upstream KubeVirt operator ClusterRole execs into pods by design
         - controllerNames:
             - kubevirt-operator
           rules:
@@ -346,6 +345,35 @@ spec:
             - virt-operator
           rules:
             - memoryLimitsMissing
+            - notReadOnlyRootFilesystem
+        # The pods the operators create: their limits and probes are set through customizeComponents in post/kubevirt/kubevirt.yaml and
+        # cdi.yaml. What stays is what the operator's templates fix: the CDI pods run with a writable root filesystem, and
+        # cdi-deployment has only an exec readiness probe (its /tmp/ready file, which a liveness probe would turn into restarts)
+        - namespace: cdi
+          controllerNames:
+            - cdi-apiserver
+            - cdi-deployment
+            - cdi-uploadproxy
+          rules:
+            - notReadOnlyRootFilesystem
+        - namespace: cdi
+          controllerNames:
+            - cdi-deployment
+          rules:
+            - livenessProbeMissing
+        # virt-handler runs the VMs on the node: privileged, root, host PID and host paths (/dev/kvm, kubelet and device-plugin
+        # directories, the seccomp profile)
+        - namespace: kubevirt
+          controllerNames:
+            - virt-handler
+          rules:
+            - privilegeEscalationAllowed
+            - runAsPrivileged
+            - runAsRootAllowed
+            - insecureCapabilities
+            - hostPIDSet
+            - hostPathSet
+            - linuxHardening
             - notReadOnlyRootFilesystem
         # metrics-server binds the built-in roles system:auth-delegator (create tokenreviews and subjectaccessreviews, nothing
         # else) and extension-apiserver-authentication-reader. The CI audit does not have those roles and reports the bindings

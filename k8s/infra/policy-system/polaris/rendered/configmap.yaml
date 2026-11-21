@@ -244,6 +244,30 @@ data:
         - memoryLimitsMissing
         - notReadOnlyRootFilesystem
       - controllerNames:
+        - cdi-apiserver
+        - cdi-deployment
+        - cdi-uploadproxy
+        namespace: cdi
+        rules:
+        - notReadOnlyRootFilesystem
+      - controllerNames:
+        - cdi-deployment
+        namespace: cdi
+        rules:
+        - livenessProbeMissing
+      - controllerNames:
+        - virt-handler
+        namespace: kubevirt
+        rules:
+        - privilegeEscalationAllowed
+        - runAsPrivileged
+        - runAsRootAllowed
+        - insecureCapabilities
+        - hostPIDSet
+        - hostPathSet
+        - linuxHardening
+        - notReadOnlyRootFilesystem
+      - controllerNames:
         - metrics-server:system:auth-delegator
         - metrics-server-auth-reader
         namespace: kube-system
