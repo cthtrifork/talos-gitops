@@ -24,7 +24,7 @@ The weekly runs pick up new packages.
 
 | Image                   | Tool version                                                        | Image tag                | Release                       |
 | ----------------------- | ------------------------------------------------------------------- | ------------------------ | ----------------------------- |
-| `github-actions-runner` | actions/runner of the base image (`ARG RUNNER_VERSION`)             | `2.338.2-20261114.58`    | `runner-2.338.2-20261114.58`  |
+| `github-actions-runner` | actions/runner of the base image, the falcondev-oss fork (`ARG RUNNER_VERSION`) | `2.338.2-20261114.58`    | `runner-2.338.2-20261114.58`  |
 | `claude-runner`         | Claude Code (`ARG CLAUDE_CODE_VERSION`)                             | `2.1.311-20261114.58`    | `claude-2.1.311-20261114.58`  |
 | `fileserver`            | none: our own code, so `0.0.0`                                      | `0.0.0-20261114.58`      | `fileserver-0.0.0-20261114.58` |
 

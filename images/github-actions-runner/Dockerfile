@@ -1,7 +1,10 @@
 # Source: https://github.com/actions/runner/blob/main/images/Dockerfile
 # Source: https://github.com/actions/runner/blob/main/images/Dockerfile
-ARG RUNNER_VERSION=2.338.2@sha256:6d0b2d80d80f143f77dcb676e50920100bbb547e39e883454d57f45ab8c31300
-FROM ghcr.io/actions/actions-runner:${RUNNER_VERSION}
+# Base: the falcondev-oss fork of actions/runner, which tracks upstream release for release (same version tags) and keeps
+# CUSTOM_ACTIONS_RESULTS_URL when it is set, so a runner can use the in-cluster cache server (k8s/apps/gha-cache). Without that
+# variable it behaves like the upstream runner. https://github.com/falcondev-oss/github-actions-runner
+ARG RUNNER_VERSION=2.338.2@sha256:462ebdbc95fabf0bdf264ffe02ff5182665c6d99ac0f870b67d7f649c1ef1746
+FROM ghcr.io/falcondev-oss/actions-runner:${RUNNER_VERSION}
 
 # CUSTOM
 USER root
