@@ -59,9 +59,12 @@ jobs:
           curl -fsSLo talosctl "https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/talosctl-linux-amd64"
           sudo install -m 0755 talosctl /usr/local/bin/talosctl
           rm talosctl
+          # zot by its service name: the cluster nodes are containers inside this pod, and the zot-lb address (192.168.1.240) times out from there
+          zot=zot.registry-system.svc.cluster.local:5000
+          curl -fsS --cacert /usr/local/share/ca-certificates/private-ca.crt "https://${zot}/v2/" && echo " zot reachable"
           # the e2e cluster must not fall back to the upstream registries: a missing zot cache then fails the run
-          yq '(select(.kind == "RegistryMirrorConfig") | .skipFallback) = true' patches/11-zot-mirrors.yaml > "${RUNNER_TEMP}/zot-mirrors.yaml"
-          grep -c skipFallback "${RUNNER_TEMP}/zot-mirrors.yaml"
+          sed "s|192.168.1.240:5000|${zot}|g" patches/11-zot-mirrors.yaml |
+            yq '(select(.kind == "RegistryMirrorConfig") | .skipFallback) = true' > "${RUNNER_TEMP}/zot-mirrors.yaml"
           talosctl cluster create docker --name homelab --workers 0 \
             --config-patch @scripts/ci/e2e/talos.yaml \
             --config-patch "@${RUNNER_TEMP}/zot-mirrors.yaml"
