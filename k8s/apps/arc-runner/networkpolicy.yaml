@@ -161,6 +161,15 @@ spec:
         - ports:
             - port: "8082"
               protocol: TCP
+    # the GitHub Actions cache server (k8s/apps/gha-cache), which the e2e runners point ACTIONS_RESULTS_URL at
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: gha-cache-system
+            k8s:app.kubernetes.io/name: github-actions-cache-server
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
     # zot, the cluster's registry (image pushes and pulls; the zot-lb address is translated to the pod)
     - toEndpoints:
         - matchLabels:
