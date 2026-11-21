@@ -7,6 +7,7 @@ on:
       - k8s/**
       - scripts/ci/e2e/**
       - patches/11-zot-mirrors.yaml
+      - mise.toml
       - .github/workflows/e2e.yaml
   push:
     branches: [ main ]
@@ -14,14 +15,13 @@ on:
       - k8s/**
       - scripts/ci/e2e/**
       - patches/11-zot-mirrors.yaml
+      - mise.toml
       - .github/workflows/e2e.yaml
 
 permissions:
   contents: read
 
 env:
-  CILIUM_CLI_VERSION: v0.20.3 # renovate: datasource=github-releases depName=cilium/cilium-cli
-  TALOS_VERSION: v1.13.0 # renovate: datasource=github-releases depName=siderolabs/talos
   CILIUM_VERSION: v1.20.5 # renovate: datasource=github-releases depName=cilium/cilium
   #INTERACTIVE: false
 
@@ -39,26 +39,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Setup yq
-        uses: fluxcd/pkg/actions/yq@e270089eb56404fcf3822b96bad2f423e9f45862 # main
-      - name: Setup kubeconform
-        uses: fluxcd/pkg/actions/kubeconform@e270089eb56404fcf3822b96bad2f423e9f45862 # main
-      - name: Setup kustomize
-        uses: fluxcd/pkg/actions/kustomize@e270089eb56404fcf3822b96bad2f423e9f45862 # main
+      - name: Install tools
+        uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
+        with:
+          install_args: "yq kubeconform kustomize helm aqua:controlplaneio-fluxcd/flux-operator aqua:cilium/cilium-cli talosctl"
       - name: Build Flux Kustomization paths
         timeout-minutes: 3
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
-      - name: Setup Helm
-        uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
-      - name: Setup Flux Operator CLI
-        uses: controlplaneio-fluxcd/flux-operator/actions/setup@712a9026cd99efdd885d73ed31d0775a2dd2873a # v0.63.0
       - name: Create Talos cluster in Docker
         timeout-minutes: 8
         run: |
-          # nodes pull through the cluster zot (RegistryMirrorConfig from the Talos patches), the origin is the fallback
-          curl -fsSLo talosctl "https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/talosctl-linux-amd64"
-          sudo install -m 0755 talosctl /usr/local/bin/talosctl
-          rm talosctl
           # The nodes are containers in the pod's Docker: Cilium translates the zot-lb address and the service address only for
           # sockets in the pod's own network namespace, so both time out from a node. Relay through this pod instead:
           # the node maps the zot service name to the Docker gateway (scripts/ci/e2e/talos.yaml), the TLS certificate still matches.
@@ -73,17 +63,6 @@ jobs:
             --config-patch "@${RUNNER_TEMP}/zot-mirrors.yaml"
           talosctl kubeconfig --force --nodes 10.5.0.2
           kubectl get nodes
-      - name: Install cilium CLI
-        timeout-minutes: 2
-        run: |
-          CLI_ARCH=amd64
-          if [ "$(uname -m)" = "aarch64" ]; then CLI_ARCH=arm64; fi
-          curl -sLo cilium-linux-${CLI_ARCH}.tar.gz https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz
-          sudo tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
-          rm cilium-linux-${CLI_ARCH}.tar.gz
-        env:
-          CILIUM_CLI_VERSION: ${{env.CILIUM_CLI_VERSION}}
-
       - name: Install latest cilium
         run: |
          helm repo add cilium https://helm.cilium.io/
@@ -93,8 +72,9 @@ jobs:
           --set hostPort.enabled=true \
           --set nodePort.enabled=true \
           --set ipam.mode=kubernetes \
+          --set kubeProxyReplacement=true \
           --set k8sServiceHost=localhost \
-         --set k8sServicePort=7445 \
+          --set k8sServicePort=7445 \
           --set encryption.enabled=true \
           --set encryption.type=wireguard \
           --set operator.replicas=1 \
@@ -104,7 +84,6 @@ jobs:
           --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
           --set cgroup.autoMount.enabled=false \
           --set cgroup.hostRoot=/sys/fs/cgroup
-          #--set kubeProxyReplacement=true \
         env:
           CILIUM_VERSION: ${{env.CILIUM_VERSION}}
 
@@ -116,12 +95,12 @@ jobs:
           cilium status --wait --interactive="${interactive}" --wait-duration="${wait}" # will exit when ready
 
       - name: Install latest flux-operator
-        timeout-minutes: 6
+        timeout-minutes: 3
         run: |
           helm install flux-operator oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator \
           --namespace flux-system \
           --create-namespace \
-          --wait
+          --wait --timeout 2m
 
       - name: Deploy flux instance
         run: |
@@ -209,9 +188,7 @@ jobs:
         run: |
           talosctl --nodes 10.5.0.2 dmesg | tail -50 || true
           kubectl -n kube-system logs ds/cilium --all-containers --tail=30 || true
-          kubectl -n kube-system logs deploy/cilium-operator --tail=30 || true
-          kubectl -n flux-system logs deploy/flux-operator --tail=40 --previous || kubectl -n flux-system logs deploy/flux-operator --tail=40 || true
-          kubectl -n kube-system logs deploy/coredns --tail=20 || true
+          kubectl -n flux-system logs deploy/flux-operator --tail=40 --previous || true
           kubectl get pods -A
           kubectl get events -A --sort-by=.lastTimestamp | tail -50
           kubectl -n flux-system get all

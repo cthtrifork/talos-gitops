@@ -101,11 +101,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Setup Flux CLI
+      - name: Install tools
         if: ${{ steps.select.outputs.none != 'true' }}
-        uses: fluxcd/flux2/action@1816c594f1c4e37df419638f4b69a8ab39e0ed6b # main
+        uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
-          token: ${{ github.token }}
+          install_args: "yq helm kustomize flux2"
 
       - name: Render manifests
         if: ${{ steps.select.outputs.none != 'true' }}
