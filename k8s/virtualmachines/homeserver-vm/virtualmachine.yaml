@@ -36,6 +36,18 @@ spec:
             - name: rootdisk
               disk:
                 bus: virtio
+            # The serials show up in the guest as /dev/disk/by-id/virtio-workspace and virtio-home (mounted by the cloud-init config below)
+            - name: workspace
+              disk:
+                bus: virtio
+              serial: workspace
+            - name: home
+              disk:
+                bus: virtio
+              serial: home
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
           interfaces:
             - name: default
               masquerade: {}
@@ -55,6 +67,49 @@ spec:
         - name: rootdisk
           dataVolume:
             name: homeserver-vm-rootdisk
+        - name: workspace
+          dataVolume:
+            name: homeserver-vm-workspace
+        - name: home
+          dataVolume:
+            name: homeserver-vm-home
+        # What differs per deployment lives here, not in the image (homeserver-bootc has an inert cloud-init: write_files and runcmd from a NoCloud disk).
+        # The home disk is /var/home and the workspace disk is mounted inside it. The first boot already made the account on the root disk, so runcmd formats
+        # the blank disks, copies that home over (cp -an, nothing already there is replaced) and then mounts them; fstab mounts them on every later boot.
+        # Needs an image with cloud-init: on an older one the disk is ignored and the VM boots as before.
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              write_files:
+                - path: /etc/fstab
+                  append: true
+                  content: |
+                    /dev/disk/by-id/virtio-home       /var/home                      xfs  defaults,nofail,x-systemd.growfs,x-systemd.device-timeout=10s                   0 0
+                    /dev/disk/by-id/virtio-workspace  /var/home/caspertdk/workspace  xfs  defaults,nofail,x-systemd.growfs,x-systemd.mkdir,x-systemd.device-timeout=10s  0 0
+                - path: /var/lib/homeserver-disks.sh
+                  permissions: "0755"
+                  content: |
+                    #!/bin/sh
+                    set -eu
+                    home=/dev/disk/by-id/virtio-home
+                    workspace=/dev/disk/by-id/virtio-workspace
+                    for dev in "$home" "$workspace"; do
+                      [ -b "$dev" ] || { echo "$dev is missing, skipped" >&2; exit 0; }
+                      blkid "$dev" >/dev/null 2>&1 || mkfs.xfs -q "$dev"
+                    done
+                    mkdir -p /run/home-seed
+                    mount "$home" /run/home-seed
+                    cp -an /var/home/. /run/home-seed/
+                    umount /run/home-seed
+                    systemctl daemon-reload
+                    mount /var/home
+                    mkdir -p /var/home/caspertdk/workspace
+                    mount /var/home/caspertdk/workspace
+                    chown 1010:1010 /var/home/caspertdk/workspace
+                    restorecon -RF /var/home || true
+              runcmd:
+                - [/var/lib/homeserver-disks.sh]
   dataVolumeTemplates:
     - metadata:
         name: homeserver-vm-rootdisk
@@ -72,3 +127,30 @@ spec:
           resources:
             requests:
               storage: 110Gi # the disk is 100 GiB plus boot partitions; keep in step with config-homeserver.toml in homeserver-bootc
+    # Like claude-rc (k8s/apps/claude-system/pvc.yaml): scratch that may be lost at any time, and the home directory that may be backed up later.
+    # Blank disks, so the image has to format them on first use (homeserver-bootc). They are separate from the rootdisk, which `bootc upgrade` and a re-import
+    # may replace.
+    - metadata:
+        name: homeserver-vm-workspace
+      spec:
+        source:
+          blank: {}
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: lvm-fast
+          resources:
+            requests:
+              storage: 50Gi
+    - metadata:
+        name: homeserver-vm-home
+      spec:
+        source:
+          blank: {}
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: lvm-fast
+          resources:
+            requests:
+              storage: 10Gi
