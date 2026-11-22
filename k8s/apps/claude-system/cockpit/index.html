@@ -271,9 +271,9 @@ function stripChips(d) {
     else add("ok", "Flux ready", "p-flux-reconciliation");
   }
   if (d.polaris) add(polarisState(d.polaris.score), `Polaris ${d.polaris.score}/100`, "p-polaris-score");
-  if (d.disk?.length) {
-    const m = Math.max(0, ...d.disk.map((n) => n.used_pct));
-    add(usedState(m, 85), `Disk ${m}%`, "p-disk-volume-groups");
+  if (d.pvcs?.length) {
+    const m = Math.max(0, ...d.pvcs.map((n) => n.used_pct));
+    add(usedState(m, 85), `Volumes ${m}%`, slug("Storage"));
   }
   if (d.drops_total !== undefined) add(d.drops_total > 0 ? "warn" : "ok", `${d.drops_total} packets denied`, "p-dropped-traffic");
   if (d.github) {
@@ -421,20 +421,21 @@ const PolarisPanel = (d) => {
     ${Muted(`Audited ${String(x.audit_time).replace("T", " ").replace("Z", " UTC")}`)}`);
 };
 
-const DISK_SHOW = 60; // volume groups under this percentage are only counted
-const DiskPanel = (d) => {
-  const title = "Disk, volume groups (allocated)";
-  if (!d.disk) return Unavailable({ title, source: "Prometheus · lvm_vg_*", d });
-  const max = Math.max(0, ...d.disk.map((n) => n.used_pct));
-  const hot = d.disk.filter((n) => n.used_pct >= DISK_SHOW).sort((a, b) => b.used_pct - a.used_pct);
-  const rest = d.disk.length - hot.length;
-  const nodes = (n) => n + (n === 1 ? " volume group" : " volume groups");
-  return Panel({ title, state: usedState(max, 85), text: max >= 75 ? "volume group over " + (max >= 85 ? 85 : 75) + "% allocated" : "ok", compact: !hot.length, d }, html`
+const PVC_SHOW = 60; // volumes under this percentage are only counted
+const StoragePanel = (d) => {
+  const title = "Storage";
+  if (!d.pvcs) return Unavailable({ title, source: "Prometheus · kubelet_volume_stats_*", d });
+  const sorted = d.pvcs.slice().sort((a, b) => b.used_pct - a.used_pct);
+  const max = sorted.length ? sorted[0].used_pct : 0;
+  const hot = sorted.filter((n) => n.used_pct >= PVC_SHOW);
+  const count = d.pvc_count ?? d.pvcs.length;
+  const text = max >= 75 ? "volume over " + (max >= 85 ? 85 : 75) + "% full" : "ok";
+  return Panel({ title, state: usedState(max, 85), text, compact: !hot.length, d }, html`
     ${!hot.length
-      ? Muted(d.disk.length ? `All ${nodes(d.disk.length)} under ${DISK_SHOW}% allocated, highest ${max}%` : "No volume groups reported.")
-      : html`<div class="limit">${hot.map((n) => html`<div class="limit-row"><span>${n.node}</span><span class="num"><strong>${n.used_pct}%</strong> allocated</span></div>${Bar({ label: `${n.node}, ${n.used_pct} percent allocated`, parts: [{ pct: n.used_pct, color: usedColor(n.used_pct, 85) }] })}`)}</div>
-        ${rest > 0 ? Muted(`${rest} ${rest === 1 ? "other volume group" : "other volume groups"} under ${DISK_SHOW}%`) : nothing}
-    ${Muted("Allocated is the size of the volumes: a volume reserves it from the start, so the data written is lower.")}`}`);
+      ? Muted(count ? `All ${count} volumes under ${PVC_SHOW}% full, fullest ${max}%${sorted.length ? " (" + sorted[0].name + ")" : ""}` : "No volumes reported.")
+      : html`<div class="limit">${hot.map((n) => html`<div class="limit-row"><span>${n.name}</span><span class="num"><strong>${n.used_pct}%</strong> full</span></div>${Bar({ label: `${n.name}, ${n.used_pct} percent full`, parts: [{ pct: n.used_pct, color: usedColor(n.used_pct, 85) }] })}`)}</div>
+        ${count > hot.length ? Muted(`${count - hot.length} other volumes under ${PVC_SHOW}% full`) : nothing}`}
+    ${Muted("Volumes in block mode (VM disks) report no usage.")}`);
 };
 
 const PrRows = (items) =>
@@ -687,7 +688,7 @@ class CockpitApp extends LitElement {
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
       ${d ? html`${Strip(d)}
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
-        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${DiskPanel(d)}`)}
+        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${StoragePanel(d)}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;
   }

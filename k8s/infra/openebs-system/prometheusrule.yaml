@@ -43,3 +43,22 @@ spec:
           annotations:
             summary: The volume group {{ $labels.name }} on {{ $labels.instance }} is missing a disk
             description: "{{ $value }} physical volume(s) of the group are not found: a disk is gone or unplugged (the USB disks on talos-11a-esj and talos-vt2-qp8 are the likely ones). Volumes on it fail without redundancy."
+    - name: pvc-usage
+      rules:
+        # kubelet_volume_stats_* exists for the filesystem volumes of the CSI driver (a Block volume, like a VM disk, has none).
+        - alert: PersistentVolumeAlmostFull
+          expr: 100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 85
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: The volume {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is {{ $value | printf "%.0f" }}% full
+            description: "A PVC is a logical volume of exactly its requested size (storage-plan.md): when it is full the workload cannot write. Expand it online by raising the request (the classes allow it)."
+        - alert: PersistentVolumeCriticallyFull
+          expr: 100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 95
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: The volume {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is {{ $value | printf "%.0f" }}% full
+            description: "Raise the PVC request now (online expansion), or clean it up."
