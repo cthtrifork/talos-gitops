@@ -182,14 +182,32 @@ spec:
               path: /dev
               type: Directory
           - name: work
-            emptyDir:
-              sizeLimit: 32Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 32Gi
           - name: tmp
-            emptyDir:
-              sizeLimit: 20Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 20Gi
           - name: var-tmp
-            emptyDir:
-              sizeLimit: 30Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 30Gi
           - name: container-storage-rootful
             ephemeral:
               volumeClaimTemplate:

@@ -169,16 +169,28 @@ spec:
                 - key: ca-bundle.crt
                   path: ca.crt
           - name: work
-            emptyDir:
-              sizeLimit: 10Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 10Gi
           - name: dind-sock
             emptyDir: {}
           - name: dind-externals
             emptyDir:
               sizeLimit: 2Gi
           - name: docker-lib
-            emptyDir:
-              sizeLimit: 20Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 20Gi
     listenerTemplate:
       spec:
         securityContext:

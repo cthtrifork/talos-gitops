@@ -269,8 +269,14 @@ spec:
               path: /dev
               type: Directory
           - name: work
-            emptyDir:
-              sizeLimit: 32Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 32Gi
           - name: dind-sock
             emptyDir: {}
           - name: dind-externals
@@ -278,12 +284,23 @@ spec:
               sizeLimit: 2Gi
           # Docker-in-Docker transient image/layer storage.
           - name: docker-lib
-            emptyDir:
-              sizeLimit: 32Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 32Gi
           - name: tmp-memory
-            emptyDir:
-              #medium: Memory
-              sizeLimit: 20Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 20Gi
           - name: container-storage-rootful
             persistentVolumeClaim:
               claimName: container-storage-rootful
