@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/version: v2.5.0
+    prometheus-scrape: "true"
+  name: garage-headless
+  namespace: ate-system
+spec:
+  clusterIP: None
+  ports:
+  - name: s3-api
+    port: 3900
+    protocol: TCP
+    targetPort: s3-api
+  - name: s3-web
+    port: 3902
+    protocol: TCP
+    targetPort: s3-web
+  - name: rpc
+    port: 3901
+    protocol: TCP
+    targetPort: rpc
+  - name: admin
+    port: 3903
+    protocol: TCP
+    targetPort: admin
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/component: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/name: garage
+  type: ClusterIP

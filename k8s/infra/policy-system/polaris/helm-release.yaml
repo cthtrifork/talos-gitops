@@ -364,6 +364,36 @@ spec:
             - cpuRequestsMissing
             - memoryRequestsMissing
             - memoryLimitsMissing
+        # Agent Substrate (the charts under k8s/apps/ate-system): requests, limits, privilege escalation, capabilities, seccomp and the router's and egress gateway's
+        # liveness probes are set by chart values and postRenderers in the HelmReleases. What is left, and why it is not fixed there:
+        # the Go services have a writable root filesystem, because nothing says whether they write to it (a read-only one is a change to try on a running install)
+        - controllerNames:
+            - ate-api-server
+            - ate-idp-server
+          rules:
+            - notReadOnlyRootFilesystem
+        # no probes: ate-controller declares a health port but I found nothing that binds it, and the pod certificate controller has no health endpoint
+        - controllerNames:
+            - ate-controller
+            - podcertificate-controller
+          rules:
+            - livenessProbeMissing
+            - readinessProbeMissing
+        # the router and egress gateway (agentgateway): the image's user and what it writes are not known, so runAsNonRoot and readOnlyRootFilesystem are not set.
+        # The egress gateway holds the key of the TLS interception CA, so this is the one to harden first
+        - controllerNames:
+            - atenet-router
+            - atenet-egress
+          rules:
+            - runAsRootAllowed
+            - notReadOnlyRootFilesystem
+        # atelet restores actors on the node: root, with host paths for the actor state (/var/lib/ate), the kubelet device plugins and /dev
+        - controllerNames:
+            - atelet
+          rules:
+            - runAsRootAllowed
+            - hostPathSet
+            - notReadOnlyRootFilesystem
         # The upstream KubeVirt operator ClusterRole execs into pods by design
         - controllerNames:
             - kubevirt-operator

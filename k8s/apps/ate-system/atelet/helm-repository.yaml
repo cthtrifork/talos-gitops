@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/source.toolkit.fluxcd.io/ocirepository_v1beta2.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: substrate-atelet
+  namespace: ate-system
+spec:
+  interval: 12h
+  url: oci://ghcr.io/kagent-dev/substrate/helm/substrate-atelet
+  ref:
+    tag: "1.0.1"
+    digest: sha256:233e1ed8f74a202abca851c43adee88849482d8ce37760b8be65f4d96fbc8ca3

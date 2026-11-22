@@ -1,0 +1,50 @@
+# atelet, the node supervisor: a DaemonSet that restores and suspends actors on its node (root, hostPath on /var/lib/ate, the kubelet's plugin directories and
+# /dev). Its own release, installed before the control plane: Substrate's version skew policy upgrades atelet before ate-api-server.
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: substrate-atelet
+  namespace: ate-system
+spec:
+  interval: 30m
+  releaseName: substrate-atelet
+  timeout: 10m
+  dependsOn:
+    - name: substrate-crds
+    - name: substrate-podcert
+  chartRef:
+    kind: OCIRepository
+    name: substrate-atelet
+  values:
+    # The preview gates must match the control plane's: kagent configures snapshot storage per Harness and bootstraps with a golden egress policy
+    preview:
+      - PerTemplateSnapshotLocation
+      - GoldenEgressPolicy
+    # Metrics only, pushed to the OTLP receiver of Prometheus (../../../infra/kube-prometheus-stack): a signal's own endpoint is used as it is, so it carries the receiver's path.
+    # Traces and logs stay off (actor events go to stdout). The Go SDK sends http/protobuf, which is what Prometheus accepts.
+    otel:
+      traces:
+        enabled: false
+      logs:
+        enabled: false
+      metrics:
+        enabled: true
+        endpoint: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
+    # Snapshots go to Garage (../garage/). The Secret has AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY (../externalsecrets.yaml)
+    objectStore:
+      backend: s3
+      endpoint: http://garage.ate-system.svc:3900
+      region: garage
+      pathStyle: true
+      credentialsSecret: garage-aws-credentials
+    # The chart sets a request but no limit on the node object-store plugin (Polaris wants a memory limit). Not measured: it streams snapshots, so raise it if it is OOMKilled
+    objectStorePlugin:
+      node:
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+    # Talos nodes have no kubelet credential provider (GKE's is at /home/kubernetes/bin), so the chart's host mounts for one stay off

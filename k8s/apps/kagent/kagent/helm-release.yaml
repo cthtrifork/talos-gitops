@@ -1,0 +1,116 @@
+# kagent: the controller, the UI, the default ModelConfig (Claude), the Harnesses (kagent and claude) and the WorkerPool they run on. See ../README.md.
+# Not set, and worth a look: the chart's own resource requests and limits for the controller and UI, and its UI authentication (the default mode is insecure, so the UI
+# is not exposed anywhere: reach it with kubectl port-forward).
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kagent
+  namespace: kagent
+spec:
+  interval: 30m
+  releaseName: kagent
+  timeout: 10m
+  dependsOn:
+    - name: kagent-crds
+  chartRef:
+    kind: OCIRepository
+    name: kagent
+  values:
+    global:
+      # Namespaced Roles instead of ClusterRoles, and a watch scoped to this namespace (the chart derives both from this one value)
+      watchNamespaces:
+        - kagent
+    providers:
+      default: anthropic
+      anthropic:
+        model: claude-haiku-5-5
+        # The Secret is the SOPS file you add (README.md): the chart only references it, so no key is in the values
+        apiKeySecretRef: kagent-anthropic
+        apiKeySecretKey: ANTHROPIC_API_KEY
+    controller:
+      # Prometheus takes explicit-bucket histograms only (native histograms are off), and kagent's default is exponential buckets
+      env:
+        - name: OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION
+          value: explicit_bucket_histogram
+      # mTLS to the Substrate API server and router with the pod's own certificate (the service DNS and pod identity signers of ../../ate-system/podcert)
+      substrateClientCertificate:
+        enabled: true
+    config:
+      # Metrics only, to the OTLP receiver of Prometheus (../../../infra/kube-prometheus-stack), for the controller and for the agent runtimes (the Claude harness reports Claude Code's metrics).
+      # A signal that is not listed is off. The runtimes reach Prometheus through the egress gateway: kagent adds the endpoint's origin to their egress, and ../../kagent-agents/egresspolicy-prometheus.yaml grants it.
+      telemetry:
+        metrics:
+          endpoint: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
+          protocol: http/protobuf
+      runtimeDefaults:
+        telemetry:
+          metrics:
+            endpoint: http://prometheus-operated.kube-prometheus-stack-system.svc:9090/api/v1/otlp/v1/metrics
+            protocol: http/protobuf
+      substrate:
+        apiEndpoint: dns:///api.ate-system.svc:443
+        routerUrl: https://atenet-router.ate-system.svc:443
+        # the substrate chart's default issuer for actor JWTs
+        actorJwtIssuer: https://idp.ate-system.svc
+    # The pool the Harnesses run on, in this namespace, with the labels kagent selects workers by
+    ui:
+      service:
+        # The Omni service exposer publishes the UI behind the Omni login (like the other UIs in this repo); the NetworkPolicy lets in the host network only
+        annotations:
+          omni-kube-service-exposer.sidero.dev/icon: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iIzViNGJkYiIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMi41Ii8+PHBhdGggZD0iTTEyIDR2M00xMiAxN3YzTTQgMTJoM00xNyAxMmgzIi8+PC9nPjwvc3ZnPg==
+          omni-kube-service-exposer.sidero.dev/label: "kagent"
+          omni-kube-service-exposer.sidero.dev/port: "50098"
+          omni-kube-service-exposer.sidero.dev/prefix: kagent
+    substrateWorkerPool:
+      create: true
+      name: kagent-default
+      replicas: 2
+      sandboxClass: gvisor
+      workerImage: ghcr.io/kagent-dev/substrate/ateworker-gvisor:v1.0.1@sha256:97ca74cd2cabc3fd28ac67790ed3b1f25b7b4247709a316ff374a428822c420e
+    harnesses:
+      enabled: true
+      # Garage's bucket; per-Harness snapshot locations need the PerTemplateSnapshotLocation gate, which ../../ate-system sets
+      snapshotLocation: s3://ate-snapshots/kagent/
+      codex:
+        enabled: false
+    # The built-in tool server runs with cluster-admin (a ClusterRole on every resource and verb), so it is off. The test agent has no tools.
+    kagent-tools:
+      enabled: false
+  # The chart has no liveness probe value for the controller or the UI (Polaris asks for one). Both already serve /health on the http port for their readiness and startup
+  # probes, so the liveness probe is the same endpoint, with a long period and three misses allowed. One postRenderers entry: the render workflow takes the first only.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: kagent-controller
+            patch: |
+              - op: test
+                path: /spec/template/spec/containers/0/name
+                value: controller
+              - op: add
+                path: /spec/template/spec/containers/0/livenessProbe
+                value:
+                  httpGet:
+                    path: /health
+                    port: http
+                  initialDelaySeconds: 30
+                  periodSeconds: 30
+                  failureThreshold: 3
+          - target:
+              kind: Deployment
+              name: kagent-ui
+            patch: |
+              - op: test
+                path: /spec/template/spec/containers/0/name
+                value: ui
+              - op: add
+                path: /spec/template/spec/containers/0/livenessProbe
+                value:
+                  httpGet:
+                    path: /health
+                    port: http
+                  initialDelaySeconds: 30
+                  periodSeconds: 30
+                  failureThreshold: 3

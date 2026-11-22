@@ -1,0 +1,39 @@
+apiVersion: api.kagent.dev/v1alpha3
+kind: Harness
+metadata:
+  labels:
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kagent
+    app.kubernetes.io/part-of: kagent
+    app.kubernetes.io/version: 1.0.1
+    helm.sh/chart: kagent-1.0.1
+  name: kagent-default
+  namespace: kagent
+spec:
+  kagent: {}
+  substrate:
+    snapshotPolicy:
+      location: s3://ate-snapshots/kagent/
+    workerPoolRef:
+      name: kagent-default
+---
+apiVersion: api.kagent.dev/v1alpha3
+kind: Harness
+metadata:
+  labels:
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kagent
+    app.kubernetes.io/part-of: kagent
+    app.kubernetes.io/version: 1.0.1
+    helm.sh/chart: kagent-1.0.1
+  name: claude-default
+  namespace: kagent
+spec:
+  claude: {}
+  substrate:
+    snapshotPolicy:
+      location: s3://ate-snapshots/kagent/
+    workerPoolRef:
+      name: kagent-default

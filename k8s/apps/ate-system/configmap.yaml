@@ -1,0 +1,27 @@
+# The one ConfigMap the substrate chart mounts but does not create: ate-api-server mounts ate-api-authentication. The chart renders its own config and
+# environment ConfigMaps.
+---
+# The JWT issuers ate-api-server trusts for its clients (kubectl-ate, the demos): Kubernetes' own service account issuer. The controller, atelet and the
+# routers authenticate with pod certificates instead and do not need it.
+#
+# ate-api-server verifies a token by fetching the issuer's discovery document and keys. certificateAuthorityFile and discoveryTokenFile are the pod's own service
+# account CA and token, which it needs to read them from the API server; `ate-setup` adds them only when the issuer is exactly https://kubernetes.default.svc, so they are
+# set by hand here (agent-substrate/substrate#3326, fix in #3803).
+#
+# The issuer has to be reachable from the pod. Talos' default is the Omni endpoint of the cluster, which pods cannot reach, so patches/14-service-account-issuer.yaml makes
+# https://kubernetes.default.svc the issuer. Until that patch is applied to the control plane nodes, tokens still carry the old issuer and every one is rejected here; after it,
+# new tokens carry the new one. Check with `kubectl create token default -n default --audience api.ate-system.svc` and read the iss claim.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ate-api-authentication
+  namespace: ate-system
+data:
+  authentication.yaml: |
+    jwtProviders:
+    - name: kubernetes
+      issuer: https://kubernetes.default.svc
+      audiences:
+      - api.ate-system.svc
+      certificateAuthorityFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      discoveryTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token

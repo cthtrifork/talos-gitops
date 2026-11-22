@@ -43,6 +43,8 @@ jobs:
         run: actionlint -color -ignore 'SC2086' -ignore 'SC2129' -ignore 'constant expression "false"'
       - name: Secrets are SOPS-encrypted
         run: ./scripts/ci/check-secrets-encrypted.sh k8s
+      - name: Claude agents reach the same hosts as claude-rc
+        run: ./scripts/ci/check-claude-egress-allowlist.sh
   manifests:
     runs-on: ubuntu-latest
     steps:

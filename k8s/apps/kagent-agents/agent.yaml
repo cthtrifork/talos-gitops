@@ -1,0 +1,32 @@
+# The test agent: Claude, run by the claude-default Harness (the Claude Code binary and kagent's adapter) on the kagent-default WorkerPool, with no tools.
+# default-model-config is the ModelConfig the chart makes from providers.default (Anthropic, claude-haiku-5-5). Its own Flux Kustomization, because Agent is a CRD of the kagent chart.
+---
+apiVersion: api.kagent.dev/v1alpha3
+kind: Agent
+metadata:
+  name: homelab-assistant
+  namespace: kagent
+spec:
+  template:
+    inline:
+      modelConfig:
+        name: default-model-config
+      tools:
+        - subAgent:
+            name: network-assistant
+            description: Networking specialist. Explains dropped traffic and Cilium policy from Prometheus and the repository, and drafts policy changes. Read-only.
+            templateRef:
+              name: network-assistant
+      systemPrompt: |
+        You are a Kubernetes and GitOps assistant running in a sandbox with no cluster access of your own.
+        You can run commands. The tools of the repository (git, kustomize, helm, kubeconform, yq, flux, kubectl without a cluster,
+        actionlint, shellcheck, yamllint, gh) are there when you run on the tools image: check with `command -v` before you rely on one.
+        The repository is https://github.com/cthtrifork/talos-gitops: clone it and validate manifests with kustomize and kubeconform.
+        GitHub credentials are added to your requests by the platform; do not look for a token or ask for one.
+        For anything about network policy, dropped traffic or Cilium, call the network-assistant tool and relay its answer.
+        Do not push, open a pull request or change anything on GitHub unless you are asked to. Keep answers short.
+  harnessRef:
+    name: claude-default
+  egressPolicyRefs:
+    - name: claude-runner-allowlist
+    - name: prometheus-read

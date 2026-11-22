@@ -1,0 +1,279 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: atenet-router
+  name: atenet-router
+  namespace: ate-system
+---
+apiVersion: v1
+data:
+  config.yaml: |
+    # yaml-language-server: $schema=https://agentgateway.dev/schema/config
+    config:
+      statsAddr: 0.0.0.0:15020
+      # Actor sandboxes behind a worker IP are replaced between requests. Do
+      # not retain an idle connection that may belong to the previous actor.
+      backend:
+        poolMaxSize: 0
+        # Actor CONNECT authorities resolve through the worker atunnel.
+        allowDynamicLoopback: true
+    frontendPolicies:
+      networkAuthorization:
+        rules:
+        - allow: >-
+            source.spiffeId in ["spiffe://cluster.local/ns/kagent/sa/kagent-controller","spiffe://cluster.local/ns/ate-system/sa/atenet-client"]
+
+    backends:
+    - name: dynamic
+      dynamic: {}
+      policies:
+        http:
+          version: HTTP/1.1
+        backendTunnel:
+          proxy:
+            backend: /dynamic
+          mode: connect
+          policies:
+            backendTLS:
+              cert: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+              key: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+              root: /run/podidentity.podcert.ate.dev/trust-bundle.pem
+              insecureHost: true
+
+    gateways:
+      https:
+        port: 8443
+        protocol: HTTPS
+        tls:
+          cert: /run/servicedns.podcert.ate.dev/credential-bundle.pem
+          key: /run/servicedns.podcert.ate.dev/credential-bundle.pem
+          root: /run/podidentity.podcert.ate.dev/trust-bundle.pem
+
+    routes:
+    - name: substrate-actors
+      gateways:
+      - https
+      matches:
+      - path:
+          pathPrefix: /
+      policies: &substrate-ingress
+        # Reject duplicates in both CONNECT and inner request headers, even
+        # when actor selection uses only one of those header maps.
+        directResponse:
+          conditional:
+          - condition: >-
+              ('ate-target-actor' in source.connectHeaders &&
+               size(source.connectHeaders.raw()['ate-target-actor']) != 1) ||
+              ('ate-target-actor' in request.headers &&
+               size(request.headers.raw()['ate-target-actor']) != 1)
+            status: 404
+            body: Invalid ate-target-actor header
+        substrateIngress:
+          host: api.ate-system.svc:443
+          requestParking:
+            budget: "60s"
+          # AgentGateway only uses atunnel's CONNECT listener.
+          connectTargetPort: 8443
+          policies:
+            http:
+              requestTimeout: "60s"
+            backendTLS:
+              cert: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+              key: /run/podidentity.podcert.ate.dev/credential-bundle.pem
+              root: /run/servicedns-ca/trust-bundle.pem
+      backends:
+      - backend: /dynamic
+    - name: substrate-actors-grpc
+      gateways:
+      - https
+      matches: &grpc-matches
+      - method: POST
+        headers:
+        - name: content-type
+          value:
+            regex: '(?i)^application/grpc([+;].*)?$'
+      policies: *substrate-ingress
+      backends: &grpc-backends
+      - backend: /dynamic
+        policies:
+          http:
+            version: HTTP/2.0
+
+    # Terminate client CONNECT before internal HTTP routing.
+    binds:
+    - port: 8444
+      tunnelProtocol: connect
+      listeners:
+      - protocol: HTTPS
+        tls:
+          cert: /run/servicedns.podcert.ate.dev/credential-bundle.pem
+          key: /run/servicedns.podcert.ate.dev/credential-bundle.pem
+          root: /run/podidentity.podcert.ate.dev/trust-bundle.pem
+        routes: []
+    - mode: internal
+      listeners:
+      - protocol: HTTP
+        routes:
+        - name: substrate-actors-tunneled
+          matches:
+          - path:
+              pathPrefix: /
+          policies: *substrate-ingress
+          backends:
+          - backend: /dynamic
+        - name: substrate-actors-tunneled-grpc
+          matches: *grpc-matches
+          policies: *substrate-ingress
+          backends: *grpc-backends
+kind: ConfigMap
+metadata:
+  name: atenet-router-agentgateway-config
+  namespace: ate-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: atenet-router
+  namespace: ate-system
+spec:
+  ipFamilyPolicy: PreferDualStack
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+  - name: connect
+    port: 8081
+    protocol: TCP
+    targetPort: 8081
+  - name: connect-tls
+    port: 8444
+    protocol: TCP
+    targetPort: 8444
+  - name: stats
+    port: 15020
+    protocol: TCP
+    targetPort: gw-metrics
+  selector:
+    app: atenet-router
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: atenet-router
+  name: atenet-router
+  namespace: ate-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: atenet-router
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "15020"
+        prometheus.io/scrape: "true"
+      labels:
+        app: atenet-router
+    spec:
+      containers:
+      - args:
+        - -f
+        - /etc/agentgateway/config.yaml
+        image: cr.agentgateway.dev/agentgateway:v1.7.0@sha256:60216aafb03d37f94e952ff3d51d2f630a65b10ecaebdc0a864882f92610c45b
+        livenessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /healthz/ready
+            port: readiness
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        name: agentgateway
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        - containerPort: 8081
+          name: connect
+        - containerPort: 8444
+          name: connect-tls
+        - containerPort: 15021
+          name: readiness
+        - containerPort: 15020
+          name: gw-metrics
+        readinessProbe:
+          httpGet:
+            path: /healthz/ready
+            port: readiness
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: "2"
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /etc/agentgateway
+          name: agentgateway-config
+        - mountPath: /run/servicedns.podcert.ate.dev
+          name: servicedns
+        - mountPath: /run/podidentity.podcert.ate.dev
+          name: podidentity
+          readOnly: true
+        - mountPath: /run/servicedns-ca
+          name: servicedns-ca
+          readOnly: true
+      serviceAccountName: atenet-router
+      volumes:
+      - configMap:
+          name: atenet-router-agentgateway-config
+        name: agentgateway-config
+      - name: servicedns
+        projected:
+          sources:
+          - podCertificate:
+              certificateChainPath: cert.pem
+              credentialBundlePath: credential-bundle.pem
+              keyPath: key.pem
+              keyType: ECDSAP256
+              signerName: servicedns.podcert.ate.dev/identity
+      - name: servicedns-ca
+        projected:
+          sources:
+          - clusterTrustBundle:
+              labelSelector:
+                matchLabels:
+                  podcert.ate.dev/canarying: live
+              path: trust-bundle.pem
+              signerName: servicedns.podcert.ate.dev/identity
+      - name: podidentity
+        projected:
+          sources:
+          - podCertificate:
+              certificateChainPath: cert.pem
+              credentialBundlePath: credential-bundle.pem
+              keyPath: key.pem
+              keyType: ECDSAP256
+              signerName: podidentity.podcert.ate.dev/identity
+          - clusterTrustBundle:
+              labelSelector:
+                matchLabels:
+                  podcert.ate.dev/canarying: live
+              path: trust-bundle.pem
+              signerName: podidentity.podcert.ate.dev/identity

@@ -1,0 +1,27 @@
+# The charts do not create their namespaces (createNamespace: false), so they are here.
+# ate-system runs atelet, a DaemonSet with hostPath mounts and a root user, so it cannot enforce restricted.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ate-system
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: podcertificate-controller-system
+---
+# ate-workers holds the worker pods of the WorkerPools (k8s/apps/ate-system-pools/). A worker runs as root with SYS_ADMIN, NET_ADMIN and NET_RAW and an
+# unconfined seccomp profile, so the namespace is privileged. Actors run inside the workers' sandboxes, not as pods.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ate-workers
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged

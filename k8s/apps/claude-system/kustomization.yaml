@@ -11,6 +11,7 @@ resources:
   - deployment.yaml
   - githubaccesstoken.yaml
   - externalsecret.yaml
+  - pushsecret.yaml
   - claude-github-app.enc.yaml
   - ghcr-pull.enc.yaml
   - claude-vm-source/rbac.yaml

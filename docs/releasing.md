@@ -1,6 +1,6 @@
 # Releasing
 
-The three images in `images/` (`github-actions-runner`, `claude-runner`, `fileserver`) are built, signed and released
+The four images in `images/` (`github-actions-runner`, `claude-runner`, `kagent-claude-harness`, `fileserver`) are built, signed and released
 automatically. There is no draft to publish and no repo-wide version.
 
 ## Write Conventional Commit PR titles
@@ -16,6 +16,7 @@ Each image has a small workflow that calls `.github/workflows/build-release-imag
 | ----------------------- | ---------------------------------- | ---------------------------------------------------- |
 | `github-actions-runner` | `build-github-actions-runner.yaml` | merge to `images/github-actions-runner/**`, weekly, manual |
 | `claude-runner`         | `build-claude-runner.yaml`         | merge to `images/claude-runner/**`, weekly, manual   |
+| `kagent-claude-harness` | `build-kagent-claude-harness.yaml` | merge to `images/claude-runner/**` (target `kagent-harness`), weekly, manual |
 | `fileserver`            | `build-fileserver.yaml`            | merge to `images/fileserver/**`, manual              |
 
 A build of `main` pushes `ghcr.io/cthtrifork/talos-gitops/<image>:<tag>` and `latest`, signs it (cosign), attests its
@@ -26,6 +27,7 @@ The weekly runs pick up new packages.
 | ----------------------- | ------------------------------------------------------------------- | ------------------------ | ----------------------------- |
 | `github-actions-runner` | actions/runner of the base image (`ARG RUNNER_VERSION`)             | `2.338.2-20261114.58`    | `runner-2.338.2-20261114.58`  |
 | `claude-runner`         | Claude Code (`ARG CLAUDE_CODE_VERSION`)                             | `2.1.311-20261114.58`    | `claude-2.1.311-20261114.58`  |
+| `kagent-claude-harness` | kagent's claude-harness base (`ARG KAGENT_VERSION`, bumped with the chart) | `1.0.1-20261120.1` | `kagent-harness-1.0.1-20261120.1` |
 | `fileserver`            | none: our own code, so `0.0.0`                                      | `0.0.0-20261114.58`      | `fileserver-0.0.0-20261114.58` |
 
 The image tag is valid [semver](https://semver.org): the tool's version, then the build date and run number as the
