@@ -97,12 +97,15 @@ scheduling, a generic ephemeral volume, data kept across a pod restart, online e
 - Branch `claude/runner-ephemeral-volumes` (pushed, no PR on purpose): the runners' large emptyDirs as generic ephemeral volumes. Retarget its `storageClassName` to `lvm-fast`, and
   open the PR only after `vg-fast` exists on every runner node (until then the runners would not schedule).
 
+**Done since:** `talos-tba-msi` (`vg-fast` 1.0 TB) and `talos-vt2-qp8` (`vg-fast` 360 GB, `vg-bulk` 4 TB on the USB disk, which works as an LVM physical volume) run LVM (#1194).
+Their old local-path PVCs point at volumes that no longer exist, so those workloads are broken until the phase 3 flips (fileserver, bootc-iso-cache, both trivy servers, dependency-track-db, garage, adguard on vt2).
+The CSI driver itself is proven only on 2jc (provisioning, expansion); tba and vt2 are checked at the Talos level (`pvs`, `vgs`) and by the first PVCs of phase 3.
+
 **Next, in order** (the owner applies Omni patches and merges; a session writes the PRs):
-1. `talos-tba-msi` and `talos-vt2-qp8` (phase 1 above): `patches/15-lvm-tba.yaml` and `patches/16-lvm-vt2.yaml` (written, in the PR "feat(storage): LVM on tba and vt2"). Per node: apply the patch in Omni, reboot, then merge
-   the wipe Job (`disk-wipe-<node>-2`, in the same PR, so merge it after the reboot; a mounted partition is skipped and the Job renamed to `-3`), then check `talosctl -n <ip> get pvs,vgs,lvmvalidationerrors`
-   and run the `lvm-test` app on that node. Patch 03 stays for 11a only. vt2's USB disk is the first USB disk under LVM.
-2. `talos-11a-esj` last (phase 2); the owner fixes its slow network path separately.
-3. Phase 3: the PVC table above, `lvm-fast` as default, the runner volumes, remove local-path and the OpenEBS hostpath provisioner and patches 03, 06, 09, then delete `k8s/apps/lvm-test` and
+1. `talos-11a-esj`, one node at a time and only while tba and vt2 are `Ready` (all three are etcd members): `patches/17-lvm-11a.yaml` (PR "feat(storage): LVM on talos-11a-esj"). Apply in Omni, reboot, then
+   merge the PR (wipe Job `disk-wipe-talos-11a-esj-2`), then check `talosctl -n 192.168.1.184 get pvs`, `get vgs`, `get lvmvalidationerrors`. It loses everything on the 700 GB volume (zot, runner caches, gha-cache, Prometheus).
+2. Phase 3 (below) right after: the workloads of all nodes are waiting for it.
+   Phase 3: the PVC table above, `lvm-fast` as default, the runner volumes, remove local-path and the OpenEBS hostpath provisioner and patches 03, 06, 09, then delete `k8s/apps/lvm-test` and
    `k8s/apps/disk-wipe` with their Flux Kustomizations in `k8s/clusters/homelab`.
 
 **Rules from the owner:** no disk scans on nodes (no `talosctl usage`; read-only `talosctl get` and Prometheus are fine); Docker Hub images as `mirror.gcr.io/...`; PRs only, nothing applied

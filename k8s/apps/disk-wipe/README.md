@@ -12,5 +12,5 @@ Read the result with `kubectl -n disk-wipe-system logs job/disk-wipe-<node>-1`: 
 - **SKIP (mounted):** a volume Talos still mounts (talos-11a-esj `local-storage` and `local-storage-cache`). Remove its patch from the machine
   config in Omni, reboot the node, rename the Job (`-2`) and run again.
 - **Targets:** talos-tba-msi nvme0n1p1 (the old 200 GB local-path volume); talos-2jc-qux sda2 and sda3 (old partitions next to the live `local-path-sata`
-  volume, which is not a target); talos-11a-esj `local-storage` and `local-storage-cache` (80 GB each, unused) and the 4 TB USB disk; talos-vt2-qp8 nvme0n1p3 (the old 200 GB local-path volume) and the 4 TB USB disk.
+  volume, which is not a target); talos-11a-esj nvme1n1p1, p2 and p3 (the old local-storage, local-storage-cache and local-path volumes; its USB disk is blank and becomes `vg-bulk` at once, so it is not a target); talos-vt2-qp8 nvme0n1p3 (the old 200 GB local-path volume) and the 4 TB USB disk.
 - **When done:** delete the app (the line in `k8s/clusters/homelab/kustomization.yaml`, `app-disk-wipe.yaml`, this directory and the Polaris exemption).
