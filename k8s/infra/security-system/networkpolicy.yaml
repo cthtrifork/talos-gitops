@@ -118,6 +118,7 @@ spec:
         - matchName: pypi.org
         - matchName: repo1.maven.org
         - matchName: packages.atlassian.com
+        - matchName: maven.artifacts.atlassian.com
       toPorts:
         - ports:
             - port: "443"
