@@ -3,20 +3,10 @@ name: e2e
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - k8s/**
-      - scripts/kind.yaml
-      - scripts/ci/e2e/**
-      - mise.toml
-      - .github/workflows/e2e.yaml
+    # closed only cancels the in-flight run through the concurrency group; the job is skipped for it
+    types: [opened, synchronize, reopened, closed]
   push:
     branches: [ main ]
-    paths:
-      - k8s/**
-      - scripts/kind.yaml
-      - scripts/ci/e2e/**
-      - mise.toml
-      - .github/workflows/e2e.yaml
 
 permissions:
   contents: read
@@ -30,39 +20,77 @@ concurrency:
 
 
 jobs:
+  changes:
+    # the PR diff is cumulative, so a later push that touches nothing relevant still runs the e2e of the earlier changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    outputs:
+      relevant: ${{ github.event_name == 'workflow_dispatch' || steps.changed.outputs.any_changed == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Get changed e2e files
+        id: changed
+        if: github.event_name != 'workflow_dispatch'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            k8s/**
+            scripts/kind.yaml
+            scripts/ci/e2e/**
+            mise.toml
+            .github/workflows/e2e.yaml
+
   e2e-test:
+    needs: changes
     # ARC runner in the cluster (k8s/apps/arc-runner/helm-release-talos-gitops-e2e.yaml); the repository is public, so no fork PRs
     runs-on: arc-e2e-talos-gitops
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.changes.outputs.relevant == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     timeout-minutes: 20
     steps:
       - name: Checkout
         timeout-minutes: 2
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Show the cache endpoints
+      - name: Count the cache server requests
+        id: cache_before
         timeout-minutes: 1
         run: |
           # ACTIONS_RESULTS_URL must be the in-cluster cache server (http://gha-cache...), not GitHub's results-receiver
-          echo "v2 flag: ${ACTIONS_CACHE_SERVICE_V2:-unset}"
-          echo "results: ${ACTIONS_RESULTS_URL:-unset} (the pod's value; only JavaScript actions get the runner's own)"
-          echo "cache:   ${ACTIONS_CACHE_URL:-unset}"
+          case "${ACTIONS_RESULTS_URL:-}" in
+            http://gha-cache.gha-cache-system.svc.cluster.local:*) ;;
+            *) echo "::error::ACTIONS_RESULTS_URL is '${ACTIONS_RESULTS_URL:-unset}', not the in-cluster cache server"; exit 1 ;;
+          esac
+          echo "count=$(curl -fsS --max-time 20 "${ACTIONS_RESULTS_URL}metrics" | awk '/^cache_(requests|uploads)_total/ {n += $NF} END {print n + 0}')" >> "${GITHUB_OUTPUT}"
       - name: Install tools
         timeout-minutes: 5
         uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
           install_args: "yq kubeconform kustomize helm aqua:controlplaneio-fluxcd/flux-operator aqua:cilium/cilium-cli kind"
+      - name: Verify the in-cluster cache was used
+        timeout-minutes: 1
+        env:
+          BEFORE: ${{ steps.cache_before.outputs.count }}
+        run: |
+          # the counters of the server grow only when actions/cache (mise-action) went through it, not to GitHub
+          after="$(curl -fsS --max-time 20 "${ACTIONS_RESULTS_URL}metrics" | awk '/^cache_(requests|uploads)_total/ {n += $NF} END {print n + 0}')"
+          echo "cache server requests and uploads: ${BEFORE} -> ${after}"
+          [ "${after}" -gt "${BEFORE}" ] || { echo "::error::the mise cache did not go through the in-cluster cache server"; exit 1; }
       - name: Build Flux Kustomization paths
         timeout-minutes: 3
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
       - name: Pull the kind node image through zot
         timeout-minutes: 5
         run: |
-          # Pull the pinned image through zot's mirror.gcr.io cache and tag it with the Docker Hub name from scripts/kind.yaml.
+          # Pull the digest-pinned image through zot's mirror.gcr.io cache and tag it with the name from scripts/kind.yaml.
           # A digest reference would not match a loaded image, so kind must use the tag only.
           image="$(yq '.nodes[0].image' scripts/kind.yaml)"
-          repo="${image%%:*}"
-          skopeo copy "docker://${ZOT}/docker-hub-cache/${repo}@${image#*@}" "docker-daemon:${ZOT}/docker-hub-cache/${image%@*}"
-          docker tag "${ZOT}/docker-hub-cache/${image%@*}" "${image%@*}"
+          repo="${image#mirror.gcr.io/}"
+          repo="${repo%%:*}"
+          skopeo copy "docker://${ZOT}/docker-hub-cache/${repo}@${image#*@}" "docker-daemon:${image%@*}"
           # the rendered kind config refers to the loaded image
           POD_IP="$(hostname -i | awk '{print $1}')" envsubst "\${POD_IP}" < scripts/kind.yaml |
             yq ".nodes[0].image = \"${image%@*}\"" > "${RUNNER_TEMP}/kind.yaml"
@@ -106,10 +134,11 @@ jobs:
       - name: Install latest flux-operator
         timeout-minutes: 3
         run: |
-          helm install flux-operator oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator \
-          --namespace flux-system \
-          --create-namespace \
-          --wait --timeout 2m
+          version="$(yq 'select(.kind == "OCIRepository") | .spec.ref.tag' k8s/infra/bootstrap/flux-system/helm-repository.yaml)"
+          helm install flux-operator "oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator" --version "${version}" \
+            --namespace flux-system \
+            --create-namespace \
+            --wait --timeout 2m
 
       - name: Deploy flux instance
         timeout-minutes: 2
@@ -184,12 +213,6 @@ jobs:
           yq 'select(.kind == "Namespace")' "${RUNNER_TEMP}/apps.yaml" | kubectl apply -f -
           yq 'select(has("sops") | not)' "${RUNNER_TEMP}/apps.yaml" | kubectl apply --dry-run=server -f -
 
-      - name: Show the cache server requests
-        timeout-minutes: 1
-        if: always()
-        run: |
-          # non-zero counters mean actions/cache (mise-action) went through the in-cluster server, zero that it fell back to GitHub
-          curl -fsS --max-time 20 "${ACTIONS_RESULTS_URL}metrics" | grep -E '^cache_(requests|uploads)_total' || true
       - name: List deployed resources
         timeout-minutes: 2
         if: always()
@@ -204,10 +227,10 @@ jobs:
           docker ps -a || true
           kubectl -n kube-system logs ds/cilium --all-containers --tail=30 || true
           kubectl -n flux-system logs deploy/flux-operator --tail=40 --previous || true
-          kubectl get pods -A
-          kubectl get events -A --sort-by=.lastTimestamp | tail -50
-          kubectl -n flux-system get all
-          kubectl -n flux-system logs deploy/source-controller
-          kubectl -n flux-system logs deploy/kustomize-controller
-          kubectl -n flux-system logs deploy/helm-controller
+          #kubectl get pods -A
+          kubectl get events -A --types=Warning --sort-by=.lastTimestamp | tail -50
+          #kubectl -n flux-system get all
+          #kubectl -n flux-system logs deploy/source-controller
+          #kubectl -n flux-system logs deploy/kustomize-controller
+          #kubectl -n flux-system logs deploy/helm-controller
           flux get all --all-namespaces
