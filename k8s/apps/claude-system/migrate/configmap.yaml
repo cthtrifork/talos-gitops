@@ -1,0 +1,20 @@
+# rsync daemon of the old claude volumes, read only (migrate/deployment.yaml). Port 8873 and no chroot: it runs as the claude user, not root.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: claude-data-source
+  namespace: claude-system
+data:
+  rsyncd.conf: |
+    port = 8873
+    pid file = /tmp/rsyncd.pid
+    lock file = /tmp/rsyncd.lock
+    use chroot = no
+    read only = yes
+    numeric ids = yes
+    max connections = 4
+    [home]
+    path = /src/home
+    [workspace]
+    path = /src/workspace

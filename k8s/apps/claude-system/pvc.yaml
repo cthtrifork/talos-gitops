@@ -26,3 +26,30 @@ spec:
   resources:
     requests:
       storage: 10Gi
+---
+# The LVM volumes that replace the two above (docs/storage-plan.md, "Claude's own volumes"): copied from them by migrate/, then mounted by the Deployment.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claude-home-lvm
+  namespace: claude-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: lvm-fast
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claude-workspace-lvm
+  namespace: claude-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: lvm-fast
+  resources:
+    requests:
+      storage: 50Gi
