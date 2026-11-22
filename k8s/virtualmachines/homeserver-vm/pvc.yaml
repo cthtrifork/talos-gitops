@@ -1,0 +1,32 @@
+# Like claude-rc (k8s/apps/claude-system/pvc.yaml): scratch that may be lost at any time (workspace), and the home directory that may be backed up later.
+# Raw block volumes the guest sees as blank virtio disks (the cloud-init script in virtualmachine.yaml formats them). Plain PVCs, not CDI DataVolumes: a local
+# volume lives on one node, and CDI placed the blank disks wherever its importer pods ran, so the rootdisk, home and workspace ended up on three nodes and the VM
+# pod could not be scheduled. A PVC waits for its first consumer (lvm-fast is WaitForFirstConsumer), so the scheduler puts all three on the node the rootdisk pins the pod to.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: homeserver-vm-workspace-disk
+  namespace: homeserver-vm
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Block
+  storageClassName: lvm-fast
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: homeserver-vm-home-disk
+  namespace: homeserver-vm
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Block
+  storageClassName: lvm-fast
+  resources:
+    requests:
+      storage: 10Gi

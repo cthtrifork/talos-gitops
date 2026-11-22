@@ -68,11 +68,11 @@ spec:
           dataVolume:
             name: homeserver-vm-rootdisk
         - name: workspace
-          dataVolume:
-            name: homeserver-vm-workspace
+          persistentVolumeClaim:
+            claimName: homeserver-vm-workspace-disk
         - name: home
-          dataVolume:
-            name: homeserver-vm-home
+          persistentVolumeClaim:
+            claimName: homeserver-vm-home-disk
         # What differs per deployment lives here, not in the image (homeserver-bootc has an inert cloud-init: write_files and runcmd from a NoCloud disk).
         # The home disk is /var/home and the workspace disk is mounted inside it. The first boot already made the account on the root disk, so runcmd formats
         # the blank disks, copies that home over (cp -an, nothing already there is replaced) and then mounts them; fstab mounts them on every later boot.
@@ -127,30 +127,3 @@ spec:
           resources:
             requests:
               storage: 110Gi # the disk is 100 GiB plus boot partitions; keep in step with config-homeserver.toml in homeserver-bootc
-    # Like claude-rc (k8s/apps/claude-system/pvc.yaml): scratch that may be lost at any time, and the home directory that may be backed up later.
-    # Blank disks, so the image has to format them on first use (homeserver-bootc). They are separate from the rootdisk, which `bootc upgrade` and a re-import
-    # may replace.
-    - metadata:
-        name: homeserver-vm-workspace
-      spec:
-        source:
-          blank: {}
-        storage:
-          accessModes:
-            - ReadWriteOnce
-          storageClassName: lvm-fast
-          resources:
-            requests:
-              storage: 50Gi
-    - metadata:
-        name: homeserver-vm-home
-      spec:
-        source:
-          blank: {}
-        storage:
-          accessModes:
-            - ReadWriteOnce
-          storageClassName: lvm-fast
-          resources:
-            requests:
-              storage: 10Gi
