@@ -76,8 +76,7 @@ jobs:
           image="$(yq '.nodes[0].image' scripts/kind.yaml)"
           new_image="${ZOT}/docker-hub-cache/${image}"
 
-          echo "pulling ${new_image}"
-          docker pull "docker://${new_image}"
+          docker pull "${new_image}"
           # the rendered kind config refers to the loaded image
           POD_IP="$(hostname -i | awk '{print $1}')" envsubst "\${POD_IP}" < scripts/kind.yaml |
             yq ".nodes[0].image = \"${new_image}\"" > "${RUNNER_TEMP}/kind.yaml"
