@@ -36,6 +36,15 @@ spec:
             - name: rootdisk
               disk:
                 bus: virtio
+            # The serials show up in the guest as /dev/disk/by-id/virtio-workspace and virtio-home (mounted by the image, homeserver-bootc)
+            - name: workspace
+              disk:
+                bus: virtio
+              serial: workspace
+            - name: home
+              disk:
+                bus: virtio
+              serial: home
           interfaces:
             - name: default
               masquerade: {}
@@ -55,6 +64,12 @@ spec:
         - name: rootdisk
           dataVolume:
             name: homeserver-vm-rootdisk
+        - name: workspace
+          dataVolume:
+            name: homeserver-vm-workspace
+        - name: home
+          dataVolume:
+            name: homeserver-vm-home
   dataVolumeTemplates:
     - metadata:
         name: homeserver-vm-rootdisk
@@ -72,3 +87,30 @@ spec:
           resources:
             requests:
               storage: 110Gi # the disk is 100 GiB plus boot partitions; keep in step with config-homeserver.toml in homeserver-bootc
+    # Like claude-rc (k8s/apps/claude-system/pvc.yaml): scratch that may be lost at any time, and the home directory that may be backed up later.
+    # Blank disks, so the image has to format them on first use (homeserver-bootc). They are separate from the rootdisk, which `bootc upgrade` and a re-import
+    # may replace.
+    - metadata:
+        name: homeserver-vm-workspace
+      spec:
+        source:
+          blank: {}
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: lvm-fast
+          resources:
+            requests:
+              storage: 50Gi
+    - metadata:
+        name: homeserver-vm-home
+      spec:
+        source:
+          blank: {}
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: lvm-fast
+          resources:
+            requests:
+              storage: 10Gi
