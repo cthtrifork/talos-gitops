@@ -271,9 +271,13 @@ function stripChips(d) {
     else add("ok", "Flux ready", "p-flux-reconciliation");
   }
   if (d.polaris) add(polarisState(d.polaris.score), `Polaris ${d.polaris.score}/100`, "p-polaris-score");
-  if (d.pvcs?.length) {
-    const m = Math.max(0, ...d.pvcs.map((n) => n.used_pct));
-    add(usedState(m, 85), `Volumes ${m}%`, slug("Storage"));
+  // The worst of the fullest volume and every node row (/var and the volume groups), linked to the panel it comes from.
+  const vol = Math.max(0, ...(d.pvcs || []).map((n) => n.used_pct));
+  const nodes = nodeRows(d);
+  const hot = Math.max(0, ...(nodes || []).map((n) => n.max));
+  if (d.pvcs?.length || nodes?.length) {
+    const m = Math.round(Math.max(vol, hot));
+    add(usedState(m, 85), `Storage ${m}%`, slug(hot > vol ? "Nodes" : "Volumes"));
   }
   if (d.drops_total !== undefined) add(d.drops_total > 0 ? "warn" : "ok", `${d.drops_total} packets denied`, "p-dropped-traffic");
   if (d.github) {
@@ -421,21 +425,51 @@ const PolarisPanel = (d) => {
     ${Muted(`Audited ${String(x.audit_time).replace("T", " ").replace("Z", " UTC")}`)}`);
 };
 
-const PVC_SHOW = 60; // volumes under this percentage are only counted
-const StoragePanel = (d) => {
-  const title = "Storage";
+const GIB = 2 ** 30;
+const sizeText = (bytes) => (bytes >= 1024 * GIB ? (bytes / (1024 * GIB)).toFixed(1) + " TiB" : Math.round(bytes / GIB) + " GiB");
+const UsedRow = (label, pct, detail) => html`<div class="limit-row"><span>${label}</span><span class="num"><strong>${Math.round(pct)}%</strong> ${detail}</span></div>${Bar({ label: `${label}, ${Math.round(pct)} percent`, parts: [{ pct, color: usedColor(pct, 85) }] })}`;
+
+const VolumesPanel = (d) => {
+  const title = "Volumes";
   if (!d.pvcs) return Unavailable({ title, source: "Prometheus · kubelet_volume_stats_*", d });
-  const sorted = d.pvcs.slice().sort((a, b) => b.used_pct - a.used_pct);
-  const max = sorted.length ? sorted[0].used_pct : 0;
-  const hot = sorted.filter((n) => n.used_pct >= PVC_SHOW);
-  const count = d.pvc_count ?? d.pvcs.length;
-  const text = max >= 75 ? "volume over " + (max >= 85 ? 85 : 75) + "% full" : "ok";
-  return Panel({ title, state: usedState(max, 85), text, compact: !hot.length, d }, html`
-    ${!hot.length
-      ? Muted(count ? `All ${count} volumes under ${PVC_SHOW}% full, fullest ${max}%${sorted.length ? " (" + sorted[0].name + ")" : ""}` : "No volumes reported.")
-      : html`<div class="limit">${hot.map((n) => html`<div class="limit-row"><span>${n.name}</span><span class="num"><strong>${n.used_pct}%</strong> full</span></div>${Bar({ label: `${n.name}, ${n.used_pct} percent full`, parts: [{ pct: n.used_pct, color: usedColor(n.used_pct, 85) }] })}`)}</div>
-        ${count > hot.length ? Muted(`${count - hot.length} other volumes under ${PVC_SHOW}% full`) : nothing}`}
-    ${Muted("Volumes in block mode (VM disks) report no usage.")}`);
+  const sizes = new Map((d.pvc_sizes || []).map((x) => [x.name, x.bytes]));
+  const top = d.pvcs.slice().sort((a, b) => b.used_pct - a.used_pct || compare(a.name, b.name)).slice(0, 5);
+  const max = top.length ? top[0].used_pct : 0;
+  const mounted = d.pvc_count ?? top.length;
+  const without = (d.pvc_total ?? mounted) - mounted;
+  const state = usedState(max, 85);
+  return Panel({ title, state, text: max >= 85 ? "volume over 85% full" : "volume over 75% full", compact: !top.length, d }, html`
+    ${top.length ? html`<div class="limit">${top.map((n) => UsedRow(n.name, n.used_pct, sizes.has(n.name) ? html`<span class="muted">of ${sizeText(sizes.get(n.name))}</span>` : nothing))}</div>` : Muted("No volumes reported.")}
+    ${Muted(`Fullest ${top.length} of ${mounted} mounted volumes${without > 0 ? `; ${without} more report no usage (not mounted now, or block-mode VM disks)` : ""}`)}`);
+};
+
+// Per node: /var (EPHEMERAL) and each LVM volume group, as used percentages with the free space. null when the sources did not answer.
+function nodeRows(d) {
+  if (!d.var_size || !d.var_avail || !d.vg_total || !d.vg_free) return null;
+  const by = new Map();
+  const row = (node, label, free, total) => {
+    if (!(total > 0)) return;
+    if (!by.has(node)) by.set(node, []);
+    by.get(node).push({ label, pct: 100 * (1 - free / total), free, total });
+  };
+  const avail = new Map(d.var_avail.map((x) => [x.node, x.bytes]));
+  for (const x of d.var_size) if (avail.has(x.node)) row(x.node, "Ephemeral /var", avail.get(x.node), x.bytes);
+  const free = new Map(d.vg_free.map((x) => [x.node + "/" + x.name, x.bytes]));
+  for (const x of d.vg_total) if (free.has(x.node + "/" + x.name)) row(x.node, x.name, free.get(x.node + "/" + x.name), x.bytes);
+  return [...by].map(([node, rows]) => ({ node, rows, max: Math.max(...rows.map((r) => r.pct)) })).sort((a, b) => b.max - a.max || compare(a.node, b.node));
+}
+
+const NodesPanel = (d) => {
+  const title = "Nodes";
+  const nodes = nodeRows(d);
+  if (!nodes) return Unavailable({ title, source: "Prometheus · node_filesystem_*, lvm_vg_*", d });
+  const max = nodes.length ? nodes[0].max : 0;
+  return Panel({ title, state: usedState(max, 85), text: max >= 85 ? "disk over 85% full" : "disk over 75% full", d }, html`
+    ${nodes.map((n) => html`<div class="vm">
+      <div class="vm-head"><strong class="row-st" data-st=${usedState(n.max, 85)}>${n.node}</strong></div>
+      <div class="limit" style="margin-top: 8px">${n.rows.map((r) => UsedRow(r.label, r.pct, html`<span class="muted">· ${sizeText(r.free)} free${r.label === "Ephemeral /var" ? "" : " of " + sizeText(r.total)}</span>`))}</div>
+    </div>`)}
+    ${Muted("Volume groups show allocated space (the sum of the PVC sizes), not data written.")}`);
 };
 
 const PrRows = (items) =>
@@ -688,7 +722,7 @@ class CockpitApp extends LitElement {
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
       ${d ? html`${Strip(d)}
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
-        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${StoragePanel(d)}`)}
+        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${VolumesPanel(d)}${NodesPanel(d)}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;
   }
