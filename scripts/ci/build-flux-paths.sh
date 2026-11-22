@@ -25,11 +25,21 @@ while IFS= read -r path; do
         continue
     fi
     echo "INFO - building $path"
-    if ! kustomize build "$path" --load-restrictor=LoadRestrictionsNone |
-        kubeconform -strict -ignore-missing-schemas -skip=Secret,RenovateJob,Password,GithubAccessToken,KubeVirt -summary \
-            -schema-location default \
-            -schema-location /tmp/flux-crd-schemas \
-            -schema-location "$crd_catalog"; then
+    # schema downloads from raw.githubusercontent.com fail transiently, so retry before giving up
+    ok=0
+    for attempt in 1 2 3; do
+        if kustomize build "$path" --load-restrictor=LoadRestrictionsNone |
+            kubeconform -strict -ignore-missing-schemas -skip=Secret,RenovateJob,Password,GithubAccessToken,KubeVirt -summary \
+                -schema-location default \
+                -schema-location /tmp/flux-crd-schemas \
+                -schema-location "$crd_catalog"; then
+            ok=1
+            break
+        fi
+        echo "WARN - $path attempt $attempt/3 failed" >&2
+        sleep $((attempt * 5))
+    done
+    if [[ $ok -ne 1 ]]; then
         echo "ERROR - $path failed to build or validate" >&2
         status=1
     fi
