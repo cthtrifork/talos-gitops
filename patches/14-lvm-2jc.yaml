@@ -33,10 +33,19 @@ provisioning:
     match: disk.transport == 'nvme'
   minSize: 20GB
 ---
-# The bulk tier: the SATA SSD (not the system disk here).
+# The bulk tier: the SATA SSD (not the system disk here). Two raw volumes, one per free region: the 77 GB of the old leftover partitions and, after the wipe,
+# the 178 GB of the old local-path-sata volume.
 apiVersion: v1alpha1
 kind: RawVolumeConfig
 name: lvm-bulk-a
+provisioning:
+  diskSelector:
+    match: disk.transport == 'sata' && !system_disk
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-bulk-b
 provisioning:
   diskSelector:
     match: disk.transport == 'sata' && !system_disk

@@ -56,7 +56,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: disk-wipe-talos-2jc-qux-1
+  name: disk-wipe-talos-2jc-qux-2
   namespace: disk-wipe-system
 spec:
   backoffLimit: 0
@@ -85,8 +85,8 @@ spec:
               value: "false"
             - name: TARGETS
               value: |
-                part|46714df7-d97e-47c5-acbc-596ef25ec333|2147483648|talos-2jc-qux sda2, a leftover 2 GB xfs partition of the SATA disk
-                part|7b485c3a-687d-4913-bdde-32e57049b42b|75161927680|talos-2jc-qux sda3, a leftover 75 GB xfs partition of the SATA disk
+                part|236d4dad-14e1-4fc2-9e07-7c0ed5b75554|200000000000|talos-2jc-qux nvme0n1p3, the old 200 GB local-path volume (replaced by vg-fast)
+                part|683e163f-8d7f-440c-806d-eeb7dff16d18|178120556544|talos-2jc-qux sda4, the old 178 GB local-path-sata volume (replaced by vg-bulk)
           resources:
             requests:
               cpu: 50m
