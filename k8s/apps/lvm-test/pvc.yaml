@@ -10,7 +10,7 @@ spec:
   storageClassName: lvm-fast
   resources:
     requests:
-      storage: 1Gi
+      storage: 2Gi # was 1Gi: online expansion test
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

@@ -44,7 +44,7 @@ spec:
                 echo "--- $(date -u +%T) node $NODE_NAME"
                 for d in fast bulk scratch; do
                   fs=$(awk -v m=/data/$d '$2==m{print $3}' /proc/mounts)
-                  echo "$d: $fs $(df -k /data/$d | awk 'NR==2{printf "%.2f GiB, %.2f GiB free", $2/1048576, $4/1048576}')"
+                  echo "$d: $fs $(df -kP /data/$d | awk 'NR==2{printf "%.2f GiB, %.2f GiB free", $2/1048576, $4/1048576}')"
                 done
                 sleep 20
               done
