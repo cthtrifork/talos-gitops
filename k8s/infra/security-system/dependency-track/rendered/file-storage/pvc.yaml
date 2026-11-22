@@ -14,5 +14,5 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
-  storageClassName: local-path
+      storage: 10Gi
+  storageClassName: lvm-fast

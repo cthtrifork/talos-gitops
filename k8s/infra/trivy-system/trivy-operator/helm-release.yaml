@@ -23,7 +23,7 @@ spec:
     disableWait: true
     cleanupOnFail: true
     remediation:
-      retries: 5 # was 3: the storage flip (docs/storage-plan.md) exhausted them on an immutable volume claim template; revert after
+      retries: 3
   # The trivy server only listens after it has downloaded the vulnerability DB (about 140 MB) and the Java DB (about 1 GB) from
   # zot, which takes many minutes on a cold zot cache and the home uplink. The chart's liveness probe gives up after ~100 s and
   # restarts the pod in a loop, so a startup probe holds liveness back for up to 30 minutes.
