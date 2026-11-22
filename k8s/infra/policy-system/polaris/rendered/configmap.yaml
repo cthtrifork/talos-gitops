@@ -43,7 +43,7 @@ data:
       - controllerNames:
         - disk-wipe-talos-tba-msi-2
         - disk-wipe-talos-2jc-qux-2
-        - disk-wipe-talos-11a-esj-1
+        - disk-wipe-talos-11a-esj-2
         - disk-wipe-talos-vt2-qp8-2
         namespace: disk-wipe-system
         rules:
