@@ -63,6 +63,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
       storage: 64Gi
