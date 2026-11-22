@@ -103,13 +103,13 @@ The CSI driver itself is proven only on 2jc (provisioning, expansion); tba and v
 
 **Done since (2):** `talos-11a-esj` runs LVM too (`vg-fast` 1.0 TB, `vg-bulk` 4 TB; #1196, #1197). All four nodes have their groups.
 
+**Done since (3):** the PVC flip (#1199 and after): every PVC of the plan's table is on `lvm-fast` or `lvm-bulk`, `lvm-fast` is the default class. The old volumes were gone, so each StatefulSet, operator or chart PVC was deleted once with the owner's elevations (`ops`, `storage`, and `flux` to reconcile) and recreated by Flux or Helm. Lessons: a HelmRelease whose upgrade failed on an immutable field rolls back and stalls (`RollbackFailed`) until its spec changes or a reconcile is requested; a PVC that names no class never changes class, so manifests must name it; the CNPG troubleshooting guide's "delete the PVC" is for replicas, a single instance needs its `Cluster` deleted (the `claude-storage` role allows it). Left alone on purpose: `claude-vm-rootdisk` and `homeserver-vm-rootdisk`.
+
 **Next, in order:**
-1. Phase 3, the PR "feat(storage): move the PVCs to the LVM classes": the manifests of the PVC table above and `lvm-fast` as the default class (local-path is no longer default). A PVC's class and an
-   StatefulSet's volumeClaimTemplates cannot change in place, so after the merge each old PVC (and the pod using it) is deleted once and the workload recreates it on the new class: that needs the
-   owner's `storage` and `ops` elevations, or the deletes by hand. Check each app after: pod `Running`, PVC `Bound` on `lvm-fast` or `lvm-bulk`.
+1. This clean-up: retries back to 3 and the temporary `force: true` removed (PR "chore(flux): undo the temporary storage-flip settings").
 2. The runner emptyDirs: branch `claude/runner-ephemeral-volumes` (retarget to `lvm-fast`, open the PR).
-3. Clean-up: remove the local-path provisioner, the OpenEBS hostpath provisioner and patches 03, 06 and 09 (and the leftover `local-path` StorageClass), then delete `k8s/apps/lvm-test` and
-   `k8s/apps/disk-wipe` with their Flux Kustomizations in `k8s/clusters/homelab` and the Polaris exemptions.
+3. Remove the local-path provisioner, the OpenEBS hostpath provisioner and patches 03, 06 and 09 (and the leftover `local-path` StorageClass), then delete `k8s/apps/lvm-test` and `k8s/apps/disk-wipe` with their Flux Kustomizations in `k8s/clusters/homelab` and the Polaris exemptions.
+4. `homeserver-vm` disks (talos-gitops #1200 with the cloud-init config, after the homeserver-bootc image with cloud-init is live).
 
 **Rules from the owner:** no disk scans on nodes (no `talosctl usage`; read-only `talosctl get` and Prometheus are fine); Docker Hub images as `mirror.gcr.io/...`; PRs only, nothing applied
 to the cluster by hand; the `homeserver-vm` disk is another session's job. Per-task worktrees in `/workspace` are lost for anything not pushed once the workspace volume is replaced.
