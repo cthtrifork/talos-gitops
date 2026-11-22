@@ -39,8 +39,8 @@ spec:
       - arc-ubuntu
       - arc-ubuntu-docker
 
-    maxRunners: 0 # paused to recreate its volumes on lvm-bulk; restore to 1 after (only 1 runner due to pvc design)
-    minRunners: 0 # restore to 1 (always ready)
+    maxRunners: 1 # only 1 runner due to pvc design
+    minRunners: 1 # always ready
 
     #nodeSelector:
     #  kubernetes.io/hostname: talos-ska-6at
