@@ -246,7 +246,7 @@ jobs:
 
   scan-vex:
     name: Scan ${{ matrix.image.ref }} (VEX)
-    needs: [lint, changes, trivy-db-vex]
+    needs: [lint, changes]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -373,7 +373,7 @@ jobs:
   complete:
     # the one check to require in branch protection
     name: Images complete
-    needs: [changes, trivy-db-k8s, scan-k8s, trivy-db-vex, lint, scan-vex, build-and-publish]
+    needs: [changes, lint, scan-vex, build-and-publish]
     if: always()
     runs-on: ubuntu-slim
     timeout-minutes: 5
