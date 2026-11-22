@@ -11,7 +11,6 @@ resources:
   - migrate/configmap.yaml
   - migrate/deployment.yaml
   - migrate/service.yaml
-  - migrate/job.yaml
   - migrate/networkpolicy.yaml
   - deployment.yaml
   - githubaccesstoken.yaml
