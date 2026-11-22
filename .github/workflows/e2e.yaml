@@ -55,41 +55,57 @@ jobs:
       - name: Checkout
         timeout-minutes: 2
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Show the cache endpoints
+      - name: Count the cache server requests
+        id: cache_before
         timeout-minutes: 1
         run: |
           # ACTIONS_RESULTS_URL must be the in-cluster cache server (http://gha-cache...), not GitHub's results-receiver
-          echo "v2 flag: ${ACTIONS_CACHE_SERVICE_V2:-unset}"
-          echo "results: ${ACTIONS_RESULTS_URL:-unset} (the pod's value; only JavaScript actions get the runner's own)"
-          echo "cache:   ${ACTIONS_CACHE_URL:-unset}"
+          case "${ACTIONS_RESULTS_URL:-}" in
+            http://gha-cache.gha-cache-system.svc.cluster.local:*) ;;
+            *) echo "::error::ACTIONS_RESULTS_URL is '${ACTIONS_RESULTS_URL:-unset}', not the in-cluster cache server"; exit 1 ;;
+          esac
+          echo "count=$(curl -fsS --max-time 20 "${ACTIONS_RESULTS_URL}metrics" | awk '/^cache_(requests|uploads)_total/ {n += $NF} END {print n + 0}')" >> "${GITHUB_OUTPUT}"
       - name: Install tools
         timeout-minutes: 5
         uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
           install_args: "yq kubeconform kustomize helm aqua:controlplaneio-fluxcd/flux-operator aqua:cilium/cilium-cli kind"
+      - name: Verify the in-cluster cache was used
+        timeout-minutes: 1
+        env:
+          BEFORE: ${{ steps.cache_before.outputs.count }}
+        run: |
+          # the counters of the server grow only when actions/cache (mise-action) went through it, not to GitHub
+          after="$(curl -fsS --max-time 20 "${ACTIONS_RESULTS_URL}metrics" | awk '/^cache_(requests|uploads)_total/ {n += $NF} END {print n + 0}')"
+          echo "cache server requests and uploads: ${BEFORE} -> ${after}"
+          [ "${after}" -gt "${BEFORE}" ] || { echo "::error::the mise cache did not go through the in-cluster cache server"; exit 1; }
       - name: Build Flux Kustomization paths
         timeout-minutes: 3
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
       - name: Pull the kind node image through zot
         timeout-minutes: 5
         run: |
+          # Pull the digest-pinned image through zot's mirror.gcr.io cache and tag it with the name from scripts/kind.yaml.
+          # A digest reference would not match a loaded image, so kind must use the tag only.
           image="$(yq '.nodes[0].image' scripts/kind.yaml)"
-          new_image="${ZOT}/docker-hub-cache/${image}"
-
-          docker pull "${new_image}"
+          repo="${image#mirror.gcr.io/}"
+          repo="${repo%%:*}"
+          skopeo copy "docker://${ZOT}/docker-hub-cache/${repo}@${image#*@}" "docker-daemon:${image%@*}"
           # the rendered kind config refers to the loaded image
           POD_IP="$(hostname -i | awk '{print $1}')" envsubst "\${POD_IP}" < scripts/kind.yaml |
-            yq ".nodes[0].image = \"${new_image}\"" > "${RUNNER_TEMP}/kind.yaml"
-           cat "${RUNNER_TEMP}/kind.yaml"
+            yq ".nodes[0].image = \"${image%@*}\"" > "${RUNNER_TEMP}/kind.yaml"
       - name: Setup Kubernetes Kind
         timeout-minutes: 5
         env:
           # the node shares the network namespace of the runner pod, where Cilium reaches zot by its service name
           KIND_EXPERIMENTAL_DOCKER_NETWORK: host
         run: |
+          # kind exports the kubeconfig from the published API server port, which the host network does not have: that last step
+          # fails (the cluster is complete by then, --retain keeps it), so read the admin kubeconfig from the node
           kind create cluster --name homelab --config "${RUNNER_TEMP}/kind.yaml" --retain || true
-          #mkdir -p ~/.kube
-          #docker exec homelab-control-plane cat /etc/kubernetes/admin.conf > ~/.kube/config
+          docker exec homelab-control-plane test -f /etc/kubernetes/admin.conf
+          mkdir -p ~/.kube
+          docker exec homelab-control-plane cat /etc/kubernetes/admin.conf > ~/.kube/config
           kubectl get nodes
       - name: Pull through the cluster zot only
         timeout-minutes: 2
@@ -197,12 +213,6 @@ jobs:
           yq 'select(.kind == "Namespace")' "${RUNNER_TEMP}/apps.yaml" | kubectl apply -f -
           yq 'select(has("sops") | not)' "${RUNNER_TEMP}/apps.yaml" | kubectl apply --dry-run=server -f -
 
-      - name: Show the cache server requests
-        timeout-minutes: 1
-        if: always() && env.ACTIONS_RUNNER_DEBUG == '1'
-        run: |
-          # non-zero counters mean actions/cache (mise-action) went through the in-cluster server, zero that it fell back to GitHub
-          curl -fsS --max-time 20 "${ACTIONS_RESULTS_URL}metrics" | grep -E '^cache_(requests|uploads)_total' || true
       - name: List deployed resources
         timeout-minutes: 2
         if: always()

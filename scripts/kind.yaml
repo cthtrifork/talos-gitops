@@ -30,4 +30,4 @@ nodes:
   # A single node (control plane, schedulable) boots faster and needs less memory than control plane + worker.
   - role: control-plane
     # Renovate tracks Docker Hub (it cannot look up digests on mirror.gcr.io); the e2e pulls through zot and retags it
-    image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+    image: mirror.gcr.io/kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5 # renovate: datasource=docker depName=docker.io/kindest/node versioning=docker
