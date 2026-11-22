@@ -1,3 +1,5 @@
+# Cleanup: the cluster patches 03, 06 and 09 are gone from the repo (docs/storage-plan.md, phase 3). Remove them in Omni first; the `$patch: delete` documents below then
+# delete nothing and can be dropped from this machine patch (never before: with 03, 06 or 09 still applied, Talos would create those volumes again).
 # PILOT, per machine, for talos-2jc-qux only (docs/storage-plan.md): replaces its local-path volumes with LVM volume groups for the OpenEBS LVM LocalPV
 # driver (k8s/infra/openebs-system). Every other node keeps patches 03 (and 06, 09 on talos-11a-esj) until the pilot works.
 #

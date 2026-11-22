@@ -7,7 +7,7 @@ The GitHub Actions workflow (`.github/workflows/renovate.yaml`) stays as the fal
 | Part | Where |
 |---|---|
 | Namespace, operator (CRDs, bundled Valkey), network policy, the Job that creates the generated Secrets | here (`app-controllers`, so the CRDs exist first) |
-| Garage (one node, `local-path`) | `k8s/apps/renovate/garage/` |
+| Garage (one node, `lvm-fast` meta and `lvm-bulk` data) | `k8s/apps/renovate/garage/` |
 | The `RenovateJob` (suspended) | `k8s/apps/renovate/renovatejob.yaml` |
 
 `k8s/apps/renovate/` has its own Flux Kustomization, `renovate` (`k8s/clusters/homelab/renovate.yaml`, after `app-controllers`), so
