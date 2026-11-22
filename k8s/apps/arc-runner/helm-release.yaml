@@ -89,7 +89,7 @@ spec:
 
           - name: init-dind-externals
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261121.18@sha256:4b8914adb35f05531e8341a48abeef0a214f1141a479defc24da77198db42dc6
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261122.21@sha256:9bfb04321a84c9bbb63869084f8c33956f9cacfbca12db8d6f77701617358e4e
             imagePullPolicy: IfNotPresent
             command:
               - "cp"
@@ -157,7 +157,7 @@ spec:
         containers:
           - name: runner
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261121.18@sha256:4b8914adb35f05531e8341a48abeef0a214f1141a479defc24da77198db42dc6
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261122.21@sha256:9bfb04321a84c9bbb63869084f8c33956f9cacfbca12db8d6f77701617358e4e
             imagePullPolicy: IfNotPresent
             # patches the runner so it keeps ACTIONS_RESULTS_URL (images/github-actions-runner/use-cache-server); fails the pod when it cannot
             command:

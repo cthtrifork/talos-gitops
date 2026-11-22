@@ -113,3 +113,29 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: cdi
+---
+# The CDI controller reads the progress of an import from the importer pods' metrics (8443). The importer side already accepts it (the
+# <vm>-cdi-importer-egress policies of the VM namespaces); this is the egress half, which cdi-allow-base (the cdi namespace only) did not have.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: cdi-controller-importer-egress
+  namespace: cdi
+spec:
+  endpointSelector:
+    matchLabels:
+      cdi.kubevirt.io: cdi-deployment
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app: containerized-data-importer
+          matchExpressions:
+            - key: k8s:io.kubernetes.pod.namespace
+              operator: In
+              values:
+                - claude-vm
+                - homeserver-vm
+      toPorts:
+        - ports:
+            - port: "8443"
+              protocol: TCP
