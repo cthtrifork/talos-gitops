@@ -3,6 +3,8 @@ name: e2e
 on:
   workflow_dispatch:
   pull_request:
+    # closed only cancels the in-flight run through the concurrency group; the job is skipped for it
+    types: [opened, synchronize, reopened, closed]
     paths:
       - k8s/**
       - scripts/kind.yaml
@@ -33,7 +35,7 @@ jobs:
   e2e-test:
     # ARC runner in the cluster (k8s/apps/arc-runner/helm-release-talos-gitops-e2e.yaml); the repository is public, so no fork PRs
     runs-on: arc-e2e-talos-gitops
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository)
     timeout-minutes: 20
     steps:
       - name: Checkout
