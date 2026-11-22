@@ -103,7 +103,7 @@ spec:
           controllerNames:
             - disk-wipe-talos-tba-msi-2
             - disk-wipe-talos-2jc-qux-2
-            - disk-wipe-talos-11a-esj-2
+            - disk-wipe-talos-11a-esj-3
             - disk-wipe-talos-vt2-qp8-2
           rules:
             - runAsPrivileged
