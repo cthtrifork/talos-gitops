@@ -1,3 +1,5 @@
+# Cleanup: the cluster patches 03, 06 and 09 are gone from the repo (docs/storage-plan.md, phase 3). Remove them in Omni first; the `$patch: delete` documents below then
+# delete nothing and can be dropped from this machine patch (never before: with 03, 06 or 09 still applied, Talos would create those volumes again).
 # Per machine, for talos-vt2-qp8 only (docs/storage-plan.md, phase 1; the pilot is 14-lvm-2jc.yaml): replaces its local-path volume and the stale `openebs` user volume
 # on the USB disk with the LVM volume groups vg-fast (NVMe) and vg-bulk (USB) for the OpenEBS LVM LocalPV driver. Order, data loss accepted: 1. apply in Omni;
 # 2. reboot the node so the old volumes unmount; 3. merge the wipe Job (k8s/apps/disk-wipe, disk-wipe-talos-vt2-qp8-2); 4. Talos creates the raw partitions and the groups.

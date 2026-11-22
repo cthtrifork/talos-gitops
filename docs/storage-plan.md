@@ -106,10 +106,11 @@ The CSI driver itself is proven only on 2jc (provisioning, expansion); tba and v
 **Done since (3):** the PVC flip (#1199 and after): every PVC of the plan's table is on `lvm-fast` or `lvm-bulk`, `lvm-fast` is the default class. The old volumes were gone, so each StatefulSet, operator or chart PVC was deleted once with the owner's elevations (`ops`, `storage`, and `flux` to reconcile) and recreated by Flux or Helm. Lessons: a HelmRelease whose upgrade failed on an immutable field rolls back and stalls (`RollbackFailed`) until its spec changes or a reconcile is requested; a PVC that names no class never changes class, so manifests must name it; the CNPG troubleshooting guide's "delete the PVC" is for replicas, a single instance needs its `Cluster` deleted (the `claude-storage` role allows it). Left alone on purpose: `claude-vm-rootdisk` and `homeserver-vm-rootdisk`.
 
 **Next, in order:**
-1. This clean-up: retries back to 3 and the temporary `force: true` removed (PR "chore(flux): undo the temporary storage-flip settings").
-2. The runner emptyDirs: branch `claude/runner-ephemeral-volumes` (retarget to `lvm-fast`, open the PR).
-3. Remove the local-path provisioner, the OpenEBS hostpath provisioner and patches 03, 06 and 09 (and the leftover `local-path` StorageClass), then delete `k8s/apps/lvm-test` and `k8s/apps/disk-wipe` with their Flux Kustomizations in `k8s/clusters/homelab` and the Polaris exemptions.
-4. `homeserver-vm` disks (talos-gitops #1200 with the cloud-init config, after the homeserver-bootc image with cloud-init is live).
+1. The clean-up PR "chore(storage): remove local-path and OpenEBS hostpath": the two provisioners, the `local-path` StorageClass, patches 03, 06 and 09 (the repo copies), and the Polaris and Trivy exemptions for them. **Then in Omni, in this order:** remove the cluster patches 03, 06 and 09,
+   then drop the `$patch: delete` documents from the machine patches 14 to 17 (never the other way round: with 03, 06 or 09 still applied, Talos would create those volumes again). The old `Released` PVs
+   (about 25, reclaim policy Delete, data gone) cannot be deleted by a session (cluster-scoped): `kubectl get pv | grep Released | awk '{print $1}' | xargs kubectl delete pv` with admin rights.
+2. Delete the temporary apps `k8s/apps/lvm-test` and `k8s/apps/disk-wipe` with their Flux Kustomizations in `k8s/clusters/homelab` and the Polaris exemptions for the wipe Jobs.
+3. `homeserver-vm` disks (talos-gitops #1200 with the cloud-init config, after the homeserver-bootc image with cloud-init is live), and the two VM rootdisks (`claude-vm`, `homeserver-vm`), which still sit on `local-path` PVCs whose data is gone: recreate them (a new DataVolume) when the VMs are wanted again.
 
 **Rules from the owner:** no disk scans on nodes (no `talosctl usage`; read-only `talosctl get` and Prometheus are fine); Docker Hub images as `mirror.gcr.io/...`; PRs only, nothing applied
 to the cluster by hand; the `homeserver-vm` disk is another session's job. Per-task worktrees in `/workspace` are lost for anything not pushed once the workspace volume is replaced.
