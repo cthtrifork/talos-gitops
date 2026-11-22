@@ -46,7 +46,7 @@ spec:
           type: RuntimeDefault
       # Claude refuses to bind its cross-session messaging socket under a shared directory (every parent must be
       # private or sticky). An emptyDir is 0777 and fsGroup makes it 2777; emptyDir.mode (sticky bit) is alpha
-      # from Kubernetes 1.37. The local-path PVCs are hostPath volumes, which fsGroup does not touch (root 0777),
+      # from Kubernetes 1.37. The LVM volumes are mounted by the CSI driver; keep the claude-owned 0700 subdirectory below,
       # so /tmp is a claude-owned 0700 subdirectory of the workspace PVC, made by the init container below
       # (the restricted PSA rules out a root one). Wiped on every pod start, like an emptyDir.
       initContainers:
@@ -284,7 +284,7 @@ spec:
               - key: urlshare.md
                 path: urlshare/SKILL.md
         # A plain PVC, so clones survive pod restarts (a per-pod ephemeral volume was wiped by every rollout).
-        # local-path does not enforce the size: clean up old clones.
+        # a real 50Gi lvm-fast volume (expandable online): clean up old clones.
         - name: workspace
           persistentVolumeClaim:
             claimName: claude-workspace-lvm
