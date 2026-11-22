@@ -109,7 +109,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: disk-wipe-talos-11a-esj-1
+  name: disk-wipe-talos-11a-esj-2
   namespace: disk-wipe-system
 spec:
   backoffLimit: 0
@@ -138,9 +138,9 @@ spec:
               value: "false"
             - name: TARGETS
               value: |
-                part|67c18632-d7a7-40e2-b4e5-cfb452072914|80000000000|talos-11a-esj nvme0n1p1, the unused 80 GB volume local-storage (skipped while mounted)
-                part|59e5f432-d756-4b41-b432-9ace48e1dc48|80000000000|talos-11a-esj nvme0n1p2, the unused 80 GB volume local-storage-cache (skipped while mounted)
-                disk|EXTERNAL_USB|4000787027968|talos-11a-esj sda, the 4 TB USB disk
+                part|67c18632-d7a7-40e2-b4e5-cfb452072914|80000000000|talos-11a-esj nvme1n1p1, the old 80 GB volume local-storage (replaced by vg-fast)
+                part|59e5f432-d756-4b41-b432-9ace48e1dc48|80000000000|talos-11a-esj nvme1n1p2, the old 80 GB volume local-storage-cache (replaced by vg-fast)
+                part|359ddddb-14ea-4418-85cb-1308a1ccb49e|700000000000|talos-11a-esj nvme1n1p3, the old 700 GB local-path volume (replaced by vg-fast)
           resources:
             requests:
               cpu: 50m
