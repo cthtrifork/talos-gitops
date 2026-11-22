@@ -96,6 +96,8 @@ spec:
         # quay.io (blobs come from cdn*.quay.io)
         - matchName: quay.io
         - matchPattern: "cdn*.quay.io"
+        # quay.io's blob host cdn02.quay.io is served by CloudFront: zot was denied to addresses of its Copenhagen pool that the names above did not cover
+        - matchPattern: "*.cloudfront.net"
         # registry.k8s.io redirects to Artifact Registry, S3 and the Fastly CDN (cdn.registry.k8s.io)
         - matchName: registry.k8s.io
         - matchName: cdn.registry.k8s.io

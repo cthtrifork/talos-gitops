@@ -46,13 +46,13 @@ spec:
           registry: registry.k8s.io/
           repository: sig-storage/csi-resizer
           # renovate: datasource=docker depName=registry.k8s.io/sig-storage/csi-resizer versioning=docker
-          tag: v2.0.0@sha256:4a95d94e57ad82f6977cd8d4fdcfcfc0b83f02d990e4e7715b688c20970a906d
+          tag: v2.3.0@sha256:48fb3deb93cd848e3c8998b6368f4322c93bb5ce4a90d1307b6dda0dbefb9a0e
       provisioner:
         image:
           registry: registry.k8s.io/
           repository: sig-storage/csi-provisioner
           # renovate: datasource=docker depName=registry.k8s.io/sig-storage/csi-provisioner versioning=docker
-          tag: v6.1.0@sha256:e5900dc98b0d02f317ea9572f3824983c47a2fb5d5fe2b160aedf1b99c14c9e4
+          tag: v6.4.0@sha256:6ebe60fd8ed67a7f8a90d34402e9e706b274e53612d6fa5fbb8285728db622e2
       resources:
         requests:
           cpu: 10m
@@ -65,7 +65,7 @@ spec:
           registry: registry.k8s.io/
           repository: sig-storage/csi-node-driver-registrar
           # renovate: datasource=docker depName=registry.k8s.io/sig-storage/csi-node-driver-registrar versioning=docker
-          tag: v2.13.0@sha256:d7138bcc3aa5f267403d45ad4292c95397e421ea17a0035888850f424c7de25d
+          tag: v2.18.0@sha256:b7fefd08651f00ac4df1a196ed4c621c2451fbb899297fe9fad9e36c667af0c0
       # runs on every node, the tainted control plane node too
       tolerations:
         - key: node-role.kubernetes.io/control-plane

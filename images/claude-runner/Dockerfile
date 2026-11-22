@@ -17,7 +17,7 @@ ARG CRANE_VERSION=0.22.1
 # renovate: datasource=github-releases depName=mikefarah/yq
 ARG YQ_VERSION=4.54.3
 # renovate: datasource=github-releases depName=controlplaneio-fluxcd/flux-operator
-ARG FLUX_OPERATOR_VERSION=0.63.0
+ARG FLUX_OPERATOR_VERSION=0.63.1
 # renovate: datasource=github-releases depName=kubernetes-sigs/kustomize extractVersion=^kustomize/v(?<version>.+)$
 ARG KUSTOMIZE_VERSION=5.8.3
 # renovate: datasource=github-releases depName=yannh/kubeconform
