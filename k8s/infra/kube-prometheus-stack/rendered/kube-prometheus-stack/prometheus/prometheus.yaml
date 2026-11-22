@@ -98,7 +98,7 @@ spec:
         resources:
           requests:
             storage: 20Gi
-        storageClassName: local-path
+        storageClassName: lvm-fast
   tsdb:
     outOfOrderTimeWindow: 0s
   version: v3.16.0
