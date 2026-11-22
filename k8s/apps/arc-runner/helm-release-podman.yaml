@@ -197,20 +197,42 @@ spec:
               path: /dev
               type: Directory
           - name: work
-            emptyDir:
-              sizeLimit: 32Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 32Gi
           - name: tmp
-            emptyDir:
-              sizeLimit: 20Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 20Gi
           - name: var-tmp
-            emptyDir:
-              sizeLimit: 30Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 30Gi
           - name: container-storage-rootful
             ephemeral:
               volumeClaimTemplate:
                 spec:
                   accessModes:
                     - ReadWriteOnce
+                  storageClassName: lvm-fast
                   resources:
                     requests:
                       storage: 32Gi
@@ -220,6 +242,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
+                  storageClassName: lvm-fast
                   resources:
                     requests:
                       storage: 32Gi
@@ -229,6 +252,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
+                  storageClassName: lvm-fast
                   resources:
                     requests:
                       storage: 25Gi
@@ -238,6 +262,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
+                  storageClassName: lvm-fast
                   resources:
                     requests:
                       storage: 5Gi
