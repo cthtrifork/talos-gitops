@@ -25,7 +25,7 @@ spec:
     # volumes, and the import runs there (CDI v1.66 feature-gates.go: HonorWaitForFirstConsumer).
     featureGates:
       - HonorWaitForFirstConsumer
-    scratchSpaceStorageClass: lvm-fast
+    scratchSpaceStorageClass: lvm-bulk # the temporary conversion space of an import (as big as the image): off the small NVMe groups, onto the idle 4 TB bulk disks
     podResourceRequirements:
       requests:
         cpu: "100m"
