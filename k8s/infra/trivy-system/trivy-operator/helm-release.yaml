@@ -224,7 +224,7 @@ spec:
         memory: 2Gi
       requests:
         cpu: 100m
-        memory: 640Mi
+        memory: 512Mi
     trivyOperator:
       #scanJobPodTemplateLabels: "my-label/mount-root-ca=true"
       scanJobCustomVolumesMount:
