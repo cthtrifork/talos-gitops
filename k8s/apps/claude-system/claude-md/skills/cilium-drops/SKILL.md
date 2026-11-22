@@ -10,9 +10,11 @@ Hubble metrics to Prometheus (query it through Prometheus, see the `cluster-disk
 writing a policy. A policy is live only once Flux applied it (`kubectl get cnp -A`, `kubectl get kustomization -n flux-system`);
 wait a few minutes before reading the drops.
 
-- Denied traffic: `sum by (source_namespace,source_workload,destination_namespace,destination_workload,source_ip,destination_ip,traffic_direction)(increase(hubble_drop_total{reason="POLICY_DENIED"}[5m]))>0`.
-  Peers without a workload name (world, host) have empty workload labels: read the IPs (`kubectl get nodes -o wide` maps
-  nodes). Configured in `k8s/infra/cilium/helm-release.yaml` (`hubble.metrics.enabled`).
+- Denied traffic, by host name first: `sum by (source_namespace,source_workload,destination,destination_namespace,destination_workload,traffic_direction)(increase(hubble_drop_total{reason="POLICY_DENIED"}[5m]))>0`.
+  The `destination` label is the DNS name Cilium knows for the peer (`destinationContext=dns|workload-name`), so it names the host to allow (a CDN
+  pool is one name, not a dozen `destination_ip` series). Never group by IP first and then guess names with reverse DNS (`ec2-*`, `cloudfront.net` say nothing about the host).
+  Only the peers that stay unnamed (`destination=""`: nodes, world without a DNS answer) need `destination_ip`: add `{destination=""}` and group by `destination_ip` for those.
+  Peers without a workload name (world, host) have empty workload labels: `kubectl get nodes -o wide` maps node IPs.
 - What a workload talks to: `sum by (source,destination,protocol,verdict)(increase(hubble_flows_processed_total{type="Trace"}[12h]))>0`
   (`reserved:host|remote-node|kube-apiserver|world` are entities). Reverse-direction flows are replies and need no rule.
 - Gotchas: the Omni service exposer runs on the host network, so a service with an `omni-kube-service-exposer.sidero.dev/*`
