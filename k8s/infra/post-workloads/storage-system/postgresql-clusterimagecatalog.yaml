@@ -11,7 +11,7 @@ metadata:
 spec:
   images:
     - major: 17
-      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql versioning=docker
+      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql versioning=regex:^(?<major>-7)\.(?<minor>\d+)-(?<patch>\d+)-(?<compatibility>minimal-trixie)$
       image: ghcr.io/cloudnative-pg/postgresql:18.7-202611201711-minimal-trixie@sha256:635bfde0a4ce2a04daad754e1ad37fb95ae096c8153b37fe1a4561b5ea417e38
     - major: 18
       # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql versioning=docker
