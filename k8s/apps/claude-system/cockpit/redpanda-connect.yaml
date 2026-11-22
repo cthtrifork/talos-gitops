@@ -263,14 +263,14 @@ processor_resources:
 
             drops_top:
               request_map: |
-                meta path = "/api/v1/query?query=" + ("topk(3, sum by (source_workload, destination_ip, destination_namespace, destination_workload) (increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[" + @drops_window + "])) > 0)").escape_url_query()
+                meta path = "/api/v1/query?query=" + ("topk(3, (sum by (source_workload, destination, destination_namespace, destination_workload) (increase(hubble_drop_total{reason=\"POLICY_DENIED\",destination!=\"\"}[" + @drops_window + "])) or sum by (source_workload, destination_ip, destination_namespace, destination_workload) (increase(hubble_drop_total{reason=\"POLICY_DENIED\",destination=\"\"}[" + @drops_window + "]))) > 0)").escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
               result_map: |
                 root.drops_top = this.data.result.map_each(r -> {
                   "source": r.metric.source_workload.or("unknown"),
-                  "destination": if r.metric.destination_workload.or("") != "" { r.metric.destination_namespace.or("-") + "/" + r.metric.destination_workload } else { r.metric.destination_ip.or("unknown") },
+                  "destination": if r.metric.destination_workload.or("") != "" { r.metric.destination_namespace.or("-") + "/" + r.metric.destination_workload } else { r.metric.destination.or(r.metric.destination_ip.or("unknown")) },
                   "count": r.value.index(1).number().round()
                 })
 
