@@ -123,7 +123,7 @@ spec:
         storage:
           accessModes:
             - ReadWriteOnce
-          storageClassName: local-path
+          storageClassName: lvm-fast
           resources:
             requests:
               storage: 110Gi # the disk is 100 GiB plus boot partitions; keep in step with config-homeserver.toml in homeserver-bootc
