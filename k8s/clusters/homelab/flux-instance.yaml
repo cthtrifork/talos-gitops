@@ -32,6 +32,23 @@ spec:
             name: flux-system
             labels:
               claude-elevate/ops: "true"
+      # peak working set 140-190Mi against the 64Mi default request
+      - target:
+          kind: Deployment
+          name: "(source|kustomize|helm)-controller"
+        patch: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: not-used
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: manager
+                    resources:
+                      requests:
+                        memory: 192Mi
   sync:
     kind: GitRepository
     url: "https://github.com/cthtrifork/talos-gitops"

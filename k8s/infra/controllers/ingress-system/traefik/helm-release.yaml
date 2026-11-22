@@ -77,8 +77,8 @@ spec:
             timeoutSeconds: 5
           resources:
             requests:
-              cpu: 10m
-              memory: 32Mi
+              cpu: 25m
+              memory: 64Mi
             limits:
               memory: 128Mi
           securityContext:
@@ -132,6 +132,6 @@ spec:
     resources:
       requests:
         cpu: 50m
-        memory: 64Mi
+        memory: 128Mi
       limits:
         memory: 192Mi
