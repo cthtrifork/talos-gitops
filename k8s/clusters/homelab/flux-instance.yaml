@@ -32,6 +32,7 @@ spec:
             name: flux-system
             labels:
               claude-elevate/ops: "true"
+              claude-elevate/flux: "true" # reconcile a Kustomization now (annotation only, see the claude-flux role and its admission policy)
       # median working set 95-110Mi against the 64Mi default request
       - target:
           kind: Deployment
