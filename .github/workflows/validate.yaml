@@ -14,7 +14,7 @@ jobs:
   renovate:
     runs-on: ubuntu-latest
     env:
-      RENOVATE_VERSION: "44.251.0" # renovate: datasource=npm depName=renovate
+      RENOVATE_VERSION: "44.252.8" # renovate: datasource=npm depName=renovate
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -25,14 +25,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Setup yq
-        uses: fluxcd/pkg/actions/yq@e270089eb56404fcf3822b96bad2f423e9f45862 # main
+      - name: Install tools
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+        with:
+          install_args: "yq pipx:yamllint actionlint"
       - name: yamllint
-        run: |
-          pip install --quiet "yamllint==${YAMLLINT_VERSION}"
-          yamllint --strict -c .yamllint.yaml k8s scripts bootstrap.yaml images .github/dependabot.yml
-        env:
-          YAMLLINT_VERSION: "1.38.0" # renovate: datasource=pypi depName=yamllint
+        run: yamllint --strict -c .yamllint.yaml k8s scripts bootstrap.yaml images .github/dependabot.yml
       - name: Manifest filenames
         run: |
           python3 -m unittest discover -s scripts/ci -p 'test_check_manifest_filenames.py'
@@ -42,11 +40,7 @@ jobs:
       - name: shellcheck
         run: shellcheck scripts/*.sh scripts/ci/*.sh
       - name: actionlint
-        run: |
-          bash <(curl -fsSL "https://raw.githubusercontent.com/rhysd/actionlint/v${ACTIONLINT_VERSION}/scripts/download-actionlint.bash") "${ACTIONLINT_VERSION}"
-          ./actionlint -color -ignore 'SC2086' -ignore 'SC2129' -ignore 'constant expression "false"'
-        env:
-          ACTIONLINT_VERSION: "1.7.12" # renovate: datasource=github-releases depName=rhysd/actionlint
+        run: actionlint -color -ignore 'SC2086' -ignore 'SC2129' -ignore 'constant expression "false"'
       - name: Secrets are SOPS-encrypted
         run: ./scripts/ci/check-secrets-encrypted.sh k8s
       - name: Claude agents reach the same hosts as claude-rc
@@ -56,12 +50,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Setup yq
-        uses: fluxcd/pkg/actions/yq@e270089eb56404fcf3822b96bad2f423e9f45862 # main
-      - name: Setup kubeconform
-        uses: fluxcd/pkg/actions/kubeconform@e270089eb56404fcf3822b96bad2f423e9f45862 # main
-      - name: Setup kustomize
-        uses: fluxcd/pkg/actions/kustomize@e270089eb56404fcf3822b96bad2f423e9f45862 # main
+      - name: Install tools
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+        with:
+          install_args: "yq kubeconform kustomize"
       # The directory is relative to the repository root; a bare "apps" matched nothing and validated nothing.
       - name: Validate manifests -- /apps
         run: ./scripts/validate.sh --dir k8s/apps
@@ -77,12 +69,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Setup yq
-        uses: fluxcd/pkg/actions/yq@e270089eb56404fcf3822b96bad2f423e9f45862 # main
-      - name: Setup kubeconform
-        uses: fluxcd/pkg/actions/kubeconform@e270089eb56404fcf3822b96bad2f423e9f45862 # main
-      - name: Setup kustomize
-        uses: fluxcd/pkg/actions/kustomize@e270089eb56404fcf3822b96bad2f423e9f45862 # main
+      - name: Install tools
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+        with:
+          install_args: "yq kubeconform kustomize"
       - name: Build Flux Kustomization paths
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
   polaris:
@@ -92,10 +82,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Setup yq
-        uses: fluxcd/pkg/actions/yq@e270089eb56404fcf3822b96bad2f423e9f45862 # main
-      - name: Setup kustomize
-        uses: fluxcd/pkg/actions/kustomize@e270089eb56404fcf3822b96bad2f423e9f45862 # main
+      - name: Install tools
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+        with:
+          install_args: "yq kustomize"
       - name: Install Polaris
         run: |
           # the version Renovate keeps current for the dashboard image; releases are tagged 10.1.8 or v10.2.6

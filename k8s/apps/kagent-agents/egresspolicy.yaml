@@ -53,7 +53,6 @@ spec:
           key: token
     - origin: "https://githubassets.com"
     - origin: "https://githubcopilot.com"
-    - origin: "https://index.docker.io"
     - origin: "https://mcp.cloudflare.com"
     - origin: "https://mirror.gcr.io"
     - origin: "https://platform.claude.com"
@@ -61,6 +60,7 @@ spec:
     - origin: "https://production.cloudflare.docker.com"
     - origin: "https://quay.io"
     - origin: "https://registry-1.docker.io"
+    - origin: "https://registry.k8s.io"
     - origin: "https://registry.npmjs.org"
     - origin: "https://speed.cloudflare.com"
     - origin: "https://storage.googleapis.com"

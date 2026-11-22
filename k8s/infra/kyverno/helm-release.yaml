@@ -29,6 +29,34 @@ spec:
       image:
         # ghcr.io instead of reg.kyverno.io: zot mirrors ghcr.io, so Trivy can scan the images without reaching the internet
         registry: ghcr.io
+    admissionController:
+      initContainer:
+        image:
+          # renovate: datasource=docker depName=ghcr.io/kyverno/kyvernopre versioning=docker
+          tag: v1.20.0@sha256:339067e083430e0c97007541bef9cfdbac89bee13f7228772c77ae8aead14b8b
+      container:
+        image:
+          # renovate: datasource=docker depName=ghcr.io/kyverno/kyverno versioning=docker
+          tag: v1.20.0@sha256:9de49c5416ea536f00a205527197ac048abdf32c5a75d633cd9afff8928f359d
+      # two replicas (the chart adds a PodDisruptionBudget): the image policy fails closed, so a single pod would block pod
+      # creation of pods with our images while it restarts
+      replicas: 2
+      # soft spread: one replica per node when possible, but never Pending because of it
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: admission-controller
+              app.kubernetes.io/part-of: kyverno
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+      # Prometheus scrapes the metrics service (8000): admission review latency and policy results
+      podLabels:
+        prometheus-scrape: "true"
+      serviceMonitor:
+        enabled: true
+        additionalLabels:
+          release: kube-prometheus-stack
     backgroundController:
       enabled: false
     cleanupController:

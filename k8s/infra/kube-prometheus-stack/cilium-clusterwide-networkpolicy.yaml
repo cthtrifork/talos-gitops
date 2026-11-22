@@ -22,6 +22,9 @@ spec:
               protocol: TCP
             - port: "5000"
               protocol: TCP
+            # Kyverno admission controller metrics
+            - port: "8000"
+              protocol: TCP
             - port: "8080"
               protocol: TCP
             - port: "9000"
@@ -36,10 +39,16 @@ spec:
               protocol: TCP
             - port: "9187"
               protocol: TCP
-            - port: "9617"
+            - port: "9618"
               protocol: TCP
             # cert-manager (controller, webhook and cainjector metrics)
             - port: "9402"
+              protocol: TCP
+            # the GitHub Actions cache server (gha-cache-system)
+            - port: "3000"
+              protocol: TCP
+            # the OpenEBS LVM node plugin (volume group metrics) in openebs-system
+            - port: "9500"
               protocol: TCP
             # Garage's admin API (metrics) in renovate-system
             - port: "3903"

@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fast-fs
+  namespace: lvm-test-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: lvm-fast
+  resources:
+    requests:
+      storage: 2Gi # was 1Gi: online expansion test
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bulk-fs
+  namespace: lvm-test-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: lvm-bulk
+  resources:
+    requests:
+      storage: 1Gi

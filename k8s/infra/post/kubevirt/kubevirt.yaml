@@ -5,11 +5,32 @@ metadata:
   name: kubevirt
   namespace: kubevirt
 spec:
+  # Memory limits and liveness probes the upstream deployments lack (Polaris). Limits leave several times the usage seen on 2026-11-21.
+  customizeComponents:
+    patches:
+      - resourceType: Deployment
+        resourceName: virt-api
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"virt-api","resources":{"limits":{"memory":"1Gi"}},"livenessProbe":{"httpGet":{"path":"/apis/subresources.kubevirt.io/v1/healthz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":30,"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":6}}]}}}}'
+      - resourceType: Deployment
+        resourceName: virt-controller
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"virt-controller","resources":{"limits":{"memory":"1Gi"}}}]}}}}'
+      - resourceType: Deployment
+        resourceName: virt-exportproxy
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"exportproxy","resources":{"limits":{"memory":"512Mi"}},"livenessProbe":{"httpGet":{"path":"/healthz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":30,"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":6}}]}}}}'
   configuration:
     developerConfiguration:
-      featureGates:
-        #- LiveMigration
-        - NetworkBindingPlugins
+      # Since v1.9 every Beta feature gate is on by default and Alpha ones stay off: featureGates only needs Alpha gates, and
+      # disabledFeatureGates switches a Beta one off. The Beta set changes with each release (feature-gates.json in the release
+      # assets), so review it on every KubeVirt bump (renovate "kubevirt" group). NetworkBindingPlugins is GA in v1.10 (it is not in
+      # that list), so it needs no gate any more.
+      featureGates: []
+      #- LiveMigration
+    # The virt-template images have no digest env var on the operator, so require-image-digest denies virt-template-apiserver
+    virtTemplateDeployment:
+      enabled: false
     smbios:
       sku: "TalosCloud"
       version: "v0.1.0"

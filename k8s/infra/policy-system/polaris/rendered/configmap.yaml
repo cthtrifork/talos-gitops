@@ -29,6 +29,32 @@ data:
       topologySpreadConstraint: ignore
     exemptions:
       - controllerNames:
+        - openebs-lvm-node
+        - openebs-lvm-controller
+        namespace: openebs-system
+        rules:
+        - runAsPrivileged
+        - runAsRootAllowed
+        - privilegeEscalationAllowed
+        - linuxHardening
+        - insecureCapabilities
+        - notReadOnlyRootFilesystem
+        - hostPathSet
+      - controllerNames:
+        - disk-wipe-talos-tba-msi-1
+        - disk-wipe-talos-2jc-qux-2
+        - disk-wipe-talos-11a-esj-1
+        - disk-wipe-talos-vt2-qp8-1
+        namespace: disk-wipe-system
+        rules:
+        - runAsPrivileged
+        - runAsRootAllowed
+        - privilegeEscalationAllowed
+        - linuxHardening
+        - insecureCapabilities
+        - notReadOnlyRootFilesystem
+        - hostPIDSet
+      - controllerNames:
         - cilium
         - hubble-ui
         - hubble-relay
@@ -265,6 +291,30 @@ data:
         - virt-operator
         rules:
         - memoryLimitsMissing
+        - notReadOnlyRootFilesystem
+      - controllerNames:
+        - cdi-apiserver
+        - cdi-deployment
+        - cdi-uploadproxy
+        namespace: cdi
+        rules:
+        - notReadOnlyRootFilesystem
+      - controllerNames:
+        - cdi-deployment
+        namespace: cdi
+        rules:
+        - livenessProbeMissing
+      - controllerNames:
+        - virt-handler
+        namespace: kubevirt
+        rules:
+        - privilegeEscalationAllowed
+        - runAsPrivileged
+        - runAsRootAllowed
+        - insecureCapabilities
+        - hostPIDSet
+        - hostPathSet
+        - linuxHardening
         - notReadOnlyRootFilesystem
       - controllerNames:
         - metrics-server:system:auth-delegator

@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: gha-cache
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: github-actions-cache-server
+    app.kubernetes.io/version: 10.0.1
+    helm.sh/chart: github-actions-cache-server-2.0.1
+  name: gha-cache
+  namespace: gha-cache-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: gha-cache
+      app.kubernetes.io/name: github-actions-cache-server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: gha-cache
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: github-actions-cache-server
+        app.kubernetes.io/version: 10.0.1
+        helm.sh/chart: github-actions-cache-server-2.0.1
+        prometheus-scrape: "true"
+    spec:
+      containers:
+      - env:
+        - name: PORT
+          value: "3000"
+        - name: API_BASE_URL
+          value: http://gha-cache.gha-cache-system.svc.cluster.local:3000
+        - name: ENABLE_DIRECT_DOWNLOADS
+          value: "false"
+        - name: DIRECT_DOWNLOAD_URL_TTL_SECONDS
+          value: "600"
+        - name: EAGER_MERGE
+          value: "false"
+        - name: MAX_CONCURRENT_MERGES
+          value: "16"
+        - name: DOWNLOAD_IDLE_TIMEOUT_MS
+          value: "300000"
+        - name: CACHE_CLEANUP_OLDER_THAN_DAYS
+          value: "30"
+        - name: CACHE_MAX_SIZE_BYTES
+          value: "1.610612736e+10"
+        - name: CACHE_FILESYSTEM_MAX_USAGE_PERCENT
+          value: "90"
+        - name: ORPHANED_STORAGE_GRACE_PERIOD_HOURS
+          value: "24"
+        - name: STORAGE_DRIVER
+          value: filesystem
+        - name: STORAGE_FILESYSTEM_PATH
+          value: /data/cache
+        - name: DB_DRIVER
+          value: sqlite
+        - name: DB_SQLITE_PATH
+          value: /data/cache-server.db
+        image: ghcr.io/falcondev-oss/github-actions-cache-server:10.0.1@sha256:6ff4d471db50e87008d1ad2f43819b5bbd2aad23e7e7e233cf5ccbdd01447df6
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: cache
+        name: github-actions-cache-server
+        ports:
+        - containerPort: 3000
+          name: cache
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: cache
+        resources:
+          limits:
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /tmp
+          name: tmp
+      nodeSelector:
+        kubernetes.io/hostname: talos-11a-esj
+      securityContext:
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: gha-cache
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: gha-cache-data-v2
+      - emptyDir:
+          sizeLimit: 1Gi
+        name: tmp

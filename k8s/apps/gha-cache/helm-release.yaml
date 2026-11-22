@@ -1,0 +1,89 @@
+---
+# https://gha-cache-server.falcondev.io/getting-started
+# Self-hosted GitHub Actions cache server: runners of the e2e scale set (k8s/apps/arc-runner) point ACTIONS_RESULTS_URL
+# at it, so actions/cache and the tool caches (mise) stay in the cluster. Filesystem storage and SQLite on one local-path
+# volume, one replica: losing it only costs a cold cache.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: gha-cache
+  namespace: gha-cache-system
+spec:
+  interval: 30m
+  releaseName: gha-cache
+  chartRef:
+    kind: OCIRepository
+    name: gha-cache
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  # The chart has no strategy value, and a rolling update would run two pods on the same SQLite file and volume
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: gha-cache
+            patch: |
+              - op: add
+                path: /spec/strategy
+                value:
+                  type: Recreate
+  # https://github.com/falcondev-oss/github-actions-cache-server/blob/dev/install/kubernetes/github-actions-cache-server/values.yaml
+  values:
+    # the service is gha-cache.gha-cache-system.svc.cluster.local:3000, which is also the default API_BASE_URL of the chart
+    fullnameOverride: gha-cache
+    image:
+      # renovate: datasource=docker depName=ghcr.io/falcondev-oss/github-actions-cache-server
+      tag: "10.0.1@sha256:6ff4d471db50e87008d1ad2f43819b5bbd2aad23e7e7e233cf5ccbdd01447df6"
+    config:
+      # 15 GiB of the 20Gi volume, least recently used entries are evicted first
+      cacheMaxSizeBytes: 16106127360
+      cacheCleanupOlderThanDays: 30
+    # Own claim (pvc.yaml) instead of the chart's: the old claim sits on another node, and a local-path volume cannot move
+    persistentVolumeClaim:
+      enabled: false
+    # Same node as the e2e runners (their podAffinity follows this pod): a pod-to-pod transfer between two nodes runs at 3 to
+    # 5 MB/s in this cluster (see helm-release-bootc-iso.yaml) and a cache upload from a runner on another node stalled
+    nodeSelector:
+      kubernetes.io/hostname: talos-11a-esj
+    # opt in to the Prometheus scrape (cluster-wide policy prometheus-scrape; PodMonitor in this app)
+    podLabels:
+      prometheus-scrape: "true"
+    # the server does not talk to the Kubernetes API
+    serviceAccount:
+      automount: false
+    podSecurityContext:
+      fsGroup: 1000
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+      runAsNonRoot: true
+      runAsUser: 1000
+    # the root filesystem is read-only, so scratch space is a volume (the cache and the database are on the data volume)
+    extraVolumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: gha-cache-data-v2
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+    extraVolumeMounts:
+      - name: data
+        mountPath: /data
+      - name: tmp
+        mountPath: /tmp
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 1Gi

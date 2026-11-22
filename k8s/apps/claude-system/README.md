@@ -253,18 +253,17 @@ sequenceDiagram
 | `:8081` poll | MetalLB `claude-vm-upgrade-lb`, 192.168.1.244, plain HTTP, only from the VMs | `POST /api/v1/vms/<vm>/report`: the VM's booted and staged ostree deployment (also counts as a poll); `POST /api/v1/vms/<vm>/claim`: answers `{"upgrade": true}` once per click, then clears the flag |
 
 `<vm>` is `claude-vm` or `homeserver` (the list is `vm_names` in `redpanda-connect.yaml`); anything else is a 404. A third VM needs its name there, two more lines in
-the `/api/v1/status` handler, its address in `CiliumNetworkPolicy/claude-vm-upgrade`, and a label in `index.html`.
+the `/api/v1/status` handler, its pod selector in `CiliumNetworkPolicy/claude-vm-upgrade` (ingress and egress), and a label in `index.html`.
 
 The flag lives 10 minutes and is cleared by the first claim, so one click is at most one upgrade; a pod restart drops an unclaimed click.
 The poll listener has no way to queue an upgrade, and the page listener has no `claim`.
 
 ### Access and DNS
 
-There is no token. The poll listener is reachable only from the VMs' static addresses: `CiliumNetworkPolicy/claude-vm-upgrade` allows
-`192.168.1.138/32` (claude-vm) and `192.168.1.173/32` (homeserver) on 8081, and the LoadBalancer Service uses `externalTrafficPolicy: Local` so
-Cilium sees the VM's address and not a node's. This is weaker than a secret: a host on the same LAN segment that spoofs one of those addresses could
-claim a click (or poll as a VM), a VM can claim another VM's click (both sit behind the same policy), and the poll is plain HTTP, so a host in the
-path could answer `{"upgrade": true}` (bounded by each VM's one-upgrade-per-hour limit). If a VM's address changes, change its `/32` in `networkpolicy.yaml`.
+There is no token. The poll listener is reachable only on 8081 from the two KubeVirt VM pods (`claude-vm`, `homeserver-vm`) and from the nodes: `CiliumNetworkPolicy/claude-vm-upgrade`
+lists the pods by namespace and `kubevirt.io/vm` label, and the `host` and `remote-node` entities for the case where the LoadBalancer traffic is source-NATed to the
+node the VM runs on (Cilium then reports the node's address). This is weaker than a secret: anything on a node's host network can poll or claim a click, a VM can claim
+another VM's click, and the poll is plain HTTP, so a host in the path could answer `{"upgrade": true}` (bounded by each VM's one-upgrade-per-hour limit).
 
 Both VM images poll `http://vm-upgrade.portableinfo.cloud`, hardcoded, so nothing is seeded on the VMs. The one manual step is the Cloudflare record
 (DNS only, like `otel.portableinfo.cloud`): an `A` record `vm-upgrade` -> `192.168.1.244`. Until it exists the VMs log that the page is unreachable
@@ -299,8 +298,8 @@ Kubernetes API with the pod's own token; the steps and the API are in `elevate/r
   (`security-system`); the page shows each CronJob's one-line description from its annotation `claude-elevate/description` (add it to every CronJob in such a namespace), enforced by the admission policy `claude-elevator-jobs` (manual annotation, one CronJob owner). The policy cannot compare the pod spec
   with the CronJob's, so the elevator pod's token (`create jobs` cluster-wide, gated by that label) is the trust boundary, as it already is for tokens and bindings.
 - **Opt-in.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` in its own manifest (`adguard-system`: all three,
-  `arc-runners-system`, `fileserver-system`, `harper-pad`, `renovate-system`, `registry-system` (zot is a rebuildable cache): `ops` and `storage` (no `debug`: exec could read secrets),
-  `arc-controller-system`, `security-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`, `flux-system`: `ops` only (their PVC data is kept),
+  `arc-runners-system`, `fileserver-system`, `harper-pad`, `renovate-system`, `homeserver-vm`, `registry-system` (zot is a rebuildable cache): `ops` and `storage` (no `debug`: exec could read secrets),
+  `arc-controller-system`, `security-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`, `flux-system`, `claude-vm`: `ops` only (their PVC data is kept),
   `flux` in the namespaces that hold HelmReleases and are opted in (`renovate-system`, `arc-runners-system`, `arc-controller-system`, `registry-system`, `security-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`; `flux-system` is managed by the flux-operator: its `ops` label comes from a patch in the `FluxInstance`, so Kustomizations there need a manual `flux` label),
   `external-dns-system`: `ops` only, since exec there could read the DNS API token).
 - **Expiry.** The token expires on the API server by itself and nothing cleans up afterwards: the ServiceAccount, RoleBinding and kubeconfig key left

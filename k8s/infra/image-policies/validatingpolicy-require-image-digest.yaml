@@ -1,0 +1,44 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/validatingpolicy_v1.json
+# Every image must be pinned by digest (name@sha256:...), so a moved tag cannot swap what runs. The only exception is the
+# images that Omni and Talos set for Kubernetes itself in kube-system, which this repo cannot pin.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-image-digest
+spec:
+  validationActions:
+    - Deny
+  # an outage of the Kyverno webhook must not block pods
+  failurePolicy: Ignore
+  evaluation:
+    background:
+      enabled: false
+  webhookConfiguration:
+    timeoutSeconds: 10
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pods
+  variables:
+    - name: images
+      expression: >-
+        (object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) +
+        (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])).map(c, c.image)
+    # control plane, CoreDNS and the Omni service exposer: image references come from the Talos and Omni machine config
+    - name: exempt
+      expression: >-
+        ['registry.k8s.io/kube-apiserver', 'registry.k8s.io/kube-controller-manager', 'registry.k8s.io/kube-scheduler',
+        'registry.k8s.io/coredns/coredns', 'ghcr.io/siderolabs/kube-service-exposer']
+  validations:
+    - expression: >-
+        object.metadata.namespace == 'kube-system' && variables.images.all(i, i.contains('@sha256:') || i.split(':')[0] in variables.exempt) ||
+        variables.images.all(i, i.contains('@sha256:'))
+      message: every image must be pinned by digest (name@sha256:...)

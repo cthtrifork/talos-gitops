@@ -14,7 +14,7 @@ metadata:
     app.kubernetes.io/version: 3.10.0
     helm.sh/chart: kyverno-3.10.0
 spec:
-  replicas:
+  replicas: 2
   revisionHistoryLimit: 10
   strategy:
     rollingUpdate:
@@ -36,9 +36,18 @@ spec:
         app.kubernetes.io/part-of: kyverno
         app.kubernetes.io/version: 3.10.0
         helm.sh/chart: kyverno-3.10.0
+        prometheus-scrape: "true"
     spec:
       nodeSelector:
         kubernetes.io/os: linux
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: admission-controller
+              app.kubernetes.io/part-of: kyverno
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
       dnsPolicy: ClusterFirst
       affinity:
         podAntiAffinity:
@@ -56,7 +65,7 @@ spec:
       automountServiceAccountToken: true
       initContainers:
         - name: kyverno-pre
-          image: "ghcr.io/kyverno/kyvernopre:v1.20.0"
+          image: "ghcr.io/kyverno/kyvernopre:v1.20.0@sha256:339067e083430e0c97007541bef9cfdbac89bee13f7228772c77ae8aead14b8b"
           imagePullPolicy: IfNotPresent
           args:
             - --loggingFormat=text
@@ -104,7 +113,7 @@ spec:
               value: kyverno-svc
       containers:
         - name: kyverno
-          image: "ghcr.io/kyverno/kyverno:v1.20.0"
+          image: "ghcr.io/kyverno/kyverno:v1.20.0@sha256:9de49c5416ea536f00a205527197ac048abdf32c5a75d633cd9afff8928f359d"
           imagePullPolicy: IfNotPresent
           args:
             - --caSecretName=kyverno-svc.policy-system.svc.kyverno-tls-ca

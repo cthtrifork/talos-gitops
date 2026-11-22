@@ -50,6 +50,17 @@ spec:
     containerMode: {} # we use custom
     template:
       spec:
+        # Same node as the cache server: a pod-to-pod transfer between two nodes runs at 3 to 5 MB/s in this cluster and a cache
+        # upload stalled (see helm-release-talos-gitops-e2e.yaml). The server's volume is node-local, so it never moves.
+        affinity:
+          podAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                namespaces:
+                  - gha-cache-system
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: github-actions-cache-server
         initContainers:
           - name: data-retention
             image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
@@ -78,7 +89,7 @@ spec:
 
           - name: init-dind-externals
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261121.18@sha256:4b8914adb35f05531e8341a48abeef0a214f1141a479defc24da77198db42dc6
             imagePullPolicy: IfNotPresent
             command:
               - "cp"
@@ -146,9 +157,11 @@ spec:
         containers:
           - name: runner
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261121.18@sha256:4b8914adb35f05531e8341a48abeef0a214f1141a479defc24da77198db42dc6
             imagePullPolicy: IfNotPresent
+            # patches the runner so it keeps ACTIONS_RESULTS_URL (images/github-actions-runner/use-cache-server); fails the pod when it cannot
             command:
+              - "/usr/local/bin/use-cache-server"
               - "/home/runner/run.sh"
 
             resources:
@@ -181,6 +194,10 @@ spec:
               - name: BUILDAH_LAYERS
                 value: "true"
 
+              # The in-cluster cache server (k8s/apps/gha-cache): actions/cache and the tool caches stay in the cluster. Caches
+              # saved by GitHub-hosted jobs are not visible here. The trailing slash is required.
+              - name: ACTIONS_RESULTS_URL
+                value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
               - name: RUNNER_UPDATE_CA_CERTS
                 value: "1"
               # The fileserver upload token, rotated every 30 days by External Secrets (k8s/infra/secret-store/; an

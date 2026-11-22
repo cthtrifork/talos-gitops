@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  PYYAML_VERSION: "6.0.3" # renovate: datasource=pypi depName=PyYAML
+  PYYAML_VERSION: "6.0.4" # renovate: datasource=pypi depName=PyYAML
   CHECK_JSONSCHEMA_VERSION: "0.39.0" # renovate: datasource=pypi depName=check-jsonschema
   # no release tag has the schema, so Renovate tracks the commit
   OPENVEX_SCHEMA_SHA: "93139bd2c65390b504e47f82f11c50451289f93a" # renovate: depName=https://github.com/openvex/spec branch=main

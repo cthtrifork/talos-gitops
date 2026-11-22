@@ -145,7 +145,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Renovate bumps the version. The linux-x64 checksum is read from the release manifest at build time
 # (https://downloads.claude.ai/claude-code-releases/<version>/manifest.json), so there is nothing to bump by hand.
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG CLAUDE_CODE_VERSION=2.1.326
+ARG CLAUDE_CODE_VERSION=2.1.328
 # renovate: datasource=github-releases depName=controlplaneio-fluxcd/flux-operator
 ARG FLUX_OPERATOR_VERSION=0.63.0
 # renovate: datasource=github-releases depName=siderolabs/talos

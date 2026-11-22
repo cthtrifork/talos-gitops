@@ -21,6 +21,7 @@ resources:
   - gitops-infra-trivy-system.yaml
   - gitops-infra-reloader-system.yaml
   #- gitops-infra-external-dns.yaml
+  - gitops-infra-kubevirt.yaml
   - gitops-infra-post.yaml
   - gitops-infra-post-workloads.yaml
   - app-controllers.yaml
@@ -30,6 +31,9 @@ resources:
   - app-kagent.yaml
   - app-claude-system.yaml
   - app-fileserver.yaml
+  - app-gha-cache.yaml
   - app-harper-pad.yaml
+  - app-lvm-test.yaml
+  - app-disk-wipe.yaml
   - renovate.yaml
-  #- virtualmachines.yaml
+  - virtualmachines.yaml

@@ -1,0 +1,213 @@
+# One-shot wipes of the disks and partitions that are no longer used (see README.md and wipe.sh), one Job per node. A Job's template is immutable:
+# to run a wipe again (a mounted target that was skipped), rename the Job (-1 to -2).
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: disk-wipe-talos-tba-msi-1
+  namespace: disk-wipe-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      hostPID: true
+      nodeSelector:
+        kubernetes.io/hostname: talos-tba-msi
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: wipe
+          # renovate: datasource=docker depName=quay.io/openebs/linux-utils versioning=docker
+          image: quay.io/openebs/linux-utils:4.6.0@sha256:a3043d266b1c06fb42377ced0c3fc190c66e1e83ae1efda7670ed73feb4ede14
+          command:
+            - /bin/sh
+            - /scripts/wipe.sh
+          env:
+            - name: DRY_RUN
+              value: "false"
+            - name: TARGETS
+              value: |
+                part|d1595682-0d71-4d83-a263-25b3048f5a98|800202948608|talos-tba-msi nvme0n1p2, an unmanaged 800 GB xfs partition
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: disk-wipe-script
+            defaultMode: 0555
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: disk-wipe-talos-2jc-qux-2
+  namespace: disk-wipe-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      hostPID: true
+      nodeSelector:
+        kubernetes.io/hostname: talos-2jc-qux
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: wipe
+          # renovate: datasource=docker depName=quay.io/openebs/linux-utils versioning=docker
+          image: quay.io/openebs/linux-utils:4.6.0@sha256:a3043d266b1c06fb42377ced0c3fc190c66e1e83ae1efda7670ed73feb4ede14
+          command:
+            - /bin/sh
+            - /scripts/wipe.sh
+          env:
+            - name: DRY_RUN
+              value: "false"
+            - name: TARGETS
+              value: |
+                part|236d4dad-14e1-4fc2-9e07-7c0ed5b75554|200000000000|talos-2jc-qux nvme0n1p3, the old 200 GB local-path volume (replaced by vg-fast)
+                part|683e163f-8d7f-440c-806d-eeb7dff16d18|178120556544|talos-2jc-qux sda4, the old 178 GB local-path-sata volume (replaced by vg-bulk)
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: disk-wipe-script
+            defaultMode: 0555
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: disk-wipe-talos-11a-esj-1
+  namespace: disk-wipe-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 7200
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      hostPID: true
+      nodeSelector:
+        kubernetes.io/hostname: talos-11a-esj
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: wipe
+          # renovate: datasource=docker depName=quay.io/openebs/linux-utils versioning=docker
+          image: quay.io/openebs/linux-utils:4.6.0@sha256:a3043d266b1c06fb42377ced0c3fc190c66e1e83ae1efda7670ed73feb4ede14
+          command:
+            - /bin/sh
+            - /scripts/wipe.sh
+          env:
+            - name: DRY_RUN
+              value: "false"
+            - name: TARGETS
+              value: |
+                part|67c18632-d7a7-40e2-b4e5-cfb452072914|80000000000|talos-11a-esj nvme0n1p1, the unused 80 GB volume local-storage (skipped while mounted)
+                part|59e5f432-d756-4b41-b432-9ace48e1dc48|80000000000|talos-11a-esj nvme0n1p2, the unused 80 GB volume local-storage-cache (skipped while mounted)
+                disk|EXTERNAL_USB|4000787027968|talos-11a-esj sda, the 4 TB USB disk
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: disk-wipe-script
+            defaultMode: 0555
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: disk-wipe-talos-vt2-qp8-1
+  namespace: disk-wipe-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 7200
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      hostPID: true
+      nodeSelector:
+        kubernetes.io/hostname: talos-vt2-qp8
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: wipe
+          # renovate: datasource=docker depName=quay.io/openebs/linux-utils versioning=docker
+          image: quay.io/openebs/linux-utils:4.6.0@sha256:a3043d266b1c06fb42377ced0c3fc190c66e1e83ae1efda7670ed73feb4ede14
+          command:
+            - /bin/sh
+            - /scripts/wipe.sh
+          env:
+            - name: DRY_RUN
+              value: "false"
+            - name: TARGETS
+              value: |
+                disk|Expansion HDD|4000787029504|talos-vt2-qp8 sda, the 4 TB USB disk
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: disk-wipe-script
+            defaultMode: 0555

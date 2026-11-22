@@ -1,0 +1,66 @@
+# PILOT, per machine, for talos-2jc-qux only (docs/storage-plan.md): replaces its local-path volumes with LVM volume groups for the OpenEBS LVM LocalPV
+# driver (k8s/infra/openebs-system). Every other node keeps patches 03 (and 06, 09 on talos-11a-esj) until the pilot works.
+#
+# Order, with data loss accepted: 1. apply this patch (the first two documents delete the old user volumes, the cluster-wide patch 03 still defines
+# local-path-provisioner and this machine patch removes it for this node); 2. reboot the node so the old volumes unmount; 3. wipe the old partitions (the
+# Job in k8s/apps/disk-wipe); 4. Talos creates the raw partitions in the free space and builds the groups. Check with: talosctl get pvs,vgs.
+---
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: local-path-provisioner
+$patch: delete
+---
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: local-path-sata
+$patch: delete
+---
+# The fast tier: every free byte of the NVMe behind and between the existing partitions. Two raw volumes because the old 200GB partition leaves a gap before
+# EPHEMERAL, besides the free space after it; each one grows into one free region. The raw partitions are labelled r-lvm-fast-a and r-lvm-fast-b.
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-fast-a
+provisioning:
+  diskSelector:
+    match: disk.transport == 'nvme'
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-fast-b
+provisioning:
+  diskSelector:
+    match: disk.transport == 'nvme'
+  minSize: 20GB
+---
+# The bulk tier: the SATA SSD (not the system disk here). Two raw volumes, one per free region: the 77 GB of the old leftover partitions and, after the wipe,
+# the 178 GB of the old local-path-sata volume.
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-bulk-a
+provisioning:
+  diskSelector:
+    match: disk.transport == 'sata' && !system_disk
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-bulk-b
+provisioning:
+  diskSelector:
+    match: disk.transport == 'sata' && !system_disk
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: LVMVolumeGroupConfig
+name: vg-fast
+provisioning:
+  volumeSelector:
+    match: volume.partition_label.startsWith("r-lvm-fast")
+---
+apiVersion: v1alpha1
+kind: LVMVolumeGroupConfig
+name: vg-bulk
+provisioning:
+  volumeSelector:
+    match: volume.partition_label.startsWith("r-lvm-bulk")
