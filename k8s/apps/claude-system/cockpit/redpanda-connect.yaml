@@ -288,17 +288,25 @@ processor_resources:
                   "since": a.activeAt.or("")
                 }).sort_by(a -> a.name)
 
-            disk:
+            pvcs:
               request_map: |
-                meta path = "/api/v1/query?query=" + "100 * (1 - lvm_vg_free_size_bytes / lvm_vg_total_size_bytes) * on(pod) group_left(node) kube_pod_info{namespace=\"openebs-system\"}".escape_url_query()
+                meta path = "/api/v1/query?query=" + "topk(8, 100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes)".escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
               result_map: |
-                root.disk = this.data.result.map_each(r -> {
-                  "node": r.metric.node.or("unknown") + " " + r.metric.name.or(""),
+                root.pvcs = this.data.result.map_each(r -> {
+                  "name": r.metric.namespace.or("-") + "/" + r.metric.persistentvolumeclaim.or("unknown"),
                   "used_pct": r.value.index(1).number().round()
-                }).sort_by(n -> n.node)
+                })
+
+            pvc_count:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "count(kubelet_volume_stats_capacity_bytes)".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: 'root.pvc_count = this.data.result.index(0).value.index(1).number().round().catch(0)'
 
             polaris:
               request_map: 'root = ""'

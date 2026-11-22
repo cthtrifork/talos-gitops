@@ -18,7 +18,7 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | `claude-md/skills/<name>/SKILL.md` | Task-specific runbooks split out of `CLAUDE.md`, generated into the `claude-skills` ConfigMap and mounted at `/etc/claude-skills` (items map each key to `<name>/SKILL.md`); each is symlinked into `~/.claude/skills/` at pod start |
 | `usage/` | Usage page and JSON API out: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml` for the Redpanda Connect; `redpanda-connect.yaml` (PromQL behind each endpoint), `index.html` (the page) |
 | `vm-upgrade/` | "Update VMs" buttons (claude-vm and homeserver): `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (a flag per VM, two listeners), `index.html` (the page) |
-| `cockpit/` | The cockpit status page (below): `deployment.yaml`, `service.yaml`, `podmonitor.yaml` and `rbac.yaml`; `redpanda-connect.yaml` (one read-only status call, a branch per source), `index.html` (the page), `mockup.html` (the reviewed UX mockup, example data) |
+| `cockpit/` | The cockpit status page (below): `deployment.yaml`, `service.yaml`, `podmonitor.yaml` and `rbac.yaml`; `redpanda-connect.yaml` (one read-only status call, a branch per source), `index.html` (the page) |
 | `urlshare/` | Approval-gated URL sharing: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (requests, fetch, TTL), `index.html` (the approval page) |
 | `pvc.yaml` | 5Gi volume holding the login (`/home/claude`); delete it to sign out |
 | `../../../images/claude-runner/` | Image: Anthropic publishes none, so this wraps the `claude` binary (checksum verified) plus `kubectl`, `gh`, `crane`, `talosctl`, `omnictl`, the Flux MCP server and a git credential helper |
