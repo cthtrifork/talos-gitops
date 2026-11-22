@@ -1,16 +1,19 @@
 ---
-# Persistent runner volumes. They use the default storage class (lvm-fast): a volume of exactly the requested size, expandable online (docs/storage-plan.md).
+# Persistent runner volumes: a volume of exactly the requested size, expandable online (docs/storage-plan.md). The hot container storage is on lvm-fast (NVMe),
+# the cold caches are on lvm-bulk (HDD).
 # The homeserver-bootc workflows still check free space on /var/lib/containers/storage and prune old images (.github/actions/build-cleanup), now before the volume is full.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: dnf-cache
   namespace: arc-runners-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled # recreated when the class changes; only for volumes that are caches
 spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
-  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
+  storageClassName: lvm-bulk # the USB HDD (cold, sequential); the others stay on NVMe
   resources:
     requests:
       storage: 32Gi
@@ -34,11 +37,13 @@ kind: PersistentVolumeClaim
 metadata:
   name: cross-run-cache
   namespace: arc-runners-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled # recreated when the class changes; only for volumes that are caches
 spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
-  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
+  storageClassName: lvm-bulk # the USB HDD (cold, sequential); the others stay on NVMe
   resources:
     requests:
       storage: 10Gi
@@ -50,11 +55,13 @@ metadata:
   # directory and points storage.conf at it; nothing in its workflows populates it, so it is likely empty.
   name: container-shared-storage
   namespace: arc-runners-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled # recreated when the class changes; only for volumes that are caches
 spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
-  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
+  storageClassName: lvm-bulk # the USB HDD (cold, sequential); the others stay on NVMe
   resources:
     requests:
       storage: 32Gi
@@ -96,11 +103,13 @@ metadata:
   # downloaded on every build (11 of 19 minutes). Only that scale set uses it (maxRunners 1: one pod at a time).
   name: bootc-iso-cache
   namespace: arc-runners-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled # recreated when the class changes; only for volumes that are caches
 spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
-  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
+  storageClassName: lvm-bulk # the USB HDD (cold, sequential); the others stay on NVMe
   resources:
     requests:
       storage: 80Gi
