@@ -80,7 +80,7 @@ spec:
         storage:
           accessModes:
             - ReadWriteOnce
-          storageClassName: local-path
+          storageClassName: lvm-fast
           resources:
             requests:
               storage: 60Gi # keep in step with config-claude-vm.toml in homeserver-bootc

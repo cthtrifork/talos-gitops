@@ -101,12 +101,15 @@ scheduling, a generic ephemeral volume, data kept across a pod restart, online e
 Their old local-path PVCs point at volumes that no longer exist, so those workloads are broken until the phase 3 flips (fileserver, bootc-iso-cache, both trivy servers, dependency-track-db, garage, adguard on vt2).
 The CSI driver itself is proven only on 2jc (provisioning, expansion); tba and vt2 are checked at the Talos level (`pvs`, `vgs`) and by the first PVCs of phase 3.
 
-**Next, in order** (the owner applies Omni patches and merges; a session writes the PRs):
-1. `talos-11a-esj`, one node at a time and only while tba and vt2 are `Ready` (all three are etcd members): `patches/17-lvm-11a.yaml` (PR "feat(storage): LVM on talos-11a-esj"). Apply in Omni, reboot, then
-   merge the PR (wipe Job `disk-wipe-talos-11a-esj-2`), then check `talosctl -n 192.168.1.184 get pvs`, `get vgs`, `get lvmvalidationerrors`. It loses everything on the 700 GB volume (zot, runner caches, gha-cache, Prometheus).
-2. Phase 3 (below) right after: the workloads of all nodes are waiting for it.
-   Phase 3: the PVC table above, `lvm-fast` as default, the runner volumes, remove local-path and the OpenEBS hostpath provisioner and patches 03, 06, 09, then delete `k8s/apps/lvm-test` and
-   `k8s/apps/disk-wipe` with their Flux Kustomizations in `k8s/clusters/homelab`.
+**Done since (2):** `talos-11a-esj` runs LVM too (`vg-fast` 1.0 TB, `vg-bulk` 4 TB; #1196, #1197). All four nodes have their groups.
+
+**Next, in order:**
+1. Phase 3, the PR "feat(storage): move the PVCs to the LVM classes": the manifests of the PVC table above and `lvm-fast` as the default class (local-path is no longer default). A PVC's class and an
+   StatefulSet's volumeClaimTemplates cannot change in place, so after the merge each old PVC (and the pod using it) is deleted once and the workload recreates it on the new class: that needs the
+   owner's `storage` and `ops` elevations, or the deletes by hand. Check each app after: pod `Running`, PVC `Bound` on `lvm-fast` or `lvm-bulk`.
+2. The runner emptyDirs: branch `claude/runner-ephemeral-volumes` (retarget to `lvm-fast`, open the PR).
+3. Clean-up: remove the local-path provisioner, the OpenEBS hostpath provisioner and patches 03, 06 and 09 (and the leftover `local-path` StorageClass), then delete `k8s/apps/lvm-test` and
+   `k8s/apps/disk-wipe` with their Flux Kustomizations in `k8s/clusters/homelab` and the Polaris exemptions.
 
 **Rules from the owner:** no disk scans on nodes (no `talosctl usage`; read-only `talosctl get` and Prometheus are fine); Docker Hub images as `mirror.gcr.io/...`; PRs only, nothing applied
 to the cluster by hand; the `homeserver-vm` disk is another session's job. Per-task worktrees in `/workspace` are lost for anything not pushed once the workspace volume is replaced.

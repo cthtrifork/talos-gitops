@@ -14,8 +14,8 @@ spec:
   enablePDB: false
   enableSuperuserAccess: false
   storage:
-    size: 8Gi
-    storageClass: local-path
+    size: 20Gi
+    storageClass: lvm-fast
   resources:
     requests:
       cpu: 50m
