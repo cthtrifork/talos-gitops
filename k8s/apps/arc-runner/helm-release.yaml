@@ -87,6 +87,31 @@ spec:
               - name: cross-run-cache
                 mountPath: /tmp/arc-cache
 
+          # /tmp is an ephemeral lvm-fast volume: fsGroup makes it root:1001 2775, and apt (user _apt) needs it world-writable
+          - name: tmp-perms
+            image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+            imagePullPolicy: IfNotPresent
+            command:
+              - chmod
+              - "1777"
+              - /tmp
+            securityContext:
+              runAsUser: 0
+              runAsGroup: 0
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - ALL
+            resources:
+              limits:
+                memory: 32Mi
+              requests:
+                cpu: 10m
+                memory: 32Mi
+            volumeMounts:
+              - name: tmp-memory
+                mountPath: /tmp
+
           - name: init-dind-externals
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
             image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261122.21@sha256:9bfb04321a84c9bbb63869084f8c33956f9cacfbca12db8d6f77701617358e4e
