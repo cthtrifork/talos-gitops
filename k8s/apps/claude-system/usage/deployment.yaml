@@ -29,6 +29,11 @@ spec:
             - -c
             - /etc/connect/redpanda-connect.yaml
             - --disable-telemetry
+          env:
+            - name: GOMEMLIMIT
+              value: 200MiB # about 80% of the limit: Go does not read the cgroup limit
+            - name: GOGC
+              value: "50"
           ports:
             - name: http
               containerPort: 8080

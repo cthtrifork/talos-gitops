@@ -41,10 +41,22 @@ spec:
     containerMode: {} # we use custom
     template:
       spec:
+        # Same node as the cache server: a pod-to-pod transfer between two nodes runs at 3 to 5 MB/s in this cluster (see
+        # helm-release-bootc-iso.yaml) and the cache upload of mise-action stalled. The server's volume is node-local, so it
+        # never moves. If that node has no room for a runner the job waits.
+        affinity:
+          podAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                namespaces:
+                  - gha-cache-system
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: github-actions-cache-server
         initContainers:
           - name: init-dind-externals
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261122.21@sha256:9bfb04321a84c9bbb63869084f8c33956f9cacfbca12db8d6f77701617358e4e
             imagePullPolicy: IfNotPresent
             command:
               - "cp"
@@ -80,11 +92,12 @@ spec:
               - name: DOCKER_GROUP_GID
                 value: "123"
             resources:
+              # The Talos control plane and worker (etcd, kubelets, Cilium, Flux) run inside this container
               requests:
                 cpu: 500m
-                memory: 2Gi
+                memory: 6Gi
               limits:
-                memory: 8Gi # the Talos node (control plane, Cilium, Flux and the infra HelmReleases) runs inside this container
+                memory: 10Gi
             securityContext:
               privileged: true
             restartPolicy: Always
@@ -108,9 +121,11 @@ spec:
         containers:
           - name: runner
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261122.21@sha256:9bfb04321a84c9bbb63869084f8c33956f9cacfbca12db8d6f77701617358e4e
             imagePullPolicy: IfNotPresent
+            # patches the runner so it keeps ACTIONS_RESULTS_URL (images/github-actions-runner/use-cache-server); fails the pod when it cannot
             command:
+              - "/usr/local/bin/use-cache-server"
               - "/home/runner/run.sh"
             resources:
               requests:
@@ -126,6 +141,10 @@ spec:
                 value: unix:///var/run/docker.sock
               - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
                 value: "120"
+              # the in-cluster cache server (k8s/apps/gha-cache): actions/cache and the tool caches (mise) stay in the cluster.
+              # The trailing slash is required. Artifacts are passed on to GitHub by the server.
+              - name: ACTIONS_RESULTS_URL
+                value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
               # installs the CA mounted below
               - name: RUNNER_UPDATE_CA_CERTS
                 value: "1"
@@ -150,16 +169,30 @@ spec:
                 - key: ca-bundle.crt
                   path: ca.crt
           - name: work
-            emptyDir:
-              sizeLimit: 10Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 10Gi
           - name: dind-sock
             emptyDir: {}
           - name: dind-externals
             emptyDir:
               sizeLimit: 2Gi
           - name: docker-lib
-            emptyDir:
-              sizeLimit: 20Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 20Gi
     listenerTemplate:
       spec:
         securityContext:

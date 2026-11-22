@@ -1,0 +1,64 @@
+# The release label is how Prometheus selects rules. There is no Alertmanager: read the alerts from Prometheus.
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: openebs-lvm-alerts
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: openebs-lvm
+      rules:
+        - alert: OpenEBSLVMNodePluginUnavailable
+          expr: kube_daemonset_status_number_unavailable{namespace="openebs-system", daemonset="openebs-lvm-node"} > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: The OpenEBS LVM node plugin is not running on every node
+            description: "{{ $value }} node(s) without a ready openebs-lvm-node pod: a pod that needs an lvm-fast or lvm-bulk volume cannot mount it there. kubectl -n openebs-system get pods -l app=openebs-lvm-node -o wide"
+        - alert: OpenEBSLVMControllerUnavailable
+          expr: kube_deployment_status_replicas_available{namespace="openebs-system", deployment="openebs-lvm-controller"} < 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: The OpenEBS LVM controller is down
+            description: "New lvm-fast and lvm-bulk volumes are not provisioned, and expansions are not done. kubectl -n openebs-system get pods -l app=openebs-lvm-controller"
+        - alert: LVMVolumeGroupAlmostFull
+          expr: lvm_vg_free_size_bytes / lvm_vg_total_size_bytes < 0.10
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: The volume group {{ $labels.name }} on {{ $labels.instance }} has less than 10% free
+            description: "{{ $value | humanizePercentage }} of {{ $labels.name }} is free. Volumes are not over-provisioned, so new PVCs of the class that uses it stay Pending on this node (the scheduler places pods elsewhere while another node has room)."
+        - alert: LVMVolumeGroupMissingDisk
+          expr: lvm_vg_missing_pv_count > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: The volume group {{ $labels.name }} on {{ $labels.instance }} is missing a disk
+            description: "{{ $value }} physical volume(s) of the group are not found: a disk is gone or unplugged (the USB disks on talos-11a-esj and talos-vt2-qp8 are the likely ones). Volumes on it fail without redundancy."
+    - name: pvc-usage
+      rules:
+        # kubelet_volume_stats_* exists for the filesystem volumes of the CSI driver (a Block volume, like a VM disk, has none).
+        - alert: PersistentVolumeAlmostFull
+          expr: 100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 85
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: The volume {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is {{ $value | printf "%.0f" }}% full
+            description: "A PVC is a logical volume of exactly its requested size (storage-plan.md): when it is full the workload cannot write. Expand it online by raising the request (the classes allow it)."
+        - alert: PersistentVolumeCriticallyFull
+          expr: 100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 95
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: The volume {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is {{ $value | printf "%.0f" }}% full
+            description: "Raise the PVC request now (online expansion), or clean it up."

@@ -1,0 +1,18 @@
+# The home directory of the VM, kept apart from the rootdisk (which `bootc upgrade` or a re-import may replace) and possibly backed up later.
+# A raw block volume the guest sees as a blank virtio disk (the cloud-init script in virtualmachine.yaml formats it). A plain PVC, not a CDI DataVolume: a local
+# volume lives on one node, and CDI placed the blank disks wherever its importer pods ran, so the rootdisk and the extra disks ended up on different nodes and the VM
+# pod could not be scheduled. A PVC waits for its first consumer (lvm-fast is WaitForFirstConsumer), so the scheduler puts it on the node the rootdisk pins the pod to.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: homeserver-vm-home-disk
+  namespace: homeserver-vm
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Block
+  storageClassName: lvm-fast
+  resources:
+    requests:
+      storage: 10Gi

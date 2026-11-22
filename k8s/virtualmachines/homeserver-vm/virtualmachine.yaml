@@ -1,0 +1,115 @@
+# homeserver-bootc as a KubeVirt VM (https://github.com/cthtrifork/homeserver-bootc).
+# The disk is imported once from the private containerDisk published by the "Publish homeserver containerDisk" workflow.
+# After that the VM updates itself with `bootc upgrade`, so changing the DataVolume source later does not touch the running disk.
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: homeserver-vm
+  namespace: homeserver-vm
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: homeserver-vm
+    spec:
+      # Only nodes with /dev/kvm (virt-handler labels them schedulable)
+      nodeSelector:
+        kubevirt.io/schedulable: "true"
+      # The guest cannot reach kube-dns or any pod IP (only the world), so DHCP hands it the LAN router instead of the cluster DNS.
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 192.168.1.1
+      domain:
+        cpu:
+          cores: 2
+        memory:
+          guest: 24Gi
+        firmware:
+          bootloader:
+            efi:
+              secureBoot: false # the bootc image is not signed for Secure Boot
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+            # The serial shows up in the guest as /dev/disk/by-id/virtio-home (mounted by the cloud-init config below)
+            - name: home
+              disk:
+                bus: virtio
+              serial: home
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+              # without a ports list masquerade forwards every port into the guest; only sshd is meant to be reachable
+              ports:
+                - port: 22
+                  protocol: TCP
+        resources:
+          requests:
+            memory: 24Gi
+          limits:
+            memory: 26Gi
+      networks:
+        - name: default
+          pod: {}
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: homeserver-vm-rootdisk
+        - name: home
+          persistentVolumeClaim:
+            claimName: homeserver-vm-home-disk
+        # What differs per deployment lives here, not in the image (homeserver-bootc has an inert cloud-init: write_files and runcmd from a NoCloud disk).
+        # The home disk is /var/home. The first boot already made the account on the root disk, so runcmd formats the blank disk, copies that home over
+        # (cp -an, nothing already there is replaced) and then mounts it; fstab mounts it on every later boot.
+        # Needs an image with cloud-init: on an older one the disk is ignored and the VM boots as before.
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              write_files:
+                - path: /etc/fstab
+                  append: true
+                  content: |
+                    /dev/disk/by-id/virtio-home  /var/home  xfs  defaults,nofail,x-systemd.growfs,x-systemd.device-timeout=10s  0 0
+                - path: /var/lib/homeserver-disks.sh
+                  permissions: "0755"
+                  content: |
+                    #!/bin/sh
+                    set -eu
+                    home=/dev/disk/by-id/virtio-home
+                    [ -b "$home" ] || { echo "$home is missing, skipped" >&2; exit 0; }
+                    blkid "$home" >/dev/null 2>&1 || mkfs.xfs -q "$home"
+                    mkdir -p /run/home-seed
+                    mount "$home" /run/home-seed
+                    cp -an /var/home/. /run/home-seed/
+                    umount /run/home-seed
+                    systemctl daemon-reload
+                    mount /var/home
+                    restorecon -RF /var/home || true
+              runcmd:
+                - [/var/lib/homeserver-disks.sh]
+  dataVolumeTemplates:
+    - metadata:
+        name: homeserver-vm-rootdisk
+      spec:
+        source:
+          registry:
+            # The default pull method (a CDI importer pod using the digest-pinned importer image) on purpose: "node"
+            # would start a pod with this tag-only image, which the require-image-digest policy denies.
+            url: docker://ghcr.io/cthtrifork/homeserver-bootc/homeserver-containerdisk:latest
+            secretRef: ghcr-pull-cdi
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: lvm-fast
+          resources:
+            requests:
+              storage: 110Gi # the disk is 100 GiB plus boot partitions; keep in step with config-homeserver.toml in homeserver-bootc

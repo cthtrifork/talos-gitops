@@ -88,6 +88,26 @@ rules:
       - get
       - list
       - delete
+  # A single-instance CloudNativePG database has no primary to rebuild its volume from (the troubleshooting guide's "delete the PVC and let the operator
+  # rebuild" is for replicas), so changing its storage class means deleting the Cluster and letting Flux create it again: the same data loss as a PVC delete.
+  - apiGroups:
+      - postgresql.cnpg.io
+    resources:
+      - clusters
+    verbs:
+      - get
+      - list
+      - delete
+  # A DataVolume that has Succeeded is not imported again when its PVC is deleted: to re-import a VM disk (a new class, a lost volume) the DataVolume goes, and the
+  # VirtualMachine's dataVolumeTemplates create it again.
+  - apiGroups:
+      - cdi.kubevirt.io
+    resources:
+      - datavolumes
+    verbs:
+      - get
+      - list
+      - delete
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
 # RBAC cannot narrow a patch to annotations: the ValidatingAdmissionPolicy claude-flux-reconcile-only rejects any patch from this tier that

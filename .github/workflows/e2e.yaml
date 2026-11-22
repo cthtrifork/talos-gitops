@@ -3,25 +3,16 @@ name: e2e
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - k8s/**
-      - scripts/kind.yaml
-      - mise.toml
-      - .github/workflows/e2e.yaml
+    # closed only cancels the in-flight run through the concurrency group; the job is skipped for it
+    types: [opened, synchronize, reopened, closed]
   push:
     branches: [ main ]
-    paths:
-      - k8s/**
-      - scripts/kind.yaml
-      - mise.toml
-      - .github/workflows/e2e.yaml
 
 permissions:
   contents: read
 
 env:
-  CILIUM_VERSION: v1.20.5 # renovate: datasource=github-releases depName=cilium/cilium
-  #INTERACTIVE: false
+  ZOT: zot.registry-system.svc.cluster.local:5000
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -29,47 +20,109 @@ concurrency:
 
 
 jobs:
-  e2e-test:
+  changes:
+    # the PR diff is cumulative, so a later push that touches nothing relevant still runs the e2e of the earlier changes
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 3
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    outputs:
+      relevant: ${{ github.event_name == 'workflow_dispatch' || steps.changed.outputs.any_changed == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install tools
-        uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
-          install_args: "yq kubeconform kustomize helm aqua:controlplaneio-fluxcd/flux-operator aqua:cilium/cilium-cli"
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Get changed e2e files
+        id: changed
+        if: github.event_name != 'workflow_dispatch'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            k8s/**
+            scripts/kind.yaml
+            scripts/ci/e2e/**
+            mise.toml
+            .github/workflows/e2e.yaml
+
+  e2e-test:
+    needs: changes
+    # ARC runner in the cluster (k8s/apps/arc-runner/helm-release-talos-gitops-e2e.yaml); the repository is public, so no fork PRs
+    runs-on: arc-e2e-talos-gitops
+    if: needs.changes.outputs.relevant == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        timeout-minutes: 2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Count the cache server requests
+        id: cache_before
+        timeout-minutes: 1
+        run: |
+          # ACTIONS_RESULTS_URL must be the in-cluster cache server (http://gha-cache...), not GitHub's results-receiver
+          case "${ACTIONS_RESULTS_URL:-}" in
+            http://gha-cache.gha-cache-system.svc.cluster.local:*) ;;
+            *) echo "::error::ACTIONS_RESULTS_URL is '${ACTIONS_RESULTS_URL:-unset}', not the in-cluster cache server"; exit 1 ;;
+          esac
+          echo "count=$(curl -fsS --max-time 20 "${ACTIONS_RESULTS_URL}metrics" | awk '/^cache_(requests|uploads)_total/ {n += $NF} END {print n + 0}')" >> "${GITHUB_OUTPUT}"
+      - name: Install tools
+        timeout-minutes: 5
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+        with:
+          install_args: "yq kubeconform kustomize helm aqua:controlplaneio-fluxcd/flux-operator aqua:cilium/cilium-cli kind"
+      - name: Verify the in-cluster cache was used
+        timeout-minutes: 1
+        env:
+          BEFORE: ${{ steps.cache_before.outputs.count }}
+        run: |
+          # the counters of the server grow only when actions/cache (mise-action) went through it, not to GitHub
+          after="$(curl -fsS --max-time 20 "${ACTIONS_RESULTS_URL}metrics" | awk '/^cache_(requests|uploads)_total/ {n += $NF} END {print n + 0}')"
+          echo "cache server requests and uploads: ${BEFORE} -> ${after}"
+          [ "${after}" -gt "${BEFORE}" ] || { echo "::error::the mise cache did not go through the in-cluster cache server"; exit 1; }
       - name: Build Flux Kustomization paths
         timeout-minutes: 3
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
+      - name: Pull the kind node image through zot
+        timeout-minutes: 5
+        run: |
+          # Pull the digest-pinned image through zot's mirror.gcr.io cache and tag it with the name from scripts/kind.yaml.
+          # A digest reference would not match a loaded image, so kind must use the tag only.
+          image="$(yq '.nodes[0].image' scripts/kind.yaml)"
+          repo="${image#mirror.gcr.io/}"
+          repo="${repo%%:*}"
+          skopeo copy "docker://${ZOT}/docker-hub-cache/${repo}@${image#*@}" "docker-daemon:${image%@*}"
+          # the rendered kind config refers to the loaded image
+          POD_IP="$(hostname -i | awk '{print $1}')" envsubst "\${POD_IP}" < scripts/kind.yaml |
+            yq ".nodes[0].image = \"${image%@*}\"" > "${RUNNER_TEMP}/kind.yaml"
       - name: Setup Kubernetes Kind
         timeout-minutes: 5
-        uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
-        with:
-          config: scripts/kind.yaml
-          cluster_name: homelab
-      - name: Install latest cilium
-        run: |
-         helm repo add cilium https://helm.cilium.io/
-
-         helm install cilium cilium/cilium --version ${CILIUM_VERSION#v} \
-          --namespace kube-system \
-          --set hostPort.enabled=true \
-          --set nodePort.enabled=true \
-          --set ipam.mode=kubernetes \
-          --set k8sServicePort=6443 \
-          --set encryption.enabled=true \
-          --set encryption.type=wireguard \
-          --set operator.replicas=1 \
-          --set bpf.masquerade=true \
-          --set policyAuditMode=true \
-          --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
-          --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
-          --set cgroup.autoMount.enabled=false \
-          --set cgroup.hostRoot=/sys/fs/cgroup
-          #--set kubeProxyReplacement=true \
         env:
-          CILIUM_VERSION: ${{env.CILIUM_VERSION}}
+          # the node shares the network namespace of the runner pod, where Cilium reaches zot by its service name
+          KIND_EXPERIMENTAL_DOCKER_NETWORK: host
+        run: |
+          # kind exports the kubeconfig from the published API server port, which the host network does not have: that last step
+          # fails (the cluster is complete by then, --retain keeps it), so read the admin kubeconfig from the node
+          kind create cluster --name homelab --config "${RUNNER_TEMP}/kind.yaml" --retain || true
+          docker exec homelab-control-plane test -f /etc/kubernetes/admin.conf
+          mkdir -p ~/.kube
+          docker exec homelab-control-plane cat /etc/kubernetes/admin.conf > ~/.kube/config
+          kubectl get nodes
+      - name: Pull through the cluster zot only
+        timeout-minutes: 2
+        run: ./scripts/ci/e2e/zot-mirror.sh homelab-control-plane /usr/local/share/ca-certificates/private-ca.crt
+      - name: Install cilium
+        timeout-minutes: 3
+        run: |
+          # the chart, its version and its values are those of the real cluster (pulled through the zot quay cache), with the changes of cilium-values.yaml
+          version="$(yq 'select(.kind == "OCIRepository") | .spec.ref.tag' k8s/infra/cilium/helm-repository.yaml)"
+          # Flux's ${VAR:=default} placeholders become their defaults
+          yq 'select(.kind == "HelmRelease") | .spec.values' k8s/infra/cilium/helm-release.yaml |
+            sed -E 's/\$\{[A-Za-z_]+:=([^}]*)\}/\1/g' > "${RUNNER_TEMP}/cilium-values.yaml"
+          POD_IP="$(hostname -i | awk '{print $1}')" envsubst "\${POD_IP}" < scripts/ci/e2e/cilium-values.yaml > "${RUNNER_TEMP}/cilium-e2e-values.yaml"
+          helm install cilium "oci://${ZOT}/quay-cache/cilium/charts/cilium" --version "${version}" \
+            --namespace kube-system \
+            --values "${RUNNER_TEMP}/cilium-values.yaml" \
+            --values "${RUNNER_TEMP}/cilium-e2e-values.yaml"
 
       - name: Wait for cilium to be ready
         timeout-minutes: 6
@@ -79,14 +132,16 @@ jobs:
           cilium status --wait --interactive="${interactive}" --wait-duration="${wait}" # will exit when ready
 
       - name: Install latest flux-operator
-        timeout-minutes: 6
+        timeout-minutes: 3
         run: |
-          helm install flux-operator oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator \
-          --namespace flux-system \
-          --create-namespace \
-          --wait
+          version="$(yq 'select(.kind == "OCIRepository") | .spec.ref.tag' k8s/infra/bootstrap/flux-system/helm-repository.yaml)"
+          helm install flux-operator "oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator" --version "${version}" \
+            --namespace flux-system \
+            --create-namespace \
+            --wait --timeout 2m
 
       - name: Deploy flux instance
+        timeout-minutes: 2
         run: |
           sed "s|ref: \"refs/heads/main\"|ref: \"${SYNC_REF}\"|" k8s/clusters/homelab/flux-instance.yaml |
             tee "${RUNNER_TEMP}/flux-instance.yaml" | grep -F "ref: "
@@ -100,6 +155,7 @@ jobs:
           kubectl wait --for=condition=Ready fluxinstance flux -n flux-system --timeout=5m
 
       - name: Setup Flux CLI
+        timeout-minutes: 2
         uses: fluxcd/flux2/action@23dcfe98fe672acdf44ecd9c60cbac41b57f5de8 # v2.10.1
         with:
           token: ${{ github.token }}
@@ -112,13 +168,10 @@ jobs:
           flux reconcile source git flux-system --timeout="${wait}"
           flux reconcile kustomization flux-system --timeout="${wait}"
           kubectl wait --for=condition=Ready kustomization flux-system -n flux-system --timeout=5m
-          revision="$(kubectl get gitrepository flux-system -n flux-system -o jsonpath='{.status.artifact.revision}')"
-          echo "Flux synced ${revision}, expected ${EXPECTED_SHA}"
-          case "${revision}" in *"${EXPECTED_SHA}") ;; *) exit 1 ;; esac
-        env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          kubectl get gitrepository flux-system -n flux-system -o jsonpath='Flux synced {.status.artifact.revision}{"\n"}'
 
       - name: Suspend workload Kustomizations
+        timeout-minutes: 2
         run: |
           # gitops-infra-image-policies needs the Kyverno CRD, and the HelmReleases are suspended here
           for ks in app-controllers renovate gitops-infra-image-policies \
@@ -131,6 +184,7 @@ jobs:
           flux reconcile kustomization gitops-infra-bootstrap --timeout=5m
 
       - name: Patch infra Kustomizations for kind
+        timeout-minutes: 2
         run: |
           for ks in gitops-infra-controllers gitops-infra-kubevirt gitops-infra-post gitops-infra-post-workloads; do
             kubectl patch kustomization "${ks}" -n flux-system --type merge --patch-file "scripts/ci/e2e/${ks}.yaml"
@@ -152,7 +206,7 @@ jobs:
         timeout-minutes: 3
         run: |
           # the app-* Kustomizations; renovate needs CRDs from app-controllers, which is suspended here
-          for app in adguard arc-runner claude-system fileserver harper-pad; do
+          for app in adguard arc-runner claude-system fileserver gha-cache harper-pad; do
             kustomize build "k8s/apps/${app}" --load-restrictor=LoadRestrictionsNone
             echo "---"
           done > "${RUNNER_TEMP}/apps.yaml"
@@ -170,10 +224,13 @@ jobs:
         timeout-minutes: 3
         if: failure()
         run: |
-          kubectl get pods -A
-          kubectl get events -A --sort-by=.lastTimestamp | tail -50
-          kubectl -n flux-system get all
-          kubectl -n flux-system logs deploy/source-controller
-          kubectl -n flux-system logs deploy/kustomize-controller
-          kubectl -n flux-system logs deploy/helm-controller
+          docker ps -a || true
+          kubectl -n kube-system logs ds/cilium --all-containers --tail=30 || true
+          kubectl -n flux-system logs deploy/flux-operator --tail=40 --previous || true
+          #kubectl get pods -A
+          kubectl get events -A --types=Warning --sort-by=.lastTimestamp | tail -50
+          #kubectl -n flux-system get all
+          #kubectl -n flux-system logs deploy/source-controller
+          #kubectl -n flux-system logs deploy/kustomize-controller
+          #kubectl -n flux-system logs deploy/helm-controller
           flux get all --all-namespaces

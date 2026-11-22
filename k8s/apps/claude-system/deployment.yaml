@@ -46,13 +46,13 @@ spec:
           type: RuntimeDefault
       # Claude refuses to bind its cross-session messaging socket under a shared directory (every parent must be
       # private or sticky). An emptyDir is 0777 and fsGroup makes it 2777; emptyDir.mode (sticky bit) is alpha
-      # from Kubernetes 1.37. The local-path PVCs are hostPath volumes, which fsGroup does not touch (root 0777),
+      # from Kubernetes 1.37. The LVM volumes are mounted by the CSI driver; keep the claude-owned 0700 subdirectory below,
       # so /tmp is a claude-owned 0700 subdirectory of the workspace PVC, made by the init container below
       # (the restricted PSA rules out a root one). Wiped on every pod start, like an emptyDir.
       initContainers:
         - name: private-tmp
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.326-20261120.35@sha256:42c06af82067557094b37615624a951e54d2cb59a99a38be67a5e85050daa8df
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.328-20261122.48@sha256:46e047e43191db514b503829b3276329f147621149f4bce39ec616025d1d65cd
           command:
             - "/bin/bash"
             - "-c"
@@ -75,7 +75,7 @@ spec:
       containers:
         - name: claude
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.326-20261120.35@sha256:42c06af82067557094b37615624a951e54d2cb59a99a38be67a5e85050daa8df
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.328-20261122.48@sha256:46e047e43191db514b503829b3276329f147621149f4bce39ec616025d1d65cd
           command:
             - "/bin/bash"
             - "-c"
@@ -212,7 +212,7 @@ spec:
         # (undocumented) with the login on the home volume, mounted read-only, and posts only the percentages and reset times.
         - name: usage-poller
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.326-20261120.35@sha256:42c06af82067557094b37615624a951e54d2cb59a99a38be67a5e85050daa8df
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.328-20261122.48@sha256:46e047e43191db514b503829b3276329f147621149f4bce39ec616025d1d65cd
           command:
             - "/etc/claude-usage-poller/poll-usage"
           resources:
@@ -237,7 +237,7 @@ spec:
       volumes:
         - name: home
           persistentVolumeClaim:
-            claimName: claude-home
+            claimName: claude-home-lvm
         - name: github-token
           secret:
             secretName: claude-github-token # minted by externalsecret.yaml
@@ -284,7 +284,7 @@ spec:
               - key: urlshare.md
                 path: urlshare/SKILL.md
         # A plain PVC, so clones survive pod restarts (a per-pod ephemeral volume was wiped by every rollout).
-        # local-path does not enforce the size: clean up old clones.
+        # a real 50Gi lvm-fast volume (expandable online): clean up old clones.
         - name: workspace
           persistentVolumeClaim:
-            claimName: claude-workspace
+            claimName: claude-workspace-lvm

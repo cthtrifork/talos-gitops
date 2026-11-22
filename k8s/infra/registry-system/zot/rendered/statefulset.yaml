@@ -110,5 +110,5 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: 60Gi
-      storageClassName: openebs-hostpath-xfs
+          storage: 150Gi
+      storageClassName: lvm-fast

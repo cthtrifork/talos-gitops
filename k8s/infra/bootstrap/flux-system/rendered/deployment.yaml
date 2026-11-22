@@ -52,7 +52,7 @@ spec:
             runAsNonRoot: true
             seccompProfile:
               type: RuntimeDefault
-          image: "ghcr.io/controlplaneio-fluxcd/flux-operator:v0.63.0@sha256:82a6a83711fcfb00af55b23684a5c5fbfbde36cf3a233b4b81b4d45180f99cb0"
+          image: "ghcr.io/controlplaneio-fluxcd/flux-operator:v0.63.1@sha256:460cc140dba2958261b05466acca40dfbee3addd1a6c33b885c1cd4e4e5d0489"
           imagePullPolicy: "IfNotPresent"
           ports:
             - name: http-metrics
@@ -82,7 +82,7 @@ spec:
               memory: 1Gi
             requests:
               cpu: 100m
-              memory: 64Mi
+              memory: 256Mi
           volumeMounts:
             - name: temp
               mountPath: /tmp

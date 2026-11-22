@@ -14,12 +14,12 @@ spec:
   enablePDB: false
   enableSuperuserAccess: false
   storage:
-    size: 8Gi
-    storageClass: local-path
+    size: 20Gi
+    storageClass: lvm-fast
   resources:
     requests:
       cpu: 50m
-      memory: 256Mi
+      memory: 384Mi
     limits:
       memory: 512Mi
   bootstrap:

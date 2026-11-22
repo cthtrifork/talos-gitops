@@ -6,6 +6,10 @@ FROM ghcr.io/actions/actions-runner:${RUNNER_VERSION}
 # CUSTOM
 USER root
 
+# The cache-server wrapper (see the script) patches the runner binary when a scale set starts the runner through it
+COPY --chmod=0755 use-cache-server /usr/local/bin/use-cache-server
+RUN chown runner /home/runner/bin/Runner.Worker.dll
+
 ENV NONINTERACTIVE=1
 ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 

@@ -3,14 +3,14 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
-  name: openebs-localpv
+  name: openebs-lvm
   namespace: openebs-system
 spec:
   interval: 12h
-  url: oci://ghcr.io/openebs/helm/localpv-provisioner
+  url: oci://ghcr.io/openebs/charts/lvm-localpv
   ref:
-    tag: 4.6.0
-    digest: sha256:3b7277533e43c0bd921a11fefe0b73b99d4a16af50756cabcad1e9d94b74ba0d
+    tag: 1.10.1
+    digest: sha256:944d2ea3912f46a6ef75666a92be13310469a9006df378582e5bd776987fce34
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: extract

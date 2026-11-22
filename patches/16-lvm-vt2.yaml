@@ -1,0 +1,57 @@
+# Cleanup: the cluster patches 03, 06 and 09 are gone from the repo (docs/storage-plan.md, phase 3). Remove them in Omni first; the `$patch: delete` documents below then
+# delete nothing and can be dropped from this machine patch (never before: with 03, 06 or 09 still applied, Talos would create those volumes again).
+# Per machine, for talos-vt2-qp8 only (docs/storage-plan.md, phase 1; the pilot is 14-lvm-2jc.yaml): replaces its local-path volume and the stale `openebs` user volume
+# on the USB disk with the LVM volume groups vg-fast (NVMe) and vg-bulk (USB) for the OpenEBS LVM LocalPV driver. Order, data loss accepted: 1. apply in Omni;
+# 2. reboot the node so the old volumes unmount; 3. merge the wipe Job (k8s/apps/disk-wipe, disk-wipe-talos-vt2-qp8-2); 4. Talos creates the raw partitions and the groups.
+# Check with: talosctl -n 192.168.1.112 get pvs,vgs,lvmvalidationerrors. The USB disk is the first one of its kind under LVM: if Talos refuses it, the node keeps vg-fast only.
+---
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: local-path-provisioner
+$patch: delete
+---
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: openebs
+$patch: delete
+---
+# The fast tier: the NVMe behind and after EPHEMERAL. Two raw volumes because the old 200 GB partition leaves a gap before EPHEMERAL, besides the free space after it;
+# each one grows into one free region. The raw partitions are labelled r-lvm-fast-a and r-lvm-fast-b.
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-fast-a
+provisioning:
+  diskSelector:
+    match: disk.transport == 'nvme'
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-fast-b
+provisioning:
+  diskSelector:
+    match: disk.transport == 'nvme'
+  minSize: 20GB
+---
+# The bulk tier: the whole 4 TB USB disk once it is wiped.
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-bulk-a
+provisioning:
+  diskSelector:
+    match: disk.transport == 'usb'
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: LVMVolumeGroupConfig
+name: vg-fast
+provisioning:
+  volumeSelector:
+    match: volume.partition_label.startsWith("r-lvm-fast")
+---
+apiVersion: v1alpha1
+kind: LVMVolumeGroupConfig
+name: vg-bulk
+provisioning:
+  volumeSelector:
+    match: volume.partition_label.startsWith("r-lvm-bulk")

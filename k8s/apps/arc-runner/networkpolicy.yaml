@@ -44,6 +44,8 @@ spec:
         - matchPattern: "**.github.com"
         - matchPattern: "**.githubusercontent.com"
         - matchPattern: "*.blob.core.windows.net"
+        # GitHub Pages: the CRD schema catalog (datreeio.github.io)
+        - matchName: datreeio.github.io
         # Runner updates, release assets, Git LFS, raw files (install scripts, schemas)
         - matchName: github-cloud.s3.amazonaws.com
         # GitHub Packages and ghcr.io (image pulls and pushes, trivy-db, the blob redirects)
@@ -66,6 +68,9 @@ spec:
         - matchName: tuf-repo-cdn.sigstore.dev
 
         # Tool downloads in the workflows and the image builds
+        # mise (jdx/mise-action in the workflows; the tools themselves come from github.com)
+        - matchName: mise.jdx.dev
+        - matchName: mise-versions.jdx.dev
         - matchName: get.helm.sh
         - matchName: dl.k8s.io
         - matchName: helm.cilium.io
@@ -157,6 +162,15 @@ spec:
       toPorts:
         - ports:
             - port: "8082"
+              protocol: TCP
+    # the GitHub Actions cache server (k8s/apps/gha-cache), which the e2e runners point ACTIONS_RESULTS_URL at
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: gha-cache-system
+            k8s:app.kubernetes.io/name: github-actions-cache-server
+      toPorts:
+        - ports:
+            - port: "3000"
               protocol: TCP
     # zot, the cluster's registry (image pushes and pulls; the zot-lb address is translated to the pod)
     - toEndpoints:

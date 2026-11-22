@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 385a4b9dc7aafff553c9d0d221615f0d053c92290eda1604f31070030999a12
+    actions.github.com/values-hash: 8d110be7ad999e6bbcd168fef73cf3cbfe9bf2065077b33bfad7c6ca572ba1b
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -60,6 +60,15 @@ spec:
       kubernetes.io/ingress-bandwidth: 300M
   template:
     spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: github-actions-cache-server
+              namespaces:
+                - gha-cache-system
+              topologyKey: kubernetes.io/hostname
       imagePullSecrets:
         - name: github-auth
       securityContext:
@@ -96,7 +105,7 @@ spec:
             - -r
             - /home/runner/externals/.
             - /home/runner/tmpDir/
-          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261122.21@sha256:9bfb04321a84c9bbb63869084f8c33956f9cacfbca12db8d6f77701617358e4e
           imagePullPolicy: IfNotPresent
           name: init-dind-externals
           resources:
@@ -155,8 +164,9 @@ spec:
       containers:
         - name: runner
           command:
+            - /usr/local/bin/use-cache-server
             - /home/runner/run.sh
-          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261122.21@sha256:9bfb04321a84c9bbb63869084f8c33956f9cacfbca12db8d6f77701617358e4e
           imagePullPolicy: IfNotPresent
           resources:
             limits:
@@ -181,6 +191,8 @@ spec:
               value: chroot
             - name: BUILDAH_LAYERS
               value: "true"
+            - name: ACTIONS_RESULTS_URL
+              value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
             - name: RUNNER_UPDATE_CA_CERTS
               value: "1"
             - name: FILESERVER_TOKEN
@@ -237,19 +249,40 @@ spec:
             path: /dev
             type: Directory
           name: host-dev
-        - emptyDir:
-            sizeLimit: 32Gi
+        - ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 32Gi
+                storageClassName: lvm-fast
           name: work
         - emptyDir: {}
           name: dind-sock
         - emptyDir:
             sizeLimit: 2Gi
           name: dind-externals
-        - emptyDir:
-            sizeLimit: 32Gi
+        - ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 32Gi
+                storageClassName: lvm-fast
           name: docker-lib
-        - emptyDir:
-            sizeLimit: 20Gi
+        - ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 20Gi
+                storageClassName: lvm-fast
           name: tmp-memory
         - name: container-storage-rootful
           persistentVolumeClaim:

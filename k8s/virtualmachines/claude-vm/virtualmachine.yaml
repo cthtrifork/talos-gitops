@@ -15,10 +15,15 @@ spec:
       labels:
         kubevirt.io/vm: claude-vm
     spec:
-      # Only nodes with /dev/kvm (the Proxmox-hosted talos node has none): virt-handler labels them schedulable and only they
+      # Only nodes with /dev/kvm: virt-handler labels them schedulable and only they
       # advertise the devices.kubevirt.io/kvm resource the launcher requests. v1.10 sets no devices.kubevirt.io/kvm node label.
       nodeSelector:
         kubevirt.io/schedulable: "true"
+      # The guest cannot reach kube-dns or any pod IP (only the world), so DHCP hands it the LAN router instead of the cluster DNS.
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 192.168.1.1
       domain:
         cpu:
           cores: 2
@@ -33,6 +38,11 @@ spec:
             - name: rootdisk
               disk:
                 bus: virtio
+            # the serial shows up in the guest as /dev/disk/by-id/virtio-workspace (mounted by the cloud-init config, externalsecret.yaml)
+            - name: workspace
+              disk:
+                bus: virtio
+              serial: workspace
             - name: cloudinitdisk
               disk:
                 bus: virtio
@@ -55,6 +65,9 @@ spec:
         - name: rootdisk
           dataVolume:
             name: claude-vm-rootdisk
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: claude-vm-workspace-disk
         # cloud-init (NoCloud) only runs write_files and runcmd in this image. The user data comes from the Secret claude-vm-cloud-init, which
         # externalsecret.yaml builds from claude-system/claude-github-app, so the first boot seeds the GitHub App by itself. Until External
         # Secrets has made that Secret the VM pod waits in ContainerCreating.
@@ -75,7 +88,7 @@ spec:
         storage:
           accessModes:
             - ReadWriteOnce
-          storageClassName: local-path
+          storageClassName: lvm-fast
           resources:
             requests:
               storage: 60Gi # keep in step with config-claude-vm.toml in homeserver-bootc

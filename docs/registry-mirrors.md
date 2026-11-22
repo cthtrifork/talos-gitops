@@ -52,7 +52,7 @@ Run a pod that pulls an image no node has. Use a different tag per node, because
 pulled a tag lets Spegel answer the others from it (a hit, which does not reach zot):
 
 ```sh
-kubectl run pull-test  --restart=Never --image=mirror.gcr.io/library/busybox:1.36.1 --overrides='{"spec":{"nodeName":"talos-2ny-8tx"}}' -- true
+kubectl run pull-test  --restart=Never --image=mirror.gcr.io/library/busybox:1.36.1 --overrides='{"spec":{"nodeName":"talos-11a-esj"}}' -- true
 kubectl run pull-test2 --restart=Never --image=mirror.gcr.io/library/busybox:1.36.0 --overrides='{"spec":{"nodeName":"talos-tba-msi"}}' -- true
 kubectl run pull-test3 --restart=Never --image=mirror.gcr.io/library/busybox:1.35.0 --overrides='{"spec":{"nodeName":"talos-11a-esj"}}' -- true
 ```
@@ -94,7 +94,7 @@ Patch 11 is applied per node. The init log of a new Spegel pod shows what its no
   keep its size down.
 - retention keeps the newest tag of every cache repository and, with `keepUntagged`, the newest and the most recently pulled untagged
   manifest, so digest-pinned images stay available without internet. Tagged and untagged manifests of the caches and the catch-all policy are also kept 720 hours after their last pull or push. `pr/**` and `buildcache/**` keep 72 hours.
-- the zot volume is 60Gi on `openebs-hostpath-xfs`, whose XFS project quota enforces it; a PVC's storage class cannot change in place, so moving it means recreating the StatefulSet and the PVC (the cache refills on demand).
+- the zot volume is 150Gi on `lvm-fast`, a real volume of that size (expandable online); a PVC's storage class cannot change in place, so moving it means recreating the StatefulSet and the PVC (the cache refills on demand).
 
 ## Using Spegel alone
 

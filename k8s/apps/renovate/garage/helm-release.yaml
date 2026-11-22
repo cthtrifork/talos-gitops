@@ -73,11 +73,11 @@ spec:
     persistence:
       enabled: true
       meta:
-        storageClass: openebs-hostpath-xfs
-        size: 1Gi
+        storageClass: lvm-fast
+        size: 2Gi
       data:
-        storageClass: openebs-hostpath-xfs
-        size: 10Gi
+        storageClass: lvm-bulk
+        size: 20Gi
     clusterConfig:
       enabled: true
       layout:

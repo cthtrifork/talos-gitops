@@ -1,8 +1,6 @@
 ---
-# Persistent runner volumes. They use the default (node-local) storage class, which does not enforce
-# the requested size: all of them share the one node disk. The sizes below are only a scheduling hint, not a
-# quota, so a runaway build can fill the node regardless. The homeserver-bootc workflows therefore check free
-# space on /var/lib/containers/storage and prune old images (.github/actions/build-cleanup).
+# Persistent runner volumes. They use the default storage class (lvm-fast): a volume of exactly the requested size, expandable online (docs/storage-plan.md).
+# The homeserver-bootc workflows still check free space on /var/lib/containers/storage and prune old images (.github/actions/build-cleanup), now before the volume is full.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -12,9 +10,10 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
-      storage: 25Gi
+      storage: 32Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -25,9 +24,10 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
-      storage: 15Gi
+      storage: 32Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -38,9 +38,10 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
-      storage: 5Gi
+      storage: 10Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -53,9 +54,10 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
-      storage: 24Gi
+      storage: 32Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -65,9 +67,10 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
-      storage: 32Gi
+      storage: 64Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -80,9 +83,10 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
-      storage: 32Gi
+      storage: 64Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -96,6 +100,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
-      storage: 40Gi
+      storage: 80Gi

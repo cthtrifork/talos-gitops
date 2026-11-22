@@ -1,4 +1,4 @@
-# The size is only a hint on the node-local class: watch fileserver_disk_free_bytes.
+# lvm-bulk (the slower disks): large, cold and sequential. The size is a hard limit, expandable online: watch fileserver_disk_free_bytes.
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -8,6 +8,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: lvm-bulk
   resources:
     requests:
-      storage: 20Gi
+      storage: 100Gi

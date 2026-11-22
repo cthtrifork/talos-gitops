@@ -29,6 +29,18 @@ data:
       topologySpreadConstraint: ignore
     exemptions:
       - controllerNames:
+        - openebs-lvm-node
+        - openebs-lvm-controller
+        namespace: openebs-system
+        rules:
+        - runAsPrivileged
+        - runAsRootAllowed
+        - privilegeEscalationAllowed
+        - linuxHardening
+        - insecureCapabilities
+        - notReadOnlyRootFilesystem
+        - hostPathSet
+      - controllerNames:
         - cilium
         - hubble-ui
         - hubble-relay
@@ -182,31 +194,6 @@ data:
         controllerNames:
         - harper-pad-admin
         rules:
-        - livenessProbeMissing
-        - readinessProbeMissing
-      - controllerNames:
-        - local-path-provisioner
-        - openebs-localpv-localpv-provisioner
-        rules:
-        - runAsRootAllowed
-        - privilegeEscalationAllowed
-        - linuxHardening
-        - insecureCapabilities
-        - notReadOnlyRootFilesystem
-      - controllerNames:
-        - helper-pod-
-        namespace: local-path-storage
-        rules:
-        - runAsRootAllowed
-        - privilegeEscalationAllowed
-        - linuxHardening
-        - insecureCapabilities
-        - notReadOnlyRootFilesystem
-        - tagNotSpecified
-        - hostPathSet
-        - cpuRequestsMissing
-        - memoryRequestsMissing
-        - memoryLimitsMissing
         - livenessProbeMissing
         - readinessProbeMissing
       - controllerNames:

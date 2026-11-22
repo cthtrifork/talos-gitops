@@ -288,17 +288,25 @@ processor_resources:
                   "since": a.activeAt.or("")
                 }).sort_by(a -> a.name)
 
-            disk:
+            pvcs:
               request_map: |
-                meta path = "/api/v1/query?query=" + "100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/var/mnt/local-path-provisioner\"} / node_filesystem_size_bytes{mountpoint=\"/var/mnt/local-path-provisioner\"}) * on(instance) group_left(nodename) node_uname_info".escape_url_query()
+                meta path = "/api/v1/query?query=" + "topk(8, 100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes)".escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
               result_map: |
-                root.disk = this.data.result.map_each(r -> {
-                  "node": r.metric.nodename.or(r.metric.instance.or("unknown")),
+                root.pvcs = this.data.result.map_each(r -> {
+                  "name": r.metric.namespace.or("-") + "/" + r.metric.persistentvolumeclaim.or("unknown"),
                   "used_pct": r.value.index(1).number().round()
-                }).sort_by(n -> n.node)
+                })
+
+            pvc_count:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "count(kubelet_volume_stats_capacity_bytes)".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: 'root.pvc_count = this.data.result.index(0).value.index(1).number().round().catch(0)'
 
             polaris:
               request_map: 'root = ""'

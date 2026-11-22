@@ -32,6 +32,24 @@ spec:
             name: flux-system
             labels:
               claude-elevate/ops: "true"
+              claude-elevate/flux: "true" # reconcile a Kustomization now (annotation only, see the claude-flux role and its admission policy)
+      # median working set 95-110Mi against the 64Mi default request
+      - target:
+          kind: Deployment
+          name: "(source|kustomize|helm)-controller"
+        patch: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: not-used
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: manager
+                    resources:
+                      requests:
+                        memory: 128Mi
   sync:
     kind: GitRepository
     url: "https://github.com/cthtrifork/talos-gitops"
