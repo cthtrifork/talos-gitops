@@ -799,6 +799,11 @@ alertmanager:
     sessionAffinityConfig:
       clientIP:
         timeoutSeconds: 10800
+    ## Preference for routing traffic to the Service's endpoints, e.g. PreferClose to keep traffic in the client's zone
+    ## Requires Kubernetes >= 1.31; newer versions also accept PreferSameZone and PreferSameNode. Not rendered when empty
+    ## Ref: https://kubernetes.io/docs/concepts/services-networking/service/#traffic-distribution
+    ##
+    trafficDistribution: ""
     ## Service type
     ##
     type: ClusterIP
@@ -3513,6 +3518,11 @@ prometheus:
     ## Denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints
     ##
     externalTrafficPolicy: Cluster
+    ## Preference for routing traffic to the Service's endpoints, e.g. PreferClose to keep traffic in the client's zone
+    ## Requires Kubernetes >= 1.31; newer versions also accept PreferSameZone and PreferSameNode. Not rendered when empty
+    ## Ref: https://kubernetes.io/docs/concepts/services-networking/service/#traffic-distribution
+    ##
+    trafficDistribution: ""
     ## Service type
     ##
     type: ClusterIP
@@ -3574,6 +3584,11 @@ prometheus:
     ## Denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints
     ##
     externalTrafficPolicy: Cluster
+    ## Preference for routing traffic to the Service's endpoints, e.g. PreferClose to keep traffic in the client's zone
+    ## Requires Kubernetes >= 1.31; newer versions also accept PreferSameZone and PreferSameNode. Not rendered when empty
+    ## Ref: https://kubernetes.io/docs/concepts/services-networking/service/#traffic-distribution
+    ##
+    trafficDistribution: ""
     ## Service type
     ##
     type: LoadBalancer
@@ -3646,6 +3661,11 @@ prometheus:
     sessionAffinityConfig:
       clientIP:
         timeoutSeconds: 10800
+    ## Preference for routing traffic to the Service's endpoints, e.g. PreferClose to keep traffic in the client's zone
+    ## Requires Kubernetes >= 1.31; newer versions also accept PreferSameZone and PreferSameNode. Not rendered when empty
+    ## Ref: https://kubernetes.io/docs/concepts/services-networking/service/#traffic-distribution
+    ##
+    trafficDistribution: ""
   ## Configuration for creating a separate Service for each statefulset Prometheus replica
   ##
   servicePerReplica:
