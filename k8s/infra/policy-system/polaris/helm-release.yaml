@@ -97,22 +97,6 @@ spec:
             - insecureCapabilities
             - notReadOnlyRootFilesystem
             - hostPathSet
-        # Temporary (k8s/apps/disk-wipe): one-shot Jobs that wipe unused disks and partitions of the nodes, so they run privileged
-        # with the host PID namespace (they read the host's mounts to refuse a mounted device)
-        - namespace: disk-wipe-system
-          controllerNames:
-            - disk-wipe-talos-tba-msi-2
-            - disk-wipe-talos-2jc-qux-2
-            - disk-wipe-talos-11a-esj-3
-            - disk-wipe-talos-vt2-qp8-2
-          rules:
-            - runAsPrivileged
-            - runAsRootAllowed
-            - privilegeEscalationAllowed
-            - linuxHardening
-            - insecureCapabilities
-            - notReadOnlyRootFilesystem
-            - hostPIDSet
         # Ignore checks for cilium and hubble
         - namespace: kube-system
           controllerNames:
