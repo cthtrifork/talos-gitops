@@ -99,7 +99,7 @@ spec:
           "docker.io": zot.registry-system.svc.cluster.local:5000/docker-hub-cache
           "quay.io": zot.registry-system.svc.cluster.local:5000/quay-cache
           "registry.k8s.io": zot.registry-system.svc.cluster.local:5000/k8s-cache
-      storageSize: "${TRIVY_STORAGE_SIZE:=5Gi}"
+      storageSize: "${TRIVY_STORAGE_SIZE:=10Gi}"
       ignoreFileName: /etc/trivy/.trivyignore.yaml
       configFile:
         # the files come from the configMapGenerator in kustomization.yaml and are mounted below
@@ -272,7 +272,7 @@ spec:
                 labels:
                   app: trivy-operator-scanjob-cache
               spec:
-                storageClassName: local-path
+                storageClassName: lvm-fast
                 accessModes:
                   - ReadWriteOnce
                 resources:

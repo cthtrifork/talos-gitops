@@ -192,7 +192,7 @@ spec:
           storage:
             volumeClaimTemplate:
               spec:
-                storageClassName: local-path
+                storageClassName: lvm-fast
                 resources:
                   requests:
                     storage: 20Gi

@@ -46,8 +46,8 @@ spec:
       create: true
       accessModes:
         - "ReadWriteOnce"
-      storage: 60Gi
-      storageClassName: openebs-hostpath-xfs # XFS project quota enforces the 60Gi, unlike local-path
+      storage: 150Gi
+      storageClassName: lvm-fast # a real 150Gi volume
     configFiles: ~
     # https://docs.giantswarm.io/tutorials/registry/zot/
     resources:
