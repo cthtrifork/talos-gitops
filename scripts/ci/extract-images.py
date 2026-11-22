@@ -35,6 +35,8 @@ def images_in(content):
             for key, value in node.items():
                 if key == "image" and isinstance(value, str):
                     refs.append(value)
+                elif key == "imageName" and isinstance(value, str):
+                    refs.append(value)
                 elif key == "env" and isinstance(value, list):
                     for var in value:
                         if isinstance(var, dict) and str(var.get("name")).endswith("_IMAGE"):
