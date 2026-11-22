@@ -56,7 +56,6 @@ jobs:
         timeout-minutes: 2
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Show the cache endpoints
-        if: env.ACTIONS_RUNNER_DEBUG == '1'
         timeout-minutes: 1
         run: |
           # ACTIONS_RESULTS_URL must be the in-cluster cache server (http://gha-cache...), not GitHub's results-receiver
@@ -76,7 +75,8 @@ jobs:
         run: |
           image="$(yq '.nodes[0].image' scripts/kind.yaml)"
           new_image="${ZOT}/docker-hub-cache/${image}"
-           
+
+          echo "pulling ${new_image}"
           docker pull "docker://${new_image}"
           # the rendered kind config refers to the loaded image
           POD_IP="$(hostname -i | awk '{print $1}')" envsubst "\${POD_IP}" < scripts/kind.yaml |
