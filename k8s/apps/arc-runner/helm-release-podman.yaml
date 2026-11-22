@@ -252,7 +252,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
-                  storageClassName: lvm-fast
+                  storageClassName: lvm-bulk
                   resources:
                     requests:
                       storage: 25Gi
@@ -262,7 +262,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
-                  storageClassName: lvm-fast
+                  storageClassName: lvm-bulk
                   resources:
                     requests:
                       storage: 5Gi
