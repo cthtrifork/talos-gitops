@@ -38,6 +38,11 @@ spec:
             - name: rootdisk
               disk:
                 bus: virtio
+            # the serial shows up in the guest as /dev/disk/by-id/virtio-workspace (mounted by the cloud-init config, externalsecret.yaml)
+            - name: workspace
+              disk:
+                bus: virtio
+              serial: workspace
             - name: cloudinitdisk
               disk:
                 bus: virtio
@@ -60,6 +65,9 @@ spec:
         - name: rootdisk
           dataVolume:
             name: claude-vm-rootdisk
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: claude-vm-workspace-disk
         # cloud-init (NoCloud) only runs write_files and runcmd in this image. The user data comes from the Secret claude-vm-cloud-init, which
         # externalsecret.yaml builds from claude-system/claude-github-app, so the first boot seeds the GitHub App by itself. Until External
         # Secrets has made that Secret the VM pod waits in ContainerCreating.
