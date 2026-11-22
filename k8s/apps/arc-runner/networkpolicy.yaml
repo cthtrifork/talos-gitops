@@ -74,6 +74,10 @@ spec:
         - matchName: get.helm.sh
         - matchName: dl.k8s.io
         - matchName: helm.cilium.io
+        # Helm repositories the e2e jobs fetch (denied for the runners: charts.fairwinds.com, kubernetes-sigs.github.io, charts.redpanda.com)
+        - matchName: charts.fairwinds.com
+        - matchName: kubernetes-sigs.github.io
+        - matchName: charts.redpanda.com
         - matchName: aka.ms
         - matchName: packages.microsoft.com
         - matchName: download.docker.com
