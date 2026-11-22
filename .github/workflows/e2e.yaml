@@ -134,7 +134,7 @@ jobs:
       - name: Install latest flux-operator
         timeout-minutes: 3
         run: |
-          version="$(yq 'select(.kind == "OCIRepository") | .spec.ref.tag' k8s/infra/cilium/helm-repository.yaml)"
+          version="$(yq 'select(.kind == "OCIRepository") | .spec.ref.tag' k8s/infra/bootstrap/flux-system/helm-repository.yaml)"
           helm install flux-operator "oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator" --version "${version}" \
             --namespace flux-system \
             --create-namespace \
