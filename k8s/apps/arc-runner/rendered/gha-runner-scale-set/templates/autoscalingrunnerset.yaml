@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 8d110be7ad999e6bbcd168fef73cf3cbfe9bf2065077b33bfad7c6ca572ba1b
+    actions.github.com/values-hash: de569edd24f371675c2db2788456e421fe44e0592fecb205c37c887c5fed1a7
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -27,8 +27,8 @@ spec:
   runnerScaleSetLabels:
     - arc-ubuntu
     - arc-ubuntu-docker
-  maxRunners: 1
-  minRunners: 1
+  maxRunners: 0
+  minRunners: 0
   listenerTemplate:
     spec:
       containers:
