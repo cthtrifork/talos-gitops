@@ -101,10 +101,10 @@ spec:
         # with the host PID namespace (they read the host's mounts to refuse a mounted device)
         - namespace: disk-wipe-system
           controllerNames:
-            - disk-wipe-talos-tba-msi-1
+            - disk-wipe-talos-tba-msi-2
             - disk-wipe-talos-2jc-qux-2
             - disk-wipe-talos-11a-esj-1
-            - disk-wipe-talos-vt2-qp8-1
+            - disk-wipe-talos-vt2-qp8-2
           rules:
             - runAsPrivileged
             - runAsRootAllowed
