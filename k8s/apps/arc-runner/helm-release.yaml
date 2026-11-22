@@ -98,8 +98,10 @@ spec:
             securityContext:
               runAsUser: 0
               runAsGroup: 0
-              privileged: true
-              allowPrivilegeEscalation: true
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - ALL
             resources:
               limits:
                 memory: 32Mi
