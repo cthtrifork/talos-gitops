@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 8d110be7ad999e6bbcd168fef73cf3cbfe9bf2065077b33bfad7c6ca572ba1b
+    actions.github.com/values-hash: 51217a24807d939bf1eb4f8346453e5c7344f6240bb592f4a37f760e8395962
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -100,6 +100,27 @@ spec:
           volumeMounts:
             - mountPath: /tmp/arc-cache
               name: cross-run-cache
+        - command:
+            - chmod
+            - "1777"
+            - /tmp
+          image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+          imagePullPolicy: IfNotPresent
+          name: tmp-perms
+          resources:
+            limits:
+              memory: 32Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            privileged: true
+            runAsGroup: 0
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp-memory
         - command:
             - cp
             - -r
