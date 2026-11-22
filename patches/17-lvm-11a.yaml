@@ -20,8 +20,8 @@ kind: UserVolumeConfig
 name: local-storage-cache
 $patch: delete
 ---
-# The fast tier: the data NVMe (not the system disk). Three raw volumes, one per old partition: if the wipe frees the three partitions one after the other each becomes
-# one raw volume, and if the free space is one region the first takes it all and the other two stay failed (harmless).
+# The fast tier: the data NVMe (not the system disk). Four raw volumes: the unpartitioned 140 GB tail (taken at the first boot) and one per old partition (80, 80 and 700 GB),
+# as the wipe frees them one after the other. A raw volume without a free region stays failed (harmless).
 apiVersion: v1alpha1
 kind: RawVolumeConfig
 name: lvm-fast-a
@@ -41,6 +41,14 @@ provisioning:
 apiVersion: v1alpha1
 kind: RawVolumeConfig
 name: lvm-fast-c
+provisioning:
+  diskSelector:
+    match: disk.transport == 'nvme' && !system_disk
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-fast-d
 provisioning:
   diskSelector:
     match: disk.transport == 'nvme' && !system_disk
