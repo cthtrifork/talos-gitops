@@ -10,7 +10,7 @@ spec:
   storageClassName: lvm-fast
   resources:
     requests:
-      storage: 2Gi # was 1Gi: online expansion test
+      storage: 3Gi # was 2Gi: online expansion while the pod runs
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
