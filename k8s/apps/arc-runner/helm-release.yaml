@@ -291,6 +291,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
+                  storageClassName: lvm-fast
                   resources:
                     requests:
                       storage: 32Gi
@@ -306,6 +307,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
+                  storageClassName: lvm-fast
                   resources:
                     requests:
                       storage: 32Gi
@@ -315,6 +317,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
+                  storageClassName: lvm-fast
                   resources:
                     requests:
                       storage: 20Gi
