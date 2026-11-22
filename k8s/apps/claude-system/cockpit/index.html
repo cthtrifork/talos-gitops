@@ -423,17 +423,18 @@ const PolarisPanel = (d) => {
 
 const DISK_SHOW = 60; // volume groups under this percentage are only counted
 const DiskPanel = (d) => {
-  const title = "Disk, volume groups";
+  const title = "Disk, volume groups (allocated)";
   if (!d.disk) return Unavailable({ title, source: "Prometheus · lvm_vg_*", d });
   const max = Math.max(0, ...d.disk.map((n) => n.used_pct));
   const hot = d.disk.filter((n) => n.used_pct >= DISK_SHOW).sort((a, b) => b.used_pct - a.used_pct);
   const rest = d.disk.length - hot.length;
   const nodes = (n) => n + (n === 1 ? " volume group" : " volume groups");
-  return Panel({ title, state: usedState(max, 85), text: max >= 75 ? "volume group over " + (max >= 85 ? 85 : 75) + "%" : "ok", compact: !hot.length, d }, html`
+  return Panel({ title, state: usedState(max, 85), text: max >= 75 ? "volume group over " + (max >= 85 ? 85 : 75) + "% allocated" : "ok", compact: !hot.length, d }, html`
     ${!hot.length
-      ? Muted(d.disk.length ? `All ${nodes(d.disk.length)} under ${DISK_SHOW}%, highest ${max}%` : "No volume groups reported.")
-      : html`<div class="limit">${hot.map((n) => html`<div class="limit-row"><span>${n.node}</span><span class="num"><strong>${n.used_pct}%</strong> used</span></div>${Bar({ label: `${n.node}, ${n.used_pct} percent used`, parts: [{ pct: n.used_pct, color: usedColor(n.used_pct, 85) }] })}`)}</div>
-        ${rest > 0 ? Muted(`${rest} ${rest === 1 ? "other volume group" : "other volume groups"} under ${DISK_SHOW}%`) : nothing}`}`);
+      ? Muted(d.disk.length ? `All ${nodes(d.disk.length)} under ${DISK_SHOW}% allocated, highest ${max}%` : "No volume groups reported.")
+      : html`<div class="limit">${hot.map((n) => html`<div class="limit-row"><span>${n.node}</span><span class="num"><strong>${n.used_pct}%</strong> allocated</span></div>${Bar({ label: `${n.node}, ${n.used_pct} percent allocated`, parts: [{ pct: n.used_pct, color: usedColor(n.used_pct, 85) }] })}`)}</div>
+        ${rest > 0 ? Muted(`${rest} ${rest === 1 ? "other volume group" : "other volume groups"} under ${DISK_SHOW}%`) : nothing}
+    ${Muted("Allocated is the size of the volumes: a volume reserves it from the start, so the data written is lower.")}`}`);
 };
 
 const PrRows = (items) =>
