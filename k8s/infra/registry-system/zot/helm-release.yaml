@@ -24,7 +24,7 @@ spec:
     disableWait: true
     cleanupOnFail: true
     remediation:
-      retries: 3
+      retries: 5 # was 3: the storage flip (docs/storage-plan.md) exhausted them on an immutable volume claim template; revert after
   # https://github.com/project-zot/helm-charts/blob/main/charts/zot/values.yaml
   values:
     podAnnotations:

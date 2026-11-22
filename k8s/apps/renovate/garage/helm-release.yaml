@@ -17,7 +17,7 @@ spec:
       retries: 3
   upgrade:
     remediation:
-      retries: 3
+      retries: 5 # was 3: the storage flip (docs/storage-plan.md) exhausted them on an immutable volume claim template; revert after
   # https://github.com/datahub-local/garage-helm/blob/main/charts/garage/values.yaml
   values:
     deployment:
