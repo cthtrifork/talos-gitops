@@ -7,10 +7,19 @@ kind: UserVolumeConfig
 name: local-path-provisioner
 $patch: delete
 ---
-# The fast tier: the whole 1 TB NVMe once the old 200 GB partition is wiped (the 800 GB next to it is already free). The system disk is the SATA SSD.
+# The fast tier: two raw volumes, one per free region of the NVMe: the 800 GB that was already free (lvm-fast-a, created at the first boot) and the old 200 GB
+# partition once it is wiped (lvm-fast-b). The system disk is the SATA SSD.
 apiVersion: v1alpha1
 kind: RawVolumeConfig
 name: lvm-fast-a
+provisioning:
+  diskSelector:
+    match: disk.transport == 'nvme'
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-fast-b
 provisioning:
   diskSelector:
     match: disk.transport == 'nvme'
