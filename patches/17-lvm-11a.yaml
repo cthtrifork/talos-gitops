@@ -1,3 +1,5 @@
+# Cleanup: the cluster patches 03, 06 and 09 are gone from the repo (docs/storage-plan.md, phase 3). Remove them in Omni first; the `$patch: delete` documents below then
+# delete nothing and can be dropped from this machine patch (never before: with 03, 06 or 09 still applied, Talos would create those volumes again).
 # Per machine, for talos-11a-esj only (docs/storage-plan.md, phase 2; the pilot is 14-lvm-2jc.yaml): replaces its three local volumes (local-path 700 GB, local-storage 80 GB,
 # local-storage-cache 80 GB, all on the data NVMe nvme1n1) with the LVM volume groups vg-fast (the data NVMe) and vg-bulk (the 4 TB USB disk) for the OpenEBS LVM LocalPV driver.
 # Only while talos-tba-msi and talos-vt2-qp8 are Ready (11a is a control-plane node: one node at a time). Order, data loss accepted: 1. apply in Omni (the USB disk gets its

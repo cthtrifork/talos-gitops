@@ -290,13 +290,13 @@ processor_resources:
 
             disk:
               request_map: |
-                meta path = "/api/v1/query?query=" + "100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/var/mnt/local-path-provisioner\"} / node_filesystem_size_bytes{mountpoint=\"/var/mnt/local-path-provisioner\"}) * on(instance) group_left(nodename) node_uname_info".escape_url_query()
+                meta path = "/api/v1/query?query=" + "100 * (1 - lvm_vg_free_size_bytes / lvm_vg_total_size_bytes) * on(pod) group_left(node) kube_pod_info{namespace=\"openebs-system\"}".escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
               result_map: |
                 root.disk = this.data.result.map_each(r -> {
-                  "node": r.metric.nodename.or(r.metric.instance.or("unknown")),
+                  "node": r.metric.node.or("unknown") + " " + r.metric.name.or(""),
                   "used_pct": r.value.index(1).number().round()
                 }).sort_by(n -> n.node)
 

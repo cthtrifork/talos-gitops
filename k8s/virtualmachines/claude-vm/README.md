@@ -1,6 +1,6 @@
 # claude-vm on KubeVirt
 
-[claude-vm-bootc](https://github.com/cthtrifork/homeserver-bootc) (docs/claude-vm) as a KubeVirt VM: 2 vCPU, 8 GiB, 60Gi `local-path` disk,
+[claude-vm-bootc](https://github.com/cthtrifork/homeserver-bootc) (docs/claude-vm) as a KubeVirt VM: 2 vCPU, 8 GiB, 60Gi `lvm-fast` disk,
 UEFI, pod network with an SSH LoadBalancer at 192.168.1.246.
 
 ## Bring-up order
@@ -14,7 +14,7 @@ UEFI, pod network with an SSH LoadBalancer at 192.168.1.246.
 ## Things to know
 
 - **Node selection:** the VM is pinned to the nodes KubeVirt labels `kubevirt.io/schedulable` (the ones with `/dev/kvm`).
-  `local-path` ties the disk to the node it was first scheduled on.
+  `lvm-fast` ties the disk to the node it was first scheduled on.
 - **Images by digest:** the `require-image-digest` policy denies tag-only images, so `k8s/infra/kubevirt/kustomization.yaml` pins every image the
   operators start. Renovate bumps those pins together with `versions.env` (one `kubevirt` and one `cdi` PR), and the "Update KubeVirt operators"
   workflow regenerates the vendored manifests on that PR. `scripts/ci/update-kubevirt-operators.sh` fails if the pins and `versions.env` disagree.
