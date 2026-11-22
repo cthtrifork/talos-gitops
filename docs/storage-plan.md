@@ -98,9 +98,9 @@ scheduling, a generic ephemeral volume, data kept across a pod restart, online e
   open the PR only after `vg-fast` exists on every runner node (until then the runners would not schedule).
 
 **Next, in order** (the owner applies Omni patches and merges; a session writes the PRs):
-1. `talos-tba-msi`, then `talos-vt2-qp8` (phase 1 above): per-machine patch from `patches/14-lvm-2jc.yaml` as the template, removing patch 03 with `$patch: delete`; vt2 also drops its stale
-   `openebs` user volume and needs its USB disk wiped again; the wipe Jobs in `k8s/apps/disk-wipe` are renamed `-2` to run again (and added to the Polaris exemptions in
-   `k8s/infra/policy-system/polaris/helm-release.yaml`). Check `talosctl -n <ip> get pvs,vgs,lvmvalidationerrors` and run the `lvm-test` app on that node.
+1. `talos-tba-msi` and `talos-vt2-qp8` (phase 1 above): `patches/15-lvm-tba.yaml` and `patches/16-lvm-vt2.yaml` (written, in the PR "feat(storage): LVM on tba and vt2"). Per node: apply the patch in Omni, reboot, then merge
+   the wipe Job (`disk-wipe-<node>-2`, in the same PR, so merge it after the reboot; a mounted partition is skipped and the Job renamed to `-3`), then check `talosctl -n <ip> get pvs,vgs,lvmvalidationerrors`
+   and run the `lvm-test` app on that node. Patch 03 stays for 11a only. vt2's USB disk is the first USB disk under LVM.
 2. `talos-11a-esj` last (phase 2); the owner fixes its slow network path separately.
 3. Phase 3: the PVC table above, `lvm-fast` as default, the runner volumes, remove local-path and the OpenEBS hostpath provisioner and patches 03, 06, 09, then delete `k8s/apps/lvm-test` and
    `k8s/apps/disk-wipe` with their Flux Kustomizations in `k8s/clusters/homelab`.
