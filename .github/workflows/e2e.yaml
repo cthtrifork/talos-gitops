@@ -5,20 +5,8 @@ on:
   pull_request:
     # closed only cancels the in-flight run through the concurrency group; the job is skipped for it
     types: [opened, synchronize, reopened, closed]
-    paths:
-      - k8s/**
-      - scripts/kind.yaml
-      - scripts/ci/e2e/**
-      - mise.toml
-      - .github/workflows/e2e.yaml
   push:
     branches: [ main ]
-    paths:
-      - k8s/**
-      - scripts/kind.yaml
-      - scripts/ci/e2e/**
-      - mise.toml
-      - .github/workflows/e2e.yaml
 
 permissions:
   contents: read
@@ -32,10 +20,36 @@ concurrency:
 
 
 jobs:
+  changes:
+    # the PR diff is cumulative, so a later push that touches nothing relevant still runs the e2e of the earlier changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    outputs:
+      relevant: ${{ github.event_name == 'workflow_dispatch' || steps.changed.outputs.any_changed == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Get changed e2e files
+        id: changed
+        if: github.event_name != 'workflow_dispatch'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            k8s/**
+            scripts/kind.yaml
+            scripts/ci/e2e/**
+            mise.toml
+            .github/workflows/e2e.yaml
+
   e2e-test:
+    needs: changes
     # ARC runner in the cluster (k8s/apps/arc-runner/helm-release-talos-gitops-e2e.yaml); the repository is public, so no fork PRs
     runs-on: arc-e2e-talos-gitops
-    if: github.event_name != 'pull_request' || (github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository)
+    if: needs.changes.outputs.relevant == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     timeout-minutes: 20
     steps:
       - name: Checkout
