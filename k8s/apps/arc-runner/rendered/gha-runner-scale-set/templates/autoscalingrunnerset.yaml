@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 51217a24807d939bf1eb4f8346453e5c7344f6240bb592f4a37f760e8395962
+    actions.github.com/values-hash: d3c7b6bf6057d32b88f0b64319d2bfec1097b88847a0022203acae8dd5a31b0
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -114,8 +114,10 @@ spec:
               cpu: 10m
               memory: 32Mi
           securityContext:
-            allowPrivilegeEscalation: true
-            privileged: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
             runAsGroup: 0
             runAsUser: 0
           volumeMounts:
