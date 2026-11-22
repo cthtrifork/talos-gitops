@@ -79,7 +79,7 @@ spec:
             description: Namespace {{ $labels.namespace }}. If it started after a policy change, check the CiliumPolicyDenied alert.
     - name: node-disk
       rules:
-        # PVC sizes are not enforced (local-path hostPath), so the node filesystem is the real limit.
+        # The node filesystems (EPHEMERAL: images, logs, kubelet emptyDirs). The LVM volume groups are watched by openebs-lvm-alerts (k8s/infra/openebs-system).
         # rootfs (/etc/extensions.yaml, read-only) is left out.
         - alert: NodeFilesystemAlmostFull
           expr: >-
