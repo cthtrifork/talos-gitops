@@ -69,6 +69,18 @@ A volume's size is now a hard limit, but it can be expanded online (`allowVolume
 | `adguard-system/...-adguard-config`, `...-adguard-data` | 1Gi, 10Gi | 1Gi, 10Gi `lvm-fast` | unchanged: the data is tiny |
 | `homeserver-vm/homeserver-vm-rootdisk` | 270 GiB | not part of this plan | being fixed in another session |
 
+## Claude's own volumes (claude-home, claude-workspace)
+
+The `claude-rc` pod (the session itself) keeps its login in `claude-home` and its clones and scratch in `claude-workspace`; both are local-path volumes on `talos-11a-esj`
+and deleting `claude-home` signs it out, so they are copied, not recreated. The copy crosses the network once (local volumes cannot move between nodes, and the
+new `lvm-fast` volumes exist on `talos-2jc-qux` first), so the pod ends up on `2jc`. Three steps, each a PR:
+
+1. **Stage** (`k8s/apps/claude-system/migrate`): the new PVCs `claude-home-lvm` (10Gi) and `claude-workspace-lvm` (50Gi), a read-only rsync daemon on the old volumes (it follows the `claude-rc` pod to
+   its node) and a Job on `2jc` that pulls both over rsync while the session keeps running. Slow while the `11a` network path is slow; it can be repeated and only sends changes.
+2. **Cutover**: the Deployment mounts the new PVCs and an init container does the final rsync from the daemon. The `Recreate` strategy stops the old pod first, so the old volumes are quiet
+   for that last pass and only the changes since the first pass are sent. **The restart ends the running session**; the new one has the same login, memory and workspace.
+3. **Clean-up**: remove the daemon, the Job, the network policies and the old PVCs after the new pod is checked.
+
 ## Monitoring
 
 The LVM node plugin exports `lvm_vg_*`, `lvm_pv_*` and `lvm_lv_*` on 9500: a ServiceMonitor (from the chart, label `release: kube-prometheus-stack`), the pod label

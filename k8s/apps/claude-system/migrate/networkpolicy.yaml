@@ -1,0 +1,49 @@
+# The rsync daemon serves the claude login and workspace: only the seed Job and the claude-rc pod (the final sync of its init container) may reach it,
+# on 8873. The namespace is default deny, so each side opens its own direction.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-data-source
+  namespace: claude-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: claude-data-source
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app: claude-data-seed
+        - matchLabels:
+            app: claude-rc
+      toPorts:
+        - ports:
+            - port: "8873"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-data-seed
+  namespace: claude-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: claude-data-seed
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEndpoints:
+        - matchLabels:
+            app: claude-data-source
+      toPorts:
+        - ports:
+            - port: "8873"
+              protocol: TCP

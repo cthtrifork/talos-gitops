@@ -1,0 +1,87 @@
+# Serves the old claude-home and claude-workspace volumes read only over rsync, for the copy to the LVM volumes (docs/storage-plan.md). It must run on the node of
+# the old volumes, so it follows the claude-rc pod (the volumes are local-path, ReadWriteOnce per node: two pods on one node can mount them). Temporary.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-data-source
+  namespace: claude-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: claude-data-source
+  template:
+    metadata:
+      labels:
+        app: claude-data-source
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: claude-rc
+      containers:
+        - name: rsyncd
+          image: mirror.gcr.io/instrumentisto/rsync-ssh:alpine3.23-r3@sha256:6cbad37c2fbdca4ac7ad9d1c1bb8990af9efd4dc76321b349935876cbb1e9e4a # renovate: datasource=docker depName=docker.io/instrumentisto/rsync-ssh versioning=docker
+          command:
+            - rsync
+            - --daemon
+            - --no-detach
+            - --config=/etc/rsyncd/rsyncd.conf
+            - --log-file=/dev/stdout
+          ports:
+            - name: rsync
+              containerPort: 8873
+          readinessProbe:
+            tcpSocket:
+              port: rsync
+          livenessProbe:
+            tcpSocket:
+              port: rsync
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: config
+              mountPath: /etc/rsyncd
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: home
+              mountPath: /src/home
+              readOnly: true
+            - name: workspace
+              mountPath: /src/workspace
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: claude-data-source
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: home
+          persistentVolumeClaim:
+            claimName: claude-home
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: claude-workspace
