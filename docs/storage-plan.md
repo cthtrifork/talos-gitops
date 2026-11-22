@@ -85,35 +85,33 @@ new `lvm-fast` volumes exist on `talos-2jc-qux` first), so the pod ends up on `2
 
 Update this section as work lands; it is what another session starts from.
 
-**Done (merged):** driver and classes (#1169, scrape fix #1172), the wipe app (`k8s/apps/disk-wipe`), `talos-2jc-qux` pilot (patch `patches/14-lvm-2jc.yaml`, applied in Omni by the owner;
-`vg-fast` 798 GB and `vg-bulk` 255 GB, no validation errors). The temporary app `k8s/apps/lvm-test` proved on 2jc: provisioning of both classes (XFS, exact size), capacity-aware
-scheduling, a generic ephemeral volume, data kept across a pod restart, online expansion (2Gi to 3Gi in a running pod). The stage copy of `claude-home` (#1186).
+**Done.** All four nodes run LVM (`vg-fast` NVMe on all four: 11a 1.0 TB, 2jc 798 GB, tba 1.0 TB, vt2 360 GB; `vg-bulk` on 11a and vt2 the 4 TB USB disks, 2jc the SATA SSD, tba none). The OpenEBS LVM driver, both classes
+(`lvm-fast` is the default) and the alerts are in `k8s/infra/openebs-system`. Every PVC of the table above is on `lvm-fast` or `lvm-bulk`; local-path and OpenEBS hostpath, patches 03, 06 and 09 and the temporary
+apps `lvm-test` and `disk-wipe` are gone from the repo. `claude-rc` runs on `claude-home-lvm` and `claude-workspace-lvm`. The runners' large emptyDirs are ephemeral volumes on `lvm-fast`. The wipe script and its
+guards are in the git history (`k8s/apps/disk-wipe`) for a future disk change.
 
-**In flight:**
-- #1192 cutover of `claude-rc` to `claude-home-lvm` and `claude-workspace-lvm` (the owner merges it; it ends the running session). Only `home` is copied; the workspace starts empty by choice.
-  The clean-up PR (removes `k8s/apps/claude-system/migrate/`, the old PVCs `claude-home` and `claude-workspace`, the init container `final-sync` and the egress rule to the daemon) is
-  open and **must not be merged until the new pod is checked**: `Running` on the LVM volumes, signed in, memory and login present, `final-sync` log clean. Merging deletes the old volumes
-  (the only other copy of the login) and rolls the pod once more.
-- Branch `claude/runner-ephemeral-volumes` (pushed, no PR on purpose): the runners' large emptyDirs as generic ephemeral volumes. Retarget its `storageClassName` to `lvm-fast`, and
-  open the PR only after `vg-fast` exists on every runner node (until then the runners would not schedule).
+**Left to the owner.**
+- In Omni: remove the cluster patches 03, 06 and 09 (if not done), then drop the `$patch: delete` documents from the machine patches 14 to 17. Never the other way round: with 03, 06 or 09 still applied, Talos creates
+  those volumes again.
+- About 25 old PVs in `Released` state (reclaim policy Delete, data gone) cannot be deleted by a session (cluster-scoped): `kubectl get pv | grep Released | awk '{print $1}' | xargs kubectl delete pv` with admin rights.
+- The first boot of `claude-vm` (the Claude login, by hand; the cloud-init seeds the GitHub App).
 
-**Done since:** `talos-tba-msi` (`vg-fast` 1.0 TB) and `talos-vt2-qp8` (`vg-fast` 360 GB, `vg-bulk` 4 TB on the USB disk, which works as an LVM physical volume) run LVM (#1194).
-Their old local-path PVCs point at volumes that no longer exist, so those workloads are broken until the phase 3 flips (fileserver, bootc-iso-cache, both trivy servers, dependency-track-db, garage, adguard on vt2).
-The CSI driver itself is proven only on 2jc (provisioning, expansion); tba and vt2 are checked at the Talos level (`pvs`, `vgs`) and by the first PVCs of phase 3.
+**VMs (KubeVirt).** Local volumes are node-bound, so all the volumes of one VM must be on one node. What works here (read in the KubeVirt "Disks and volumes" guide and the CDI sources, through urlshare):
+- CDI is configured with `HonorWaitForFirstConsumer` (`k8s/infra/post/kubevirt/cdi.yaml`): a DataVolume on `lvm-fast` waits for the VM pod, the scheduler picks a node with room for the VM's memory and its volumes, then
+  the import runs there. Without the gate CDI imported at once, wherever its importer pod landed, and the volumes of a VM ended up on different nodes or on a node too small for the VM. No node selectors.
+- Extra disks are plain PVCs in `volumeMode: Block` (`homeserver-vm-home-disk`, `claude-vm-workspace-disk`), not blank DataVolumes; the guest formats and mounts them from a cloud-init script in the VM spec (the images
+  only carry an inert cloud-init, so they stay generic). Only the rootdisk is a DataVolume (imported from the containerDisk). CDI scratch space is on `lvm-bulk` (an import needs as much scratch as the image).
+- `homeserver-vm`: rootdisk plus home (`/var/home`). `claude-vm`: rootdisk plus a workspace (`~/workspace`, like `/workspace` of `claude-rc`).
+- An import is slow (the GHCR download drops every ten minutes and resumes, about 1 MB/s): an hour for a 100 GiB disk. Recreating a rootdisk means deleting its DataVolume and PVC (the storage tier, which can delete
+  DataVolumes) and the launcher pod; the home or workspace PVC is recreated by Flux (ask for a reconcile with the flux tier, or wait for the interval).
 
-**Done since (2):** `talos-11a-esj` runs LVM too (`vg-fast` 1.0 TB, `vg-bulk` 4 TB; #1196, #1197). All four nodes have their groups.
+**Lessons from the PVC flip.** A PVC's class and a StatefulSet's volume claim templates are immutable: Flux and Helm cannot change them in place. A HelmRelease whose upgrade failed on an immutable field rolls back and
+stalls (`RollbackFailed`) until its spec changes or a reconcile is requested; deleting the old StatefulSet and PVC while a remediation is pending can bring the old objects back, so delete again after the rollback has
+run. A PVC that names no class never changes class: manifests name it. A single-instance CloudNativePG database cannot rebuild its volume (the troubleshooting guide's "delete the PVC" is for replicas): delete the `Cluster`
+and let Flux create it again (the `claude-storage` role allows it). Thick volumes reserve their size at once: a group can be 74% allocated with little data written, so the panel and alerts watch the usage of each PVC.
 
-**Done since (3):** the PVC flip (#1199 and after): every PVC of the plan's table is on `lvm-fast` or `lvm-bulk`, `lvm-fast` is the default class. The old volumes were gone, so each StatefulSet, operator or chart PVC was deleted once with the owner's elevations (`ops`, `storage`, and `flux` to reconcile) and recreated by Flux or Helm. Lessons: a HelmRelease whose upgrade failed on an immutable field rolls back and stalls (`RollbackFailed`) until its spec changes or a reconcile is requested; a PVC that names no class never changes class, so manifests must name it; the CNPG troubleshooting guide's "delete the PVC" is for replicas, a single instance needs its `Cluster` deleted (the `claude-storage` role allows it). Left alone on purpose: `claude-vm-rootdisk` and `homeserver-vm-rootdisk`.
-
-**Next, in order:**
-1. The clean-up PR "chore(storage): remove local-path and OpenEBS hostpath": the two provisioners, the `local-path` StorageClass, patches 03, 06 and 09 (the repo copies), and the Polaris and Trivy exemptions for them. **Then in Omni, in this order:** remove the cluster patches 03, 06 and 09,
-   then drop the `$patch: delete` documents from the machine patches 14 to 17 (never the other way round: with 03, 06 or 09 still applied, Talos would create those volumes again). The old `Released` PVs
-   (about 25, reclaim policy Delete, data gone) cannot be deleted by a session (cluster-scoped): `kubectl get pv | grep Released | awk '{print $1}' | xargs kubectl delete pv` with admin rights.
-2. Delete the temporary apps `k8s/apps/lvm-test` and `k8s/apps/disk-wipe` with their Flux Kustomizations in `k8s/clusters/homelab` and the Polaris exemptions for the wipe Jobs.
-3. `homeserver-vm` disks (talos-gitops #1200 with the cloud-init config, after the homeserver-bootc image with cloud-init is live), and the two VM rootdisks (`claude-vm`, `homeserver-vm`), which still sit on `local-path` PVCs whose data is gone: recreate them (a new DataVolume) when the VMs are wanted again.
-
-**Rules from the owner:** no disk scans on nodes (no `talosctl usage`; read-only `talosctl get` and Prometheus are fine); Docker Hub images as `mirror.gcr.io/...`; PRs only, nothing applied
-to the cluster by hand; the `homeserver-vm` disk is another session's job. Per-task worktrees in `/workspace` are lost for anything not pushed once the workspace volume is replaced.
+**Rules from the owner:** no disk scans on nodes (no `talosctl usage`; read-only `talosctl get` and Prometheus are fine); Docker Hub images as `mirror.gcr.io/...`; PRs only, nothing applied to the cluster by hand; read
+the vendor documentation before designing (through urlshare for hosts the egress allowlist does not cover). Per-task worktrees in `/workspace` are lost for anything not pushed.
 
 ## Monitoring
 
@@ -122,7 +120,10 @@ The LVM node plugin exports `lvm_vg_*`, `lvm_pv_*` and `lvm_lv_*` on 9500: a Ser
 unavailable on a node, controller down, a volume group under 10% free for 30 minutes, a volume group missing a disk (the USB disks are the likely ones). The
 node filesystem alerts of kube-prometheus-stack keep covering EPHEMERAL.
 
+Usage of each PVC: `kubelet_volume_stats_*` exists for the filesystem volumes of the driver (not for Block volumes, like VM disks). The alerts `PersistentVolumeAlmostFull` (85%, 15 minutes) and
+`PersistentVolumeCriticallyFull` (95%, 5 minutes) are in the same PrometheusRule, and the cockpit has a Storage panel with the fullest volumes. A volume expands online by raising its request.
+
 ## Not verified
 
-LVM in Talos 1.14 and the OpenEBS LVM LocalPV driver on Talos (kernel modules, the plugin running `lvm` against the host's `/dev`) are not tested: the pilot is the
-test. Whether Talos creates the two raw partitions in the two free regions of `talos-2jc-qux`, and the CEL selectors of the patch, are from the Talos documentation.
+The LVM driver is proven on all four nodes (provisioning, XFS, expansion, block volumes mapped into a VM pod). Not tested: a lost disk or node (there is no redundancy by design), and the cloud-init mounts of
+`claude-vm` (the first boot after the workspace disk was added).
