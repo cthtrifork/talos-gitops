@@ -83,14 +83,28 @@ spec:
         # efficiency
         cpuLimitsMissing: ignore
       exemptions:
+        # OpenEBS LVM LocalPV (k8s/infra/openebs-system): the node plugin runs lvm against the host's /dev and mounts volumes into the kubelet
+        # directory, so it is privileged with host paths and root; the controller's sidecars and plugin run as root without a hardened context
+        - namespace: openebs-system
+          controllerNames:
+            - openebs-lvm-node
+            - openebs-lvm-controller
+          rules:
+            - runAsPrivileged
+            - runAsRootAllowed
+            - privilegeEscalationAllowed
+            - linuxHardening
+            - insecureCapabilities
+            - notReadOnlyRootFilesystem
+            - hostPathSet
         # Temporary (k8s/apps/disk-wipe): one-shot Jobs that wipe unused disks and partitions of the nodes, so they run privileged
         # with the host PID namespace (they read the host's mounts to refuse a mounted device)
         - namespace: disk-wipe-system
           controllerNames:
-            - disk-wipe-talos-tba-msi-1
-            - disk-wipe-talos-2jc-qux-1
-            - disk-wipe-talos-11a-esj-1
-            - disk-wipe-talos-vt2-qp8-1
+            - disk-wipe-talos-tba-msi-2
+            - disk-wipe-talos-2jc-qux-2
+            - disk-wipe-talos-11a-esj-3
+            - disk-wipe-talos-vt2-qp8-2
           rules:
             - runAsPrivileged
             - runAsRootAllowed

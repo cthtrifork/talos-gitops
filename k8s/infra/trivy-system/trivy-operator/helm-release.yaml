@@ -23,7 +23,7 @@ spec:
     disableWait: true
     cleanupOnFail: true
     remediation:
-      retries: 3
+      retries: 5 # was 3: the storage flip (docs/storage-plan.md) exhausted them on an immutable volume claim template; revert after
   # The trivy server only listens after it has downloaded the vulnerability DB (about 140 MB) and the Java DB (about 1 GB) from
   # zot, which takes many minutes on a cold zot cache and the home uplink. The chart's liveness probe gives up after ~100 s and
   # restarts the pod in a loop, so a startup probe holds liveness back for up to 30 minutes.
@@ -99,7 +99,7 @@ spec:
           "docker.io": zot.registry-system.svc.cluster.local:5000/docker-hub-cache
           "quay.io": zot.registry-system.svc.cluster.local:5000/quay-cache
           "registry.k8s.io": zot.registry-system.svc.cluster.local:5000/k8s-cache
-      storageSize: "${TRIVY_STORAGE_SIZE:=5Gi}"
+      storageSize: "${TRIVY_STORAGE_SIZE:=10Gi}"
       ignoreFileName: /etc/trivy/.trivyignore.yaml
       configFile:
         # the files come from the configMapGenerator in kustomization.yaml and are mounted below
@@ -272,7 +272,7 @@ spec:
                 labels:
                   app: trivy-operator-scanjob-cache
               spec:
-                storageClassName: local-path
+                storageClassName: lvm-fast
                 accessModes:
                   - ReadWriteOnce
                 resources:

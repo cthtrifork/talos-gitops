@@ -15,7 +15,7 @@ spec:
       labels:
         kubevirt.io/vm: claude-vm
     spec:
-      # Only nodes with /dev/kvm (the Proxmox-hosted talos node has none): virt-handler labels them schedulable and only they
+      # Only nodes with /dev/kvm: virt-handler labels them schedulable and only they
       # advertise the devices.kubevirt.io/kvm resource the launcher requests. v1.10 sets no devices.kubevirt.io/kvm node label.
       nodeSelector:
         kubevirt.io/schedulable: "true"
@@ -80,7 +80,7 @@ spec:
         storage:
           accessModes:
             - ReadWriteOnce
-          storageClassName: local-path
+          storageClassName: lvm-fast
           resources:
             requests:
               storage: 60Gi # keep in step with config-claude-vm.toml in homeserver-bootc

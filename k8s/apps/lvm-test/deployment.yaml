@@ -1,0 +1,99 @@
+# Test of the LVM storage classes (docs/storage-plan.md): one PVC of each class and a generic ephemeral volume, written at start and reported every 20 seconds
+# (filesystem, size, free space). The pod has no node selector: the scheduler places it from the CSI storage capacity, which only talos-2jc-qux has so far.
+# Expansion test: raise the storage of fast-fs in pvc.yaml and watch the size in the log change while the pod runs. Temporary: delete the app after.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lvm-test
+  namespace: lvm-test-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: lvm-test
+  template:
+    metadata:
+      labels:
+        app: lvm-test
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: test
+          # renovate: datasource=docker depName=docker.io/library/busybox versioning=docker
+          image: mirror.gcr.io/library/busybox:1.38.0@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+          command:
+            - /bin/sh
+            - -c
+            - |
+              for d in fast bulk scratch; do
+                [ -f /data/$d/marker ] && echo "$d: marker from an earlier start: $(cat /data/$d/marker)"
+                echo "written at $(date -u +%FT%TZ) by $HOSTNAME" > /data/$d/marker
+                dd if=/dev/urandom of=/data/$d/blob bs=1M count=50 conv=fsync 2>/dev/null && echo "$d: wrote 50 MiB"
+              done
+              while true; do
+                echo "--- $(date -u +%T) node $NODE_NAME"
+                for d in fast bulk scratch; do
+                  fs=$(awk -v m=/data/$d '$2==m{print $3}' /proc/mounts)
+                  echo "$d: $fs $(df -kP /data/$d | awk 'NR==2{printf "%.2f GiB, %.2f GiB free", $2/1048576, $4/1048576}')"
+                done
+                sleep 20
+              done
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          livenessProbe:
+            exec:
+              command:
+                - /bin/true
+          readinessProbe:
+            exec:
+              command:
+                - /bin/true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: fast
+              mountPath: /data/fast
+            - name: bulk
+              mountPath: /data/bulk
+            - name: scratch
+              mountPath: /data/scratch
+      volumes:
+        - name: fast
+          persistentVolumeClaim:
+            claimName: fast-fs
+        - name: bulk
+          persistentVolumeClaim:
+            claimName: bulk-fs
+        - name: scratch
+          ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                storageClassName: lvm-fast
+                resources:
+                  requests:
+                    storage: 1Gi

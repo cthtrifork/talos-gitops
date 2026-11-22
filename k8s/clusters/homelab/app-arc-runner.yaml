@@ -11,6 +11,7 @@ spec:
   interval: 30m
   retryInterval: 2m
   prune: true
+  force: true # temporary (docs/storage-plan.md, phase 3): recreates the PVCs whose storage class changed; remove after the flip
   decryption:
     provider: sops
     secretRef:

@@ -215,8 +215,8 @@ spec:
               protocol: TCP
 ---
 # Update-VMs buttons. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node).
-# The VMs (192.168.1.138 claude-vm, 192.168.1.173 homeserver) poll 8081 through claude-vm-upgrade-lb; their addresses are the only
-# authentication, so keep the /32s.
+# The VMs (KubeVirt, namespaces claude-vm and homeserver-vm) poll 8081 through claude-vm-upgrade-lb. Cilium sees them as their launcher pod
+# or, when the LoadBalancer traffic crosses nodes, as the node they run on (host / remote-node); there is no other authentication, so keep it to 8081.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -242,9 +242,21 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    - fromCIDR:
-        - 192.168.1.138/32 # claude-vm
-        - 192.168.1.173/32 # homeserver
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: claude-vm
+            k8s:kubevirt.io/vm: claude-vm
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: homeserver-vm
+            k8s:kubevirt.io/vm: homeserver-vm
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
+    # the same polls after the SNAT to the node address (observed as drops from the nodes' IPs)
+    - fromEntities:
+        - host
+        - remote-node
       toPorts:
         - ports:
             - port: "8081"
@@ -270,9 +282,16 @@ spec:
             - port: "443"
               protocol: TCP
     # replies to the VMs' polls on 8081 (the client port is ephemeral, so no port here); Cilium drops them when it loses the connection state
-    - toCIDR:
-        - 192.168.1.138/32 # claude-vm
-        - 192.168.1.173/32 # homeserver
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: claude-vm
+            k8s:kubevirt.io/vm: claude-vm
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: homeserver-vm
+            k8s:kubevirt.io/vm: homeserver-vm
+    - toEntities:
+        - host
+        - remote-node
 ---
 # Elevate Claude. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node).
 # claude-rc has no ingress rule here: it receives the rights the page grants, so it cannot reach the page. Prometheus reaches only the metrics port

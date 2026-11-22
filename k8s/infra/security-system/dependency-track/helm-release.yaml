@@ -21,7 +21,7 @@ spec:
     disableWait: true
     cleanupOnFail: true
     remediation:
-      retries: 3
+      retries: 5 # was 3: the storage flip (docs/storage-plan.md) exhausted them on an immutable volume claim template; revert after
   # The chart's ServiceMonitor has no relabeling setting: drop the histogram buckets (9k series), keep _sum and _count.
   postRenderers:
     - kustomize:
@@ -55,8 +55,8 @@ spec:
     fileStorage:
       provider: local
       local:
-        size: 5Gi
-        storageClassName: ${DEFAULT_STORAGE_CLASS:=local-path}
+        size: 10Gi
+        storageClassName: ${DEFAULT_STORAGE_CLASS:=lvm-fast}
     apiServer:
       # Seeds the telemetry setting on a fresh install only; the database owns it afterwards.
       extraEnv:

@@ -24,7 +24,7 @@ spec:
     disableWait: true
     cleanupOnFail: true
     remediation:
-      retries: 3
+      retries: 5 # was 3: the storage flip (docs/storage-plan.md) exhausted them on an immutable volume claim template; revert after
   # https://github.com/project-zot/helm-charts/blob/main/charts/zot/values.yaml
   values:
     podAnnotations:
@@ -46,8 +46,8 @@ spec:
       create: true
       accessModes:
         - "ReadWriteOnce"
-      storage: 60Gi
-      storageClassName: openebs-hostpath-xfs # XFS project quota enforces the 60Gi, unlike local-path
+      storage: 150Gi
+      storageClassName: lvm-fast # a real 150Gi volume
     configFiles: ~
     # https://docs.giantswarm.io/tutorials/registry/zot/
     resources:
