@@ -1,5 +1,5 @@
 ---
-# The cache and the SQLite database of the cache server. local-path: the volume is created on the node of the first pod
+# The cache and the SQLite database of the cache server. lvm-fast: the volume is created on the node of the first pod
 # that uses it (the nodeSelector of the HelmRelease); losing it only costs a cold cache.
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -9,7 +9,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: lvm-fast
   resources:
     requests:
-      storage: 20Gi
+      storage: 100Gi

@@ -1,7 +1,7 @@
 ---
 # https://gha-cache-server.falcondev.io/getting-started
 # Self-hosted GitHub Actions cache server: runners of the e2e scale set (k8s/apps/arc-runner) point ACTIONS_RESULTS_URL
-# at it, so actions/cache and the tool caches (mise) stay in the cluster. Filesystem storage and SQLite on one local-path
+# at it, so actions/cache and the tool caches (mise) stay in the cluster. Filesystem storage and SQLite on one lvm-fast
 # volume, one replica: losing it only costs a cold cache.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -40,10 +40,10 @@ spec:
       # renovate: datasource=docker depName=ghcr.io/falcondev-oss/github-actions-cache-server
       tag: "10.0.1@sha256:6ff4d471db50e87008d1ad2f43819b5bbd2aad23e7e7e233cf5ccbdd01447df6"
     config:
-      # 15 GiB of the 20Gi volume, least recently used entries are evicted first
-      cacheMaxSizeBytes: 16106127360
+      # 80 GiB of the 100Gi volume, least recently used entries are evicted first
+      cacheMaxSizeBytes: 85899345920
       cacheCleanupOlderThanDays: 30
-    # Own claim (pvc.yaml) instead of the chart's: the old claim sits on another node, and a local-path volume cannot move
+    # Own claim (pvc.yaml) instead of the chart's: the old claim sits on another node, and an LVM volume cannot move
     persistentVolumeClaim:
       enabled: false
     # Same node as the e2e runners (their podAffinity follows this pod): a pod-to-pod transfer between two nodes runs at 3 to

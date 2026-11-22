@@ -5,6 +5,7 @@ metadata:
   name: kube-prometheus-stack-system
   labels:
     claude-elevate/ops: "true"
+    claude-elevate/storage: "true" # the PVC flip of docs/storage-plan.md: delete PVCs
     claude-elevate/flux: "true"
     prometheus.io/scrape: "true"
     pod-security.kubernetes.io/enforce: privileged

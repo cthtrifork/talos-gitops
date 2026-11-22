@@ -273,7 +273,7 @@ function stripChips(d) {
   if (d.polaris) add(polarisState(d.polaris.score), `Polaris ${d.polaris.score}/100`, "p-polaris-score");
   if (d.disk?.length) {
     const m = Math.max(0, ...d.disk.map((n) => n.used_pct));
-    add(usedState(m, 85), `Disk ${m}%`, "p-disk-local-path-volumes");
+    add(usedState(m, 85), `Disk ${m}%`, "p-disk-volume-groups");
   }
   if (d.drops_total !== undefined) add(d.drops_total > 0 ? "warn" : "ok", `${d.drops_total} packets denied`, "p-dropped-traffic");
   if (d.github) {
@@ -421,19 +421,19 @@ const PolarisPanel = (d) => {
     ${Muted(`Audited ${String(x.audit_time).replace("T", " ").replace("Z", " UTC")}`)}`);
 };
 
-const DISK_SHOW = 60; // nodes under this percentage are only counted
+const DISK_SHOW = 60; // volume groups under this percentage are only counted
 const DiskPanel = (d) => {
-  const title = "Disk, local-path volumes";
-  if (!d.disk) return Unavailable({ title, source: "Prometheus · node_filesystem_*", d });
+  const title = "Disk, volume groups";
+  if (!d.disk) return Unavailable({ title, source: "Prometheus · lvm_vg_*", d });
   const max = Math.max(0, ...d.disk.map((n) => n.used_pct));
   const hot = d.disk.filter((n) => n.used_pct >= DISK_SHOW).sort((a, b) => b.used_pct - a.used_pct);
   const rest = d.disk.length - hot.length;
-  const nodes = (n) => n + (n === 1 ? " node" : " nodes");
-  return Panel({ title, state: usedState(max, 85), text: max >= 75 ? "node over " + (max >= 85 ? 85 : 75) + "%" : "ok", compact: !hot.length, d }, html`
+  const nodes = (n) => n + (n === 1 ? " volume group" : " volume groups");
+  return Panel({ title, state: usedState(max, 85), text: max >= 75 ? "volume group over " + (max >= 85 ? 85 : 75) + "%" : "ok", compact: !hot.length, d }, html`
     ${!hot.length
-      ? Muted(d.disk.length ? `All ${nodes(d.disk.length)} under ${DISK_SHOW}%, highest ${max}%` : "No nodes reported.")
+      ? Muted(d.disk.length ? `All ${nodes(d.disk.length)} under ${DISK_SHOW}%, highest ${max}%` : "No volume groups reported.")
       : html`<div class="limit">${hot.map((n) => html`<div class="limit-row"><span>${n.node}</span><span class="num"><strong>${n.used_pct}%</strong> used</span></div>${Bar({ label: `${n.node}, ${n.used_pct} percent used`, parts: [{ pct: n.used_pct, color: usedColor(n.used_pct, 85) }] })}`)}</div>
-        ${rest > 0 ? Muted(`${rest} ${rest === 1 ? "other node" : "other nodes"} under ${DISK_SHOW}%`) : nothing}`}`);
+        ${rest > 0 ? Muted(`${rest} ${rest === 1 ? "other volume group" : "other volume groups"} under ${DISK_SHOW}%`) : nothing}`}`);
 };
 
 const PrRows = (items) =>

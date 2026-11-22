@@ -1,3 +1,5 @@
+# Cleanup: the cluster patches 03, 06 and 09 are gone from the repo (docs/storage-plan.md, phase 3). Remove them in Omni first; the `$patch: delete` documents below then
+# delete nothing and can be dropped from this machine patch (never before: with 03, 06 or 09 still applied, Talos would create those volumes again).
 # PILOT, per machine, for talos-2jc-qux only (docs/storage-plan.md): replaces its local-path volumes with LVM volume groups for the OpenEBS LVM LocalPV
 # driver (k8s/infra/openebs-system). Every other node keeps patches 03 (and 06, 09 on talos-11a-esj) until the pilot works.
 #
@@ -33,10 +35,19 @@ provisioning:
     match: disk.transport == 'nvme'
   minSize: 20GB
 ---
-# The bulk tier: the SATA SSD (not the system disk here).
+# The bulk tier: the SATA SSD (not the system disk here). Two raw volumes, one per free region: the 77 GB of the old leftover partitions and, after the wipe,
+# the 178 GB of the old local-path-sata volume.
 apiVersion: v1alpha1
 kind: RawVolumeConfig
 name: lvm-bulk-a
+provisioning:
+  diskSelector:
+    match: disk.transport == 'sata' && !system_disk
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-bulk-b
 provisioning:
   diskSelector:
     match: disk.transport == 'sata' && !system_disk

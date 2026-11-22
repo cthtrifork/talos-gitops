@@ -35,7 +35,7 @@ ephemeral volumes on `lvm-fast`, which takes that load off EPHEMERAL (on `talos-
 local-path volumes by `vg-fast` and `vg-bulk`; the OpenEBS LVM LocalPV app and the two classes are in `k8s/infra/openebs-system`. Steps:
 1. Merge this PR (Flux deploys the driver and the classes; no volume group exists yet, so nothing uses them).
 2. In Omni, apply `patches/14-lvm-2jc.yaml` to `talos-2jc-qux` and reboot it (the first two documents delete the old user volumes so they unmount).
-3. Wipe the old partitions with the Job in `k8s/apps/disk-wipe` (nvme0n1p3 `236d4dad-14e1-4fc2-9e07-7c0ed5b75554`, 200000000000 bytes; sda4 `683e163f-8d7f-440c-806d-eeb7dff16d18`, 178120556544 bytes). Talos then creates the raw partitions and the groups.
+3. Wipe the old partitions with the Job in `k8s/apps/disk-wipe` (run twice on the pilot: `-1` cleared the old SATA leftovers, `-2` the two old local-path partitions; the patch has two raw volumes per tier, one per free region) (nvme0n1p3 `236d4dad-14e1-4fc2-9e07-7c0ed5b75554`, 200000000000 bytes; sda4 `683e163f-8d7f-440c-806d-eeb7dff16d18`, 178120556544 bytes). Talos then creates the raw partitions and the groups.
 4. Acceptance: `talosctl -n 192.168.1.173 get pvs,vgs` show `vg-fast` (about 800 GB) and `vg-bulk` (about 255 GB) with no `lvmvalidationerrors`; the node plugin pod is `Running` on all four nodes; a test PVC of each class binds and mounts; a PVC expands online; a runner ephemeral volume works; the alerts below load and the target is up.
 5. If the driver does not work on Talos (LVM is new in Talos 1.14, and the driver is not documented for it: kernel modules, `/dev` handling), stop here: the node goes back to local-path by removing the patch.
 
@@ -68,6 +68,52 @@ A volume's size is now a hard limit, but it can be expanded online (`allowVolume
 | `trivy-system/scan-...-trivy-cache` (one per scan Job) | 10Gi local-path | 10Gi `lvm-fast` (ephemeral) | created by the operator per scan |
 | `adguard-system/...-adguard-config`, `...-adguard-data` | 1Gi, 10Gi | 1Gi, 10Gi `lvm-fast` | unchanged: the data is tiny |
 | `homeserver-vm/homeserver-vm-rootdisk` | 270 GiB | not part of this plan | being fixed in another session |
+
+## Claude's own volumes (claude-home, claude-workspace)
+
+The `claude-rc` pod (the session itself) keeps its login in `claude-home` and its clones and scratch in `claude-workspace`; both are local-path volumes on `talos-11a-esj`
+and deleting `claude-home` signs it out, so it is copied, not recreated. The workspace is scratch (everything worth keeping is pushed to GitHub), so it is not copied and starts empty. The copy crosses the network once (local volumes cannot move between nodes, and the
+new `lvm-fast` volumes exist on `talos-2jc-qux` first), so the pod ends up on `2jc`. Three steps, each a PR:
+
+1. **Stage** (`k8s/apps/claude-system/migrate`): the new PVCs `claude-home-lvm` (10Gi) and `claude-workspace-lvm` (50Gi), a read-only rsync daemon on the old volumes (it follows the `claude-rc` pod to
+   its node) and a Job on `2jc` that pulled `home` over rsync while the session kept running (the Job also started on `workspace`; it is dropped at the cutover). Slow while the `11a` network path is slow; it can be repeated and only sends changes.
+2. **Cutover**: the Deployment mounts the new PVCs and an init container does the final rsync from the daemon. The `Recreate` strategy stops the old pod first, so the old volumes are quiet
+   for that last pass and only the changes since the first pass are sent. **The restart ends the running session**; the new one has the same login and memory and an empty workspace.
+3. **Clean-up**: remove the daemon, the Job, the network policies and the old PVCs after the new pod is checked.
+
+## Status and handoff
+
+Update this section as work lands; it is what another session starts from.
+
+**Done (merged):** driver and classes (#1169, scrape fix #1172), the wipe app (`k8s/apps/disk-wipe`), `talos-2jc-qux` pilot (patch `patches/14-lvm-2jc.yaml`, applied in Omni by the owner;
+`vg-fast` 798 GB and `vg-bulk` 255 GB, no validation errors). The temporary app `k8s/apps/lvm-test` proved on 2jc: provisioning of both classes (XFS, exact size), capacity-aware
+scheduling, a generic ephemeral volume, data kept across a pod restart, online expansion (2Gi to 3Gi in a running pod). The stage copy of `claude-home` (#1186).
+
+**In flight:**
+- #1192 cutover of `claude-rc` to `claude-home-lvm` and `claude-workspace-lvm` (the owner merges it; it ends the running session). Only `home` is copied; the workspace starts empty by choice.
+  The clean-up PR (removes `k8s/apps/claude-system/migrate/`, the old PVCs `claude-home` and `claude-workspace`, the init container `final-sync` and the egress rule to the daemon) is
+  open and **must not be merged until the new pod is checked**: `Running` on the LVM volumes, signed in, memory and login present, `final-sync` log clean. Merging deletes the old volumes
+  (the only other copy of the login) and rolls the pod once more.
+- Branch `claude/runner-ephemeral-volumes` (pushed, no PR on purpose): the runners' large emptyDirs as generic ephemeral volumes. Retarget its `storageClassName` to `lvm-fast`, and
+  open the PR only after `vg-fast` exists on every runner node (until then the runners would not schedule).
+
+**Done since:** `talos-tba-msi` (`vg-fast` 1.0 TB) and `talos-vt2-qp8` (`vg-fast` 360 GB, `vg-bulk` 4 TB on the USB disk, which works as an LVM physical volume) run LVM (#1194).
+Their old local-path PVCs point at volumes that no longer exist, so those workloads are broken until the phase 3 flips (fileserver, bootc-iso-cache, both trivy servers, dependency-track-db, garage, adguard on vt2).
+The CSI driver itself is proven only on 2jc (provisioning, expansion); tba and vt2 are checked at the Talos level (`pvs`, `vgs`) and by the first PVCs of phase 3.
+
+**Done since (2):** `talos-11a-esj` runs LVM too (`vg-fast` 1.0 TB, `vg-bulk` 4 TB; #1196, #1197). All four nodes have their groups.
+
+**Done since (3):** the PVC flip (#1199 and after): every PVC of the plan's table is on `lvm-fast` or `lvm-bulk`, `lvm-fast` is the default class. The old volumes were gone, so each StatefulSet, operator or chart PVC was deleted once with the owner's elevations (`ops`, `storage`, and `flux` to reconcile) and recreated by Flux or Helm. Lessons: a HelmRelease whose upgrade failed on an immutable field rolls back and stalls (`RollbackFailed`) until its spec changes or a reconcile is requested; a PVC that names no class never changes class, so manifests must name it; the CNPG troubleshooting guide's "delete the PVC" is for replicas, a single instance needs its `Cluster` deleted (the `claude-storage` role allows it). Left alone on purpose: `claude-vm-rootdisk` and `homeserver-vm-rootdisk`.
+
+**Next, in order:**
+1. The clean-up PR "chore(storage): remove local-path and OpenEBS hostpath": the two provisioners, the `local-path` StorageClass, patches 03, 06 and 09 (the repo copies), and the Polaris and Trivy exemptions for them. **Then in Omni, in this order:** remove the cluster patches 03, 06 and 09,
+   then drop the `$patch: delete` documents from the machine patches 14 to 17 (never the other way round: with 03, 06 or 09 still applied, Talos would create those volumes again). The old `Released` PVs
+   (about 25, reclaim policy Delete, data gone) cannot be deleted by a session (cluster-scoped): `kubectl get pv | grep Released | awk '{print $1}' | xargs kubectl delete pv` with admin rights.
+2. Delete the temporary apps `k8s/apps/lvm-test` and `k8s/apps/disk-wipe` with their Flux Kustomizations in `k8s/clusters/homelab` and the Polaris exemptions for the wipe Jobs.
+3. `homeserver-vm` disks (talos-gitops #1200 with the cloud-init config, after the homeserver-bootc image with cloud-init is live), and the two VM rootdisks (`claude-vm`, `homeserver-vm`), which still sit on `local-path` PVCs whose data is gone: recreate them (a new DataVolume) when the VMs are wanted again.
+
+**Rules from the owner:** no disk scans on nodes (no `talosctl usage`; read-only `talosctl get` and Prometheus are fine); Docker Hub images as `mirror.gcr.io/...`; PRs only, nothing applied
+to the cluster by hand; the `homeserver-vm` disk is another session's job. Per-task worktrees in `/workspace` are lost for anything not pushed once the workspace volume is replaced.
 
 ## Monitoring
 

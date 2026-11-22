@@ -8,7 +8,7 @@
 # back to arc-ubuntu. minRunners is 0, so it costs nothing while unused.
 #
 # Builds run in parallel, and two builds on one containers storage corrupt it, so nothing is shared: every pod gets
-# its own generic ephemeral volumes (local-path, on the same node as before), deleted with the pod. Every build is
+# its own generic ephemeral volumes (lvm-fast), deleted with the pod. Every build is
 # therefore cold (empty dnf cache and image storage). To soften that, registries.conf sends ghcr.io, quay.io and
 # gcr.io pulls through the in-cluster zot caches first (ConfigMap podman-registries) and falls back to the origin.
 apiVersion: helm.toolkit.fluxcd.io/v2
@@ -48,7 +48,7 @@ spec:
       - arc-ubuntu
       - arc-ubuntu-podman
 
-    maxRunners: 3 # CPU and the node's local-path disk allow about 3 to 4 builds at once (see the PR)
+    maxRunners: 3 # CPU and the node's lvm-fast volume group allow about 3 to 4 builds at once (see the PR)
     minRunners: 0 # experimental, so no idle pod; the first job waits for the pod to start
 
     githubConfigSecret: github-auth
@@ -197,20 +197,42 @@ spec:
               path: /dev
               type: Directory
           - name: work
-            emptyDir:
-              sizeLimit: 32Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 32Gi
           - name: tmp
-            emptyDir:
-              sizeLimit: 20Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 20Gi
           - name: var-tmp
-            emptyDir:
-              sizeLimit: 30Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 30Gi
           - name: container-storage-rootful
             ephemeral:
               volumeClaimTemplate:
                 spec:
                   accessModes:
                     - ReadWriteOnce
+                  storageClassName: lvm-fast
                   resources:
                     requests:
                       storage: 32Gi
@@ -220,6 +242,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
+                  storageClassName: lvm-fast
                   resources:
                     requests:
                       storage: 32Gi
@@ -229,6 +252,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
+                  storageClassName: lvm-fast
                   resources:
                     requests:
                       storage: 25Gi
@@ -238,6 +262,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
+                  storageClassName: lvm-fast
                   resources:
                     requests:
                       storage: 5Gi

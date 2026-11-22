@@ -55,8 +55,8 @@ spec:
     fileStorage:
       provider: local
       local:
-        size: 5Gi
-        storageClassName: ${DEFAULT_STORAGE_CLASS:=local-path}
+        size: 10Gi
+        storageClassName: ${DEFAULT_STORAGE_CLASS:=lvm-fast}
     apiServer:
       # Seeds the telemetry setting on a fresh install only; the database owns it afterwards.
       extraEnv:

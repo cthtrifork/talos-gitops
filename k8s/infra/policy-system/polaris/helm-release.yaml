@@ -97,22 +97,6 @@ spec:
             - insecureCapabilities
             - notReadOnlyRootFilesystem
             - hostPathSet
-        # Temporary (k8s/apps/disk-wipe): one-shot Jobs that wipe unused disks and partitions of the nodes, so they run privileged
-        # with the host PID namespace (they read the host's mounts to refuse a mounted device)
-        - namespace: disk-wipe-system
-          controllerNames:
-            - disk-wipe-talos-tba-msi-1
-            - disk-wipe-talos-2jc-qux-1
-            - disk-wipe-talos-11a-esj-1
-            - disk-wipe-talos-vt2-qp8-1
-          rules:
-            - runAsPrivileged
-            - runAsRootAllowed
-            - privilegeEscalationAllowed
-            - linuxHardening
-            - insecureCapabilities
-            - notReadOnlyRootFilesystem
-            - hostPIDSet
         # Ignore checks for cilium and hubble
         - namespace: kube-system
           controllerNames:
@@ -301,37 +285,6 @@ spec:
           containerNames:
             - admin
           rules:
-            - livenessProbeMissing
-            - readinessProbeMissing
-        # Storage provisioners, deliberately not hardened yet: they create and chmod host directories for every PVC, directly
-        # (openebs) or through the helper pods they launch (local-path), and a wrong security context would stop all
-        # provisioning. Revisit once there is a way to test it on a throwaway PVC.
-        - controllerNames:
-            - local-path-provisioner
-            - openebs-localpv-localpv-provisioner
-          rules:
-            - runAsRootAllowed
-            - privilegeEscalationAllowed
-            - linuxHardening
-            - insecureCapabilities
-            - notReadOnlyRootFilesystem
-        # The pods local-path-provisioner starts per PVC (helper-pod-create-pvc-<uid>, helper-pod-delete-pvc-<uid>): an untagged
-        # busybox from its helperPod template that mkdirs and chmods the host path, as root, without probes or resources.
-        # They live for seconds, but a dashboard audit that lands on one (Trivy scans create a PVC each) fails on all of these.
-        - namespace: local-path-storage
-          controllerNames:
-            - helper-pod-
-          rules:
-            - runAsRootAllowed
-            - privilegeEscalationAllowed
-            - linuxHardening
-            - insecureCapabilities
-            - notReadOnlyRootFilesystem
-            - tagNotSpecified
-            - hostPathSet
-            - cpuRequestsMissing
-            - memoryRequestsMissing
-            - memoryLimitsMissing
             - livenessProbeMissing
             - readinessProbeMissing
         # The next four exemptions are for objects that the CI audit (.github/workflows/validate.yaml) reads from files in k8s/ but

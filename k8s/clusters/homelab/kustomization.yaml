@@ -6,7 +6,6 @@ resources:
   - gitops-infra-bootstrap.yaml
   - gitops-infra-controllers.yaml
   - gitops-infra-cilium.yaml
-  - gitops-infra-local-path-provisioner.yaml
   - gitops-infra-openebs-system.yaml
   - gitops-infra-flux-system.yaml
   - gitops-infra-metrics-server.yaml
@@ -31,6 +30,5 @@ resources:
   - app-fileserver.yaml
   - app-gha-cache.yaml
   - app-harper-pad.yaml
-  - app-disk-wipe.yaml
   - renovate.yaml
   - virtualmachines.yaml

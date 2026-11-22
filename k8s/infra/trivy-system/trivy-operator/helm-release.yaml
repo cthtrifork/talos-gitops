@@ -65,7 +65,7 @@ spec:
       registry: mirror.gcr.io
       # renovate: datasource=docker depName=mirror.gcr.io/aquasec/trivy-operator versioning=semver
       tag: 0.36.1@sha256:05191a514247ae644dd5cc71306a94f44faff0a6a3fa817235911b911ecebcb9
-    excludeNamespaces: "local-path-storage,arc-runners-system,arc-controller-system" # ephemeral CI runner pods are not worth scanning
+    excludeNamespaces: "arc-runners-system,arc-controller-system" # ephemeral CI runner pods are not worth scanning
     policiesBundle:
       registry: zot.registry-system.svc.cluster.local:5000/ghcr-cache
     trivy:
@@ -99,7 +99,7 @@ spec:
           "docker.io": zot.registry-system.svc.cluster.local:5000/docker-hub-cache
           "quay.io": zot.registry-system.svc.cluster.local:5000/quay-cache
           "registry.k8s.io": zot.registry-system.svc.cluster.local:5000/k8s-cache
-      storageSize: "${TRIVY_STORAGE_SIZE:=5Gi}"
+      storageSize: "${TRIVY_STORAGE_SIZE:=10Gi}"
       ignoreFileName: /etc/trivy/.trivyignore.yaml
       configFile:
         # the files come from the configMapGenerator in kustomization.yaml and are mounted below
@@ -272,7 +272,7 @@ spec:
                 labels:
                   app: trivy-operator-scanjob-cache
               spec:
-                storageClassName: local-path
+                storageClassName: lvm-fast
                 accessModes:
                   - ReadWriteOnce
                 resources:
