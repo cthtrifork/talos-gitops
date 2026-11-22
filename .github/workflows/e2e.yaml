@@ -40,6 +40,7 @@ jobs:
         timeout-minutes: 2
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Show the cache endpoints
+        if: {{ env.ACTIONS_RUNNER_DEBUG }}
         timeout-minutes: 1
         run: |
           # ACTIONS_RESULTS_URL must be the in-cluster cache server (http://gha-cache...), not GitHub's results-receiver
@@ -57,27 +58,23 @@ jobs:
       - name: Pull the kind node image through zot
         timeout-minutes: 5
         run: |
-          # Pull the pinned image through zot's mirror.gcr.io cache and tag it with the Docker Hub name from scripts/kind.yaml.
-          # A digest reference would not match a loaded image, so kind must use the tag only.
           image="$(yq '.nodes[0].image' scripts/kind.yaml)"
-          repo="${image%%:*}"
-          skopeo copy "docker://${ZOT}/docker-hub-cache/${repo}@${image#*@}" "docker-daemon:${ZOT}/docker-hub-cache/${image%@*}"
-          docker tag "${ZOT}/docker-hub-cache/${image%@*}" "${image%@*}"
+          new_image="${ZOT}/docker-hub-cache/${repo}@${image}"
+           
+          docker pull "docker://${new_image}"
           # the rendered kind config refers to the loaded image
           POD_IP="$(hostname -i | awk '{print $1}')" envsubst "\${POD_IP}" < scripts/kind.yaml |
-            yq ".nodes[0].image = \"${image%@*}\"" > "${RUNNER_TEMP}/kind.yaml"
+            yq ".nodes[0].image = \"${new_image}\"" > "${RUNNER_TEMP}/kind.yaml"
+           cat "${RUNNER_TEMP}/kind.yaml"
       - name: Setup Kubernetes Kind
         timeout-minutes: 5
         env:
           # the node shares the network namespace of the runner pod, where Cilium reaches zot by its service name
           KIND_EXPERIMENTAL_DOCKER_NETWORK: host
         run: |
-          # kind exports the kubeconfig from the published API server port, which the host network does not have: that last step
-          # fails (the cluster is complete by then, --retain keeps it), so read the admin kubeconfig from the node
           kind create cluster --name homelab --config "${RUNNER_TEMP}/kind.yaml" --retain || true
-          docker exec homelab-control-plane test -f /etc/kubernetes/admin.conf
-          mkdir -p ~/.kube
-          docker exec homelab-control-plane cat /etc/kubernetes/admin.conf > ~/.kube/config
+          #mkdir -p ~/.kube
+          #docker exec homelab-control-plane cat /etc/kubernetes/admin.conf > ~/.kube/config
           kubectl get nodes
       - name: Pull through the cluster zot only
         timeout-minutes: 2
@@ -106,7 +103,10 @@ jobs:
       - name: Install latest flux-operator
         timeout-minutes: 3
         run: |
-          helm install flux-operator oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator \
+          version="$(yq 'select(.kind == "OCIRepository") | .spec.ref.tag' k8s/infra/cilium/helm-repository.yaml)"
+         
+          helm install flux-operator "oci://${ZOT}/quay-cache/cilium/charts/cilium" --version "${version}" \
+oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator \
           --namespace flux-system \
           --create-namespace \
           --wait --timeout 2m
