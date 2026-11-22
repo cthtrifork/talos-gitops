@@ -27,14 +27,23 @@ spec:
           annotations:
             summary: The OpenEBS LVM controller is down
             description: "New lvm-fast and lvm-bulk volumes are not provisioned, and expansions are not done. kubectl -n openebs-system get pods -l app=openebs-lvm-controller"
+        # Volume groups hold thick volumes, so "used" is the sum of the PVC sizes: 20% is the time to plan an expansion or a move.
         - alert: LVMVolumeGroupAlmostFull
-          expr: lvm_vg_free_size_bytes / lvm_vg_total_size_bytes < 0.10
-          for: 30m
+          expr: lvm_vg_free_size_bytes / lvm_vg_total_size_bytes < 0.20
+          for: 1h
           labels:
             severity: warning
           annotations:
-            summary: The volume group {{ $labels.name }} on {{ $labels.instance }} has less than 10% free
+            summary: The volume group {{ $labels.name }} on {{ $labels.instance }} has less than 20% free
             description: "{{ $value | humanizePercentage }} of {{ $labels.name }} is free. Volumes are not over-provisioned, so new PVCs of the class that uses it stay Pending on this node (the scheduler places pods elsewhere while another node has room)."
+        - alert: LVMVolumeGroupCriticallyFull
+          expr: lvm_vg_free_size_bytes / lvm_vg_total_size_bytes < 0.10
+          for: 30m
+          labels:
+            severity: critical
+          annotations:
+            summary: The volume group {{ $labels.name }} on {{ $labels.instance }} has less than 10% free
+            description: "{{ $value | humanizePercentage }} of {{ $labels.name }} is free: new and expanded PVCs on this node will fail. Free space by deleting a PVC or move a workload to a node with room."
         - alert: LVMVolumeGroupMissingDisk
           expr: lvm_vg_missing_pv_count > 0
           for: 5m
