@@ -288,9 +288,10 @@ processor_resources:
                   "since": a.activeAt.or("")
                 }).sort_by(a -> a.name)
 
+            # the fullest volumes with their sizes; kubelet_volume_stats_* exists only for filesystem volumes a pod has mounted
             pvcs:
               request_map: |
-                meta path = "/api/v1/query?query=" + "topk(8, 100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes)".escape_url_query()
+                meta path = "/api/v1/query?query=" + "topk(5, 100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes)".escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
@@ -300,6 +301,18 @@ processor_resources:
                   "used_pct": r.value.index(1).number().round()
                 })
 
+            pvc_sizes:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "kubelet_volume_stats_capacity_bytes and on (namespace, persistentvolumeclaim) topk(5, 100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes)".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.pvc_sizes = this.data.result.map_each(r -> {
+                  "name": r.metric.namespace.or("-") + "/" + r.metric.persistentvolumeclaim.or("unknown"),
+                  "bytes": r.value.index(1).number().round()
+                })
+
             pvc_count:
               request_map: |
                 meta path = "/api/v1/query?query=" + "count(kubelet_volume_stats_capacity_bytes)".escape_url_query()
@@ -307,6 +320,52 @@ processor_resources:
               processors:
                 - resource: prom_get
               result_map: 'root.pvc_count = this.data.result.index(0).value.index(1).number().round().catch(0)'
+
+            pvc_total:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "count(kube_persistentvolumeclaim_info)".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: 'root.pvc_total = this.data.result.index(0).value.index(1).number().round().catch(0)'
+
+            # EPHEMERAL (/var) per node; node-exporter's instance is the node IP, so it is joined to kube_node_info for the name
+            var_avail:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "node_filesystem_avail_bytes{mountpoint=\"/var\"} * on (instance) group_left (node) label_replace(kube_node_info, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\")".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.var_avail = this.data.result.map_each(r -> {"node": r.metric.node.or("unknown"), "bytes": r.value.index(1).number().round()})
+
+            var_size:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "node_filesystem_size_bytes{mountpoint=\"/var\"} * on (instance) group_left (node) label_replace(kube_node_info, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\")".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.var_size = this.data.result.map_each(r -> {"node": r.metric.node.or("unknown"), "bytes": r.value.index(1).number().round()})
+
+            # LVM volume groups per node: allocated space (the sum of the PVC sizes), the plugin's pod is joined to its node
+            vg_free:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "lvm_vg_free_size_bytes * on (pod) group_left (node) kube_pod_info{namespace=\"openebs-system\"}".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.vg_free = this.data.result.map_each(r -> {"node": r.metric.node.or("unknown"), "name": r.metric.name.or(""), "bytes": r.value.index(1).number().round()})
+
+            vg_total:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "lvm_vg_total_size_bytes * on (pod) group_left (node) kube_pod_info{namespace=\"openebs-system\"}".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.vg_total = this.data.result.map_each(r -> {"node": r.metric.node.or("unknown"), "name": r.metric.name.or(""), "bytes": r.value.index(1).number().round()})
 
             polaris:
               request_map: 'root = ""'
