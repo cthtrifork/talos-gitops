@@ -10,6 +10,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
       storage: 32Gi
@@ -23,6 +24,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
       storage: 32Gi
@@ -36,6 +38,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
       storage: 10Gi
@@ -51,6 +54,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
       storage: 32Gi
@@ -63,6 +67,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
       storage: 64Gi
@@ -78,6 +83,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
       storage: 64Gi
@@ -94,6 +100,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast # explicit: a PVC on another class is only recreated (Flux force) when the manifest names the class
   resources:
     requests:
       storage: 80Gi

@@ -28,9 +28,9 @@ curl -s "$P/api/v1/rules?type=alert"
   default-deny that blocked Prometheus).
 - Disk: `NodeFilesystemAlmostFull` (85%), `NodeFilesystemCriticallyFull` (95%), `NodeFilesystemFillingUp` (full within
   24h, only below 30% free), `NodeFilesystemInodesAlmostFull`, `NodeFilesystemReadOnly`. They watch the node
-  filesystems, which is the real limit for the local-path PVCs, so a firing alert names the node by IP. The big one is
-  `/var/mnt/local-path-provisioner` on `talos-11a-esj` (192.168.1.184), where `/workspace` also lives. Per-directory usage
-  still needs `talosctl usage`, which you can run read-only (see the `cluster-disk-usage` skill); free space in `/workspace` with `df -h /workspace`.
+  filesystems (EPHEMERAL: images, logs, kubelet emptyDirs), so a firing alert names the node by IP. PVCs are LVM volumes: the volume
+  groups `vg-fast` and `vg-bulk` are watched by `openebs-lvm-alerts` (under 10% free, a missing disk, the plugin down). Do not run `talosctl usage`
+  to find what is big (it walks the disk: see the `cluster-disk-usage` skill); free space in `/workspace` with `df -h /workspace`.
 - The thresholds come from the baseline of this cluster (about 1 to 3 drops/s per node of VLAN and L3 noise, about 25
   `POLICY_DENIED` per 10m from `claude-rc` to unlisted hosts). Tune them in the file, do not silence an alert by hand.
 - A pending alert has not yet held for its `for:` time. No alert is not proof: it also means the rule was not loaded

@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 8d0b65a0ee817e06c848bb7a4b8b763d9f2fe66a2846d17e9abf1d09995d944
+    actions.github.com/values-hash: e542a2b5855e0503053e7c1aa0073ca584e143e7779d3de0151b04fad36a4f1
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -249,19 +249,40 @@ spec:
             path: /dev
             type: Directory
           name: host-dev
-        - emptyDir:
-            sizeLimit: 32Gi
+        - ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 32Gi
+                storageClassName: lvm-fast
           name: work
         - emptyDir: {}
           name: dind-sock
         - emptyDir:
             sizeLimit: 2Gi
           name: dind-externals
-        - emptyDir:
-            sizeLimit: 32Gi
+        - ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 32Gi
+                storageClassName: lvm-fast
           name: docker-lib
-        - emptyDir:
-            sizeLimit: 20Gi
+        - ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 20Gi
+                storageClassName: lvm-fast
           name: tmp-memory
         - name: container-storage-rootful
           persistentVolumeClaim:

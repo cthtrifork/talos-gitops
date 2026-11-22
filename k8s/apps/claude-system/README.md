@@ -174,7 +174,7 @@ only the endpoint and the environment name differ:
   Example, USD per day: `sum by (environment,model)(increase(claude_code_cost_usage[1d]))`.
 - **Retention:** 30 days on a 20Gi volume (`retentionSize` 16GiB). To afford it, histogram buckets are dropped from the apiserver,
   kubelet and Dependency-Track scrapes (they were 104k of 193k series); `_sum` and `_count` stay, percentiles of those are gone.
-  `local-path` does not enforce the volume size; watch `NodeFilesystemAlmostFull` for the node.
+  The volume is a real 20Gi `lvm-fast` volume (expandable online); watch the `openebs-lvm-alerts` for the volume group.
 - Claude Code sends its attributes on every datapoint and Prometheus keeps them all as labels: besides `environment`, `model` and
   `type` also `user_email`, `user_id`, `organization_id`, `terminal_type`, `effort` and `query_source`. They are kept: with one or two
   users they cost nothing, and they allow a per-user split. `session_id` and `user_account_uuid` are switched off with

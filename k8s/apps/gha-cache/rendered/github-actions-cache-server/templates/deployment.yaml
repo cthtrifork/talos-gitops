@@ -46,7 +46,7 @@ spec:
         - name: CACHE_CLEANUP_OLDER_THAN_DAYS
           value: "30"
         - name: CACHE_MAX_SIZE_BYTES
-          value: "1.610612736e+10"
+          value: "8.589934592e+10"
         - name: CACHE_FILESYSTEM_MAX_USAGE_PERCENT
           value: "90"
         - name: ORPHANED_STORAGE_GRACE_PERIOD_HOURS
