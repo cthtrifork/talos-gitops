@@ -1,6 +1,6 @@
 ---
 name: cluster-disk-usage
-description: Check disk, PVC and resource usage via Prometheus (no exec, no kubelet_volume_stats). Use for LVM volume group or /workspace disk questions, a NodeFilesystem alert, or PVC size questions.
+description: Check disk, PVC and resource usage via Prometheus (no exec). Use for LVM volume group or /workspace disk questions, a NodeFilesystem alert, or PVC size questions.
 ---
 
 # Disk and resource usage: query Prometheus
@@ -12,11 +12,17 @@ P=http://kube-prom-prometheus.kube-prometheus-stack-system.svc:9090
 curl -s -G "$P/api/v1/query" --data-urlencode 'query=<promql>'
 ```
 
-- `kubelet_volume_stats_*` does not exist here. PVCs are LVM volumes (`lvm-fast` on NVMe, `lvm-bulk` on SATA and USB), each a logical volume of exactly its
-  requested size, so a PVC cannot use more than it requests. Per volume group and node (percent used):
-  `100*(1-lvm_vg_free_size_bytes/lvm_vg_total_size_bytes) * on(pod) group_left(node) kube_pod_info{namespace="openebs-system"}`
-  (`lvm_vg_*` and `lvm_lv_*` come from the node plugin on port 9500). The PVC sizes are in `kubectl get pvc -A`; how full one is inside needs a pod
-  that mounts it. EPHEMERAL (images, logs, emptyDirs) is `node_filesystem_*{mountpoint="/var"}`; the `NodeFilesystem*` alerts watch it.
+- PVCs are LVM volumes (`lvm-fast` on NVMe, `lvm-bulk` on SATA and USB), each a logical volume of exactly its requested size, so a PVC cannot
+  use more than it requests. Three different questions, three metric families:
+  - How full is a PVC inside: `100*kubelet_volume_stats_used_bytes/kubelet_volume_stats_capacity_bytes` (labels `namespace`, `persistentvolumeclaim`,
+    `node`). Only for filesystem volumes that a running pod has mounted: block-mode VM disks and unmounted PVCs (the ARC runner volumes come and go
+    with the runners) have none, so the series count changes. Sizes of all PVCs: `kube_persistentvolumeclaim_resource_requests_storage_bytes`.
+  - How much of a volume group is allocated, per node (percent): `100*(1-lvm_vg_free_size_bytes/lvm_vg_total_size_bytes) * on(pod) group_left(node) kube_pod_info{namespace="openebs-system"}`
+    (`lvm_vg_*` and `lvm_lv_*` come from the node plugin on port 9500; the groups are `vg-fast` and `vg-bulk`). This is the sum of the PVC sizes, not data written.
+    `lvm_lv_used_percent` is 0 for every thick LV, so it is no use.
+  - EPHEMERAL (images, logs, emptyDirs): `node_filesystem_*{mountpoint="/var"}`; the `NodeFilesystem*` alerts watch it.
+- The pod IPs in `instance` change when the plugin restarts, so `delta`/`predict_linear` over a long range mixes stale series: join to `node` first.
+  The local history can also be much shorter than the retention (check with `query_range` before trusting a trend).
 - Never run `talosctl usage` or any disk walk on a node: it scans the disk and loads it. Use the metrics above.
 - `instance` is a node IP; map it with `kubectl get nodes -o wide`.
 - zot's `zot_*` metrics come from `k8s/infra/registry-system/zot/servicemonitor.yaml`. If they are missing, check
