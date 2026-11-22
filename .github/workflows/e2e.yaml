@@ -61,7 +61,7 @@ jobs:
         timeout-minutes: 5
         run: |
           image="$(yq '.nodes[0].image' scripts/kind.yaml)"
-          new_image="${ZOT}/docker-hub-cache/${repo}@${image}"
+          new_image="${ZOT}/docker-hub-cache/${image}"
            
           docker pull "docker://${new_image}"
           # the rendered kind config refers to the loaded image
