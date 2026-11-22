@@ -52,7 +52,7 @@ spec:
         memory: 1Gi
       requests:
         cpu: ${CILIUM_CPU_REQUEST:=100m}
-        memory: ${CILIUM_MEMORY_REQUEST:=512Mi}
+        memory: ${CILIUM_MEMORY_REQUEST:=256Mi}
     # Roll the agents when cilium-config changes. Without it a config change (e.g. bandwidthManager.bbr) is applied to
     # the ConfigMap but the agents keep running with the old settings until someone restarts them.
     rollOutCiliumPods: true
