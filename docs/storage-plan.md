@@ -35,7 +35,7 @@ ephemeral volumes on `lvm-fast`, which takes that load off EPHEMERAL (on `talos-
 local-path volumes by `vg-fast` and `vg-bulk`; the OpenEBS LVM LocalPV app and the two classes are in `k8s/infra/openebs-system`. Steps:
 1. Merge this PR (Flux deploys the driver and the classes; no volume group exists yet, so nothing uses them).
 2. In Omni, apply `patches/14-lvm-2jc.yaml` to `talos-2jc-qux` and reboot it (the first two documents delete the old user volumes so they unmount).
-3. Wipe the old partitions with the Job in `k8s/apps/disk-wipe` (nvme0n1p3 `236d4dad-14e1-4fc2-9e07-7c0ed5b75554`, 200000000000 bytes; sda4 `683e163f-8d7f-440c-806d-eeb7dff16d18`, 178120556544 bytes). Talos then creates the raw partitions and the groups.
+3. Wipe the old partitions with the Job in `k8s/apps/disk-wipe` (run twice on the pilot: `-1` cleared the old SATA leftovers, `-2` the two old local-path partitions; the patch has two raw volumes per tier, one per free region) (nvme0n1p3 `236d4dad-14e1-4fc2-9e07-7c0ed5b75554`, 200000000000 bytes; sda4 `683e163f-8d7f-440c-806d-eeb7dff16d18`, 178120556544 bytes). Talos then creates the raw partitions and the groups.
 4. Acceptance: `talosctl -n 192.168.1.173 get pvs,vgs` show `vg-fast` (about 800 GB) and `vg-bulk` (about 255 GB) with no `lvmvalidationerrors`; the node plugin pod is `Running` on all four nodes; a test PVC of each class binds and mounts; a PVC expands online; a runner ephemeral volume works; the alerts below load and the target is up.
 5. If the driver does not work on Talos (LVM is new in Talos 1.14, and the driver is not documented for it: kernel modules, `/dev` handling), stop here: the node goes back to local-path by removing the patch.
 
