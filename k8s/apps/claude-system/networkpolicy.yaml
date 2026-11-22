@@ -37,14 +37,6 @@ spec:
           rules:
             dns:
               - matchPattern: "*"
-    # the old claude-home volume, served read only by migrate/ for the final sync of the init container (temporary)
-    - toEndpoints:
-        - matchLabels:
-            app: claude-data-source
-      toPorts:
-        - ports:
-            - port: "8873"
-              protocol: TCP
     # Prometheus (read-only queries for disk and resource usage)
     - toEndpoints:
         - matchLabels:

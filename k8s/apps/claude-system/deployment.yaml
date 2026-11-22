@@ -50,32 +50,6 @@ spec:
       # so /tmp is a claude-owned 0700 subdirectory of the workspace PVC, made by the init container below
       # (the restricted PSA rules out a root one). Wiped on every pod start, like an emptyDir.
       initContainers:
-        - name: final-sync
-          # the last pass of the copy to the LVM volumes (migrate/): the old pod is already gone (Recreate), so claude-home is quiet. Only home: the workspace starts empty
-          image: mirror.gcr.io/instrumentisto/rsync-ssh:alpine3.23-r3@sha256:6cbad37c2fbdca4ac7ad9d1c1bb8990af9efd4dc76321b349935876cbb1e9e4a # renovate: datasource=docker depName=docker.io/instrumentisto/rsync-ssh versioning=docker
-          command:
-            - /bin/sh
-            - -c
-            - |
-              # 23 and 24 are files that vanished or whose times could not be set (the volume root is not ours to touch); anything else is retried
-              until rsync -aH --numeric-ids --delete --info=stats1 rsync://claude-data-source:8873/home/ /mnt/home/; rc=$?; [ $rc = 0 ] || [ $rc = 23 ] || [ $rc = 24 ]; do
-                echo "rsync exit $rc, retrying in 15 seconds"; sleep 15
-              done
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              memory: 512Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - "ALL"
-          volumeMounts:
-            - name: home
-              mountPath: /mnt/home
         - name: private-tmp
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
           image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.328-20261122.41@sha256:9158a775edd7d25ac83354e9365a8b3e2bf4a48374e65fb0fd9b6aae50476574

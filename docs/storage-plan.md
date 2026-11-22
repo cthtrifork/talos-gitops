@@ -91,8 +91,9 @@ scheduling, a generic ephemeral volume, data kept across a pod restart, online e
 
 **In flight:**
 - #1192 cutover of `claude-rc` to `claude-home-lvm` and `claude-workspace-lvm` (the owner merges it; it ends the running session). Only `home` is copied; the workspace starts empty by choice.
-  After it: a clean-up PR (remove `k8s/apps/claude-system/migrate/`, the old PVCs `claude-home` and `claude-workspace`, the init container `final-sync`, the egress rule to `claude-data-source`),
-  and check that the pod is `Running` on the LVM volumes, signed in, with its init container logs clean.
+  The clean-up PR (removes `k8s/apps/claude-system/migrate/`, the old PVCs `claude-home` and `claude-workspace`, the init container `final-sync` and the egress rule to the daemon) is
+  open and **must not be merged until the new pod is checked**: `Running` on the LVM volumes, signed in, memory and login present, `final-sync` log clean. Merging deletes the old volumes
+  (the only other copy of the login) and rolls the pod once more.
 - Branch `claude/runner-ephemeral-volumes` (pushed, no PR on purpose): the runners' large emptyDirs as generic ephemeral volumes. Retarget its `storageClassName` to `lvm-fast`, and
   open the PR only after `vg-fast` exists on every runner node (until then the runners would not schedule).
 
