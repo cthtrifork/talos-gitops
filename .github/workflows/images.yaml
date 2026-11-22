@@ -132,22 +132,9 @@ jobs:
           echo "images=$(cat images.json)" >> "${GITHUB_OUTPUT}"
           echo "count=$(jq length images.json)" >> "${GITHUB_OUTPUT}"
 
-  # one per scan type, so a scan job is skipped with its database job when there is nothing to scan
-  trivy-db-k8s:
-    name: Trivy database (k8s)
-    needs: changes
-    if: needs.changes.outputs.k8s_count != '0'
-    uses: ./.github/workflows/update-trivy-db.yaml
-
-  trivy-db-vex:
-    name: Trivy database (VEX)
-    needs: changes
-    if: needs.changes.outputs.vex_count != '0'
-    uses: ./.github/workflows/update-trivy-db.yaml
-
   scan-k8s:
     name: Scan ${{ matrix.image.ref }}
-    needs: [changes, trivy-db-k8s]
+    needs: [changes]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
