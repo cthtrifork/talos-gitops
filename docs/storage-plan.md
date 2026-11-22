@@ -81,6 +81,32 @@ new `lvm-fast` volumes exist on `talos-2jc-qux` first), so the pod ends up on `2
    for that last pass and only the changes since the first pass are sent. **The restart ends the running session**; the new one has the same login and memory and an empty workspace.
 3. **Clean-up**: remove the daemon, the Job, the network policies and the old PVCs after the new pod is checked.
 
+## Status and handoff
+
+Update this section as work lands; it is what another session starts from.
+
+**Done (merged):** driver and classes (#1169, scrape fix #1172), the wipe app (`k8s/apps/disk-wipe`), `talos-2jc-qux` pilot (patch `patches/14-lvm-2jc.yaml`, applied in Omni by the owner;
+`vg-fast` 798 GB and `vg-bulk` 255 GB, no validation errors). The temporary app `k8s/apps/lvm-test` proved on 2jc: provisioning of both classes (XFS, exact size), capacity-aware
+scheduling, a generic ephemeral volume, data kept across a pod restart, online expansion (2Gi to 3Gi in a running pod). The stage copy of `claude-home` (#1186).
+
+**In flight:**
+- #1192 cutover of `claude-rc` to `claude-home-lvm` and `claude-workspace-lvm` (the owner merges it; it ends the running session). Only `home` is copied; the workspace starts empty by choice.
+  After it: a clean-up PR (remove `k8s/apps/claude-system/migrate/`, the old PVCs `claude-home` and `claude-workspace`, the init container `final-sync`, the egress rule to `claude-data-source`),
+  and check that the pod is `Running` on the LVM volumes, signed in, with its init container logs clean.
+- Branch `claude/runner-ephemeral-volumes` (pushed, no PR on purpose): the runners' large emptyDirs as generic ephemeral volumes. Retarget its `storageClassName` to `lvm-fast`, and
+  open the PR only after `vg-fast` exists on every runner node (until then the runners would not schedule).
+
+**Next, in order** (the owner applies Omni patches and merges; a session writes the PRs):
+1. `talos-tba-msi`, then `talos-vt2-qp8` (phase 1 above): per-machine patch from `patches/14-lvm-2jc.yaml` as the template, removing patch 03 with `$patch: delete`; vt2 also drops its stale
+   `openebs` user volume and needs its USB disk wiped again; the wipe Jobs in `k8s/apps/disk-wipe` are renamed `-2` to run again (and added to the Polaris exemptions in
+   `k8s/infra/policy-system/polaris/helm-release.yaml`). Check `talosctl -n <ip> get pvs,vgs,lvmvalidationerrors` and run the `lvm-test` app on that node.
+2. `talos-11a-esj` last (phase 2); the owner fixes its slow network path separately.
+3. Phase 3: the PVC table above, `lvm-fast` as default, the runner volumes, remove local-path and the OpenEBS hostpath provisioner and patches 03, 06, 09, then delete `k8s/apps/lvm-test` and
+   `k8s/apps/disk-wipe` with their Flux Kustomizations in `k8s/clusters/homelab`.
+
+**Rules from the owner:** no disk scans on nodes (no `talosctl usage`; read-only `talosctl get` and Prometheus are fine); Docker Hub images as `mirror.gcr.io/...`; PRs only, nothing applied
+to the cluster by hand; the `homeserver-vm` disk is another session's job. Per-task worktrees in `/workspace` are lost for anything not pushed once the workspace volume is replaced.
+
 ## Monitoring
 
 The LVM node plugin exports `lvm_vg_*`, `lvm_pv_*` and `lvm_lv_*` on 9500: a ServiceMonitor (from the chart, label `release: kube-prometheus-stack`), the pod label
