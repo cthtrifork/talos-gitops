@@ -11,11 +11,11 @@ metadata:
 spec:
   images:
     - major: 17
-      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql versioning=regex:^(?<major>-17)\.(?<minor>\d+)-(?<patch>\d+)-(?<compatibility>minimal-trixie)$
+      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql versioning=regex:^(?<major>17)\.(?<minor>\d+)-(?<patch>\d+)-(?<compatibility>minimal-trixie)$
       image: ghcr.io/cloudnative-pg/postgresql:17.12-202611201711-minimal-trixie@sha256:adbca2b66065de28e2c74e17c337dd50480810ff425fbe1b00c33ad4622c092b
     - major: 18
-      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql versioning=regex:^(?<major>-18)\.(?<minor>\d+)-(?<patch>\d+)-(?<compatibility>minimal-trixie)$
+      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql versioning=regex:^(?<major>18)\.(?<minor>\d+)-(?<patch>\d+)-(?<compatibility>minimal-trixie)$
       image: ghcr.io/cloudnative-pg/postgresql:18.7-202611201711-minimal-trixie@sha256:635bfde0a4ce2a04daad754e1ad37fb95ae096c8153b37fe1a4561b5ea417e38
     - major: 19
-      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql versioning=regex:^(?<major>-19)\.(?<minor>\d+)-(?<patch>\d+)-(?<compatibility>minimal-trixie)$
+      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql versioning=regex:^(?<major>19)\.(?<minor>\d+)-(?<patch>\d+)-(?<compatibility>minimal-trixie)$
       image: ghcr.io/cloudnative-pg/postgresql:19.0-202611201710-minimal-trixie@sha256:28f6604b4e142cadd8b0154ae82a5541e321d6f33b27fc5a054ced3dde53e6e8

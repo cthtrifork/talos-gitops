@@ -174,6 +174,17 @@
       "groupSlug": "dependency-track-images"
     },
     {
+      "description": "The CNPG image catalog keeps one image per PostgreSQL major, each tracked by the regex manager (renovate comment) with a versioning regex pinned to that major. The kubernetes and helm-values managers read the same image lines with plain docker versioning and would offer 17 -> 18 as a major bump, so those duplicates are off.",
+      "matchManagers": [
+        "kubernetes",
+        "helm-values"
+      ],
+      "matchFileNames": [
+        "k8s/infra/post-workloads/storage-system/postgresql-clusterimagecatalog.yaml"
+      ],
+      "enabled": false
+    },
+    {
       "description": "sbom-hook pulls redpandadata/connect through mirror.gcr.io, which has no digest lookup. The regex manager tracks the same tag as docker.io/redpandadata/connect (renovate comment), so the helm-values duplicate is off.",
       "matchManagers": [
         "helm-values"
