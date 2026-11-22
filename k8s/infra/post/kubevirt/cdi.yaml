@@ -20,6 +20,11 @@ spec:
         type: strategic
         patch: '{"spec":{"template":{"spec":{"containers":[{"name":"cdi-uploadproxy","resources":{"limits":{"memory":"512Mi"}},"livenessProbe":{"httpGet":{"path":"/healthz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":30,"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":6}}]}}}}'
   config:
+    # Wait for the VM pod before importing: on a WaitForFirstConsumer class (lvm-fast) CDI otherwise runs its importer pods right away, wherever the scheduler puts them, and
+    # the node-bound volumes of one VM end up on different nodes or on a node without room for the VM. With the gate the VM pod is scheduled first, on a node that fits its memory and
+    # volumes, and the import runs there (CDI v1.66 feature-gates.go: HonorWaitForFirstConsumer).
+    featureGates:
+      - HonorWaitForFirstConsumer
     scratchSpaceStorageClass: lvm-fast
     podResourceRequirements:
       requests:
