@@ -64,8 +64,7 @@ spec:
       message: the namespace has not opted in to this tier (label claude-elevate/<tier>)
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
-# The flux tier may only ask Flux to reconcile: an update from claude-elevate-flux must leave the spec, labels, finalizers and owner references
-# alone and may only add, change or remove the three reconcile.fluxcd.io annotations below (the ones `flux reconcile [--force|--reset]` sets).
+# The flux tier may only ask Flux to reconcile: only the three reconcile.fluxcd.io annotations (set by `flux reconcile`) may change.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -114,9 +113,8 @@ spec:
       message: the flux tier may only set the annotations reconcile.fluxcd.io/requestedAt, forceAt and resetAt
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
-# The elevator may only create a Job the way `kubectl create job --from=cronjob/<name>` does, and only in a namespace labelled claude-elevate/jobs:
-# the manual annotation and one CronJob owner whose name prefixes the Job's. An admission policy cannot read the CronJob, so it cannot prove the pod spec
-# is the CronJob's: that is the elevator's mapping (redpanda-connect.yaml, run_job), and the label is what limits the blast radius to namespaces that opted in.
+# The elevator may only create a Job the way `kubectl create job --from=cronjob/<name>` does, in a namespace labelled claude-elevate/jobs.
+# A policy cannot read the CronJob, so the pod spec is trusted to the elevator's mapping; the label limits the blast radius.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:

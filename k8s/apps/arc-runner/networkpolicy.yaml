@@ -1,7 +1,5 @@
-# Default deny both ways for the namespace, then what a runner pod needs. A pod holds the runner and the DinD
-# container, so CI traffic leaves from the pod's own identity. Nothing connects to the runners (they poll GitHub).
-# Egress to the internet is an allowlist by DNS name (toFQDNs) and port 443 (80 for apt); anything not listed is dropped. When a job fails on
-# connect, find the host in the drop metrics (skill cilium-drops) and add it to the list below.
+# Default deny, then a per-host egress allowlist. A job that fails to connect: find the host in the drop metrics
+# (skill cilium-drops) and add it below.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -24,7 +22,6 @@ metadata:
 spec:
   endpointSelector: {}
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -36,22 +33,17 @@ spec:
           rules:
             dns:
               - matchPattern: "*"
-    # The hosts the runner and the jobs need. Sources: GitHub's "Self-hosted runner communication" host list, the
-    # workflows of talos-gitops and homeserver-bootc, and the Containerfiles / build scripts of both.
     - toFQDNs:
-        # Essential runner operations, action downloads, OIDC tokens, job logs, summaries and artifacts
+        # GitHub runner communication
         - matchName: github.com
         - matchPattern: "**.github.com"
         - matchPattern: "**.githubusercontent.com"
         - matchPattern: "*.blob.core.windows.net"
-        # GitHub Pages: the CRD schema catalog (datreeio.github.io)
         - matchName: datreeio.github.io
-        # Runner updates, release assets, Git LFS, raw files (install scripts, schemas)
         - matchName: github-cloud.s3.amazonaws.com
-        # GitHub Packages and ghcr.io (image pulls and pushes, trivy-db, the blob redirects)
         - matchName: ghcr.io
 
-        # Container registries (base images, DinD, buildx, crane, oras)
+        # Container registries
         - matchName: quay.io
         - matchPattern: "*.quay.io"
         - matchName: mirror.gcr.io
@@ -62,19 +54,18 @@ spec:
         - matchName: production.cloudflare.docker.com
         - matchName: mcr.microsoft.com
         - matchName: registry.access.redhat.com
-        # Sigstore (cosign signing and verification, attestations)
+        # Sigstore
         - matchName: fulcio.sigstore.dev
         - matchName: rekor.sigstore.dev
         - matchName: tuf-repo-cdn.sigstore.dev
 
-        # Tool downloads in the workflows and the image builds
-        # mise (jdx/mise-action in the workflows; the tools themselves come from github.com)
+        # Tool downloads
         - matchName: mise.jdx.dev
         - matchName: mise-versions.jdx.dev
         - matchName: get.helm.sh
         - matchName: dl.k8s.io
         - matchName: helm.cilium.io
-        # Helm repositories the e2e jobs fetch (denied for the runners: charts.fairwinds.com, kubernetes-sigs.github.io, charts.redpanda.com)
+
         - matchName: charts.fairwinds.com
         - matchName: kubernetes-sigs.github.io
         - matchName: charts.redpanda.com
@@ -84,29 +75,26 @@ spec:
         - matchName: json.schemastore.org
         - matchName: downloads.claude.ai
         - matchName: storage.googleapis.com
-        # npm (claude-vm: Claude Code, Playwright) and Playwright's browser CDN
+
         - matchName: registry.npmjs.org
         - matchName: cdn.playwright.dev
         - matchName: playwright.download.prss.microsoft.com
-        # Zed editor (homeserver-gui)
+
         - matchName: zed.dev
         - matchName: cloud.zed.dev
-        # VS Code extension marketplace (homeserver-gui: the e2e VM installs the extensions of its user-setup hook; the
-        # VM's traffic leaves from the runner pod). Extension packages come from the gallery CDN hosts.
+        # VS Code extension marketplace (homeserver-gui e2e VM; its traffic leaves from the runner pod)
         - matchName: marketplace.visualstudio.com
         - matchPattern: "*.gallery.vsassets.io"
         - matchPattern: "*.gallerycdn.vsassets.io"
-        # Homebrew (the runner image's Brewfile); the bottles come from ghcr.io
+
         - matchName: formulae.brew.sh
-        # Fedora and RPM Fusion repositories (homeserver-bootc image builds). The Containerfiles pin the repos to
-        # these hosts, so the metalink mirrors need no entry. Only the openh264 repo keeps its metalink; Cisco's
-        # repo is served from codecs.fedoraproject.org.
+        # Fedora and RPM Fusion repos. The Containerfiles pin repos to these hosts, so metalink mirrors need no entry.
         - matchName: mirrors.dotsrc.org
         - matchName: mirrors.fedoraproject.org
         - matchName: codecs.fedoraproject.org
         - matchName: download1.rpmfusion.org
         - matchName: download.copr.fedorainfracloud.org
-        # COPR serves its repos from packages.redhat.com, which redirects to its S3 bucket
+        # COPR redirects to packages.redhat.com and its S3 bucket
         - matchName: packages.redhat.com
         - matchName: copr-pulp-prod.s3.amazonaws.com
         - matchName: repo.linrunner.de
@@ -115,7 +103,7 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
-    # Ubuntu packages (the runner image is Ubuntu based); apt uses plain HTTP
+    # apt
     - toFQDNs:
         - matchName: archive.ubuntu.com
         - matchName: security.ubuntu.com
@@ -127,8 +115,7 @@ spec:
               protocol: TCP
             - port: "443"
               protocol: TCP
-    # Cisco's openh264 RPMs: the fedora-cisco-openh264 repo (metadata on codecs.fedoraproject.org, allowed above) points
-    # at this host, which only serves plain HTTP
+    # Cisco's openh264 RPMs, plain HTTP only
     - toFQDNs:
         - matchName: ciscobinary.openh264.org
       toPorts:
@@ -137,9 +124,7 @@ spec:
               protocol: TCP
             - port: "443"
               protocol: TCP
-    # Certificate revocation checks (CRL and OCSP, plain HTTP) of the VS Code extension signature verification: the
-    # homeserver-gui e2e VM installs extensions, and without these each check waits for a 30 to 60 s timeout, so one
-    # install takes about 90 s. The names are those the VM queried during an install.
+    # CRL/OCSP checks of VS Code extension signatures; dropped, each check waits 30 to 60 s
     - toFQDNs:
         - matchName: ocsp.digicert.com
         - matchName: crl3.digicert.com
@@ -149,16 +134,14 @@ spec:
         - ports:
             - port: "80"
               protocol: TCP
-    # NetworkManager's connectivity check in the homeserver-gui VM (NetworkManager-config-connectivity-fedora): a
-    # plain HTTP GET of http://fedoraproject.org/static/hotspot.txt, retried against every address of the name when it
-    # is dropped (about 100 dropped connections per address in one job).
+    # NetworkManager connectivity check in the homeserver-gui VM
     - toFQDNs:
         - matchName: fedoraproject.org
       toPorts:
         - ports:
             - port: "80"
               protocol: TCP
-    # the fileserver upload API
+    # fileserver upload API
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: fileserver-system
@@ -167,7 +150,7 @@ spec:
         - ports:
             - port: "8082"
               protocol: TCP
-    # the GitHub Actions cache server (k8s/apps/gha-cache), which the e2e runners point ACTIONS_RESULTS_URL at
+    # gha-cache server
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: gha-cache-system
@@ -176,7 +159,7 @@ spec:
         - ports:
             - port: "3000"
               protocol: TCP
-    # zot, the cluster's registry (image pushes and pulls; the zot-lb address is translated to the pod)
+    # zot registry (the zot-lb address is translated to the pod)
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: registry-system

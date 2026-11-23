@@ -1,5 +1,4 @@
-# The identity of the ClusterSecretStore. External Secrets refuses to use its own ServiceAccount for the Kubernetes
-# provider, so this one reads and writes Secrets in secret-store only (the PushSecrets write, the ExternalSecrets read).
+# External Secrets refuses to use its own ServiceAccount for the Kubernetes provider, hence this one.
 ---
 apiVersion: v1
 kind: ServiceAccount

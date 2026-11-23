@@ -1,6 +1,5 @@
-# Default deny both ways, then what the VM needs. Egress to the world is open at the pod level on purpose: the homeserver
-# is a general-purpose box (bootc upgrade, pinggy, container pulls, dnf). The homeserver-vm namespace is exempt from the
-# deny-world-egress policy for this.
+# World egress is open at the pod level on purpose: general-purpose box (bootc upgrade, pinggy, pulls, dnf).
+# The namespace is exempt from deny-world-egress.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -28,8 +27,7 @@ spec:
     - toEntities:
         - world
 ---
-# The CDI importer pod that fills the disk runs in this namespace too: it pulls the containerDisk from ghcr.io and the CDI
-# controller reads its progress
+# CDI importer pod (pulls the containerDisk from ghcr.io; the CDI controller reads its progress)
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -60,7 +58,7 @@ spec:
     - toEntities:
         - world
 ---
-# SSH from the LAN only (the Service is a MetalLB address with externalTrafficPolicy Local)
+# SSH from the LAN only
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

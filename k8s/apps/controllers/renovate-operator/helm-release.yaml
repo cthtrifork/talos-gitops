@@ -35,8 +35,7 @@ spec:
         memory: 64Mi
       limits:
         memory: 256Mi
-    # The shared cache for the job pods (forwarded to Renovate as its redisUrl). A lost cache only costs a cold run,
-    # so no volume and no password: the namespace policy lets only the operator and the job pods reach it.
+    # A lost cache only costs a cold run, so no volume and no password (the namespace policy limits access).
     valkey:
       enabled: true
       image:
@@ -55,7 +54,7 @@ spec:
           memory: 512Mi
       readinessProbe:
         enabled: true
-    # Renovate's repository cache in Garage (forwarded to the job pods as RENOVATE_S3_URL)
+    # Repository cache in Garage
     s3:
       bucket: renovate
       endpoint: http://garage.renovate-system.svc.cluster.local:3900
@@ -70,10 +69,9 @@ spec:
       jobTTLSecondsAfterFinished: 3600
       forwardCacheToJobs: true
       forwardS3CacheToJobs: true
-      # The last run's log per project for the UI, in Valkey (kept 30 days, lost when Valkey restarts); the job pods are deleted
+      # Last run's log per project for the UI; lost when Valkey restarts
       logStorage:
         mode: valkey
-      # lets the namespace policy select the Renovate job pods
       podLabelTemplates:
         renovate-job: "true"
     metrics:

@@ -1,4 +1,4 @@
 # Every change needs review from the owner. Together with the main-protection
-# ruleset (.github/rulesets/main-protection.json) this means the Claude GitHub App
+# ruleset (see docs/branch-protection.md) this means the Claude GitHub App
 # can open PRs but can never get one merged on its own.
 * @cthtrifork

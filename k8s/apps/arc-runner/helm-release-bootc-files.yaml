@@ -1,15 +1,7 @@
 ---
-# Upload-only scale set for cthtrifork/github-runner-bootc: its disk image and ISO workflows hand the built file to the
-# fileserver (Cloudflare R2 serves it) from here, because the upload API is cluster-internal. The workflow builds on
-# GitHub's runners and only the `upload` job runs here, so the build steps, PR-modified actions and third-party actions
-# never see FILESERVER_TOKEN.
-#
-# Every job on this scale set can read the token. github-runner-bootc is a public repository under a personal account (no
-# runner groups), so the repository-level registration is the boundary: keep write access to that repository to yourself,
-# require approval for outside collaborators' workflow runs, and keep `environment: file-upload` (branch main) on the job.
-#
-# Select it with `runs-on: arc-files-bootc`. minRunners is 0, so it costs nothing while unused. Needs the Secret github-auth-bootc-files
-# (bootc-files-auth.enc.yaml).
+# Upload-only scale set: only the `upload` job runs here, so build steps and third-party actions never see FILESERVER_TOKEN.
+# SECURITY: every job here can read the token and the repo is public: keep write access to yourself, require approval
+# for outside collaborators' runs, and keep `environment: file-upload` on the job.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -29,22 +21,20 @@ spec:
   upgrade:
     remediation:
       retries: 3
-  # https://github.com/actions/actions-runner-controller/blob/master/charts/gha-runner-scale-set/values.yaml
   values:
     controllerServiceAccount:
       name: gha-runner-scale-set-controller-gha-rs-controller
       namespace: arc-controller-system
 
     githubConfigUrl: https://github.com/cthtrifork/github-runner-bootc
-    runnerScaleSetName: arc-files-bootc # runs-on: arc-files-bootc
+    runnerScaleSetName: arc-files-bootc
     scaleSetLabels:
       - arc-files-bootc
 
     maxRunners: 1
     minRunners: 0
 
-    # the runner GitHub App (github_app_id, github_app_installation_id, github_app_private_key), installed on
-    # github-runner-bootc: bootc-files-auth.enc.yaml
+
     githubConfigSecret: github-auth-bootc-files
     containerMode: {}
     template:
@@ -72,8 +62,7 @@ spec:
                 drop:
                   - ALL
             env:
-              # Rotated every 30 days by External Secrets (see k8s/apps/fileserver); read at pod start. optional: the
-              # runner starts before the first sync. A job echoing it into its log leaks it: use ::add-mask::.
+              # optional: the runner starts before the first sync.
               - name: FILESERVER_TOKEN
                 valueFrom:
                   secretKeyRef:
@@ -92,7 +81,7 @@ spec:
         securityContext:
           fsGroup: 1001
         volumes:
-          # a disk image is several GiB, so not in memory
+          # a disk image is too big for memory
           - name: work
             emptyDir:
               sizeLimit: 40Gi

@@ -27,7 +27,7 @@ spec:
   values:
     fullnameOverride: kube-prom
     nameOverride: prom
-    # Histogram buckets were 104k of 193k series. _sum and _count stay, so averages remain; percentiles of these are gone.
+    # Dropping the histogram buckets (104k of 193k series) keeps _sum and _count: averages remain, percentiles are gone.
     kubeApiServer:
       serviceMonitor:
         metricRelabelings:
@@ -68,8 +68,7 @@ spec:
           limits:
             memory: 64Mi
       enabled: true
-      # The chart's CiliumNetworkPolicy selects on the version and chart labels, which the pod template does not carry,
-      # so it matched no pod. The operator is covered by prom-operator in networkpolicy.yaml.
+      # The chart's CiliumNetworkPolicy matched no pod (it selects on version/chart labels the template lacks); covered by prom-operator in networkpolicy.yaml.
       networkPolicy:
         enabled: false
       resources:
@@ -153,9 +152,8 @@ spec:
         image:
           # renovate: datasource=docker depName=quay.io/prometheus/prometheus versioning=docker
           tag: v3.16.0-distroless@sha256:9764044e09eb2c9e1abdb12d0f0188d4efb7384b0262d3c080f0fc59045c89ba
-        # The operator parses the version from the image tag and rejects the digest and the -distroless suffix
-        # ("failed to parse Prometheus version"), which stops every change to the Prometheus resource (rule files,
-        # ServiceMonitors). Renovate bumps it together with the tag above.
+        # The operator rejects the digest and -distroless suffix in the image tag ("failed to parse Prometheus version"),
+        # which stops every change to the Prometheus resource. Renovate bumps it with the tag above.
         # renovate: datasource=docker depName=quay.io/prometheus/prometheus versioning=docker
         version: v3.16.0
         podMetadata:
@@ -163,8 +161,7 @@ spec:
             prometheus-scrape: "true"
         replicas: 1
         enableRemoteWriteReceiver: true
-        # OTLP from Claude Code (claude-rc and the Claude VM) on /api/v1/otlp/v1/metrics. Claude Code sends delta
-        # counters, which otlp-deltatocumulative turns into cumulative ones (kept in memory: a restart starts them at 0).
+        # Claude Code OTLP; delta counters become cumulative via otlp-deltatocumulative (in memory: a restart starts at 0)
         enableOTLPReceiver: true
         enableFeatures:
           - exemplar-storage
@@ -206,7 +203,7 @@ spec:
     - kustomize:
         patches:
           - target:
-              # Ignore these objects from Flux diff as they are mutated from chart hooks
+              # mutated by chart hooks
               kind: (ValidatingWebhookConfiguration|MutatingWebhookConfiguration)
               name: kube-prometheus-stack-admission
             patch: |

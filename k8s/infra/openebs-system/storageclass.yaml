@@ -1,6 +1,4 @@
-# The LVM classes of the storage plan (docs/storage-plan.md). A PVC is a logical volume of exactly its requested size (XFS), expandable online. The volume group
-# is the tier: vg-fast is NVMe, vg-bulk is slower disks (SATA SSD, USB HDD). With the CSIDriver's storage capacity tracking the scheduler places a pod only on
-# a node whose group has room, so no allowedTopologies is needed. No redundancy, no thin provisioning: a volume is plain space.
+# The volume group is the tier: vg-fast is NVMe, vg-bulk slower disks. No redundancy, no thin provisioning.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/storage.k8s.io/storageclass_v1.json
 apiVersion: storage.k8s.io/v1

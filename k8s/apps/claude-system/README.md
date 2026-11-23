@@ -15,17 +15,17 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | `externalsecret.yaml` | ExternalSecret that writes the one-hour GitHub App installation token into `claude-github-token` every 30 minutes |
 | `deployment.yaml` | `claude-rc`: idles until a login exists, then runs `claude remote-control`; non-root, read-only root filesystem |
 | `claude-md/CLAUDE.md` | The only `CLAUDE.md` (user-level and repo notes together), generated into the `claude-md` ConfigMap by `kustomization.yaml` and symlinked to `~/.claude/CLAUDE.md` at pod start. Edit it in Git; the ConfigMap name hash rolls the pod |
-| `claude-md/skills/<name>/SKILL.md` | Task-specific runbooks split out of `CLAUDE.md`, generated into the `claude-skills` ConfigMap and mounted at `/etc/claude-skills` (items map each key to `<name>/SKILL.md`); each is symlinked into `~/.claude/skills/` at pod start |
+| `claude-md/skills/<name>/SKILL.md` | Task-specific runbooks split out of `CLAUDE.md`, generated into the `claude-skills` ConfigMap and mounted at `/etc/claude-skills` (items map each key to `<name>/SKILL.md`); copied into `~/.claude/skills/` at pod start |
 | `usage/` | Usage page and JSON API out: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml` for the Redpanda Connect; `redpanda-connect.yaml` (PromQL behind each endpoint), `index.html` (the page) |
 | `vm-upgrade/` | "Update VMs" buttons (claude-vm and homeserver): `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (a flag per VM, two listeners), `index.html` (the page) |
 | `cockpit/` | The cockpit status page (below): `deployment.yaml`, `service.yaml`, `podmonitor.yaml` and `rbac.yaml`; `redpanda-connect.yaml` (one read-only status call, a branch per source), `index.html` (the page) |
 | `urlshare/` | Approval-gated URL sharing: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (requests, fetch, TTL), `index.html` (the approval page) |
-| `pvc.yaml` | 5Gi volume holding the login (`/home/claude`); delete it to sign out |
+| `pvc.yaml` | `claude-home-lvm` (10Gi) holds the login (`/home/claude`); delete it to sign out. `claude-workspace-lvm` (50Gi) is `/workspace` |
 | `../../../images/claude-runner/` | Image: Anthropic publishes none, so this wraps the `claude` binary (checksum verified) plus `kubectl`, `gh`, `crane`, `talosctl`, `omnictl`, the Flux MCP server and a git credential helper |
 
 ## 1. Build the image
 
-A merge that changes `images/claude-runner/**` (or a manual run of **Build and release the Claude runner image**) publishes
+A merge that changes `images/claude-runner/**`, the weekly rebuild or a manual run of **Build and release the Claude runner image** publishes
 `ghcr.io/cthtrifork/talos-gitops/claude-runner:<Claude Code version>-<date>.<run>` and a release `claude-<that tag>`. Put that tag, pinned by digest,
 in `deployment.yaml`. Renovate bumps `CLAUDE_CODE_VERSION` in the Dockerfile; the checksum is read from the release manifest at build time
 (checksum: `https://downloads.claude.ai/claude-code-releases/<version>/manifest.json`, `linux-x64`).
@@ -59,8 +59,6 @@ kubectl -n claude-system get secret claude-github-token
 If it is not ready, `kubectl -n claude-system describe externalsecret claude-github-token` shows the error (a wrong App ID,
 installation ID or key, or api.github.com blocked: see the `cilium-drops` skill). Git pushes fail until the Secret exists (the pod itself starts without it).
 
-`claude-github-app` is `claude-github-app.enc.yaml`; add it to `kustomization.yaml` `resources:` the first time.
-
 ### Pull token for private images (optional)
 
 `crane` in the pod reads private ghcr.io packages through a Docker config from the Secret `ghcr-pull`, mounted at
@@ -78,7 +76,7 @@ kubectl -n claude-system exec -it deploy/claude-rc -- claude
 Run `/login`, open the URL on your own machine, paste the code back, then `/exit`. Within 30 seconds the
 pod starts `claude remote-control` and the session appears at <https://claude.ai/code>. The login and
 its token refreshes stay on the PVC, so restarts need no new login. To sign out, delete the
-`claude-home` PVC. The PVC holds your login: anyone with node access can act as you.
+`claude-home-lvm` PVC. The PVC holds your login: anyone with node access can act as you.
 
 ## Flux MCP server
 
@@ -112,17 +110,9 @@ talosctl -n <node-ip> reboot        # PermissionDenied
 ```
 
 **Create** the service account on your machine with `omnictl serviceaccount create claude-rc --role Reader --use-user-role=false --ttl 8760h`
-(the key is shown once), then encrypt it (command and `enc` helper: "Secrets (SOPS)" in the root `readme.md`):
-
-```sh
-enc k8s/apps/claude-system/omni-service-account.enc.yaml \
-  kubectl -n claude-system create secret generic omni-service-account \
-    --from-literal=OMNI_SERVICE_ACCOUNT_KEY="$OMNI_SERVICE_ACCOUNT_KEY" \
-    --from-literal=OMNI_ENDPOINT="$OMNI_ENDPOINT"
-```
-
-and list the file in `kustomization.yaml` `resources:`. **Renew** before the key expires (TTL 365 days; `prometheusrule.yaml` alerts 30 and 7 days before the date recorded there, so
-update that date to the new expiry in the same PR): `omnictl serviceaccount renew claude-rc --ttl 8760h`, re-run the command above with the new key and merge. Reloader
+(the key is shown once), then store it in `omni-service-account.enc.yaml` as the keys `OMNI_SERVICE_ACCOUNT_KEY` and `OMNI_ENDPOINT` ("Secrets (SOPS)" in the root `readme.md`).
+**Renew** before the key expires (TTL 365 days; `prometheusrule.yaml` alerts 30 and 7 days before the date recorded there, so
+update that date to the new expiry in the same PR): `omnictl serviceaccount renew claude-rc --ttl 8760h`, put the new key in the Secret and merge. Reloader
 (or a manual restart) rolls the pod. The pod then holds a credential for the node-management plane next to the claude.ai login and
 the GitHub token, and node files and logs read with `talosctl` are input Claude acts on, so keep the role at Reader.
 
@@ -146,7 +136,7 @@ API, but the GitHub token and your claude.ai login are in this pod, so treat the
 Claude Code exports OpenTelemetry metrics (tokens, cost, sessions, lines of code, commits, pull requests, active time) from
 `claude-rc` and from the Claude VM ([homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)) straight into the
 cluster Prometheus, through its OTLP receiver (`enableOTLPReceiver` in `k8s/infra/kube-prometheus-stack/helm-release.yaml`).
-Both send `environment=<name>` as a resource attribute (`claude-rc`, `claude-vm`), which is promoted to a label.
+Both send `environment=<name>` as a resource attribute (`claude-k8s-helper`, `claude-vm`), which is promoted to a label.
 
 Both senders set exactly these variables (`claude-rc` in `deployment.yaml`, the VM in homeserver-bootc `managed-settings.json`);
 only the endpoint and the environment name differ:
@@ -158,7 +148,7 @@ only the endpoint and the environment name differ:
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | what Prometheus' receiver takes |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | VM: `http://otel.portableinfo.cloud/api/v1/otlp`; `claude-rc`: `http://kube-prom-prometheus.kube-prometheus-stack-system.svc:9090/api/v1/otlp` | Claude Code appends `/v1/metrics`; the pod stays inside the cluster, so its telemetry does not depend on Cloudflare DNS or the load balancer address |
 | `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` | `delta` | the default is cumulative, and with `session_id` off several `claude` processes (the VM has several sessions and two users) would write the same series with different totals; deltas add up |
-| `OTEL_RESOURCE_ATTRIBUTES` | `environment=claude-rc` / `claude-vm` | promoted to a label |
+| `OTEL_RESOURCE_ATTRIBUTES` | `environment=claude-k8s-helper` / `claude-vm` | promoted to a label |
 | `OTEL_METRICS_INCLUDE_SESSION_ID` | `false` | see the labels note below |
 | `OTEL_METRICS_INCLUDE_ACCOUNT_UUID` | `false` | constant, so no use as a label |
 
@@ -180,7 +170,7 @@ only the endpoint and the environment name differ:
   users they cost nothing, and they allow a per-user split. `session_id` and `user_account_uuid` are switched off with
   `OTEL_METRICS_INCLUDE_SESSION_ID=false` and `OTEL_METRICS_INCLUDE_ACCOUNT_UUID=false`, for accuracy rather than size: every session
   would be its own cumulative series, `increase()` cannot see the first export of a series, and a session that exports once or twice
-  would count as zero (`increase(claude_code_session_count[1h])` came back empty). Series stored before that keep their `session_id`.
+  would count as zero.
   The usage API always sums by `environment`, so it is unaffected by the extra labels.
 
 ### Usage page and API
@@ -284,33 +274,31 @@ needs a registry request, which the VM does not make for the page. A spoofed rep
 A page behind the Omni exposer (`Service/claude-elevate`, port 50094): pick a tier, namespaces and a time, and Claude gets a short-lived token for
 that tier there, as `/etc/elevated/<tier>-<namespace>.kubeconfig` (a Secret mount the kubelet refreshes within about a minute, so no restart: the
 Secret has no Reloader annotation, a restart would end the session; use it with `kubectl --kubeconfig`). One Redpanda Connect container calls the
-Kubernetes API with the pod's own token; the steps and the API are in `elevate/redpanda-connect.yaml`.
+Kubernetes API with the pod's own token; the routes and steps are in the pipeline, `elevate/redpanda-connect.yaml`.
 
 | Tier | Role | Max | Grants |
 |---|---|---|---|
-| `ops` | `claude-ops` | 10-60 min | delete or evict pods, delete StatefulSets (to recreate their PVCs), delete Trivy `vulnerabilityreports` and `sbomreports` (to force a rescan) |
-| `debug` | `claude-debug` | 10-15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
-| `flux` | `claude-flux` | 10-15 min | ask Flux to reconcile a HelmRelease or Kustomization (`reconcile.fluxcd.io/requestedAt`, `forceAt`, `resetAt` annotations only; the admission policy `claude-flux-reconcile-only` rejects any other change) |
-| `storage` | `claude-storage` | 10-15 min | delete PersistentVolumeClaims (both storage classes reclaim with `Delete`: a bound claim loses its data) |
+| `ops` | `claude-ops` | up to 60 min | delete or evict pods, delete StatefulSets (to recreate their PVCs), delete Trivy `vulnerabilityreports` and `sbomreports` (to force a rescan) |
+| `debug` | `claude-debug` | up to 15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
+| `flux` | `claude-flux` | up to 15 min | ask Flux to reconcile a HelmRelease or Kustomization (`reconcile.fluxcd.io/requestedAt`, `forceAt`, `resetAt` annotations only; the admission policy `claude-flux-reconcile-only` rejects any other change) |
+| `storage` | `claude-storage` | up to 15 min | delete PersistentVolumeClaims (both storage classes reclaim with `Delete`: a bound claim loses its data), CloudNativePG `Cluster`s and CDI `DataVolume`s (so Flux recreates them) |
 
 - **Run a job.** The page also runs a CronJob now (`POST /api/v1/jobs`), the way `kubectl create job --from=cronjob/<name>` does. The elevator creates the Job
   from the CronJob's own template and owner reference; Claude's tokens get no `jobs` rights. Only in namespaces labelled `claude-elevate/jobs: "true"`
   (`dependency-track-system`); the page shows each CronJob's one-line description from its annotation `claude-elevate/description` (add it to every CronJob in such a namespace), enforced by the admission policy `claude-elevator-jobs` (manual annotation, one CronJob owner). The policy cannot compare the pod spec
   with the CronJob's, so the elevator pod's token (`create jobs` cluster-wide, gated by that label) is the trust boundary, as it already is for tokens and bindings.
-- **Opt-in.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` in its own manifest (`adguard-system`: all three,
-  `arc-runners-system`, `fileserver-system`, `harper-pad`, `renovate-system`, `homeserver-vm`, `registry-system` (zot is a rebuildable cache): `ops` and `storage` (no `debug`: exec could read secrets),
-  `arc-controller-system`, `dependency-track-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`, `flux-system`, `claude-vm`: `ops` only (their PVC data is kept),
-  `flux` in the namespaces that hold HelmReleases and are opted in (`renovate-system`, `arc-runners-system`, `arc-controller-system`, `registry-system`, `dependency-track-system`, `trivy-system`, `reloader-system`, `kube-prometheus-stack-system`; `flux-system` is managed by the flux-operator: its `ops` label comes from a patch in the `FluxInstance`, so Kustomizations there need a manual `flux` label),
-  `external-dns-system`: `ops` only, since exec there could read the DNS API token).
+- **Opt-in.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` in its own manifest (`grep -r claude-elevate/ k8s`). `debug` is only
+  set in `adguard-system` (exec elsewhere could read secrets), and `external-dns-system` has `ops` only, since exec there could read the DNS API token.
+  `flux-system` is managed by the flux-operator, so its labels (`ops`, `flux`) come from a patch in the `FluxInstance`.
 - **Expiry.** The token expires on the API server by itself and nothing cleans up afterwards: the ServiceAccount, RoleBinding and kubeconfig key left
   behind hold no valid token, and the next grant replaces them. A revoke deletes the ServiceAccount, which kills its tokens at once.
-- **Limits.** The API server validates. RBAC pins the pod to the three roles and to `claude-elevate-<tier>` objects;
+- **Limits.** The API server validates. RBAC pins the pod to the four roles and to `claude-elevate-<tier>` objects;
   `claude-elevator-rolebindings` allows only that ServiceAccount, only in an opted-in namespace; `claude-elevator-tokens` caps a token at the tier's
   minutes in `ConfigMap/claude-elevate-limits` (the page reads it too). The page container holds a credential that can grant, bounded by these.
 - **Reach.** Only the Omni exposer, the cockpit (page port, to list the active grants; it drops the csrf value) and Prometheus (metrics port) reach the pod, never `claude-rc`. A POST must carry the `csrf` value from the status
   (a hash of the pod's token, which a page on another site cannot read; a header would not do, Connect copies query parameters into the same metadata),
   and requests are handled one at a time.
-- **Not offered.** Patching workloads or Flux objects (rollout restarts, forced reconciles). `debug` reads whatever a pod in the namespace can
+- **Not offered.** Patching workloads (rollout restarts) and any Flux change beyond the reconcile annotations. `debug` reads whatever a pod in the namespace can
   (mounted Secrets, its ServiceAccount token).
 - **Token storage and audit.** The token is plain text in the Secret (readable with `get secrets` in `claude-system`) and in the mount. Grants and
   revokes are log lines on the container (no log shipper: `kubectl logs`) and count in `elevate_requests{action,tier}`; who clicked is not recorded.
@@ -363,7 +351,7 @@ A request is `pending` until you decide, then `approved`, `failed` (approve agai
 
 Status page for the cluster, GitHub and the homelab (issue #849), behind the Omni login (`Service/claude-cockpit`, port 50097). A Redpanda Connect pod:
 `GET /api/v1/status` reads every source in parallel, one branch each, so a source that is down only leaves its own panel out. It sends only GETs and keeps
-no state except the VM's session data.
+no state except the usage value pushed by `claude-rc`.
 
 Redpanda Connect is reused rather than a new runtime: the other pages here already run it, it queries Prometheus (`usage/`) and calls the Kubernetes API (`elevate/`), and a status page is a few HTTP reads with a small mapping each. Nothing extra to build, scan or keep pinned.
 

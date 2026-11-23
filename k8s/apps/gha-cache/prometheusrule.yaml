@@ -1,4 +1,3 @@
-# The release label is how Prometheus selects rules. There is no Alertmanager: read the alerts from Prometheus.
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -20,8 +19,8 @@ spec:
             summary: The GitHub Actions cache server is down
             description: "The e2e runners (and any scale set that sets ACTIONS_RESULTS_URL) cannot restore or save caches and their cache steps can hang: kubectl -n gha-cache-system get pods"
         - alert: GhaCacheNoRequests
-          # the e2e runs on every change to k8s/**: a week without a single lookup means the runners no longer reach the server
-          # (a runner self-update would restore the stock binary and send the caches back to GitHub without an error)
+          # a week without a lookup means runners no longer reach the server (a runner self-update restores the stock
+          # binary and silently sends caches back to GitHub)
           expr: (sum(increase(cache_requests_total[7d])) or vector(0)) == 0
           for: 1h
           labels:

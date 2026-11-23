@@ -1,6 +1,3 @@
-# Default deny both ways for the kubevirt and cdi namespaces (policyEnforcementMode is always, so a pod without a policy has no
-# network). The operators and the pods they start (virt-api, virt-controller, cdi-apiserver, ...) get DNS, the Kubernetes API,
-# each other, and the webhook and probe ports from the API server and the nodes.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -23,16 +20,14 @@ metadata:
 spec:
   endpointSelector: {}
   ingress:
-    # webhooks and probes: the API server and the nodes
     - fromEntities:
         - kube-apiserver
         - host
         - remote-node
-    # pods of the namespace talk to each other
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kubevirt
-    # Prometheus scrape (the operator-made pods cannot carry the prometheus-scrape label)
+    # Prometheus scrape: the operator-made pods cannot carry the prometheus-scrape label
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
@@ -42,7 +37,6 @@ spec:
             - port: "8443"
               protocol: TCP
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -51,7 +45,6 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-    # Kubernetes API
     - toEntities:
         - kube-apiserver
     - toEndpoints:
@@ -79,16 +72,14 @@ metadata:
 spec:
   endpointSelector: {}
   ingress:
-    # webhooks and probes: the API server and the nodes
     - fromEntities:
         - kube-apiserver
         - host
         - remote-node
-    # pods of the namespace talk to each other
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: cdi
-    # Prometheus scrape (the operator-made pods cannot carry the prometheus-scrape label)
+    # Prometheus scrape: the operator-made pods cannot carry the prometheus-scrape label
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
@@ -98,7 +89,6 @@ spec:
             - port: "8443"
               protocol: TCP
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -107,15 +97,13 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-    # Kubernetes API
     - toEntities:
         - kube-apiserver
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: cdi
 ---
-# The CDI controller reads the progress of an import from the importer pods' metrics (8443). The importer side already accepts it (the
-# <vm>-cdi-importer-egress policies of the VM namespaces); this is the egress half, which cdi-allow-base (the cdi namespace only) did not have.
+# the CDI controller reads import progress from the importer pods' metrics; the ingress side is in the VM namespaces
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

@@ -1,6 +1,4 @@
-# Default deny both ways for everything in the namespace, then an egress whitelist by DNS name.
-# Edit the toFQDNs list if the runner needs another host; anything not listed is dropped. The cloud
-# metadata address 169.254.169.254 is not allowed, as the Anthropic docs require.
+# Default deny both ways, then an egress whitelist by DNS name. The cloud metadata address 169.254.169.254 stays blocked, as Anthropic requires.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -46,7 +44,7 @@ spec:
         - ports:
             - port: "9090"
               protocol: TCP
-    # Polaris dashboard (read-only fetch of /results.json); the service's port 80 maps to 8080 on the pod
+    # Polaris dashboard (service port 80 -> pod 8080)
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: policy-system
@@ -56,7 +54,7 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    # Redpanda Connect hook (a read-only GET of /metrics to check it); the service's port 80 maps to 4195 on the pod
+    # Redpanda Connect hook (GET /metrics; service port 80 -> pod 4195)
     - toEndpoints:
         - matchExpressions:
             - key: k8s:io.kubernetes.pod.namespace
@@ -80,7 +78,7 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    # URL sharing (asking for a page: GET /?url=...); the pod behind urlshare.portableinfo.cloud, which only lists and returns what the owner approved
+    # URL sharing: only returns pages the owner approved
     - toEndpoints:
         - matchLabels:
             k8s:app: claude-urlshare
@@ -96,7 +94,6 @@ spec:
         - ports:
             - port: "8081"
               protocol: TCP
-    # Usage API (the page and /api/v1)
     - toEndpoints:
         - matchLabels:
             k8s:app: claude-usage
@@ -108,8 +105,7 @@ spec:
     - toEntities:
         - kube-apiserver
     - toFQDNs:
-        # The runner's required hosts (https://code.claude.com/docs/en/self-hosted-environments-deploy,
-        # "Network requirements"): control plane and inference, then git.
+        # Required hosts: https://code.claude.com/docs/en/self-hosted-environments-deploy ("Network requirements")
         # Claude Code / Remote Control
         - matchName: api.anthropic.com
         - matchName: anthropic.com
@@ -134,12 +130,11 @@ spec:
         - matchName: kubevirt.io
         - matchName: docs.siderolabs.com
 
-        # Container registries (read-only inspection of images and layers with crane/skopeo). The blob
-        # redirects of ghcr.io go to pkg-containers.githubusercontent.com, covered by *.githubusercontent.com
+        # Container registries (crane/skopeo); ghcr.io blob redirects are covered by *.githubusercontent.com
         - matchName: ghcr.io
         - matchName: quay.io
         - matchPattern: "*.quay.io"
-        # Docker Hub images are inspected as mirror.gcr.io/<name> (crane resolves docker.io names to a host that is not allowed)
+        # Docker Hub is inspected as mirror.gcr.io/<name>: crane resolves docker.io names to a host that is not allowed
         - matchName: registry-1.docker.io
         - matchName: auth.docker.io
         - matchName: production.cloudflare.docker.com
@@ -153,11 +148,12 @@ spec:
         # Integrations
         - matchPattern: "*.portableinfo.cloud"
 
-        # Claude Code itself: plugin installs and metadata, documentation lookups
-        # Cloudflare API MCP server (read-only token); the pod only talks to this host, the server calls the API itself
+        # Cloudflare API MCP server: the server calls the API itself
         - matchName: mcp.cloudflare.com
         # Omni (Talos API proxy for talosctl, read-only service account)
         - matchName: portableinfo.eu-central-1.omni.siderolabs.io
+
+        # Claude Code itself: plugin installs and metadata, documentation lookups
         - matchName: downloads.claude.ai
         - matchName: storage.googleapis.com
         - matchName: code.claude.com
@@ -173,7 +169,7 @@ spec:
             - port: "443"
               protocol: TCP
 ---
-# The Omni service exposer runs on the host network: it arrives as host or remote-node.
+# The Omni service exposer arrives as host or remote-node.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -216,9 +212,8 @@ spec:
             - port: "9090"
               protocol: TCP
 ---
-# Update-VMs buttons. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node).
-# The VMs (KubeVirt, namespaces claude-vm and homeserver-vm) poll 8081 through claude-vm-upgrade-lb. Cilium sees them as their launcher pod
-# or, when the LoadBalancer traffic crosses nodes, as the node they run on (host / remote-node); there is no other authentication, so keep it to 8081.
+# Update-VMs buttons. The VMs poll 8081 and appear as their launcher pod or, across nodes, as host / remote-node.
+# There is no other authentication, so keep ingress to 8081.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -283,7 +278,7 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
-    # replies to the VMs' polls on 8081 (the client port is ephemeral, so no port here); Cilium drops them when it loses the connection state
+    # replies to the VMs' polls (ephemeral client port); Cilium drops them when it loses the connection state
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: claude-vm
@@ -295,9 +290,8 @@ spec:
         - host
         - remote-node
 ---
-# Elevate Claude. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node).
-# claude-rc has no ingress rule here: it receives the rights the page grants, so it cannot reach the page. Prometheus reaches only the metrics port
-# (the pod does not carry the prometheus-scrape label, whose cluster-wide rule also opens 8080). The sidecar talks to the API server only.
+# Elevate Claude. claude-rc has no ingress rule: it receives the rights the page grants, so it must not reach the page.
+# The pod does not carry the prometheus-scrape label, whose cluster-wide rule would also open 8080.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -343,11 +337,8 @@ spec:
     - toEntities:
         - kube-apiserver
 ---
-# URL sharing. The page (8080) is reached by the Omni service exposer, which runs on the host network (host or remote-node); the API (8081) by
-# claude-rc and the LAN (192.168.1.0/24, through claude-urlshare-lb). It can only record a request: the owner's approval happens on 8080.
-# Egress decides which pages can be fetched, and it does so on the address that is really connected to, so it also holds after DNS
-# resolution and for redirects (the app cannot check that): TCP 80 and 443 to addresses outside the private, loopback, link-local and other
-# special-purpose ranges. Cluster pods and nodes are not CIDR identities and the whole of 10/8, 172.16/12 and 192.168/16 is excepted as well.
+# URL sharing. Egress is the real fetch filter: it checks the connected address, so it holds for DNS and redirects. Cluster pods and
+# nodes are not CIDR identities, so 10/8, 172.16/12 and 192.168/16 are excepted explicitly too.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -419,7 +410,6 @@ spec:
             - port: "443"
               protocol: TCP
 ---
-# Cockpit: the Omni exposer (host, remote-node) on 8080, Prometheus on the metrics port only, the claude-rc pod on 8081.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -462,7 +452,7 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-          # lets Cilium learn the addresses behind api.github.com for the FQDN rule below
+          # lets Cilium learn the addresses behind the FQDN rule below
           rules:
             dns:
               - matchPattern: "*"
@@ -494,7 +484,7 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    # Share URLs: the approval page's listener, for the read-only list of requests (GET /api/v1/requests)
+    # Share URLs: GET /api/v1/requests
     - toEndpoints:
         - matchLabels:
             k8s:app: claude-urlshare
@@ -502,7 +492,7 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    # Elevate Claude: the page's listener, for the active grants (GET /api/v1/status; the panel keeps tier, namespace and expiry only)
+    # Elevate Claude: active grants (GET /api/v1/status)
     - toEndpoints:
         - matchLabels:
             k8s:app: claude-elevate

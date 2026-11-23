@@ -1,5 +1,4 @@
 ---
-# "Update VMs" buttons (see vm-upgrade/redpanda-connect.yaml and the README). The pod only holds a flag per VM; the VMs poll it.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

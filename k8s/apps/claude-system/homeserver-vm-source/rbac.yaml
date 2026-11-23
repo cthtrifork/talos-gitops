@@ -1,5 +1,4 @@
-# The service account the ClusterSecretStore homeserver-vm-source uses to copy the read:packages token (ghcr-pull, for the
-# CDI import) into the homeserver-vm namespace. It may read that Secret and nothing else.
+# Used by the ClusterSecretStore homeserver-vm-source; may read ghcr-pull and nothing else.
 ---
 apiVersion: v1
 kind: ServiceAccount

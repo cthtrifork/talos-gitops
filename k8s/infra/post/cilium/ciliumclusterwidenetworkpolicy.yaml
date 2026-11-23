@@ -1,5 +1,4 @@
-# With policyEnforcementMode: always the Cilium health endpoint is default-deny too, and the node-to-node health probes
-# (cilium-health, from every node and from the local cilium_host address) were dropped as POLICY_DENIED. Allow them.
+# policyEnforcementMode: always also denies the health endpoint: without this the cilium-health probes are dropped.
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumclusterwidenetworkpolicy_v2.json
 ---
 apiVersion: cilium.io/v2

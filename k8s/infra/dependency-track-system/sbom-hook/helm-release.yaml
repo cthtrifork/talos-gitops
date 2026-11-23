@@ -1,7 +1,5 @@
 ---
-# Receives trivy-operator's webhook broadcast (operator.webhookBroadcastURL) and uploads each SbomReport to
-# Dependency-Track as it changes.
-# https://aquasecurity.github.io/trivy-operator/v0.30.1/tutorials/integrations/webhook/
+# Receives trivy-operator's webhook broadcast and uploads each SbomReport to Dependency-Track.
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/helm.toolkit.fluxcd.io/helmrelease_v2.json
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -40,7 +38,7 @@ spec:
         memory: 256Mi
       limits:
         memory: 512Mi
-    # the image already runs as the non-root user "connect" (uid 10001); make that explicit so it is enforced
+
     podSecurityContext:
       runAsNonRoot: true
       runAsUser: 10001
@@ -59,11 +57,10 @@ spec:
           secretKeyRef:
             name: dependency-track-api-key
             key: api-key
-            optional: true # dry run until config-job has created it, see redpanda-connect.yaml
+            optional: true # dry run until config-cronjob.yaml has created it
     deployment:
       podAnnotations:
-        reloader.stakater.com/auto: "true" # restart on a change (or creation, reloadOnCreate) of the config ConfigMap and the dependency-track-api-key Secret
-    # the config is a file of its own (redpanda-connect.yaml), mounted from the generated ConfigMap
+        reloader.stakater.com/auto: "true"
     args:
       - -c
       - /etc/connect/redpanda-connect.yaml
@@ -73,7 +70,7 @@ spec:
         emptyDir: {}
       - name: queue
         emptyDir:
-          sizeLimit: 512Mi # the sqlite buffer of redpanda-connect.yaml; survives a container restart, not a pod replacement
+          sizeLimit: 512Mi # sqlite buffer: survives a container restart, not a pod replacement
       - name: connect-config
         configMap:
           name: sbom-hook-connect-config

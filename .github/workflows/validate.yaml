@@ -52,7 +52,6 @@ jobs:
         uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
           install_args: "yq kubeconform kustomize"
-      # The directory is relative to the repository root; a bare "apps" matched nothing and validated nothing.
       - name: Validate manifests -- /apps
         run: ./scripts/validate.sh --dir k8s/apps
       - name: Validate manifests -- /infra
@@ -62,7 +61,6 @@ jobs:
       - name: Validate manifests -- /virtualmachines
         run: ./scripts/validate.sh --dir k8s/virtualmachines
   kustomize:
-    # Builds each path a Flux Kustomization syncs, the way kustomize-controller does.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -74,8 +72,7 @@ jobs:
       - name: Build Flux Kustomization paths
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
   polaris:
-    # The in-cluster Polaris dashboard only sees a change after it is merged and applied; this audits the manifests in the PR
-    # with the same version and config (k8s/infra/policy-system/polaris/helm-release.yaml).
+    # audits the PR's manifests with the dashboard's version and config; the in-cluster one only sees them after merge
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -86,7 +83,7 @@ jobs:
           install_args: "yq kustomize"
       - name: Install Polaris
         run: |
-          # the version Renovate keeps current for the dashboard image; releases are tagged 10.1.8 or v10.2.6
+          # releases are tagged 10.1.8 or v10.2.6
           version="$(yq e '.spec.values.image.tag' k8s/infra/policy-system/polaris/helm-release.yaml | cut -d@ -f1)"
           for tag in "$version" "v$version"; do
             base="https://github.com/FairwindsOps/polaris/releases/download/${tag}"
@@ -97,8 +94,7 @@ jobs:
           sudo install polaris /usr/local/bin/polaris
           polaris version
       - name: Polaris audit
-        # The dashboard's config (same checks and exemptions), applied to every manifest in k8s/. The score is 100, so any new
-        # finding fails; fix it or add an exemption with a comment in polaris/helm-release.yaml.
+        # the score is 100, so any new finding fails; fix it or exempt it in polaris/helm-release.yaml
         run: |
           yq e '.spec.values.config' k8s/infra/policy-system/polaris/helm-release.yaml > polaris-config.yaml
           polaris audit --config polaris-config.yaml --merge-config --audit-path k8s/ \

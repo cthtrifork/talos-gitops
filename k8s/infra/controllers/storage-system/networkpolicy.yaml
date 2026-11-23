@@ -1,5 +1,3 @@
-# Default deny both ways for the namespace, then what the CloudNativePG operator needs: DNS, the Kubernetes API,
-# the instance managers of the Postgres clusters in other namespaces, and ingress for the webhook and metrics.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -22,7 +20,6 @@ metadata:
 spec:
   endpointSelector: {}
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -31,7 +28,6 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-    # Kubernetes API
     - toEntities:
         - kube-apiserver
 ---
@@ -45,7 +41,6 @@ spec:
     matchLabels:
       app.kubernetes.io/name: cloudnative-pg
   ingress:
-    # Admission webhook (service port 443 to 9443), called by the API server on the host network
     - fromEntities:
         - kube-apiserver
         - host
@@ -55,7 +50,6 @@ spec:
             - port: "9443"
               protocol: TCP
   egress:
-    # Instance managers of the clusters in any namespace: status on 8000, SQL on 5432
     - toEndpoints:
         - matchExpressions:
             - key: cnpg.io/cluster

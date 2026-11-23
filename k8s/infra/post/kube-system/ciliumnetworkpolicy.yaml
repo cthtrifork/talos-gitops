@@ -1,8 +1,6 @@
-# Default deny for the pods in kube-system. Host-network pods (Cilium agent, operator and Envoy) are not endpoints, so pod
-# policies do not cover them. Allow rules come from Hubble flows (12h). The
-# default deny is last in the file so it is applied after the allow rules. Prometheus scrapes CoreDNS through its own rule.
+# Host-network pods (Cilium agent, operator, Envoy) are not endpoints and not covered.
+# Default deny is last so the allow rules apply first.
 ---
-# Every pod here: DNS (except CoreDNS itself, which is allowed below) and the Kubernetes API.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -22,8 +20,6 @@ spec:
     - toEntities:
         - kube-apiserver
 ---
-# CoreDNS: queries from every pod and node (cluster), metrics for Prometheus (9153), upstream resolvers on port 53 (the LAN
-# 192.168.1.0/24, Cloudflare and Google, the nodes included).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -67,7 +63,6 @@ spec:
             - port: "53"
               protocol: ANY
 ---
-# metrics-server: the API server calls it (aggregated API, 10250) and it scrapes the kubelets (10250 on every node).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -95,8 +90,6 @@ spec:
             - port: "10250"
               protocol: TCP
 ---
-# Hubble relay: Hubble UI calls it (gRPC 4245, the Omni exposer and probes arrive as host); it reads from the Cilium
-# agents on every node (4244, host network).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -124,7 +117,6 @@ spec:
             - port: "4244"
               protocol: TCP
 ---
-# Hubble UI: the Omni service exposer (host network: arrives as host or remote-node) on 8081; it talks to the relay.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

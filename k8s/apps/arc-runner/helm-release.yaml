@@ -27,31 +27,24 @@ spec:
           kubernetes.io/ingress-bandwidth: "300M"
           kubernetes.io/egress-bandwidth: "300M"
     controllerServiceAccount:
-      # this SA is created by the controller chart, in arc-systems
       name: gha-runner-scale-set-controller-gha-rs-controller
       namespace: arc-controller-system
 
-    # name of the runner scale set -> what you use in `runs-on: arc-ubuntu`
     githubConfigUrl: https://github.com/cthtrifork/homeserver-bootc
     runnerScaleSetName: arc-ubuntu
-    # runs-on: arc-ubuntu matches both scale sets; arc-ubuntu-docker selects this one (it has the Docker-in-Docker sidecar).
+    # arc-ubuntu matches both scale sets; arc-ubuntu-docker selects this one (has the DinD sidecar)
     scaleSetLabels:
       - arc-ubuntu
       - arc-ubuntu-docker
 
     maxRunners: 1 # only 1 runner due to pvc design
-    minRunners: 1 # always ready
+    minRunners: 1
 
-    #nodeSelector:
-    #  kubernetes.io/hostname: talos-ska-6at
-
-    # point to the secret we created with SOPS
     githubConfigSecret: github-auth
-    containerMode: {} # we use custom
+    containerMode: {}
     template:
       spec:
-        # Same node as the cache server: a pod-to-pod transfer between two nodes runs at 3 to 5 MB/s in this cluster and a cache
-        # upload stalled (see helm-release-talos-gitops-e2e.yaml). The server's volume is node-local, so it never moves.
+        # Same node as the cache server (node-local volume); cross-node transfer is too slow.
         affinity:
           podAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -87,7 +80,7 @@ spec:
               - name: cross-run-cache
                 mountPath: /tmp/arc-cache
 
-          # /tmp is an ephemeral lvm-fast volume: fsGroup makes it root:1001 2775, and apt (user _apt) needs it world-writable
+          # fsGroup makes /tmp root:1001 2775; apt (user _apt) needs it world-writable
           - name: tmp-perms
             image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
             imagePullPolicy: IfNotPresent
@@ -170,13 +163,10 @@ spec:
               # Shared runner/DinD workspace, but local to this pod.
               - name: work
                 mountPath: /home/runner/_work
-              # Docker Unix socket.
               - name: dind-sock
                 mountPath: /var/run
-              # Runner externals copied by init container.
               - name: dind-externals
                 mountPath: /home/runner/externals
-              # Transient Docker image/layer storage.
               - name: docker-lib
                 mountPath: /var/lib/docker
         containers:
@@ -184,7 +174,7 @@ spec:
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
             image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261122.21@sha256:9bfb04321a84c9bbb63869084f8c33956f9cacfbca12db8d6f77701617358e4e
             imagePullPolicy: IfNotPresent
-            # patches the runner so it keeps ACTIONS_RESULTS_URL (images/github-actions-runner/use-cache-server); fails the pod when it cannot
+            # patches the runner to keep ACTIONS_RESULTS_URL; fails the pod when it cannot
             command:
               - "/usr/local/bin/use-cache-server"
               - "/home/runner/run.sh"
@@ -219,16 +209,13 @@ spec:
               - name: BUILDAH_LAYERS
                 value: "true"
 
-              # The in-cluster cache server (k8s/apps/gha-cache): actions/cache and the tool caches stay in the cluster. Caches
-              # saved by GitHub-hosted jobs are not visible here. The trailing slash is required.
+              # Caches saved by GitHub-hosted jobs are not visible here. The trailing slash is required.
               - name: ACTIONS_RESULTS_URL
                 value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
               - name: RUNNER_UPDATE_CA_CERTS
                 value: "1"
-              # The fileserver upload token, rotated every 30 days by External Secrets (k8s/infra/secret-store/; an
-              # ExternalSecret in k8s/apps/fileserver copies it here). Read at pod start: the runners are ephemeral, so
-              # every job gets the current token. optional: the runner starts before the first sync. A job echoing it
-              # into its log leaks it: use ::add-mask::.
+              # Fileserver upload token, rotated every 30 days by External Secrets and read at pod start. optional: the
+              # runner starts before the first sync. A job echoing it into its log leaks it: use ::add-mask::.
               - name: FILESERVER_TOKEN
                 valueFrom:
                   secretKeyRef:
@@ -238,56 +225,38 @@ spec:
               - name: FILESERVER_URL
                 value: http://fileserver-upload.fileserver-system.svc:8082
 
-              #- name: HTTP_PROXY
-              #  value: "http://192.168.1.135:3128"
-              #- name: HTTPS_PROXY
-              #  value: "http://192.168.1.135:3128"
-              #- name: NO_PROXY
-              #  value: "localhost,127.0.0.1"
-
             volumeMounts:
               - name: ca-certs
                 mountPath: /usr/local/share/ca-certificates/private-ca.crt
                 subPath: ca.crt
-              # Persistent rootful Podman/Buildah storage.
               - name: container-storage-rootful
                 mountPath: /var/lib/containers/storage
-              # Job workspace: fast node-local ephemeral storage.
               - name: work
                 mountPath: /home/runner/_work
-              # Docker socket shared with DinD.
               - name: dind-sock
                 mountPath: /var/run
-              # Persistent rootless container storage.
               - name: container-rootless-storage
                 mountPath: /home/runner/.local/share/containers/storage
-              # Persistent additional image store.
               - name: container-shared-storage
                 mountPath: /var/lib/shared
-              # Same transient Docker storage as DinD.
               - name: docker-lib
                 mountPath: /var/lib/docker
-              # Persistent DNF caches.
               - name: dnf-cache
                 mountPath: /var/cache/dnf
               - name: dnf-cache
                 mountPath: /home/runner/.cache/dnf
-              # Existing persistent temporary/cache area.
               - name: cross-run-cache
                 mountPath: /home/runner/.cache/tmp
-              # RAM-backed scratch space.
               - name: tmp-memory
                 mountPath: /tmp
               - name: podman-tmp
                 mountPath: /var/tmp
-              # Host udev database, bind-mounted into `bootc install` containers (read-only).
+
               - name: host-udev
                 mountPath: /run/udev
                 readOnly: true
-              # Live host devtmpfs. A privileged pod only gets a static snapshot of /dev, so the
-              # partition nodes `bootc install --via-loopback` creates (/dev/loopXpN) would never
-              # appear. Mounted at /host-dev (not /dev) so the runner's own /dev is untouched; the
-              # e2e job bind-mounts it as /dev into the bootc container.
+              # A privileged pod only gets a static /dev snapshot, so `bootc install --via-loopback` partition nodes
+              # (/dev/loopXpN) never appear. Mounted at /host-dev so the runner's own /dev is untouched.
               - name: host-dev
                 mountPath: /host-dev
         imagePullSecrets:
@@ -325,7 +294,6 @@ spec:
           - name: dind-externals
             emptyDir:
               sizeLimit: 2Gi
-          # Docker-in-Docker transient image/layer storage.
           - name: docker-lib
             ephemeral:
               volumeClaimTemplate:
@@ -358,11 +326,6 @@ spec:
           - name: dnf-cache
             persistentVolumeClaim:
               claimName: dnf-cache
-            #hostPath:
-              # talosctl --talosconfig ./talosconfig.yaml --nodes talos-wb5-z9x get volumestatus u-local-storage-cache
-              # talosctl --talosconfig ./talosconfig.yaml --nodes talos-ska-6at get mountstatus u-local-storage-cache
-            #  path: /var/tmp/local-storage-cache/gha-cache/dnf
-            #  type: DirectoryOrCreate
           - name: container-shared-storage
             persistentVolumeClaim:
               claimName: container-shared-storage

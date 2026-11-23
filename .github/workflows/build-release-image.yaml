@@ -1,12 +1,7 @@
 name: Build and release an image
 
-# Reusable: builds one image from images/<name>, and from main publishes and releases it (see docs/releasing.md). The
-# callers (build-github-actions-runner.yaml, build-claude-runner.yaml) decide when it runs.
-#
-# Tag: <tool version>-YYYYMMDD.<run number>, valid semver (the wrapped tool's version, then the build as the prerelease).
-# The tool version is read from the Dockerfile ARG named by `version-arg` (0.0.0 for an image that wraps no tool). The release is named <tag-prefix>-<tag>; the
-# prefix keeps it apart from the fileserver vX.Y.Z releases. A pull request or a run on another branch builds the image
-# to check it and does not push.
+# Reusable; see docs/releasing.md. Tag: <tool version>-YYYYMMDD.<run number> (valid semver); the release is named
+# <tag-prefix>-<tag> so the images' releases stay apart.
 on:
   workflow_call:
     inputs:
@@ -50,7 +45,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      # The version of what the image wraps (a digest after @ is dropped), from the Dockerfile that Renovate bumps.
       - name: Tool version
         id: tool
         env:
@@ -96,7 +90,7 @@ jobs:
           push: ${{ env.PUBLISH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # the weekly run exists to pick up new packages: a warm layer cache would reuse the old install layers
+          # the weekly run picks up new packages; a warm cache would reuse the old install layers
           no-cache: ${{ github.event_name == 'schedule' }}
           cache-from: type=gha,scope=${{ inputs.name }}
           cache-to: type=gha,mode=max,scope=${{ inputs.name }}
@@ -136,8 +130,6 @@ jobs:
             echo "- Published: ${PUBLISH}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Notes are the commits that touched the image since the previous release of this image (squash merges, so the
-      # subject is the PR title).
       - name: Publish the release
         if: ${{ env.PUBLISH == 'true' }}
         env:
@@ -146,7 +138,6 @@ jobs:
           NAME: ${{ inputs.name }}
           PREFIX: ${{ inputs.tag-prefix }}
         run: | #sh
-          # the nearest earlier release of this image: its tag is reachable from this commit
           previous="$(git describe --tags --abbrev=0 --match "$PREFIX-*" "$GITHUB_SHA" 2>/dev/null || true)"
           : > changes.txt
           if [[ -z "$previous" ]]; then
@@ -161,9 +152,8 @@ jobs:
             cat changes.txt
             printf '\n[Provenance attestation](%s/%s/attestations)\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY"
           } > notes.md
-          # a re-run of this job finds the release of the first attempt
+          # idempotent on re-run
           if gh release view "$PREFIX-$TAG" > /dev/null 2>&1; then
             exit 0
           fi
-          # not the repository's latest release: that stays the vX.Y.Z one
           gh release create "$PREFIX-$TAG" --target "$GITHUB_SHA" --title "$PREFIX-$TAG" --notes-file notes.md --latest=false

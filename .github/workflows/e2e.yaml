@@ -3,7 +3,7 @@ name: e2e
 on:
   workflow_dispatch:
   pull_request:
-    # closed only cancels the in-flight run through the concurrency group; the job is skipped for it
+    # closed only cancels the in-flight run (concurrency group); the job is skipped
     types: [opened, synchronize, reopened, closed]
   push:
     branches: [ main ]
@@ -18,10 +18,9 @@ concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
-
 jobs:
   changes:
-    # the PR diff is cumulative, so a later push that touches nothing relevant still runs the e2e of the earlier changes
+    # the PR diff is cumulative: a later push touching nothing relevant still runs the earlier changes
     runs-on: ubuntu-latest
     timeout-minutes: 3
     if: github.event_name != 'pull_request' || github.event.action != 'closed'
@@ -47,7 +46,7 @@ jobs:
 
   e2e-test:
     needs: changes
-    # ARC runner in the cluster (k8s/apps/arc-runner/helm-release-talos-gitops-e2e.yaml); the repository is public, so no fork PRs
+    # ARC runner in the cluster (k8s/apps/arc-runner); no fork PRs, the repository is public
     runs-on: arc-e2e-talos-gitops
     if: needs.changes.outputs.relevant == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     timeout-minutes: 20
@@ -59,7 +58,6 @@ jobs:
         id: cache_before
         timeout-minutes: 1
         run: |
-          # ACTIONS_RESULTS_URL must be the in-cluster cache server (http://gha-cache...), not GitHub's results-receiver
           case "${ACTIONS_RESULTS_URL:-}" in
             http://gha-cache.gha-cache-system.svc.cluster.local:*) ;;
             *) echo "::error::ACTIONS_RESULTS_URL is '${ACTIONS_RESULTS_URL:-unset}', not the in-cluster cache server"; exit 1 ;;
@@ -75,7 +73,6 @@ jobs:
         env:
           BEFORE: ${{ steps.cache_before.outputs.count }}
         run: |
-          # the counters of the server grow only when actions/cache (mise-action) went through it, not to GitHub
           after="$(curl -fsS --max-time 20 "${ACTIONS_RESULTS_URL}metrics" | awk '/^cache_(requests|uploads)_total/ {n += $NF} END {print n + 0}')"
           echo "cache server requests and uploads: ${BEFORE} -> ${after}"
           [ "${after}" -gt "${BEFORE}" ] || { echo "::error::the mise cache did not go through the in-cluster cache server"; exit 1; }
@@ -85,13 +82,11 @@ jobs:
       - name: Pull the kind node image through zot
         timeout-minutes: 5
         run: |
-          # Pull the digest-pinned image through zot's mirror.gcr.io cache and tag it with the name from scripts/kind.yaml.
-          # A digest reference would not match a loaded image, so kind must use the tag only.
+          # a digest reference would not match the loaded image, so kind must use the tag only
           image="$(yq '.nodes[0].image' scripts/kind.yaml)"
           repo="${image#mirror.gcr.io/}"
           repo="${repo%%:*}"
           skopeo copy "docker://${ZOT}/docker-hub-cache/${repo}@${image#*@}" "docker-daemon:${image%@*}"
-          # the rendered kind config refers to the loaded image
           POD_IP="$(hostname -i | awk '{print $1}')" envsubst "\${POD_IP}" < scripts/kind.yaml |
             yq ".nodes[0].image = \"${image%@*}\"" > "${RUNNER_TEMP}/kind.yaml"
       - name: Setup Kubernetes Kind
@@ -100,8 +95,8 @@ jobs:
           # the node shares the network namespace of the runner pod, where Cilium reaches zot by its service name
           KIND_EXPERIMENTAL_DOCKER_NETWORK: host
         run: |
-          # kind exports the kubeconfig from the published API server port, which the host network does not have: that last step
-          # fails (the cluster is complete by then, --retain keeps it), so read the admin kubeconfig from the node
+          # kind fails to export the kubeconfig on the host network (no published API server port) but the cluster is
+          # complete, so --retain it and read the admin kubeconfig from the node
           kind create cluster --name homelab --config "${RUNNER_TEMP}/kind.yaml" --retain || true
           docker exec homelab-control-plane test -f /etc/kubernetes/admin.conf
           mkdir -p ~/.kube
@@ -113,9 +108,7 @@ jobs:
       - name: Install cilium
         timeout-minutes: 3
         run: |
-          # the chart, its version and its values are those of the real cluster (pulled through the zot quay cache), with the changes of cilium-values.yaml
           version="$(yq 'select(.kind == "OCIRepository") | .spec.ref.tag' k8s/infra/cilium/helm-repository.yaml)"
-          # Flux's ${VAR:=default} placeholders become their defaults
           yq 'select(.kind == "HelmRelease") | .spec.values' k8s/infra/cilium/helm-release.yaml |
             sed -E 's/\$\{[A-Za-z_]+:=([^}]*)\}/\1/g' > "${RUNNER_TEMP}/cilium-values.yaml"
           POD_IP="$(hostname -i | awk '{print $1}')" envsubst "\${POD_IP}" < scripts/ci/e2e/cilium-values.yaml > "${RUNNER_TEMP}/cilium-e2e-values.yaml"
@@ -173,7 +166,7 @@ jobs:
       - name: Suspend workload Kustomizations
         timeout-minutes: 2
         run: |
-          # gitops-infra-image-policies needs the Kyverno CRD, and the HelmReleases are suspended here
+          # gitops-infra-image-policies needs the Kyverno CRD
           for ks in app-controllers renovate gitops-infra-image-policies \
               $(kubectl get kustomization -n flux-system -l gitops.homelab/tier=apps -o name | cut -d/ -f2); do
             flux suspend kustomization "${ks}"
@@ -205,7 +198,7 @@ jobs:
       - name: Dry-run apps against the API server
         timeout-minutes: 3
         run: |
-          # the app-* Kustomizations; renovate needs CRDs from app-controllers, which is suspended here
+          # renovate needs CRDs from app-controllers, which is suspended
           for app in adguard arc-runner claude-system fileserver gha-cache harper-pad; do
             kustomize build "k8s/apps/${app}" --load-restrictor=LoadRestrictionsNone
             echo "---"
@@ -227,10 +220,5 @@ jobs:
           docker ps -a || true
           kubectl -n kube-system logs ds/cilium --all-containers --tail=30 || true
           kubectl -n flux-system logs deploy/flux-operator --tail=40 --previous || true
-          #kubectl get pods -A
           kubectl get events -A --types=Warning --sort-by=.lastTimestamp | tail -50
-          #kubectl -n flux-system get all
-          #kubectl -n flux-system logs deploy/source-controller
-          #kubectl -n flux-system logs deploy/kustomize-controller
-          #kubectl -n flux-system logs deploy/helm-controller
           flux get all --all-namespaces

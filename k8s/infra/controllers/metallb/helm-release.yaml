@@ -73,7 +73,6 @@ spec:
         # renovate: datasource=docker depName=quay.io/metallb/controller versioning=docker
         tag: v0.16.2@sha256:34a6f107f29c4fc6e9d084a7f3bdb781aae7b5ee2b534195a2775ab68c09c503
       tolerations:
-        # Tolerate the control plane taint
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
@@ -88,7 +87,6 @@ spec:
         # renovate: datasource=docker depName=quay.io/metallb/speaker versioning=docker
         tag: v0.16.2@sha256:01666518b091a6651d68891c802db84b2219495d7e0e41c2e61c46f9976be231
       tolerations:
-        # Tolerate the control plane taint
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule

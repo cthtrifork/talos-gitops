@@ -1,8 +1,4 @@
-# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/clusterissuer_v1.json
-# Self-signed root CA (cluster-scoped)
----
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
-# Mint the actual Root CA using the self-signed bootstrap
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

@@ -1,16 +1,7 @@
 ---
-# Experimental second scale set for the homeserver-gui build: the same runner as helm-release.yaml, minus the
-# Docker-in-Docker sidecar. The homeserver-bootc workflows use buildah and podman only, so this proves (or
-# disproves) that nothing needs the Docker daemon, and frees the memory, the 32Gi docker-lib and the Docker
-# wait at job start.
-#
-# Select it from homeserver-bootc with the repository variable ARC_RUNNER=arc-ubuntu-podman; unset it to fall
-# back to arc-ubuntu. minRunners is 0, so it costs nothing while unused.
-#
-# Builds run in parallel, and two builds on one containers storage corrupt it, so nothing is shared: every pod gets
-# its own generic ephemeral volumes (lvm-fast), deleted with the pod. Every build is
-# therefore cold (empty dnf cache and image storage). To soften that, registries.conf sends ghcr.io, quay.io and
-# gcr.io pulls through the in-cluster zot caches first (ConfigMap podman-registries) and falls back to the origin.
+# Like helm-release.yaml minus the Docker-in-Docker sidecar (homeserver-bootc uses buildah/podman only).
+# Builds run in parallel and two builds on one containers storage corrupt it, so every pod gets its own ephemeral
+# volumes: every build is cold, softened by pulls going through the zot caches (ConfigMap podman-registries).
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -30,7 +21,6 @@ spec:
   upgrade:
     remediation:
       retries: 3
-  # https://github.com/actions/actions-runner-controller/blob/master/charts/gha-runner-scale-set/values.yaml
   values:
     resourceMeta:
       ephemeralRunner:
@@ -42,21 +32,20 @@ spec:
       namespace: arc-controller-system
 
     githubConfigUrl: https://github.com/cthtrifork/homeserver-bootc
-    runnerScaleSetName: arc-ubuntu-podman # runs-on: arc-ubuntu-podman
-    # runs-on: arc-ubuntu matches both scale sets; arc-ubuntu-podman selects this one (no Docker daemon: use arc-ubuntu-docker for jobs that need one)
+    runnerScaleSetName: arc-ubuntu-podman
+    # arc-ubuntu matches both scale sets; arc-ubuntu-podman selects this one
     scaleSetLabels:
       - arc-ubuntu
       - arc-ubuntu-podman
 
-    maxRunners: 3 # CPU and the node's lvm-fast volume group allow about 3 to 4 builds at once (see the PR)
-    minRunners: 0 # experimental, so no idle pod; the first job waits for the pod to start
+    maxRunners: 3 # CPU and lvm-fast capacity allow about 3 to 4 builds
+    minRunners: 0
 
     githubConfigSecret: github-auth
     containerMode: {} # no dind, no kubernetes mode
     template:
       spec:
-        # Same node as the cache server: a pod-to-pod transfer between two nodes runs at 3 to 5 MB/s in this cluster and a cache
-        # upload stalled (see helm-release-talos-gitops-e2e.yaml). The server's volume is node-local, so it never moves.
+        # Same node as the cache server (node-local volume); cross-node transfer is too slow.
         affinity:
           podAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -67,7 +56,7 @@ spec:
                   matchLabels:
                     app.kubernetes.io/name: github-actions-cache-server
         initContainers:
-          # /tmp is an ephemeral lvm-fast volume: fsGroup makes it root:1001 2775, and apt (user _apt) needs it world-writable
+          # fsGroup makes /tmp root:1001 2775; apt (user _apt) needs it world-writable
           - name: tmp-perms
             image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
             imagePullPolicy: IfNotPresent
@@ -96,9 +85,7 @@ spec:
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
             image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261122.21@sha256:9bfb04321a84c9bbb63869084f8c33956f9cacfbca12db8d6f77701617358e4e
             imagePullPolicy: IfNotPresent
-            # Podman rejects an XDG_RUNTIME_DIR that is not owned by its user, and a fresh emptyDir is root owned, so
-            # create a 0700 subdirectory of the volume as the runner user before the runner starts (steps such as
-            # `podman login` run before prepare-podman).
+            # Podman rejects an XDG_RUNTIME_DIR not owned by its user, and a fresh emptyDir is root-owned.
             command:
               - /bin/bash
               - -c
@@ -119,10 +106,7 @@ spec:
               runAsGroup: 1001
 
             env:
-              # No DOCKER_HOST and no wait for a Docker daemon: there is none.
-              # Rootless podman keeps its socket, auth file and run state in XDG_RUNTIME_DIR. The image's /run/user/1001
-              # does not exist and /run is root owned here (the Docker-in-Docker pod gets a writable /run from its
-              # /var/run socket volume), so point it at a memory-backed volume (mounted below), which also exists before the first step runs.
+              # /run/user/1001 does not exist and /run is root-owned, hence a memory-backed volume.
               - name: XDG_RUNTIME_DIR
                 value: /tmp/xdg/runtime
               - name: STORAGE_DRIVER
@@ -134,16 +118,12 @@ spec:
               - name: BUILDAH_LAYERS
                 value: "true"
 
-              # The in-cluster cache server (k8s/apps/gha-cache): actions/cache and the tool caches stay in the cluster. Caches
-              # saved by GitHub-hosted jobs are not visible here. The trailing slash is required.
+              # Caches saved by GitHub-hosted jobs are not visible here. The trailing slash is required.
               - name: ACTIONS_RESULTS_URL
                 value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
               - name: RUNNER_UPDATE_CA_CERTS
                 value: "1"
-              # The fileserver upload token, rotated every 30 days by External Secrets (k8s/infra/secret-store/; an
-              # ExternalSecret in k8s/apps/fileserver copies it here). Read at pod start: the runners are ephemeral, so
-              # every job gets the current token. optional: the runner starts before the first sync. A job echoing it
-              # into its log leaks it: use ::add-mask::.
+              # optional: the runner starts before the first sync.
               - name: FILESERVER_TOKEN
                 valueFrom:
                   secretKeyRef:
@@ -157,42 +137,35 @@ spec:
               - name: ca-certs
                 mountPath: /usr/local/share/ca-certificates/private-ca.crt
                 subPath: ca.crt
-              # Persistent rootful Podman/Buildah storage (the image build).
               - name: container-storage-rootful
                 mountPath: /var/lib/containers/storage
-              # Job workspace: node-local ephemeral storage.
               - name: work
                 mountPath: /home/runner/_work
-              # Persistent rootless storage (Run on PR and Trivy pull and scan PR images rootless).
               - name: container-rootless-storage
                 mountPath: /home/runner/.local/share/containers/storage
-              # Persistent DNF caches.
               - name: dnf-cache
                 mountPath: /var/cache/dnf
               - name: dnf-cache
                 mountPath: /home/runner/.cache/dnf
-              # Downloaded release binaries and the like, shared between builds.
               - name: cross-run-cache
                 mountPath: /home/runner/.cache/tmp
-              # Scratch space. Not persistent, so leftovers cannot pile up between builds.
               - name: tmp
                 mountPath: /tmp
-              # buildah stages layers here while committing.
+
               - name: var-tmp
                 mountPath: /var/tmp
-              # Pulls go through zot first.
               - name: registries
                 mountPath: /etc/containers/registries.conf.d/zot-mirror.conf
                 subPath: zot-mirror.conf
                 readOnly: true
-              # XDG_RUNTIME_DIR for rootless podman: socket, auth file and runroot bookkeeping, a few MB at most.
+
               - name: xdg-runtime
                 mountPath: /tmp/xdg
-              # Host udev database, bind-mounted into `bootc install` containers (read-only).
+
               - name: host-udev
                 mountPath: /run/udev
                 readOnly: true
-              # Live host devtmpfs for `bootc install --via-loopback` (the e2e job); see helm-release.yaml.
+
               - name: host-dev
                 mountPath: /host-dev
         imagePullSecrets:
@@ -212,7 +185,7 @@ spec:
           - name: xdg-runtime
             emptyDir:
               medium: Memory
-              sizeLimit: 256Mi # counts against the pod's memory; real use is a few MB
+              sizeLimit: 256Mi # counts against the pod's memory
           - name: host-udev
             hostPath:
               path: /run/udev

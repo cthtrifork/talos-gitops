@@ -29,8 +29,6 @@ spec:
       create: true
     config:
       clusterWide: true
-   #  data:
-   #     INHERITED_LABELS: portableinfo.cloud/*
     monitoring:
       podMonitorEnabled: true
     podLabels:

@@ -1,5 +1,4 @@
 ---
-# The page and the button, through the Omni service exposer (Omni login).
 apiVersion: v1
 kind: Service
 metadata:
@@ -22,10 +21,7 @@ spec:
       port: 4195
       targetPort: metrics
 ---
-# The VMs' poll (POST /api/v1/vms/<vm>/report and /claim), plain HTTP on the LAN; the Cloudflare A record vm-upgrade.portableinfo.cloud
-# points at it (added by hand, DNS only) and is the URL baked into both VM images. Not exposed through Omni: this listener cannot queue an upgrade.
-# The VMs are KubeVirt VMs now: the CiliumNetworkPolicy lets in their launcher pods and the nodes (the traffic can be source-NATed to the node).
-# 192.168.1.244 is free in the MetalLB pool (192.168.1.221-254); the A record vm-upgrade.portableinfo.cloud points at it.
+# vm-upgrade.portableinfo.cloud is baked into both VM images (README). Not exposed through Omni.
 apiVersion: v1
 kind: Service
 metadata:

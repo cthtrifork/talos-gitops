@@ -1,6 +1,4 @@
-# The service account the ClusterSecretStore claude-vm-source uses to copy two Secrets of this namespace into the claude-vm namespace: the
-# read:packages token (ghcr-pull, for the CDI import) and the GitHub App credentials (claude-github-app, to seed the VM). It may read
-# those two Secrets and nothing else.
+# Used by the ClusterSecretStore claude-vm-source; may read ghcr-pull and claude-github-app and nothing else.
 ---
 apiVersion: v1
 kind: ServiceAccount

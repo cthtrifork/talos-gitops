@@ -1,16 +1,8 @@
 ---
-# Builds and uploads the installer ISOs of cthtrifork/github-runner-bootc (bootc-image-builder needs a privileged rootful
-# podman and loop devices, like the homeserver-bootc builds). The ISO is uploaded to the fileserver from the same pod, so
-# nothing is downloaded from GitHub (a 5 GiB artifact took 12 minutes), only the OS image is pulled (layers are cached).
-#
-# Every job on this scale set can read FILESERVER_TOKEN and is root on the node (privileged). github-runner-bootc is a
-# public repository under a personal account (no runner groups), so keep write access to it to yourself, require approval
-# for outside collaborators' workflow runs, and keep the job `if` on main/manual runs with `environment: file-upload`
-# (branch main). Pull request builds of that repository stay on GitHub's runners.
-#
-# Select it with `runs-on: arc-iso-bootc`. minRunners is 0, so it costs nothing while unused. Egress: the ISO build downloads
-# its RPMs from mirrors.dotsrc.org: github-runner.containerfile pins the Fedora repos there (FEDORA_MIRROR), like the
-# homeserver-bootc Containerfiles, so the egress policy needs no CDN entry. Keep the two in step.
+# SECURITY: every job here is privileged (root on the node) and can read FILESERVER_TOKEN, and the repo is public.
+# Keep write access to yourself, require approval for outside collaborators' runs, and gate uploads on main with
+# `environment: file-upload`.
+# github-runner.containerfile pins the Fedora repos to mirrors.dotsrc.org (FEDORA_MIRROR); keep in step with the egress policy.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -30,7 +22,6 @@ spec:
   upgrade:
     remediation:
       retries: 3
-  # https://github.com/actions/actions-runner-controller/blob/master/charts/gha-runner-scale-set/values.yaml
   values:
     resourceMeta:
       ephemeralRunner:
@@ -42,7 +33,7 @@ spec:
       namespace: arc-controller-system
 
     githubConfigUrl: https://github.com/cthtrifork/github-runner-bootc
-    runnerScaleSetName: arc-iso-bootc # runs-on: arc-iso-bootc
+    runnerScaleSetName: arc-iso-bootc
     scaleSetLabels:
       - arc-iso-bootc
 
@@ -53,9 +44,7 @@ spec:
     containerMode: {} # no dind, no kubernetes mode
     template:
       spec:
-        # Same node as the fileserver pod: the ISO is uploaded to its upload API, and a pod-to-pod transfer between two nodes
-        # ran at 3 to 5 MB/s, against 87 MB/s on one node. The fileserver's volume is node-local (lvm-bulk), so it never
-        # moves. If that node has no room for a runner the job waits; loosen this to `preferred` if that bites.
+        # Same node as the fileserver: cross-node upload ran at 3 to 5 MB/s vs 87 MB/s on one node. Jobs wait if the node is full.
         affinity:
           podAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -70,9 +59,7 @@ spec:
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
             image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261122.21@sha256:9bfb04321a84c9bbb63869084f8c33956f9cacfbca12db8d6f77701617358e4e
             imagePullPolicy: IfNotPresent
-            # Podman rejects an XDG_RUNTIME_DIR that is not owned by its user, and a fresh emptyDir is root owned, so
-            # create a 0700 subdirectory of the volume as the runner user before the runner starts (steps such as
-            # `podman login` run before prepare-podman).
+            # Podman rejects an XDG_RUNTIME_DIR not owned by its user, and a fresh emptyDir is root-owned.
             command:
               - /bin/bash
               - -c
@@ -93,10 +80,7 @@ spec:
               runAsGroup: 1001
 
             env:
-              # No DOCKER_HOST and no wait for a Docker daemon: there is none.
-              # Rootless podman keeps its socket, auth file and run state in XDG_RUNTIME_DIR. The image's /run/user/1001
-              # does not exist and /run is root owned here (the Docker-in-Docker pod gets a writable /run from its
-              # /var/run socket volume), so point it at a memory-backed volume (mounted below), which also exists before the first step runs.
+              # /run/user/1001 does not exist and /run is root-owned, hence a memory-backed volume.
               - name: XDG_RUNTIME_DIR
                 value: /tmp/xdg/runtime
               - name: STORAGE_DRIVER
@@ -110,10 +94,7 @@ spec:
 
               - name: RUNNER_UPDATE_CA_CERTS
                 value: "1"
-              # The fileserver upload token, rotated every 30 days by External Secrets (k8s/infra/secret-store/; an
-              # ExternalSecret in k8s/apps/fileserver copies it here). Read at pod start: the runners are ephemeral, so
-              # every job gets the current token. optional: the runner starts before the first sync. A job echoing it
-              # into its log leaks it: use ::add-mask::.
+              # optional: the runner starts before the first sync.
               - name: FILESERVER_TOKEN
                 valueFrom:
                   secretKeyRef:
@@ -127,37 +108,35 @@ spec:
               - name: ca-certs
                 mountPath: /usr/local/share/ca-certificates/private-ca.crt
                 subPath: ca.crt
-              # Persistent rootful Podman storage: the OS image and bootc-image-builder, and the container it runs.
+
               - name: bootc-iso-cache
                 mountPath: /var/lib/containers/storage
                 subPath: containers
-              # bootc-image-builder's osbuild store and RPM metadata (the workflow mounts them into the builder): the
-              # installer RPMs are downloaded once, not on every build. The workflow wipes it when it grows past a limit.
+              # osbuild store and RPM metadata; the workflow wipes it when it grows past a limit.
               - name: bootc-iso-cache
                 mountPath: /var/cache/bib
                 subPath: bib
-              # Job workspace: node-local ephemeral storage.
               - name: work
                 mountPath: /home/runner/_work
-              # Scratch space. Not persistent, so leftovers cannot pile up between builds.
+
               - name: tmp
                 mountPath: /tmp
-              # buildah stages layers here while committing.
+
               - name: var-tmp
                 mountPath: /var/tmp
-              # Pulls go through zot first.
+
               - name: registries
                 mountPath: /etc/containers/registries.conf.d/zot-mirror.conf
                 subPath: zot-mirror.conf
                 readOnly: true
-              # XDG_RUNTIME_DIR for rootless podman: socket, auth file and runroot bookkeeping, a few MB at most.
+
               - name: xdg-runtime
                 mountPath: /tmp/xdg
-              # Host udev database, bind-mounted into `bootc install` containers (read-only).
+
               - name: host-udev
                 mountPath: /run/udev
                 readOnly: true
-              # Live host devtmpfs for `bootc install --via-loopback` (the e2e job); see helm-release.yaml.
+
               - name: host-dev
                 mountPath: /host-dev
         imagePullSecrets:
@@ -177,7 +156,7 @@ spec:
           - name: xdg-runtime
             emptyDir:
               medium: Memory
-              sizeLimit: 256Mi # counts against the pod's memory; real use is a few MB
+              sizeLimit: 256Mi # counts against the pod's memory
           - name: host-udev
             hostPath:
               path: /run/udev
@@ -186,7 +165,7 @@ spec:
             hostPath:
               path: /dev
               type: Directory
-          # sized for an ISO build: the checkout and the finished ISO (up to about 10 GiB for the offline image)
+          # ISOs reach about 10 GiB
           - name: work
             emptyDir:
               sizeLimit: 16Gi

@@ -58,7 +58,6 @@ configMapGenerator:
     namespace: claude-system
     options:
       annotations:
-        # Redpanda Connect interpolations and a web page, not Flux variables: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - vm-upgrade/redpanda-connect.yaml
@@ -67,7 +66,6 @@ configMapGenerator:
     namespace: claude-system
     options:
       annotations:
-        # Redpanda Connect interpolations and a web page, not Flux variables: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - urlshare/redpanda-connect.yaml
@@ -76,7 +74,6 @@ configMapGenerator:
     namespace: claude-system
     options:
       annotations:
-        # Redpanda Connect interpolations and a web page, not Flux variables: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - elevate/redpanda-connect.yaml
@@ -85,7 +82,6 @@ configMapGenerator:
     namespace: claude-system
     options:
       annotations:
-        # Redpanda Connect interpolations and a web page, not Flux variables: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - cockpit/redpanda-connect.yaml
@@ -110,7 +106,6 @@ configMapGenerator:
     namespace: claude-system
     options:
       annotations:
-        # Markdown, not a Flux template: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - cluster-alerts.md=claude-md/skills/cluster-alerts/SKILL.md

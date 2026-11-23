@@ -1,11 +1,6 @@
 ---
-# Scale set for the e2e workflow of cthtrifork/talos-gitops: Talos in Docker needs a Docker daemon, so the pod carries the same
-# Docker-in-Docker sidecar as helm-release.yaml, but with nothing shared: every pod gets its own ephemeral volumes, so
-# runs can go in parallel and leave nothing behind. talos-gitops is a public repository, so the workflow only runs
-# on this scale set for pushes, manual runs and pull requests from branches of the repository itself, never from forks.
-#
-# Select it with `runs-on: arc-e2e-talos-gitops`. minRunners is 0, so it costs nothing while unused. Uses the Secret
-# github-auth, so the runner GitHub App must be installed on talos-gitops.
+# Talos-in-Docker e2e for cthtrifork/talos-gitops (public repo): the workflow must only run here for pushes, manual
+# runs and PRs from the repo's own branches, never forks. Needs the runner GitHub App installed on talos-gitops.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -25,25 +20,22 @@ spec:
   upgrade:
     remediation:
       retries: 3
-  # https://github.com/actions/actions-runner-controller/blob/master/charts/gha-runner-scale-set/values.yaml
   values:
     controllerServiceAccount:
       name: gha-runner-scale-set-controller-gha-rs-controller
       namespace: arc-controller-system
 
     githubConfigUrl: https://github.com/cthtrifork/talos-gitops
-    runnerScaleSetName: arc-e2e-talos-gitops # runs-on: arc-e2e-talos-gitops
+    runnerScaleSetName: arc-e2e-talos-gitops
 
     maxRunners: 2 # a Talos-in-Docker cluster with Cilium and Flux takes about 4 GiB
     minRunners: 0
 
     githubConfigSecret: github-auth
-    containerMode: {} # we use custom
+    containerMode: {}
     template:
       spec:
-        # Same node as the cache server: a pod-to-pod transfer between two nodes runs at 3 to 5 MB/s in this cluster (see
-        # helm-release-bootc-iso.yaml) and the cache upload of mise-action stalled. The server's volume is node-local, so it
-        # never moves. If that node has no room for a runner the job waits.
+        # Same node as the cache server (node-local volume); cross-node transfer is too slow.
         affinity:
           podAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -92,7 +84,7 @@ spec:
               - name: DOCKER_GROUP_GID
                 value: "123"
             resources:
-              # The Talos control plane and worker (etcd, kubelets, Cilium, Flux) run inside this container
+              # The Talos nodes run inside this container
               requests:
                 cpu: 500m
                 memory: 6Gi
@@ -123,7 +115,7 @@ spec:
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
             image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261122.21@sha256:9bfb04321a84c9bbb63869084f8c33956f9cacfbca12db8d6f77701617358e4e
             imagePullPolicy: IfNotPresent
-            # patches the runner so it keeps ACTIONS_RESULTS_URL (images/github-actions-runner/use-cache-server); fails the pod when it cannot
+            # patches the runner to keep ACTIONS_RESULTS_URL; fails the pod when it cannot
             command:
               - "/usr/local/bin/use-cache-server"
               - "/home/runner/run.sh"
@@ -141,11 +133,10 @@ spec:
                 value: unix:///var/run/docker.sock
               - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
                 value: "120"
-              # the in-cluster cache server (k8s/apps/gha-cache): actions/cache and the tool caches (mise) stay in the cluster.
-              # The trailing slash is required. Artifacts are passed on to GitHub by the server.
+              # The trailing slash is required.
               - name: ACTIONS_RESULTS_URL
                 value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
-              # installs the CA mounted below
+
               - name: RUNNER_UPDATE_CA_CERTS
                 value: "1"
             volumeMounts:
@@ -162,7 +153,7 @@ spec:
           fsGroup: 1001
         volumes:
           - name: ca-certs
-            # trust-manager keeps this in step with the root CA
+
             configMap:
               name: portableinfo-ca-bundle
               items:

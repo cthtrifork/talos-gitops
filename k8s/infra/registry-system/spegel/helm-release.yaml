@@ -28,7 +28,7 @@ spec:
   values:
     spegel:
       containerdRegistryConfigPath: /etc/cri/conf.d/hosts
-      # the Talos zot mirrors (patches/11-zot-mirrors.yaml); an empty list replaces them all with one _default mirror
+      # must match the Talos zot mirrors (patches/11-zot-mirrors.yaml); an empty list becomes one _default mirror
       mirroredRegistries:
         - https://docker.io
         - https://mirror.gcr.io
@@ -37,7 +37,7 @@ spec:
         - https://registry.k8s.io
         - https://quay.io
         - https://us-docker.pkg.dev
-      # keep the Talos mirror hosts after Spegel: Spegel, then zot, then the upstream registry; restart the pods after a Talos registry patch (docs/registry-mirrors.md)
+      # order: Spegel, zot, upstream; restart the pods after a Talos registry patch (docs/registry-mirrors.md)
       prependExisting: true
     serviceMonitor:
       enabled: true
@@ -45,15 +45,6 @@ spec:
       enabled: true
       labels:
         grafana_dashboard: "1"
-    # podSecurityContext:
-    #   runAsNonRoot: false
-    #   runAsUser: &uid 0
-    #   runAsGroup: *uid
-    #   fsGroup: *uid
-    #   fsGroupChangePolicy: OnRootMismatch
-    #   seccompProfile:
-    #     type: RuntimeDefault
-
     livenessProbe:
       enabled: true
     securityContext:

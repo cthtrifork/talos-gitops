@@ -1,7 +1,5 @@
 ---
-# OpenEBS LVM LocalPV (CSI driver local.csi.openebs.io): a PVC is a logical volume of exactly its size, carved from the volume groups that Talos
-# builds (patches/14-lvm-2jc.yaml, docs/storage-plan.md). The node plugin is privileged (it runs lvm against the host's /dev), which this namespace
-# allows for the hostpath helper pods too. No snapshots: the snapshot CRDs, the snapshot controller and the csi-snapshotter sidecar are off.
+# LVM LocalPV on the volume groups that Talos builds (patches/*-lvm-*.yaml). No snapshots.
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/helm.toolkit.fluxcd.io/helmrelease_v2.json
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -28,7 +26,6 @@ spec:
       retries: 3
   # https://github.com/openebs/lvm-localpv/blob/develop/deploy/helm/charts/values.yaml
   values:
-    # names: openebs-lvm-controller and openebs-lvm-node
     fullnameOverride: openebs-lvm
     analytics:
       enabled: false
@@ -36,7 +33,6 @@ spec:
       csi:
         volumeSnapshots:
           enabled: false
-    # the scheduler places a pod where a volume group has room (CSIDriver storageCapacity)
     storageCapacity: true
     lvmController:
       snapshotController:
@@ -66,13 +62,11 @@ spec:
           repository: sig-storage/csi-node-driver-registrar
           # renovate: datasource=docker depName=registry.k8s.io/sig-storage/csi-node-driver-registrar versioning=docker
           tag: v2.18.0@sha256:b7fefd08651f00ac4df1a196ed4c621c2451fbb899297fe9fad9e36c667af0c0
-      # runs on every node, the tainted control plane node too
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
-      # volume group, physical volume and logical volume metrics on 9500 (lvm_vg_free_size_bytes and others); the label opens the port
-      # to Prometheus in the cluster-wide policy prometheus-scrape
+      # opens metrics port 9500 to Prometheus (cluster-wide policy prometheus-scrape)
       podLabels:
         prometheus-scrape: "true"
       serviceMonitor:
