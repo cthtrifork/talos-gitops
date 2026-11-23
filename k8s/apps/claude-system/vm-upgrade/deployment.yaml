@@ -4,6 +4,8 @@ kind: Deployment
 metadata:
   name: claude-vm-upgrade
   namespace: claude-system
+  annotations:
+    secret.reloader.stakater.com/reload: vm-upgrade-tokens
 spec:
   replicas: 1
   selector:
@@ -37,6 +39,17 @@ spec:
               containerPort: 8081
             - name: metrics
               containerPort: 4195
+          env:
+            - name: VM_TOKEN_CLAUDE_VM
+              valueFrom:
+                secretKeyRef:
+                  name: vm-upgrade-tokens
+                  key: claude-vm
+            - name: VM_TOKEN_HOMESERVER
+              valueFrom:
+                secretKeyRef:
+                  name: vm-upgrade-tokens
+                  key: homeserver
           readinessProbe:
             httpGet:
               path: /ready

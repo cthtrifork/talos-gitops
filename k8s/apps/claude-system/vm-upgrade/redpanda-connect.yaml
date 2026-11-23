@@ -1,5 +1,6 @@
 ---
-# The poll listener cannot tell the VMs apart, so a VM could claim another's click: the names are not a security boundary.
+# The poll listener (:8081) requires the X-Upgrade-Token of the VM named in the path. Cilium sets the header on each VM's
+# egress (k8s/virtualmachines/*/networkpolicy.yaml), replacing any value the VM sends, so a VM can only act as itself.
 # State is in memory; a click lives 10m and the first claim clears it.
 http:
   enabled: true
@@ -54,9 +55,13 @@ pipeline:
   processors:
     - mapping: |
         let vm_names = ["claude-vm", "homeserver"]
+        let tokens = {"claude-vm": env("VM_TOKEN_CLAUDE_VM").or(""), "homeserver": env("VM_TOKEN_HOMESERVER").or("")}
         let m = @http_server_request_path.re_find_object("^/api/v1/vms/(?P<vm>[a-z-]+)/(?P<action>[a-z]+)$")
-        meta vm = if $vm_names.contains($m.vm.or("")) { $m.vm } else { "" }
+        let vm = if $vm_names.contains($m.vm.or("")) { $m.vm } else { "" }
+        let token = if $vm == "" { "" } else { $tokens.get($vm).or("") }
+        meta vm = $vm
         meta action = $m.action.or("")
+        meta authed = $token != "" && metadata("X-Upgrade-Token").or("") == $token
     - switch:
         - check: '@listener == "ui"'
           processors:
@@ -268,6 +273,12 @@ processor_resources:
           - mapping: |
               meta content_type = "text/plain"
               root = "ok"
+
+      - check: '@authed != true'
+        processors:
+          - mapping: |
+              meta status = "401"
+              root = {"error": "unauthorized"}
 
       - check: '@http_server_verb == "POST" && @action == "claim" && @vm != ""'
         processors:

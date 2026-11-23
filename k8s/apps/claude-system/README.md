@@ -221,7 +221,7 @@ sequenceDiagram
     UI-->>You: queued
 
     loop every 60 s, per VM
-        Timer->>Poll: POST /api/v1/vms/VM/report: booted and staged deployment (NetworkPolicy: only the VMs' IPs)
+        Timer->>Poll: POST /api/v1/vms/VM/report: booted and staged deployment (Cilium adds the VM's X-Upgrade-Token)
         Poll->>Flag: store VM status, set VM:last_poll = now
         Timer->>Timer: last upgrade under 1 h ago? then skip the claim
         Timer->>Poll: POST /api/v1/vms/VM/claim
@@ -240,27 +240,35 @@ sequenceDiagram
 | Listener | Reached through | Endpoints |
 |---|---|---|
 | `:8080` page | Omni service exposer, `Service/claude-vm-upgrade` (port 50092, behind Omni login) | `GET /` the page, `GET /api/v1/status`, `POST /api/v1/vms/<vm>/upgrade` (needs the header `X-Requested-With: vm-upgrade-button`, so a form on another site cannot post it) |
-| `:8081` poll | MetalLB `claude-vm-upgrade-lb`, 192.168.1.244, plain HTTP, only from the VMs | `POST /api/v1/vms/<vm>/report`: the VM's booted and staged ostree deployment (also counts as a poll); `POST /api/v1/vms/<vm>/claim`: answers `{"upgrade": true}` once per click, then clears the flag |
+| `:8081` poll | MetalLB `claude-vm-upgrade-lb`, 192.168.1.244, plain HTTP; every request needs the `X-Upgrade-Token` of the VM in the path | `POST /api/v1/vms/<vm>/report`: the VM's booted and staged ostree deployment (also counts as a poll); `POST /api/v1/vms/<vm>/claim`: answers `{"upgrade": true}` once per click, then clears the flag |
 
 `<vm>` is `claude-vm` or `homeserver` (the list is `vm_names` in `redpanda-connect.yaml`); anything else is a 404. A third VM needs its name there, two more lines in
-the `/api/v1/status` handler, its pod selector in `CiliumNetworkPolicy/claude-vm-upgrade` (ingress and egress), and a label in `index.html`.
+the `/api/v1/status` handler, its pod selector in `CiliumNetworkPolicy/claude-vm-upgrade` (ingress and egress), a label in `index.html`, a token (a `Password`
+generator and `PushSecret` in `k8s/infra/secret-store/`, three `ExternalSecret`s in `vm-upgrade/externalsecret.yaml`, an env var in `deployment.yaml`), and the
+injection rule in the VM's egress policy.
 
 The flag lives 10 minutes and is cleared by the first claim, so one click is at most one upgrade; a pod restart drops an unclaimed click.
 The poll listener has no way to queue an upgrade, and the page listener has no `claim`.
 
 ### Access and DNS
 
-There is no token. The poll listener is reachable only on 8081 from the two KubeVirt VM pods (`claude-vm`, `homeserver-vm`) and from the nodes: `CiliumNetworkPolicy/claude-vm-upgrade`
-lists the pods by namespace and `kubevirt.io/vm` label, and the `host` and `remote-node` entities for the case where the LoadBalancer traffic is source-NATed to the
-node the VM runs on (Cilium then reports the node's address). This is weaker than a secret: anything on a node's host network can poll or claim a click, a VM can claim
-another VM's click, and the poll is plain HTTP, so a host in the path could answer `{"upgrade": true}` (bounded by each VM's one-upgrade-per-hour limit).
+Each VM has its own token (`claude-vm-upgrade-token`, `homeserver-vm-upgrade-token`), generated in `secret-store` and never stored on a VM. The VM's egress policy
+(`k8s/virtualmachines/*/networkpolicy.yaml`) sends its HTTP requests to `192.168.1.244:80` through Cilium's Envoy, which sets `X-Upgrade-Token` from a Secret in
+`cilium-secrets` (`headerMatches` with `mismatch: REPLACE`, so a value the VM sends is overwritten). The listener answers 401 unless the header equals the token of
+the VM in the path (and 401 for every VM when its token is unset). A VM can therefore only claim and report for itself, and a LAN host, a node's host-network
+process or a pod that is not a VM has no token. The `/healthz` path is open.
 
-Both VM images poll `http://vm-upgrade.portableinfo.cloud`, hardcoded, so nothing is seeded on the VMs. The one manual step is the Cloudflare record
-(DNS only, like `otel.portableinfo.cloud`): an `A` record `vm-upgrade` -> `192.168.1.244`. Until it exists the VMs log that the page is unreachable
-and try again a minute later. The name is in both images (`poll-upgrade` and `vm-upgrade-poll`); changing it means rebuilding them.
+Ingress still lets in the two VM pods and, for traffic source-NATed to the node the VM runs on, `host` and `remote-node` (`CiliumNetworkPolicy/claude-vm-upgrade`);
+the token, not the source address, is the authentication. Limits: the poll is plain HTTP, so a host in the path could answer `{"upgrade": true}` (bounded by each
+VM's one-upgrade-per-hour limit); anything running inside a VM can make requests that get the token injected; the token is compared with `==`, not in constant
+time. Rotating a token: delete the key in the `secret-store` namespace Secret; External Secrets regenerates it, Cilium reloads it, and Reloader restarts the listener.
 
-Check from a VM: `curl -s -XPOST http://vm-upgrade.portableinfo.cloud/api/v1/vms/claude-vm/claim` answers `{"upgrade":false}` while nothing is queued (from
-any other address the request times out).
+The VMs resolve `vm-upgrade.portableinfo.cloud` through the router (`dnsConfig` in `virtualmachine.yaml`), and both images poll `http://vm-upgrade.portableinfo.cloud`,
+hardcoded. The one manual step is the Cloudflare record (DNS only, like `otel.portableinfo.cloud`): an `A` record `vm-upgrade` -> `192.168.1.244`. Until it exists the
+VMs log that the page is unreachable and try again a minute later. The name is in both images (`poll-upgrade` and `vm-upgrade-poll`); changing it means rebuilding them.
+
+Check from a VM: `curl -s -XPOST http://vm-upgrade.portableinfo.cloud/api/v1/vms/claude-vm/claim` answers `{"upgrade":false}` while nothing is queued. From any
+other address it answers 401. To confirm the injection, request the claim path of the other VM from a VM: 401.
 
 The page shows, per VM, when it last polled and what it runs (booted version and image digest, and the staged version if any), so a dead timer is
 visible and you can tell whether an update is waiting for a reboot.

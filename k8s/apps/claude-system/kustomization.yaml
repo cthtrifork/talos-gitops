@@ -24,6 +24,7 @@ resources:
   - usage/service.yaml
   - usage/podmonitor.yaml
   - vm-upgrade/deployment.yaml
+  - vm-upgrade/externalsecret.yaml
   - vm-upgrade/service.yaml
   - vm-upgrade/podmonitor.yaml
   - urlshare/deployment.yaml

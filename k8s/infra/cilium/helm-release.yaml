@@ -36,6 +36,9 @@ spec:
       enabled: true
     ipv6:
       enabled: false
+    # holds only Secrets (the VM poll tokens); the label satisfies require-namespace-psa-enforce
+    secretsNamespaceLabels:
+      pod-security.kubernetes.io/enforce: restricted
     ipam:
       mode: kubernetes
     enableLBIPAM: false

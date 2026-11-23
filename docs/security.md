@@ -40,7 +40,7 @@ MetalLB L2 pool `192.168.1.221-254`, `autoAssign: false` (`k8s/infra/post/metall
 | `192.168.1.240` | zot registry (`registry-system`) | 5000, TLS from the internal CA | `world`, host, remote-node, kube-apiserver. `zot.json` has no `auth` or `accessControl` block |
 | `192.168.1.242` | Dependency-Track API (`dependency-track-system`) | 8080, plain HTTP | `world`, host, remote-node, kube-apiserver. API keys and logins are Dependency-Track's own |
 | `192.168.1.243` | Prometheus (`prometheus-otlp-lb`) | 80, plain HTTP | `fromCIDR 192.168.1.0/24` on 9090. The whole Prometheus HTTP API, admin API off; no authentication (`k8s/apps/claude-system/README.md`) |
-| `192.168.1.244` | `claude-vm-upgrade` poll listener | 80 (pod 8081) | The two VM pods, host and remote-node. No token; plain HTTP (`k8s/apps/claude-system/README.md`) |
+| `192.168.1.244` | `claude-vm-upgrade` poll listener | 80 (pod 8081) | The two VM pods, host and remote-node by source; the listener requires the per-VM `X-Upgrade-Token` that Cilium injects into the VMs' egress, so other sources get 401. Plain HTTP (`k8s/apps/claude-system/README.md`) |
 | `192.168.1.245` | `claude-urlshare` API | 80 (pod 8081) | `fromCIDR 192.168.1.0/24` |
 | `192.168.1.246` / `.247` | SSH to `claude-vm` / `homeserver-vm` | 22 | `fromCIDRSet 192.168.1.0/24` |
 | `192.168.1.253` | AdGuard Home DNS | 53, 853, 443 | `world` and `cluster` |
@@ -84,7 +84,7 @@ Broader egress, all stated in the files:
 
 | Workload | Egress | File |
 |---|---|---|
-| `claude-vm`, `homeserver-vm` and their CDI importer pods | `toEntities: world`, all ports. `claude-vm`'s own gateway (nftables, nginx, dnsmasq inside the VM; *outside the repo*) restricts the agent users to a host list; `homeserver-vm` has none | `k8s/virtualmachines/*/networkpolicy.yaml` |
+| `claude-vm`, `homeserver-vm` and their CDI importer pods | The VMs: `toCIDRSet 0.0.0.0/0` except `192.168.1.244/32`, all ports; the CDI importers `toEntities: world`. `claude-vm`'s own gateway (nftables, nginx, dnsmasq inside the VM; *outside the repo*) restricts the agent users to a host list; `homeserver-vm` has none. Port 80 to `192.168.1.244` goes through Envoy, which sets `X-Upgrade-Token` from `cilium-secrets` | `k8s/virtualmachines/*/networkpolicy.yaml` |
 | `claude-urlshare` | `0.0.0.0/0` except private and reserved ranges, TCP 80 and 443 (it fetches user-approved URLs) | `k8s/apps/claude-system/networkpolicy.yaml` |
 | `harper-pad-admin` | Non-RFC1918 addresses on TCP/UDP 7844 and TCP 443 (Kubernetes NetworkPolicy) | `k8s/apps/harper-pad/networkpolicy.yaml` |
 | `arc-runners-system` | About 80 named hosts: GitHub, container registries, package and tool hosts, Fedora and Ubuntu mirrors, Sigstore, VS Code marketplace | `k8s/apps/arc-runner/networkpolicy.yaml` |
@@ -107,7 +107,7 @@ The `deny-world-egress` Kyverno policy (below) rejects `world` and `all` entitie
 | Level | Namespaces |
 |---|---|
 | `restricted`, enforce + audit + warn | `claude-system`, `renovate-system`, `fileserver-system`, `gha-cache-system`, `harper-pad`, `cert-manager-system`, `traefik-system`, `storage-system`, `reloader-system` |
-| `restricted`, enforce only | `external-secrets-system`, `external-dns-system`, `secret-store` |
+| `restricted`, enforce only | `external-secrets-system`, `external-dns-system`, `secret-store`, `cilium-secrets` (label from the Cilium chart's `secretsNamespaceLabels`) |
 | `baseline` enforce, `restricted` audit + warn | `policy-system`, `dependency-track-system`, `arc-controller-system` (pods created at runtime by CNPG, ARC and Kyverno are not in the repo), `cdi` (label patched over the upstream manifest in `k8s/infra/kubevirt/kustomization.yaml`; CDI creates its pods at runtime) |
 | `baseline`, enforce + audit + warn | `adguard-system` (file capability needs `allowPrivilegeEscalation`), `trivy-system` (scan jobs are created at runtime), `kubevirt-system` |
 | `baseline`, enforce + warn | `claude-vm`, `homeserver-vm` (virt-launcher needs `NET_BIND_SERVICE` and `/dev/kvm`) |
@@ -207,8 +207,9 @@ The Pod Security Admission default for unlabelled namespaces is set in `patches/
 
 - Committed secrets are SOPS/age encrypted (`.sops.yaml`: YAML `data` and `stringData`, JSON whole). 16 `*.enc.yaml` files. CI runs `scripts/ci/check-secrets-encrypted.sh` (`.github/workflows/validate.yaml`).
 - Flux decrypts with `flux-system/sops-age`. The age private key is kept outside Git and the cluster's copy is the Secret (`readme.md`, "Secrets (SOPS)").
-- Generated secrets never enter Git: the Dependency-Track KEK and admin password, the fileserver upload token, and the Garage keys are created by External Secrets in the `secret-store` namespace (`k8s/infra/secret-store/`) and copied out.
-- The `secret-store` ClusterSecretStore is usable only from `secret-store`, `renovate-system`, `dependency-track-system`, `fileserver-system`, `arc-runners-system` (`k8s/infra/secret-store/clustersecretstore.yaml`). Its ServiceAccount can read, create and update Secrets in `secret-store`.
+- Generated secrets never enter Git: the Dependency-Track KEK and admin password, the fileserver upload token, the per-VM poll tokens and the Garage keys are created by External Secrets in the `secret-store` namespace (`k8s/infra/secret-store/`) and copied out.
+- The VM poll tokens are never stored in a VM: Cilium's Envoy sets them on the VM's egress requests from Secrets in `cilium-secrets`. Anything running inside a VM can still make requests that get its own token injected.
+- The `secret-store` ClusterSecretStore is usable only from `secret-store`, `renovate-system`, `dependency-track-system`, `fileserver-system`, `arc-runners-system`, `claude-system`, `cilium-secrets` (`k8s/infra/secret-store/clustersecretstore.yaml`). Its ServiceAccount can read, create and update Secrets in `secret-store`.
 - Dependency-Track encrypts stored secrets with the KEK; losing the KEK makes them unreadable (`k8s/infra/dependency-track-system/README.md`).
 - Certificates: an internal CA (`certificate-cluster-issuer`, root `portableinfo-root-ca`) for zot, Hubble and runners' trust bundle; Let's Encrypt DNS-01 through Cloudflare for AdGuard (`k8s/infra/post/cert-manager/`).
 - harper-pad's database uses client-certificate authentication, no passwords (`k8s/apps/harper-pad/README.md`).
@@ -257,7 +258,7 @@ Dependency-Track analysis (not affected, false positive, resolved) -> daily vex-
 - `deny-world-egress` does not see CIDR rules or Kubernetes NetworkPolicies; the `claude-urlshare` and `harper-pad-admin` rules are of that kind.
 - Host-network pods (Cilium, MetalLB speaker and `frr-k8s`, node-exporter, Omni exposer, the control-plane static pods) are outside Cilium policy enforcement.
 - zot is unauthenticated according to `zot.json` and is reachable from the LAN. Dependency-Track's API is served in plain HTTP on the LAN; Prometheus on `192.168.1.243` has no authentication.
-- The VM-upgrade poll listener has no token: any host that can reach `192.168.1.244:80`, or any host-network process on a node, can poll or claim (`k8s/apps/claude-system/README.md`).
+- The VM-upgrade poll listener authenticates with a per-VM token injected by Cilium. The poll is plain HTTP, so a host in the path could answer `{"upgrade": true}`; the token is compared with `==`, not in constant time (`k8s/apps/claude-system/README.md`).
 - Privileged runners can read `FILESERVER_TOKEN`; protection of the repositories that use them is configured in GitHub (*outside the repo*).
 - Workloads and Talos nodes share hardware: the three nodes are control plane and run all workloads.
 - The Trivy operator does not scan `arc-runners-system` or `arc-controller-system`. No scan of the Talos OS or of the VM guest operating systems is configured in this repo.

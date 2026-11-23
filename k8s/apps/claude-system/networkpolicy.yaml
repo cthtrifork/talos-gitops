@@ -212,8 +212,8 @@ spec:
             - port: "9090"
               protocol: TCP
 ---
-# Update-VMs buttons. The VMs poll 8081 and appear as their launcher pod or, across nodes, as host / remote-node.
-# There is no other authentication, so keep ingress to 8081.
+# Update-VMs buttons. The VMs poll 8081 and appear as their launcher pod or, across nodes, as host / remote-node, so ingress
+# cannot tell them apart. The listener authenticates them by the X-Upgrade-Token that Cilium injects into each VM's egress.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
