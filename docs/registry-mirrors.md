@@ -104,14 +104,20 @@ cache names as `patches/11-zot-mirrors.yaml`). A zot outage therefore stalls cha
 because zot keeps the upstream manifests unchanged.
 
 The file holds the upstream address behind a Flux variable with the registry as its default:
-`url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/traefik/helm/traefik` (`ZOT_MIRROR_QUAY` for quay.io). The cluster sets the variables, so Flux pulls
-through zot; everything that reads the file without them (CI, Renovate, `render-manifests.sh`) sees the upstream registry.
+`url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/traefik/helm/traefik` (`ZOT_MIRROR_QUAY` for quay.io, `ZOT_MIRROR_K8S` for registry.k8s.io). The
+cluster sets the variables, so Flux pulls through zot; everything that reads the file without them (CI, Renovate, `render-manifests.sh`)
+sees the upstream registry. Every OCIRepository has such a variable, including the charts zot itself depends on (Cilium, flux-operator,
+cert-manager, trust-manager, openebs-lvm, Spegel, zot, prometheus-operator-crds).
 
-- Where the variables are set: one patch in `k8s/clusters/homelab/kustomization.yaml` adds `ZOT_MIRROR_GHCR` and `ZOT_MIRROR_QUAY` to the
-  `postBuild.substitute` of the Flux Kustomizations listed in its `name` pattern. A Kustomization that gets a new OCIRepository must be added
-  there; if its name is missing the chart is silently pulled from upstream. A new upstream registry needs a variable of its own, set there.
-- Not routed through zot (no variable): the charts zot depends on, which would deadlock a cluster rebuilt from empty: Cilium, flux-operator,
-  cert-manager, trust-manager, openebs-lvm (zot's volume), Spegel, zot itself and prometheus-operator-crds (bootstrap). They keep their upstream URL.
+- Where the variables are set: one patch in `k8s/clusters/homelab/kustomization.yaml` adds `ZOT_MIRROR_GHCR`, `ZOT_MIRROR_QUAY` and
+  `ZOT_MIRROR_K8S` to the `postBuild.substitute` of the Flux Kustomizations listed in its `name` pattern. A Kustomization that gets a new
+  OCIRepository must be added there and have `var_substitution_enabled` on; if its name is missing the chart is silently pulled from
+  upstream. A new upstream registry needs a variable of its own, set there.
+- Bootstrapping a cluster without zot: zot and its dependencies come from OCIRepositories too, so a cluster rebuilt from empty cannot pull
+  them from a zot that does not exist yet. Leave the variables unset for the first sync (drop the patch above), wait until
+  `gitops-infra-registry-system` is Ready, then restore the patch: the OCIRepositories switch to zot on their next reconcile.
+- Zot outage on a running cluster: source-controller keeps the artifacts it already fetched, so releases keep running and only new chart
+  versions wait. To get past a zot that cannot start, drop the patch the same way.
 - Charts without an upstream OCI chart (polaris, metrics-server, Redpanda `connect`) are mirrored to
   `ghcr.io/cthtrifork/talos-gitops/charts` by `.github/workflows/helm-chart-sync.yaml` (configs in `scripts/ci/helm/`) and read from there
   through `ghcr-cache`. A new chart version appears in Git only after the sync has pushed it.
@@ -124,10 +130,9 @@ through zot; everything that reads the file without them (CI, Renovate, `render-
   registry, and through zot wherever `ZOT_MIRROR_*` is set in its environment (a runner in the cluster). A `localhost` registry is
   pulled over plain HTTP. To try that on a workstation, `make render-manifests-zot` starts `scripts/zot/compose.yaml` (a local zot
   with the cluster's caches: same cache names, on-demand sync from the upstream registries, no TLS, credentials or retention) and renders
-  through it with `ZOT_MIRROR_GHCR=localhost:5000/ghcr-cache` and `ZOT_MIRROR_QUAY=localhost:5000/quay-cache`; `RENDER_DIRS="dir1 dir2"`
+  through it with `ZOT_MIRROR_GHCR`, `ZOT_MIRROR_QUAY` and `ZOT_MIRROR_K8S` pointing at `localhost:5000`; `RENDER_DIRS="dir1 dir2"`
   limits it. It leaves zot running (`make zot-down` stops it; `docker compose -f scripts/zot/compose.yaml down -v` also empties the
-  cache). The first render fills the cache from upstream, later ones read it. The charts of the bootstrap chain and external-dns have no
-  variable, so they are always pulled from upstream.
+  cache). The first render fills the cache from upstream, later ones read it.
 - e2e: kind's CoreDNS gets a `hosts` entry for the zot service name and `portableinfo-ca-bundle` is created from the runner's CA
   (steps "Resolve the cluster zot inside kind" and "Trust the private CA in flux-system" in `.github/workflows/e2e.yaml`).
 

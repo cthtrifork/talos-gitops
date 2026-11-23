@@ -59,5 +59,6 @@ zot-down:
 
 render-manifests-zot: export ZOT_MIRROR_GHCR := localhost:5000/ghcr-cache
 render-manifests-zot: export ZOT_MIRROR_QUAY := localhost:5000/quay-cache
+render-manifests-zot: export ZOT_MIRROR_K8S := localhost:5000/k8s-cache
 render-manifests-zot: zot-up
 	$(MAKE) render-manifests

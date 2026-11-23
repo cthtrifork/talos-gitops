@@ -7,7 +7,7 @@ metadata:
   namespace: registry-system
 spec:
   interval: 12h
-  url: oci://ghcr.io/project-zot/helm-charts/zot
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/project-zot/helm-charts/zot
   ref:
     tag: 0.1.135
     digest: sha256:80824a60e123c24ba156fe378dd73057e14c8acd836940b26545efb976ded9b9

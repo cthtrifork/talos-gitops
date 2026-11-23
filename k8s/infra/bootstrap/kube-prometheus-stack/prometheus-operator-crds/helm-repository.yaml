@@ -7,7 +7,7 @@ metadata:
   namespace: kube-prometheus-stack-system
 spec:
   interval: 12h
-  url: oci://ghcr.io/prometheus-community/charts/prometheus-operator-crds
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/prometheus-community/charts/prometheus-operator-crds
   ref:
     tag: 33.0.2
     digest: sha256:d327bd0fc1c77b62e481791650ef6fcfff9982646bcaca4cd2483c447630fe77

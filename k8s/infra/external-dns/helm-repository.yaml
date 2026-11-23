@@ -7,7 +7,7 @@ metadata:
   namespace: external-dns-system
 spec:
   interval: 12h
-  url: oci://registry.k8s.io/external-dns/charts/external-dns
+  url: oci://${ZOT_MIRROR_K8S:=registry.k8s.io}/external-dns/charts/external-dns
   ref:
     tag: 1.24.0
     digest: sha256:1273036048cd516dfd077a27b653c15c28aba69b676ec3b081e00be90abec8a5

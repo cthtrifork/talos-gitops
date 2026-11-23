@@ -6,7 +6,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 30m
-  url: oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/controlplaneio-fluxcd/charts/flux-operator
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
