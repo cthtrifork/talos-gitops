@@ -1,0 +1,15 @@
+---
+# https://github.com/kubernetes-sigs/metrics-server/issues/1527
+source:
+  repo:
+    kind: HELM
+    url: "https://kubernetes-sigs.github.io/metrics-server/"
+target:
+  repo:
+    kind: OCI
+    url: "https://ghcr.io/cthtrifork/talos-gitops/charts"
+
+charts:
+  - metrics-server
+
+skipImages: true
