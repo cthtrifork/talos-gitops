@@ -7,14 +7,9 @@ metadata:
 spec:
   interval: 30m
   timeout: 10m
-  chart:
-    spec:
-      chart: polaris
-      version: 6.0.1
-      sourceRef:
-        name: fairwinds
-        kind: HelmRepository
-        namespace: policy-system
+  chartRef:
+    kind: OCIRepository
+    name: polaris
   driftDetection:
     mode: enabled
     ignore:

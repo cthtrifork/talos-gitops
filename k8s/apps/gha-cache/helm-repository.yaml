@@ -7,7 +7,7 @@ metadata:
   namespace: gha-cache-system
 spec:
   interval: 12h
-  url: oci://ghcr.io/falcondev-oss/charts/github-actions-cache-server
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/falcondev-oss/charts/github-actions-cache-server
   ref:
     tag: "2.0.2"
     digest: "sha256:49e7311215496077f213de29d40aa20121e966a9b91edddcd187ced90010fc34"

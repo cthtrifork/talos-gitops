@@ -51,6 +51,34 @@ spec:
                     resources:
                       requests:
                         memory: 128Mi
+      # OCIRepositories pull through zot, whose certificate is issued by the private CA. trust-manager keeps the ConfigMap in step
+      # with that CA. Go reads SSL_CERT_DIR next to its system roots, and the volume is optional so source-controller still
+      # starts before trust-manager (installed from an OCIRepository itself) has created the ConfigMap.
+      - target:
+          kind: Deployment
+          name: source-controller
+        patch: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: not-used
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: manager
+                    env:
+                      - name: SSL_CERT_DIR
+                        value: /etc/private-ca
+                    volumeMounts:
+                      - name: private-ca
+                        mountPath: /etc/private-ca
+                        readOnly: true
+                volumes:
+                  - name: private-ca
+                    configMap:
+                      name: portableinfo-ca-bundle
+                      optional: true
   sync:
     kind: GitRepository
     url: "https://github.com/cthtrifork/talos-gitops"

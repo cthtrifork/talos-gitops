@@ -1,5 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  // OCIRepository urls are oci://${ZOT_MIRROR_<REGISTRY>:=<registry>}/<path>: the cluster sets the variable (zot), CI and Renovate
+  // see the default, the upstream registry (see docs/registry-mirrors.md). The alias is that literal default string.
+  "registryAliases": {
+    "${ZOT_MIRROR_GHCR:=ghcr.io}": "ghcr.io",
+    "${ZOT_MIRROR_QUAY:=quay.io}": "quay.io",
+    "${ZOT_MIRROR_K8S:=registry.k8s.io}": "registry.k8s.io"
+  },
   "extends": [
     "config:best-practices",
     "group:recommended"

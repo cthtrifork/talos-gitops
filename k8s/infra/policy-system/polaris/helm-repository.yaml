@@ -1,10 +1,18 @@
 ---
-# Migrate to OCIRepository when https://github.com/FairwindsOps/charts/issues/1755 is resolved
+# Fairwinds publishes no OCI chart (https://github.com/FairwindsOps/charts/issues/1755): the chart is mirrored to
+# ghcr.io/cthtrifork/talos-gitops/charts by .github/workflows/helm-chart-sync.yaml and pulled through zot.
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/source.toolkit.fluxcd.io/ocirepository_v1.json
 apiVersion: source.toolkit.fluxcd.io/v1
-kind: HelmRepository
+kind: OCIRepository
 metadata:
-  name: fairwinds
+  name: polaris
   namespace: policy-system
 spec:
-  interval: 30m0s
-  url: https://charts.fairwinds.com/stable
+  interval: 12h
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/cthtrifork/talos-gitops/charts/polaris
+  ref:
+    tag: 6.0.1
+    digest: sha256:6d715e4d7d9f183b01e283c3b708197dd2408f6312b273cf5c1590a818a92616
+  layerSelector:
+    mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
+    operation: extract

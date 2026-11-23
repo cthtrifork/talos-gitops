@@ -1,0 +1,20 @@
+---
+# A local copy of the cluster's zot pull-through caches (k8s/infra/registry-system/zot/zot.json: same cache names, on-demand sync,
+# no TLS, credentials or retention), to render manifests the way an in-cluster runner does. Use it through the Makefile:
+#
+#   make render-manifests-zot    # starts it (zot-up), renders through it
+#   make zot-down                # stops it
+#
+# helm talks plain HTTP to localhost. The cache survives `down`; `docker compose -f scripts/zot/compose.yaml down -v` empties it.
+services:
+  zot:
+    image: ghcr.io/project-zot/zot:v2.1.23@sha256:9d3de83ac2099e6f4843045b4c9b65b7e8baf40f92d28f54906dee9d4d390fd7
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - ./config.json:/etc/zot/config.json:ro
+      - zot-cache:/var/lib/registry
+    restart: unless-stopped
+
+volumes:
+  zot-cache:
