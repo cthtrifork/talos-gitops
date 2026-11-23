@@ -25,17 +25,6 @@ spec:
   upgrade:
     remediation:
       retries: 3
-  postRenderers:
-    - kustomize:
-        patches:
-          # The chart sets app.kubernetes.io/version to .Chart.Version without sanitizing it.
-          # Flux appends the OCI digest as build metadata (e.g. 6.0.1+6d715e4d7d9f), and '+' is
-          # not allowed in label values, so the API server rejects every resource with the label.
-          - target:
-              labelSelector: "app.kubernetes.io/version"
-            patch: |
-              - op: remove
-                path: /metadata/labels/app.kubernetes.io~1version
   # https://github.com/FairwindsOps/charts/blob/master/stable/polaris/values.yaml
   values:
     image:

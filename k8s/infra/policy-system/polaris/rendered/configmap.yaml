@@ -1,4 +1,19 @@
+---
+# Source: polaris/templates/configmap.yaml
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: polaris
+  labels:
+    app: polaris
+    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/instance: polaris
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: polaris
+    app.kubernetes.io/part-of: polaris
+    app.kubernetes.io/version: "6.0.1"
+    helm.sh/chart: polaris-6.0.1
+  namespace: policy-system
 data:
   config.yaml: |
     checks:
@@ -285,15 +300,3 @@ data:
         namespace: renovate-system
         rules:
         - sensitiveContainerEnvVar
-kind: ConfigMap
-metadata:
-  labels:
-    app: polaris
-    app.kubernetes.io/component: dashboard
-    app.kubernetes.io/instance: polaris
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: polaris
-    app.kubernetes.io/part-of: polaris
-    helm.sh/chart: polaris-6.0.1
-  name: polaris
-  namespace: policy-system
