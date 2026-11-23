@@ -1,0 +1,14 @@
+# https://github.com/FairwindsOps/charts/issues/1755
+source:
+  repo:
+    kind: HELM
+    url: "https://charts.fairwinds.com/stable"
+target:
+  repo:
+    kind: OCI
+    url: "https://ghcr.io/cthtrifork/talos-gitops"
+
+charts:
+  - polaris
+  
+skipImages: true
