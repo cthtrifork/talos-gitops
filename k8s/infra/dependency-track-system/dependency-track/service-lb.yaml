@@ -1,0 +1,21 @@
+# LAN-only access to the api-server through MetalLB, as for zot-lb, for API clients (the UI is served by the IngressRoute
+# in post/dependency-track-system/). Plain HTTP.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dependency-track-api-server-lb
+  namespace: dependency-track-system
+  annotations:
+    metallb.io/loadBalancerIPs: 192.168.1.242
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      targetPort: web
+      protocol: TCP
+      name: web
+  selector:
+    app.kubernetes.io/instance: dependency-track
+    app.kubernetes.io/name: dependency-track-api-server
+    app.kubernetes.io/component: api-server

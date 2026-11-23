@@ -1,0 +1,23 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - external-secret-kek.yaml
+  - external-secret-admin.yaml
+  - vex-github-githubaccesstoken.yaml
+  - external-secret-vex-github.yaml
+  - config-configmap.yaml
+  - rbac.yaml
+  - config-cronjob.yaml
+  - vex-export-cronjob.yaml
+  - vex-github-app.enc.yaml
+  - service-lb.yaml
+  - helm-release.yaml
+  - helm-repository.yaml
+configMapGenerator:
+  - name: dependency-track-frontend-config
+    namespace: dependency-track-system
+    files:
+      - config.json=frontend-config.json
+generatorOptions:
+  disableNameSuffixHash: true # the helm values refer to the ConfigMap by name; Reloader restarts the pod on a change

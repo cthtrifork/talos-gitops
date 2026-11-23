@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/kustomize.toolkit.fluxcd.io/kustomization_v1.json
 ---
 # What gitops-infra-post used to hold but no app needs: the Flux and Dependency-Track ingress routes and the Dependency-Track database. Split out so
-# that a broken Prometheus or security-system no longer holds back the apps (they wait for gitops-infra-post, not for this).
+# that a broken Prometheus or dependency-track-system no longer holds back the apps (they wait for gitops-infra-post, not for this).
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -16,7 +16,7 @@ spec:
   dependsOn:
     - name: gitops-infra-post
     - name: gitops-infra-flux-system
-    - name: gitops-infra-security-system
+    - name: gitops-infra-dependency-track-system
   sourceRef:
     kind: GitRepository
     name: flux-system

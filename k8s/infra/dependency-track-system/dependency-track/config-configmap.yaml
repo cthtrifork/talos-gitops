@@ -1,0 +1,64 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dependency-track-config
+  namespace: dependency-track-system
+data:
+  teams.json: |
+    [
+      {
+        "name": "sbom-uploader",
+        "secret": "dependency-track-api-key",
+        "permissions": ["BOM_UPLOAD", "PROJECT_CREATION_UPLOAD"]
+      },
+      {
+        "name": "vex-exporter",
+        "secret": "dependency-track-vex-api-key",
+        "permissions": ["VIEW_PORTFOLIO", "VULNERABILITY_ANALYSIS_READ"]
+      },
+      {
+        "name": "claude-triage",
+        "secret": "dependency-track-claude-api-key",
+        "namespace": "claude-system",
+        "permissions": ["VIEW_PORTFOLIO", "VIEW_VULNERABILITY", "VULNERABILITY_ANALYSIS_READ", "VULNERABILITY_ANALYSIS_CREATE", "VULNERABILITY_ANALYSIS_UPDATE"]
+      }
+    ]
+  properties.json: |
+    [
+      {
+        "groupName": "general",
+        "propertyName": "base.url",
+        "propertyValue": "https://dtrack.portableinfo.cloud"
+      }
+    ]
+  extensions.json: |
+    [
+      {
+        "point": "vuln-analyzer",
+        "name": "trivy",
+        "config": {
+          "enabled": true,
+          "apiUrl": "http://trivy-service.trivy-system.svc.cluster.local:4954",
+          "ignoreUnfixed": false,
+          "scanLibrary": true,
+          "scanOs": true
+        }
+      },
+      {
+        "point": "kev-data-source",
+        "name": "cisa",
+        "config": {
+          "enabled": true,
+          "feedUrl": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+        }
+      },
+      {
+        "point": "kev-data-source",
+        "name": "enisa",
+        "config": {
+          "enabled": true,
+          "feedUrl": "https://raw.githubusercontent.com/enisaeu/CNW/main/advisories/eukev/eukev.json"
+        }
+      }
+    ]

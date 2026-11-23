@@ -162,7 +162,7 @@ spec:
                   key: OMNI_SERVICE_ACCOUNT_KEY
                   optional: true
             - name: DT_URL
-              value: http://dependency-track-api-server.security-system.svc:8080
+              value: http://dependency-track-api-server.dependency-track-system.svc:8080
             - name: DT_API_KEY
               valueFrom:
                 secretKeyRef:
