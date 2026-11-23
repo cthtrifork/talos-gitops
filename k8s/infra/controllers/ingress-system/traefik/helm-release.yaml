@@ -26,7 +26,7 @@ spec:
       registry: mirror.gcr.io
       repository: library/traefik
       # renovate: datasource=docker depName=mirror.gcr.io/library/traefik versioning=docker
-      tag: v3.7.19@sha256:a6c0194dda77bcb804824580f36fa7edc56e315b1acfe933366c8b52844a78a4
+      tag: v3.7.20@sha256:f454571dee2afa1fc77287d811e92ce3c4353e82802116b0622a3665322b63aa
     deployment:
       replicas: 2
       annotations:

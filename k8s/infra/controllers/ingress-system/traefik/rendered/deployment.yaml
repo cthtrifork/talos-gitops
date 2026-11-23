@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/instance: traefik-traefik-system
-    app.kubernetes.io/version: "v3.7.19"
+    app.kubernetes.io/version: "v3.7.20"
     helm.sh/chart: traefik-42.4.2
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -35,7 +35,7 @@ spec:
         app.kubernetes.io/instance: traefik-traefik-system
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: traefik
-        app.kubernetes.io/version: v3.7.19
+        app.kubernetes.io/version: v3.7.20
     spec:
       automountServiceAccountToken: true
       containers:
@@ -68,7 +68,7 @@ spec:
               value: traefik
             - name: GOMEMLIMIT
               value: 172MiB
-          image: mirror.gcr.io/library/traefik:v3.7.19@sha256:a6c0194dda77bcb804824580f36fa7edc56e315b1acfe933366c8b52844a78a4
+          image: mirror.gcr.io/library/traefik:v3.7.20@sha256:f454571dee2afa1fc77287d811e92ce3c4353e82802116b0622a3665322b63aa
           imagePullPolicy: IfNotPresent
           lifecycle: null
           livenessProbe:
