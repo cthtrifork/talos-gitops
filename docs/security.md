@@ -94,7 +94,7 @@ Labels are on each namespace (`grep -r pod-security.kubernetes.io k8s`). Enforce
 - `restricted`: the application namespaces, `cert-manager-system`, `traefik-system`, `cnpg-system`, `reloader-system`, `external-secrets-system`, `external-dns-system`, `secret-store`, `cilium-secrets`.
 - `baseline`: `policy-system`, `dependency-track-system`, `arc-controller-system`, `cdi`, `adguard-system`, `trivy-system`, `kubevirt-system`, `claude-vm`, `homeserver-vm`.
 - `privileged`: `arc-runners-system`, `metallb-system`, `openebs-system`, `registry-system`, `kubevirt`, `kube-prometheus-stack-system`.
-- Unlabelled: `kube-system` (exempt) and `flux-system`, which get the API-server default (`patches/19-pod-security.yaml`: enforce `baseline`, audit and warn `restricted`).
+- Unlabelled: `kube-system` (exempt) and `flux-system`, which get the Talos API-server default (enforce `baseline`, audit and warn `restricted`).
 
 Pods created at runtime (CNPG, ARC, Kyverno, CDI, Trivy scan jobs) are not in the repo; their namespaces' levels are set for them.
 
