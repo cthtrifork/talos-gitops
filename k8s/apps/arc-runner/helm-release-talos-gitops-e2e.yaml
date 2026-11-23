@@ -150,6 +150,7 @@ spec:
                 mountPath: /var/run
         imagePullSecrets:
           - name: github-auth
+        automountServiceAccountToken: false
         securityContext:
           fsGroup: 1001
           seccompProfile:
