@@ -20,7 +20,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 0895b9cc76f0552ad0c2bc73e1b7cdac1f959ff52c750d36af7b724bc50c75d5
+        checksum/config: 2dba109591f6455aaa1315b761906de26d843e92b709143158dca1a34e12eb5b
         reloader.stakater.com/auto: "true"
       labels:
         app.kubernetes.io/name: redpanda-connect
