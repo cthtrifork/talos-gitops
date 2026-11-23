@@ -15,7 +15,8 @@ env:
   ZOT: zot.registry-system.svc.cluster.local:5000
 
 concurrency:
-  group: ${{ github.ref }}-${{ github.workflow }}
+  # Merged pull_request.closed events use the base branch ref, so group PR events by number.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
