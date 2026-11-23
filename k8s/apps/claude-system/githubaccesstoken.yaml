@@ -1,12 +1,6 @@
-# Keeps the Secret `claude-github-token` fresh from a GitHub App, so the runner never holds a long-lived token. Every 30
-# minutes External Secrets signs a JWT with the App's private key and trades it for a one-hour installation token (the
-# GithubAccessToken generator). The request names no repositories or permissions, so the token gets everything the App
-# was granted on the repositories it is installed on: narrow it in the App's settings, or with spec.repositories and
-# spec.permissions below. The runner mounts the Secret as a directory, so the kubelet refreshes the file in place and no
-# restart is needed (the runner Deployment deliberately does not use Reloader's `auto` mode for that reason).
-#
-# The App credentials are the SOPS-encrypted Secret claude-github-app, see README.md. The operator runs in
-# external-secrets-system and needs api.github.com:443 (k8s/infra/controllers/external-secrets/networkpolicy.yaml).
+# Short-lived (1h) installation token refreshed every 30m. No repositories/permissions are set, so the token gets everything the App was
+# granted: narrow it in the App's settings or with spec.repositories and spec.permissions.
+# Mounted as a directory so the kubelet refreshes it in place; the Deployment deliberately avoids Reloader's `auto` mode.
 ---
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: GithubAccessToken

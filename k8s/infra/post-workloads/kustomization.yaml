@@ -2,8 +2,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  # resources that use CRDs installed by the HelmReleases in k8s/infra (CloudNativePG, Traefik) and that no app depends on
-  - storage-system/postgresql-clusterimagecatalog.yaml
+  # need CRDs installed by the HelmReleases in k8s/infra; no app depends on them
+  - cnpg-system/postgresql-clusterimagecatalog.yaml
   - flux-system/ingressroute.yaml
   - flux-system/middleware.yaml
   - dependency-track-system/dependency-track-postgres-cluster.yaml

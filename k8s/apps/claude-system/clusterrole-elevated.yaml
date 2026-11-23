@@ -1,7 +1,5 @@
-# Break-glass roles, bound by the elevate page (elevate/) to a per-grant ServiceAccount whose token is short-lived.
-# A grant's ServiceAccount has no other rights, so each role includes the reads its commands start with (kubectl gets the target first).
-# No role can patch workloads: a patch is a full write of the pod spec, which RBAC cannot narrow. claude-flux can patch Flux objects, but the
-# admission policy claude-flux-reconcile-only (elevate/) rejects every change except the reconcile annotations.
+# Break-glass roles, bound by the elevate page. Each includes the reads its commands start with (kubectl gets the target first).
+# No role can patch workloads: RBAC cannot narrow a patch of the pod spec.
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
 apiVersion: rbac.authorization.k8s.io/v1
@@ -23,7 +21,7 @@ rules:
       - pods/eviction
     verbs:
       - create
-  # A StatefulSet's volumeClaimTemplates are immutable: changing a PVC's class means deleting the StatefulSet (and the PVCs, tier storage)
+  # volumeClaimTemplates are immutable: changing a PVC's class means deleting the StatefulSet (and the PVCs, tier storage)
   - apiGroups:
       - apps
     resources:
@@ -88,8 +86,7 @@ rules:
       - get
       - list
       - delete
-  # A single-instance CloudNativePG database has no primary to rebuild its volume from (the troubleshooting guide's "delete the PVC and let the operator
-  # rebuild" is for replicas), so changing its storage class means deleting the Cluster and letting Flux create it again: the same data loss as a PVC delete.
+  # A single-instance CloudNativePG Cluster has no primary to rebuild from: changing its storage class means delete and recreate, losing the data.
   - apiGroups:
       - postgresql.cnpg.io
     resources:
@@ -98,8 +95,7 @@ rules:
       - get
       - list
       - delete
-  # A DataVolume that has Succeeded is not imported again when its PVC is deleted: to re-import a VM disk (a new class, a lost volume) the DataVolume goes, and the
-  # VirtualMachine's dataVolumeTemplates create it again.
+  # A Succeeded DataVolume is not re-imported when its PVC is deleted: delete the DataVolume and the VM's dataVolumeTemplates recreate it.
   - apiGroups:
       - cdi.kubevirt.io
     resources:
@@ -110,8 +106,7 @@ rules:
       - delete
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
-# RBAC cannot narrow a patch to annotations: the ValidatingAdmissionPolicy claude-flux-reconcile-only rejects any patch from this tier that
-# changes more than the reconcile.fluxcd.io/requestedAt, forceAt and resetAt annotations (so no spec, no suspend, no source change)
+# RBAC cannot narrow a patch to annotations: the ValidatingAdmissionPolicy claude-flux-reconcile-only rejects anything but the reconcile.fluxcd.io annotations
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:

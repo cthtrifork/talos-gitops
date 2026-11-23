@@ -30,7 +30,6 @@ spec:
             - port: "53"
               protocol: ANY
 ---
-# 8081 the Omni exposer (host or remote-node), 8082 the runners
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

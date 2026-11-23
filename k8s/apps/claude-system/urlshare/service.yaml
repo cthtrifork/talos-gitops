@@ -1,5 +1,4 @@
 ---
-# The approval page, through the Omni service exposer (Omni login).
 apiVersion: v1
 kind: Service
 metadata:
@@ -22,10 +21,7 @@ spec:
       port: 4195
       targetPort: metrics
 ---
-# Where Claude asks for a page, plain HTTP on the LAN: http://urlshare.portableinfo.cloud/?url=<URL-encoded URL>. The Cloudflare A record
-# urlshare.portableinfo.cloud -> 192.168.1.245 (DNS only, added by hand, like vm-upgrade and otel) points at it. This listener cannot approve
-# anything. Only claude-rc and the LAN are let in, by the CiliumNetworkPolicy. externalTrafficPolicy Local keeps the client address, so the LAN rule
-# sees the client and not the node. 192.168.1.245 is free in the MetalLB pool (192.168.1.221-254).
+# urlshare.portableinfo.cloud (README). externalTrafficPolicy Local keeps the client address for the LAN rule.
 apiVersion: v1
 kind: Service
 metadata:

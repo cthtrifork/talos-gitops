@@ -1,6 +1,4 @@
-# Alerts for the Cilium network policies, the scrape targets and the node disks. There is no Alertmanager: nothing is sent, the alerts are read from
-# Prometheus (/api/v1/alerts, or ALERTS{alertstate="firing"}), see the "Alerts" section in claude-md/CLAUDE.md.
-# The Prometheus ruleSelector requires the release label.
+# No Alertmanager: alerts are only read from Prometheus (/api/v1/alerts), see the cluster-alerts skill. The ruleSelector requires the release label.
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -79,8 +77,7 @@ spec:
             description: Namespace {{ $labels.namespace }}. If it started after a policy change, check the CiliumPolicyDenied alert.
     - name: node-disk
       rules:
-        # The node filesystems (EPHEMERAL: images, logs, kubelet emptyDirs). The LVM volume groups are watched by openebs-lvm-alerts (k8s/infra/openebs-system).
-        # rootfs (/etc/extensions.yaml, read-only) is left out.
+        # Node filesystems (EPHEMERAL); LVM groups are covered by openebs-lvm-alerts. rootfs (read-only) is left out.
         - alert: NodeFilesystemAlmostFull
           expr: >-
             100 * (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|devtmpfs|ramfs|rootfs"}

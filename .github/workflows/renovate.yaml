@@ -1,6 +1,6 @@
 name: Renovate
 
-# This repository's own self-hosted Renovate, authenticating as a GitHub App (so PRs trigger CI). Config: renovate.json5, renovate-config.js.
+# Self-hosted Renovate as a GitHub App, so its PRs trigger CI. Config: renovate.json5, renovate-config.js.
 on:
   pull_request:
     paths:
@@ -8,7 +8,7 @@ on:
       - .github/workflows/renovate-config.js
       - .github/workflows/renovate.yaml
   schedule:
-    - cron: "47 3 * * *" # once a day, as the fallback: the in-cluster Renovate (renovate-system) runs at :07 and :37
+    - cron: "47 3 * * *" # fallback: the in-cluster Renovate runs at :07 and :37
   workflow_dispatch:
     inputs:
       log_level:
@@ -26,20 +26,19 @@ concurrency:
 jobs:
   dry-run:
     name: dry run
-    # A fork's token is read-only and cannot read this repository's Renovate state.
+    # a fork's token cannot read this repository's Renovate state
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      contents: read # check out the config; Renovate itself uses the GitHub App token below
+      contents: read # Renovate uses the App token below
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      # The same App as the real run, but read-only: this also checks the App's credentials and
-      # installation. The dry run itself writes nothing.
+      # same App as the real run, but read-only; also checks its credentials and installation
       - name: Get a GitHub App token (read-only)
         id: app-token
         uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
@@ -47,30 +46,28 @@ jobs:
           client-id: ${{ vars.RENOVATE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
           permission-contents: read
-          permission-pull-requests: read # existing Renovate PRs
-          permission-issues: read # the dependency dashboard issue
+          permission-pull-requests: read
+          permission-issues: read
           permission-checks: read
           permission-statuses: read
-          permission-vulnerability-alerts: read # GitHub's security alerts
+          permission-vulnerability-alerts: read
 
       - name: Renovate (dry run)
         uses: renovatebot/github-action@acdd6bda8b035c99ce59d5675816af2aa65a1774 # v46.3.14
         with:
           configurationFile: .github/workflows/renovate-config.js
           token: ${{ steps.app-token.outputs.token }}
-          renovate-version: '44' # Renovate's github-actions manager updates this itself
+          renovate-version: '44' # updated by Renovate's github-actions manager
         env:
           LOG_LEVEL: debug
           RENOVATE_DRY_RUN: full
           RENOVATE_PAT_TOKEN: ${{ secrets.PAT_RENOVATEBOT }}
-          # Only this repository.
           RENOVATE_REPOSITORIES: ${{ github.repository }}
-          # Look at the PR's branch, not main, so the PR's own changes are what gets checked.
+          # the PR's branch, not main, so the PR's own changes are checked
           RENOVATE_BASE_BRANCHES: ${{ github.head_ref }}
           RENOVATE_ONBOARDING: 'false'
           RENOVATE_USERNAME: ${{ steps.app-token.outputs.app-slug }}[bot]
-          # A JSON report of the branches and updates, summarised below. /tmp is mounted into the
-          # Renovate container by the action.
+          # /tmp is mounted into the Renovate container by the action
           RENOVATE_REPORT_TYPE: file
           RENOVATE_REPORT_PATH: /tmp/renovate-report.json
 
@@ -98,13 +95,12 @@ jobs:
 
   renovate:
     name: renovate
-    # Scheduled runs are always on the default branch. A manual run from another branch would read
-    # that branch's config but update the default branch, so it is not allowed.
+    # a manual run from another branch would read that branch's config but update the default branch
     if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
-      contents: read # check out the config; Renovate itself uses the GitHub App token below
+      contents: read # Renovate uses the App token below
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -125,8 +121,6 @@ jobs:
           restore-keys: |
             renovate-cache-
 
-      # A short-lived installation token, limited to the permissions listed here and to the
-      # repository Renovate manages.
       - name: Get a GitHub App token
         id: app-token
         uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
@@ -136,19 +130,19 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           permission-contents: write # push the update branches
-          permission-pull-requests: write # open and update the update PRs
-          permission-issues: write # the dependency dashboard issue
+          permission-pull-requests: write
+          permission-issues: write # the dependency dashboard
           permission-workflows: write # update files under .github/workflows
           permission-checks: read # CI results, for automerge
-          permission-statuses: write # CI results for automerge, and Renovate's own renovate/stability-days status
-          permission-vulnerability-alerts: read # GitHub's security alerts
+          permission-statuses: write # also Renovate's own renovate/stability-days status
+          permission-vulnerability-alerts: read
 
       - name: Self-hosted Renovate
         uses: renovatebot/github-action@acdd6bda8b035c99ce59d5675816af2aa65a1774 # v46.3.14
         with:
           configurationFile: .github/workflows/renovate-config.js
           token: ${{ steps.app-token.outputs.token }}
-          renovate-version: '44' # Renovate's github-actions manager updates this itself
+          renovate-version: '44' # updated by Renovate's github-actions manager
         env:
           LOG_LEVEL: ${{ inputs.log_level || 'info' }}
           RENOVATE_PAT_TOKEN: ${{ secrets.PAT_RENOVATEBOT }}
@@ -156,5 +150,5 @@ jobs:
           RENOVATE_REPOSITORY_CACHE: 'enabled'
           RENOVATE_X_GITHUB_HOST_RULES: 'true'
           RENOVATE_ONBOARDING: 'false'
-          # An installation token cannot ask GitHub who it is, so name the bot (to recognise its own PRs).
+          # an installation token cannot look up its own identity
           RENOVATE_USERNAME: ${{ steps.app-token.outputs.app-slug }}[bot]

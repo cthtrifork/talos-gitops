@@ -1,24 +1,22 @@
----
-# Source: cilium/templates/cilium-operator/service.yaml
-kind: Service
 apiVersion: v1
+kind: Service
 metadata:
-  name: cilium-operator
-  namespace: kube-system
   labels:
+    app.kubernetes.io/name: cilium-operator
+    app.kubernetes.io/part-of: cilium
+    helm.sh/chart: cilium-1.20.5
     io.cilium/app: operator
     name: cilium-operator
-    app.kubernetes.io/part-of: cilium
-    app.kubernetes.io/name: cilium-operator
-    helm.sh/chart: cilium-1.20.5
+  name: cilium-operator
+  namespace: kube-system
 spec:
   clusterIP: None
-  type: ClusterIP
   ports:
-    - name: metrics
-      port: 9963
-      protocol: TCP
-      targetPort: prometheus
+  - name: metrics
+    port: 9963
+    protocol: TCP
+    targetPort: prometheus
   selector:
     io.cilium/app: operator
     name: cilium-operator
+  type: ClusterIP

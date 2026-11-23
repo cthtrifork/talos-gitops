@@ -1,7 +1,6 @@
 ---
-# What the e2e changes in the Cilium values of the real cluster (spec.values of k8s/infra/cilium/helm-release.yaml,
-# which the workflow uses as the base). ${POD_IP} is filled in by envsubst.
-# kind on the host network: the API server listens on the runner pod's IP, not on KubePrism
+# Overrides on the real cluster's values; ${POD_IP} is envsubst'd.
+# the API server is on the runner pod's IP, not KubePrism
 k8sServiceHost: "${POD_IP}"
 k8sServicePort: 6443
 # the pod CIDR of scripts/kind.yaml
@@ -11,10 +10,10 @@ operator:
   prometheus:
     serviceMonitor:
       enabled: false
-# a fresh cluster has none of the allow policies of the real one
+# no allow policies in a fresh cluster
 policyEnforcementMode: default
 policyAuditMode: true
-# the ServiceMonitor CRDs and cert-manager are not installed yet when Cilium is
+# no ServiceMonitor CRDs or cert-manager yet
 prometheus:
   serviceMonitor:
     enabled: false

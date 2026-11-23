@@ -1,28 +1,25 @@
 name: Render manifests
 
 on:
-  # Manual run on a chosen branch
   workflow_dispatch:
     inputs:
       render_all:
         description: "Render all components instead of only the changed ones"
         type: boolean
         default: true
-  # Render and commit the result back to the PR branch
   pull_request:
     paths:
       - "k8s/**"
       - "scripts/ci/render-manifests.sh"
       - "Makefile"
 
-# One render per ref; a newer push supersedes the running one
 concurrency:
   group: render-manifests-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   render-manifests:
-    # Fork PRs get a read-only token and cannot be pushed to
+    # a fork's token is read-only
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     env:
@@ -32,8 +29,7 @@ jobs:
       packages: read
 
     steps:
-      # Push as the Renovate GitHub App instead of GITHUB_TOKEN, so the render
-      # commit triggers the e2e and validate workflows.
+      # the App token, not GITHUB_TOKEN, so the render commit triggers the e2e and validate workflows
       - name: Get a GitHub App token
         id: app-token
         uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
@@ -45,9 +41,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # On pull_request the default ref is the merge commit; check out the branch to push to it
+          # the PR merge commit is the default ref; push needs the branch
           ref: ${{ github.head_ref || github.ref_name }}
-          # Persisted for the push below
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Get changed files
@@ -61,8 +56,7 @@ jobs:
             Makefile
           separator: "\n"
 
-      # Map changed files to the component dirs (holding helm-release.yaml) to render.
-      # Render everything when not a PR, requested manually, or the render tooling changed.
+      # everything is rendered when not a PR, requested manually, or the render tooling changed
       - name: Select components to render
         id: select
         env:
@@ -110,7 +104,7 @@ jobs:
       - name: Render manifests
         if: ${{ steps.select.outputs.none != 'true' }}
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
-        with: # give up to 3x5 minutes
+        with:
           timeout_minutes: 5
           max_attempts: 3
           retry_on: timeout
@@ -121,8 +115,7 @@ jobs:
       - name: Stage rendered changes
         run: git add -A
 
-      # Creates the commit through the GitHub API with the app token, so it is
-      # signed (Verified) and authored by the Renovate app
+      # via the GitHub API, so the commit is signed (Verified) and authored by the Renovate app
       - uses: qoomon/actions--create-commit@7102b1a8b3cb8716dc70dbeb6d774c375d779d2f # v1.2.5
         id: commit
         with:

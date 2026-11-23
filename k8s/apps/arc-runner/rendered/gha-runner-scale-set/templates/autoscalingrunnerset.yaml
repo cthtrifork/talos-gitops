@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: d3c7b6bf6057d32b88f0b64319d2bfec1097b88847a0022203acae8dd5a31b0
+    actions.github.com/values-hash: bbe9605c79e0268489bc4c5864cc2db4de79ed81558e0b192637b5042b7f79f
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -73,6 +73,8 @@ spec:
         - name: github-auth
       securityContext:
         fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
       restartPolicy: Never
       serviceAccountName: arc-ubuntu-gha-rs-no-permission
       initContainers:
@@ -93,10 +95,14 @@ spec:
               cpu: 25m
               memory: 128Mi
           securityContext:
-            allowPrivilegeEscalation: true
-            privileged: true
-            runAsGroup: 0
-            runAsUser: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
           volumeMounts:
             - mountPath: /tmp/arc-cache
               name: cross-run-cache
@@ -118,6 +124,7 @@ spec:
             capabilities:
               drop:
                 - ALL
+            readOnlyRootFilesystem: true
             runAsGroup: 0
             runAsUser: 0
           volumeMounts:
@@ -142,6 +149,7 @@ spec:
             capabilities:
               drop:
                 - ALL
+            readOnlyRootFilesystem: true
             runAsGroup: 1001
             runAsNonRoot: true
             runAsUser: 1001

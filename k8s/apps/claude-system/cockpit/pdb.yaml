@@ -1,6 +1,6 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/poddisruptionbudget-policy-v1.json
-# One cockpit pod always stays up while a node drains; with two replicas this does not block the drain.
+# With two replicas this does not block a node drain.
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:

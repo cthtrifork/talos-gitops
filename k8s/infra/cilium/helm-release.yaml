@@ -7,7 +7,7 @@ metadata:
   namespace: kube-system
 spec:
   interval: 30m
-  timeout: 15m # the 1.20.4 rollout took ~7m and exceeded the 5m default
+  timeout: 15m # a rollout takes ~7m, over the 5m default
   install:
     crds: CreateReplace
     strategy:
@@ -15,7 +15,7 @@ spec:
   upgrade:
     crds: CreateReplace
     remediation:
-      retries: -1 # retry indefinitely
+      retries: -1
   chartRef:
     kind: OCIRepository
     name: cilium
@@ -32,34 +32,32 @@ spec:
     cluster:
       name: ${CLUSTER_NAME:=default}
       id: ${CLUSTER_ID:=0}
-    # kubernetes-in-docker hacks
     ipv4:
       enabled: true
     ipv6:
       enabled: false
+    # holds only Secrets; the label satisfies require-namespace-psa-enforce
+    secretsNamespaceLabels:
+      pod-security.kubernetes.io/enforce: restricted
     ipam:
       mode: kubernetes
     enableLBIPAM: false
     l2announcements:
       enabled: false
-    # Agent rolling update strategy
     updateStrategy:
       rollingUpdate:
         maxUnavailable: ${CILIUM_MAX_UNAVAILABLE:=2}
-    # Agent resource limits & requests
     resources:
       limits:
         memory: 1Gi
       requests:
         cpu: ${CILIUM_CPU_REQUEST:=100m}
         memory: ${CILIUM_MEMORY_REQUEST:=256Mi}
-    # Roll the agents when cilium-config changes. Without it a config change (e.g. bandwidthManager.bbr) is applied to
-    # the ConfigMap but the agents keep running with the old settings until someone restarts them.
+
     rollOutCiliumPods: true
     bandwidthManager:
       enabled: true
-      # BBR congestion control for pods: copes much better than the default (CUBIC) with loss and latency on the
-      # WAN path (runner uploads to ghcr.io ran at ~6 Mbit/s). Needs kernel >= 5.18 (nodes run 6.18) and eBPF host routing.
+      # runner uploads to ghcr.io ran at ~6 Mbit/s with the default CUBIC; needs kernel >= 5.18
       bbr: true
     envoy:
       updateStrategy:
@@ -92,9 +90,6 @@ spec:
     hubble:
       metrics:
         enabled:
-          #- dns:query;ignoreAAAA
-          # Dropped traffic, incl. reason="POLICY_DENIED" from the default-deny policies. The IPs identify
-          # world and host peers that have no workload name.
           - drop:destinationContext=dns|workload-name;labelsContext=source_ip,source_namespace,source_workload,destination_ip,destination_namespace,destination_workload,traffic_direction
           - tcp
           - flow:sourceContext=workload-name|reserved-identity;destinationContext=workload-name|reserved-identity
@@ -142,13 +137,13 @@ spec:
             omni-kube-service-exposer.sidero.dev/prefix: hubble
       tls:
         auto:
-          enabled: true # enable automatic TLS certificate generation
-          method: certmanager #  auto generate certificates using cert-manager
-          certValidityDuration: 30 #  certificates validity duration in days (default 3 years)
+          enabled: true
+          method: certmanager
+          certValidityDuration: 30 # days
           certManagerIssuerRef:
-            group: cert-manager.io # Reference to cert-manager's issuer
+            group: cert-manager.io
             kind: ClusterIssuer
-            name: certificate-cluster-issuer # certificate-cluster-issuer
+            name: certificate-cluster-issuer
     clustermesh:
       apiserver:
         podDisruptionBudget:
@@ -157,12 +152,12 @@ spec:
         tls:
           auto:
             enabled: true
-            method: certmanager #  auto generate certificates using cert-manager
-            certValidityDuration: 30 #  certificates validity duration in days (default 3 years)
+            method: certmanager
+            certValidityDuration: 30 # days
             certManagerIssuerRef:
-              group: cert-manager.io # Reference to cert-manager's issuer
+              group: cert-manager.io
               kind: ClusterIssuer
-              name: certificate-cluster-issuer # certificate-cluster-issuer
+              name: certificate-cluster-issuer
     operator:
       replicas: ${CILIUM_OPERATOR_REPLICAS:=2}
       updateStrategy:
@@ -194,17 +189,15 @@ spec:
     dashboards:
       enabled: true
     kubeProxyReplacement: true
-    # Tested off (pod network test, #1144 and #1153): it costs 25 to 40% on a 1 Gbit path (480 to 800 Mbit/s with it between two nodes,
-    # 930 without) and makes no difference to the 5 to 60 Mbit/s of every path through talos-11a-esj
+    # on despite costing 25 to 40% on 1 Gbit (#1144, #1153): off does not speed up the slow paths via talos-11a-esj
     encryption:
       enabled: true
       type: wireguard
-    k8sServiceHost: localhost # sidero specific
-    k8sServicePort: 7445 # sidero specific
+    k8sServiceHost: localhost # Talos KubePrism (patches/05-kubeprism.yaml)
+    k8sServicePort: 7445
     routingMode: "native"
     autoDirectNodeRoutes: true
-    # NIC names differ per node (eno1, enp87s0, eth0). Pin to the physical NICs so
-    # the siderolink tunnel (MTU 1280) is not auto-detected and does not cap the pod MTU.
+    # physical NICs only: auto-detecting the siderolink tunnel (MTU 1280) would cap the pod MTU
     devices:
       - "en+"
       - "eth+"
@@ -217,11 +210,33 @@ spec:
       enabled: false
     bpf:
       masquerade: true
-    # always: every endpoint is default-deny, also in a namespace without a policy (all namespaces with pods have one,
-    # see the per-namespace default-deny CiliumNetworkPolicies). Host-network pods are not endpoints and are not affected.
+    # host-network pods are not endpoints, so this does not cover them
     policyEnforcementMode: always
     policyAuditMode: false # NEVER SET THIS TO TRUE IN PRODUCTION, as it will disable all network policies and allow all traffic
     cgroup:
       autoMount:
         enabled: false
       hostRoot: /sys/fs/cgroup
+  # the chart exposes no value for the Hubble UI container security contexts
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: hubble-ui
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: hubble-ui
+                namespace: kube-system
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: frontend
+                        securityContext:
+                          readOnlyRootFilesystem: true
+                      - name: backend
+                        securityContext:
+                          readOnlyRootFilesystem: true

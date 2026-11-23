@@ -1,16 +1,4 @@
----
-# Source: connect/templates/configmap.yaml
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: sbom-hook-config
-  namespace: dependency-track-system
-  labels:
-    helm.sh/chart: redpanda-connect-3.2.37
-    app.kubernetes.io/name: redpanda-connect
-    app.kubernetes.io/instance: sbom-hook
-    app.kubernetes.io/version: "4.118.0"
-    app.kubernetes.io/managed-by: Helm
 data:
   redpanda-connect.yaml: |
     http:
@@ -29,3 +17,13 @@ data:
       label: "no_config_out"
       stdout:
         codec: lines
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: sbom-hook
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redpanda-connect
+    app.kubernetes.io/version: 4.118.0
+    helm.sh/chart: redpanda-connect-3.2.37
+  name: sbom-hook-config
+  namespace: dependency-track-system

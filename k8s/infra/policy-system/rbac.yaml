@@ -1,4 +1,3 @@
-# Service account and RBAC of the Polaris refresh Job (polaris-refresh-resourceset.yaml)
 ---
 apiVersion: v1
 kind: ServiceAccount

@@ -1,7 +1,6 @@
 # claude-vm-bootc as a KubeVirt VM (https://github.com/cthtrifork/homeserver-bootc, docs/claude-vm).
-# The disk is imported once from the containerDisk published by homeserver-bootc's "Publish claude-vm containerDisk"
-# workflow. After that the VM updates itself with `bootc upgrade`, so changing the DataVolume source later does not
-# touch the running disk. First-boot setup (GitHub App, signing key, Claude login) is manual over SSH; see the docs.
+# The disk is imported once; after that the VM updates itself with `bootc upgrade`, so changing the DataVolume source
+# does not touch the running disk. Claude login and signing key are set up by hand over SSH on first boot.
 ---
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
@@ -15,11 +14,10 @@ spec:
       labels:
         kubevirt.io/vm: claude-vm
     spec:
-      # Only nodes with /dev/kvm: virt-handler labels them schedulable and only they
-      # advertise the devices.kubevirt.io/kvm resource the launcher requests. v1.10 sets no devices.kubevirt.io/kvm node label.
+      # Only nodes with /dev/kvm (virt-handler labels them schedulable)
       nodeSelector:
         kubevirt.io/schedulable: "true"
-      # The guest cannot reach kube-dns or any pod IP (only the world), so DHCP hands it the LAN router instead of the cluster DNS.
+      # The guest cannot reach kube-dns, so DHCP hands it the LAN router.
       dnsPolicy: None
       dnsConfig:
         nameservers:
@@ -38,7 +36,7 @@ spec:
             - name: rootdisk
               disk:
                 bus: virtio
-            # the serial shows up in the guest as /dev/disk/by-id/virtio-workspace (mounted by the cloud-init config, externalsecret.yaml)
+            # shows up as /dev/disk/by-id/virtio-workspace (mounted by externalsecret.yaml)
             - name: workspace
               disk:
                 bus: virtio
@@ -49,7 +47,7 @@ spec:
           interfaces:
             - name: default
               masquerade: {}
-              # without a ports list masquerade forwards every port into the guest; only sshd is meant to be reachable
+              # without a ports list masquerade forwards every port; only sshd should be reachable
               ports:
                 - port: 22
                   protocol: TCP
@@ -68,9 +66,7 @@ spec:
         - name: workspace
           persistentVolumeClaim:
             claimName: claude-vm-workspace-disk
-        # cloud-init (NoCloud) only runs write_files and runcmd in this image. The user data comes from the Secret claude-vm-cloud-init, which
-        # externalsecret.yaml builds from claude-system/claude-github-app, so the first boot seeds the GitHub App by itself. Until External
-        # Secrets has made that Secret the VM pod waits in ContainerCreating.
+        # cloud-init user data from Secret claude-vm-cloud-init (externalsecret.yaml); the pod waits in ContainerCreating until it exists.
         - name: cloudinitdisk
           cloudInitNoCloud:
             secretRef:
@@ -81,10 +77,10 @@ spec:
       spec:
         source:
           registry:
-            # The default pull method (a CDI importer pod using the digest-pinned importer image) on purpose: "node"
-            # would start a pod with this tag-only image, which the require-image-digest policy denies.
+            # Default pull method on purpose: "node" would start a pod with this tag-only image, which the
+            # require-image-digest policy denies.
             url: docker://ghcr.io/cthtrifork/homeserver-bootc/claude-vm-containerdisk:latest
-            secretRef: ghcr-pull-cdi # from the ExternalSecret of that name; the package is public today, this keeps the import working if it goes private
+            secretRef: ghcr-pull-cdi # the package is public today; this keeps the import working if it goes private
         storage:
           accessModes:
             - ReadWriteOnce

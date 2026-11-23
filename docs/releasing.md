@@ -1,6 +1,6 @@
 # Releasing
 
-The three images in `images/` (`github-actions-runner`, `claude-runner`, `fileserver`) are built, signed and released
+The images `github-actions-runner`, `claude-runner` and `fileserver` in `images/` are built, signed and released
 automatically. There is no draft to publish and no repo-wide version.
 
 ## Write Conventional Commit PR titles

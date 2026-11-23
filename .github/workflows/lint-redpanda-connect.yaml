@@ -1,6 +1,5 @@
 name: Lint Redpanda Connect
 
-# Lints every redpanda-connect.yaml when one changes in the PR; a manual run lints them all.
 on:
   workflow_dispatch:
   pull_request:

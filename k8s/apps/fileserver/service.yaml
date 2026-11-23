@@ -1,5 +1,4 @@
 ---
-# Reached through the Omni service exposer.
 apiVersion: v1
 kind: Service
 metadata:

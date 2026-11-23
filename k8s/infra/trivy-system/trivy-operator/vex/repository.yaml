@@ -1,8 +1,6 @@
 ---
-# Trivy VEX repositories, mounted at /.trivy/vex/repository.yaml in the scan jobs (trivy reads ~/.trivy/vex/repository.yaml).
-# https://trivy.dev/docs/latest/supply-chain/vex/repo/
-# The names are the directories of the vex-cache image (images/vex-cache), mounted read-only at <cache-dir>/vex, and must match
-# images/vex-cache/repository.yaml. skip-vex-repo-update keeps Trivy from downloading, so the URLs below are not fetched.
+# Mounted at /.trivy/vex/repository.yaml in the scan jobs. Names must match images/vex-cache/repository.yaml;
+# skip-vex-repo-update keeps Trivy from downloading, so the URLs are not fetched.
 repositories:
   # the Trivy VEX hub
   - name: default

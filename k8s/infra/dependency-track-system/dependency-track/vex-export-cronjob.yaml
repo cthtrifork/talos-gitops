@@ -1,19 +1,6 @@
-# Exports the analysis decisions made in Dependency-Track (not affected, false positive, resolved) as OpenVEX documents into
-# the vex/ directory of this repository, so Trivy hides those findings in every scan (the vex-cache image, images/vex-cache/, is built from vex/).
-# Daily: for each project it fetches the CycloneDX VEX, keeps the decided vulnerabilities, converts them to OpenVEX and
-# writes one document per image, vex/pkg/oci/<project name>/oci.openvex.json (the project name is <registry>/<repository>,
-# the project version, the image digest, becomes the version of the product PURL; projects whose version is
-# not a digest, e.g. created before the digest became the version, are skipped). Then it regenerates vex/index.json
-# (scripts/vex-index.sh) and, if anything changed, pushes the branch dependency-track/vex-export and opens a pull request.
-# It touches nothing outside vex/, never pushes to main, and only deletes documents whose author is Dependency-Track.
-# Statements are only exported for components that have a PURL (a statement without a subcomponent would cover the whole image).
-#
-# Needs two Secrets: dependency-track-vex-api-key (key api-key, created by config-cronjob.yaml) and dependency-track-vex-github
-# (key token), a one-hour installation token that External Secrets mints every 30 minutes from the GitHub App credentials in
-# dependency-track-vex-github-app (keys app-id, installation-id, private-key.pem; SOPS-encrypted, see README.md). The token is
-# narrowed to this repository with Contents and Pull requests read/write, so no long-lived token is stored.
-# Dry run (exit 0, nothing pushed): without the App credentials the Job still exports and converts, and prints the documents
-# it would write; without the API key it only says so.
+# Daily export of Dependency-Track analysis decisions as OpenVEX into vex/ (one document per image digest) via a pull request,
+# never a push to main. Only components with a PURL are exported: a statement without a subcomponent would cover the whole image.
+# Without the GitHub token (README.md) or API key the Job does a dry run: exit 0, nothing pushed.
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -58,7 +45,7 @@ spec:
                     exit 0
                   fi
                   cd /work
-                  # the installation token minted by External Secrets (external-secret-vex-github.yaml); empty: dry run
+                  # the installation token; empty: dry run
                   GITHUB_TOKEN=$(cat /github/token 2>/dev/null || true)
                   if [ -n "$GITHUB_TOKEN" ]; then
                     # the token goes to git through the environment, not the command line
@@ -75,7 +62,6 @@ spec:
                     cd repo
                   fi
 
-                  # OpenVEX statements of one project: jq -f vex.jq --arg name <project> --arg version <version> <CycloneDX VEX>
                   cat > /work/vex.jq <<'JQ'
                   def justification: {
                     code_not_present: "vulnerable_code_not_present",
@@ -105,14 +91,13 @@ spec:
                              + {impact_statement: (.analysis.detail // ("Marked " + $state + " in Dependency-Track"))}) end) ]
                   JQ
 
-                  # 1. export every project
                   mkdir -p /work/out
                   curl -fsS -H "X-Api-Key: $API_KEY" "$DT_URL/api/v1/project?pageSize=1000" |
                     jq -r '.[] | [.uuid, .name, (.version // "-")] | @tsv' > /work/projects.tsv
                   total=0 digest=0 decided=0
                   while IFS="$(printf '\t')" read -r uuid name version; do
                     total=$((total + 1))
-                    # only projects versioned by digest (sbom-hook, sbom-uploader): Trivy matches an image by its digest
+                    # only projects versioned by digest: Trivy matches an image by its digest
                     case "$version" in sha256:*) ;; *) continue ;; esac
                     digest=$((digest + 1))
                     curl -fsS -H "X-Api-Key: $API_KEY" "$DT_URL/api/v1/vex/cyclonedx/project/$uuid" |
@@ -125,7 +110,7 @@ spec:
                   done < /work/projects.tsv
                   echo "projects: $total, versioned by digest: $digest, with exportable decisions: $decided"
 
-                  # 2. one document per image: new/changed ones are written, ones without decisions any more are removed
+                  # unchanged documents are kept; ones without decisions any more are removed
                   now=$(date -u +%FT%TZ)
                   generated=/work/generated.txt; : > $generated
                   for f in $(cd /work/out && find . -name stmts.jsonl | sort); do
@@ -139,7 +124,7 @@ spec:
                        timestamp: $now, version: 1,
                        statements: (add | unique_by([.vulnerability.name, .products[0]."@id"]) | sort_by([.vulnerability.name, .products[0]."@id"]))}' "/work/out/$f")
                     if [ -f "$doc" ]; then
-                      # unchanged apart from timestamp and version: keep the file
+                      # unchanged apart from timestamp and version
                       if [ "$(jq -S 'del(.timestamp, .version)' "$doc")" = "$(echo "$new" | jq -S 'del(.timestamp, .version)')" ]; then continue; fi
                       new=$(echo "$new" | jq --argjson v "$(jq .version "$doc")" '.version = $v + 1')
                     fi
@@ -150,7 +135,6 @@ spec:
                     if [ "$(jq -r .author "$doc")" = "Dependency-Track" ] && ! grep -qx "$doc" $generated; then rm "$doc"; fi
                   done
 
-                  # 3. index, commit only vex/, push, pull request
                   if [ -z "$GITHUB_TOKEN" ]; then
                     echo "DRY RUN: Secret dependency-track-vex-github is not synced, nothing is pushed. Would write:"
                     for doc in $(find vex/pkg/oci -name oci.openvex.json 2>/dev/null | sort); do

@@ -6,3 +6,6 @@ metadata:
   labels:
     claude-elevate/ops: "true"
     claude-elevate/flux: "true"
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

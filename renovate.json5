@@ -180,7 +180,7 @@
         "helm-values"
       ],
       "matchFileNames": [
-        "k8s/infra/post-workloads/storage-system/postgresql-clusterimagecatalog.yaml"
+        "k8s/infra/post-workloads/cnpg-system/postgresql-clusterimagecatalog.yaml"
       ],
       "enabled": false
     },
