@@ -6,5 +6,5 @@ resources:
   - trust-manager/
   - external-secrets/
   - metallb/
-  - storage-system/
+  - cnpg-system/
   - ingress-system/
