@@ -23,7 +23,7 @@ spec:
   configuration:
     developerConfiguration:
       # Beta gates are on by default since v1.9 and the set changes per release: review it on every KubeVirt bump
-      # EnableVirtioFsConfigVolumes: share the poll token Secret into the VMs over virtiofs, live (k8s/virtualmachines)
+      # EnableVirtioFsConfigVolumes: Secrets shared into VMs over virtiofs (poll tokens)
       featureGates:
         - EnableVirtioFsConfigVolumes
     # off: no digest env var on the operator, so require-image-digest denies the virt-template-apiserver image

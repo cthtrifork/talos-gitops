@@ -43,8 +43,7 @@ spec:
             - name: cloudinitdisk
               disk:
                 bus: virtio
-          # Mounted in the guest with `mount -t virtiofs upgrade-token <dir>`. Kubelet keeps the Secret up to date and virtiofs shows
-          # it live, so a rotated token reaches the running VM without a restart.
+          # Poll token, updated live (virtiofs), so rotating it needs no restart
           filesystems:
             - name: upgrade-token
               virtiofs: {}

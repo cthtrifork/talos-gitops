@@ -24,9 +24,7 @@ spec:
     matchLabels:
       kubevirt.io/vm: homeserver-vm
   egress:
-    # Everything else, including vm-upgrade.portableinfo.cloud (192.168.1.244:80). No L7 rule there: the poll carries the
-    # X-Upgrade-Token the VM reads from the virtiofs share of Secret vm-upgrade-token (virtualmachine.yaml). An Envoy
-    # redirect to a LoadBalancer address backed by a pod made the pod's replies bypass Envoy, so the VM reset them.
+    # Everything else, including vm-upgrade.portableinfo.cloud. The poll authenticates itself with the token from the virtiofs share.
     - toCIDRSet:
         - cidr: 0.0.0.0/0
 ---
