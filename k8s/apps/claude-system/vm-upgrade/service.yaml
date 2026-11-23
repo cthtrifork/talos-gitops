@@ -22,6 +22,8 @@ spec:
       targetPort: metrics
 ---
 # vm-upgrade.portableinfo.cloud is baked into both VM images (README). Not exposed through Omni.
+# externalTrafficPolicy Cluster on purpose: with Local, a node without the pod has no backend for 192.168.1.244, so the
+# reply to the VM's Envoy-proxied poll (VM on another node than the pod) is not translated back and the VM resets it.
 apiVersion: v1
 kind: Service
 metadata:
@@ -31,7 +33,7 @@ metadata:
     metallb.io/loadBalancerIPs: 192.168.1.244
 spec:
   type: LoadBalancer
-  externalTrafficPolicy: Local
+  externalTrafficPolicy: Cluster
   selector:
     app: claude-vm-upgrade
   ports:
