@@ -55,7 +55,8 @@ export_findings() {
 write_documents() {
   echo "==> Writing $DOCS"
   mv "$DOCS" "$PREVIOUS"
-  for dir in $(find "$FINDINGS" -name '*.json' | xargs -n1 dirname | sort -u); do
+  mkdir -p "$DOCS"
+  for dir in $(find "$FINDINGS" -name '*.json' -exec dirname {} \; | sort -u); do
     image=${dir#"$FINDINGS"/}
     mkdir -p "$DOCS/$image"
 
