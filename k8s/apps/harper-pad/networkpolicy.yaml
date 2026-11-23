@@ -1,6 +1,5 @@
-# Default deny for the app pods, then allow only what docs/sync.md lists. The Postgres pod is only
-# restricted on ingress: the CNPG instance manager needs the Kubernetes API, which plain
-# NetworkPolicy cannot allow under Cilium's kube-proxy replacement.
+# Default deny for the app pods. Postgres egress is in ciliumnetworkpolicy.yaml: the CNPG instance manager needs the
+# Kubernetes API, which plain NetworkPolicy cannot allow under Cilium's kube-proxy replacement.
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -55,7 +54,7 @@ spec:
         - protocol: TCP
           port: 5432
 ---
-# Sync API: reachable from Traefik only (the Cloudflare tunnel runs in the Traefik pod).
+# Sync API: Traefik only (the Cloudflare tunnel runs in the Traefik pod).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -79,7 +78,7 @@ spec:
         - protocol: TCP
           port: 9000
 ---
-# Admin pod: no ingress at all. Out to Cloudflare for the tunnel only (7844 tunnel, 443 api).
+# Admin pod: no ingress; egress to Cloudflare only (7844 tunnel, 443 api).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -107,8 +106,7 @@ spec:
         - protocol: TCP
           port: 443
 ---
-# PostgreSQL: only the sync and admin pods, plus the CNPG operator (Prometheus reaches the pods through the
-# prometheus-scrape label, see kube-prometheus-stack).
+# PostgreSQL: only the sync and admin pods, plus the CNPG operator.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -139,7 +137,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: storage-system # CNPG operator: status 8000, 5432
+              kubernetes.io/metadata.name: cnpg-system # CNPG operator: status 8000, 5432
       ports:
         - protocol: TCP
           port: 8000

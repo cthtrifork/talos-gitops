@@ -1,7 +1,6 @@
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/helm.toolkit.fluxcd.io/helmrelease_v2.json
-# Generates and copies Secrets inside the cluster (the Kubernetes provider, no external secret manager): see
-# k8s/infra/secret-store/. It replaces the Jobs that used to create Secrets with kubectl.
+# Kubernetes provider only, no external secret manager: see k8s/infra/secret-store/.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -18,9 +17,11 @@ spec:
   install:
     strategy:
       name: RetryOnFailure
+  upgrade:
+    remediation:
+      retries: 3
   values:
     installCRDs: true
-    # Metrics (8080) are scraped by label, see k8s/infra/kube-prometheus-stack/cilium-clusterwide-networkpolicy.yaml
     podLabels:
       prometheus-scrape: "true"
     serviceMonitor:

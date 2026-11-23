@@ -66,9 +66,8 @@ spec:
       create: true
       accessModes:
         - "ReadWriteOnce"
-      storage: 60Gi
-      # Name of the storage class to use if it is different than the default one
-      storageClassName: ${DEFAULT_STORAGE_CLASS:=local-path}
+      storage: 150Gi
+      storageClassName: lvm-fast # a real 150Gi volume
     configFiles: ~
     # https://docs.giantswarm.io/tutorials/registry/zot/
     resources:
@@ -79,10 +78,9 @@ spec:
         memory: 2Gi
     env:
       - name: GOGC
-        # Keep it around 50, cannot be increased beyond 100
         value: "50"
       - name: GOMEMLIMIT
-        # Set this to about 80% of the memory limit.
+        # ~80% of the memory limit
         value: 1600MiB
       - name: ZOT_CREDENTIALS_FILE
         value: "/run/secrets/github_auth"
@@ -99,8 +97,7 @@ spec:
             key: secret-access-key
     metrics:
       enabled: true
-      # The chart's ServiceMonitor always sets basicAuth from a Secret `basic-auth` and scrapes over
-      # HTTP, so Prometheus rejects it. zot has no auth and serves TLS; see servicemonitor.yaml.
+      # the chart's ServiceMonitor forces basicAuth and HTTP, but zot has no auth and serves TLS
       serviceMonitor:
         enabled: false
     externalSecrets:
@@ -127,20 +124,20 @@ spec:
         type: RuntimeDefault
   postRenderers:
     - kustomize:
-        patches: # Tolerate the control plane taint
+        patches:
           - target:
               kind: StatefulSet
               name: zot
             patch: |
+              - op: add
+                path: /spec/template/spec/automountServiceAccountToken
+                value: false
               - op: add
                 path: /spec/template/spec/tolerations
                 value:
                   - key: node-role.kubernetes.io/control-plane
                     operator: Exists
                     effect: NoSchedule
-    # add securityContext
-    - kustomize:
-        patches:
           - target:
               kind: StatefulSet
               name: zot

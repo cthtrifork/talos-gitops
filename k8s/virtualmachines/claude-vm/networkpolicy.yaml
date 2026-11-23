@@ -1,0 +1,103 @@
+# World egress is open at the pod level on purpose: the VM's own gateway (nftables + nginx + dnsmasq) restricts the
+# agent users to homeserver-bootc build_files/claude-vm/egress-allowlist.txt. The namespace is exempt from deny-world-egress.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-vm-default-deny
+  namespace: claude-vm
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-vm-egress
+  namespace: claude-vm
+spec:
+  endpointSelector:
+    matchLabels:
+      kubevirt.io/vm: claude-vm
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    # otel.portableinfo.cloud (LAN LoadBalancer address)
+    - toCIDRSet:
+        - cidr: 192.168.1.243/32
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+    # vm-upgrade.portableinfo.cloud (LAN LoadBalancer address): Envoy sets X-Upgrade-Token from the Cilium secret,
+    # so the VM never holds the token and cannot send another VM's
+    - toCIDRSet:
+        - cidr: 192.168.1.244/32
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+          rules:
+            http:
+              - headerMatches:
+                  - name: X-Upgrade-Token
+                    mismatch: REPLACE
+                    secret:
+                      namespace: cilium-secrets
+                      name: claude-vm-upgrade-token
+    # Everything else; the VM's own gateway filters. Not toEntities world: it would also select the vm-upgrade address
+    # and add an unrestricted rule for the L7 rule above.
+    - toCIDRSet:
+        - cidr: 0.0.0.0/0
+          except:
+            - 192.168.1.244/32
+---
+# CDI importer pod (pulls the containerDisk from ghcr.io)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-vm-cdi-importer-egress
+  namespace: claude-vm
+spec:
+  endpointSelector:
+    matchLabels:
+      app: containerized-data-importer
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - world
+---
+# SSH from the LAN only
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-vm-ssh
+  namespace: claude-vm
+spec:
+  endpointSelector:
+    matchLabels:
+      kubevirt.io/vm: claude-vm
+  ingress:
+    - fromCIDRSet:
+        - cidr: 192.168.1.0/24
+      toPorts:
+        - ports:
+            - port: "22"
+              protocol: TCP

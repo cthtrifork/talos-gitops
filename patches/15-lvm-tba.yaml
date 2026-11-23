@@ -1,0 +1,24 @@
+---
+# Fast tier: one raw volume per free NVMe region (800 GB already free, and the old 200 GB partition). SATA SSD is the system disk.
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-fast-a
+provisioning:
+  diskSelector:
+    match: disk.transport == 'nvme'
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-fast-b
+provisioning:
+  diskSelector:
+    match: disk.transport == 'nvme'
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: LVMVolumeGroupConfig
+name: vg-fast
+provisioning:
+  volumeSelector:
+    match: volume.partition_label.startsWith("r-lvm-fast")

@@ -7,22 +7,21 @@ An admin page and a CI upload API in one pod. Public downloads are served by Clo
 | 8081 admin | `fileserver-admin` | the Omni exposer, prefix `files` |
 | 8082 upload | `fileserver-upload` | the ARC runners only |
 
-Downloads: `https://shared-files.portableinfo.cloud/<name>`, the R2 bucket `homeserver-files` (a Cloudflare custom domain, no tunnel, no Traefik).
+Downloads: `https://shared-files.portableinfo.cloud/<name>`, the R2 bucket `homeserver-files`, a Cloudflare custom domain.
 
 ## Downloads from R2
 
 The `r2-sync` container copies `public/` to a Cloudflare R2 bucket every minute (`rclone sync`, so a file deleted or moved to
 private here is removed from the bucket too). Cloudflare serves the bucket on `shared-files.portableinfo.cloud`, so downloads never reach
-the pod, Traefik or the node disk. It stays idle until the Secret `fileserver-r2` exists.
+the pod or the node disk. It stays idle until the Secret `fileserver-r2` exists.
 
 1. Cloudflare > R2: create a bucket, an API token with Object Read & Write on that bucket only, and note the account's S3 endpoint.
-2. Add `fileserver-r2.enc.yaml` (SOPS, like the other `*.enc.yaml`) with `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
-   `R2_ENDPOINT` (`https://<account-id>.r2.cloudflarestorage.com`) and `R2_BUCKET`, and list it in `kustomization.yaml`.
-   Reloader restarts the pod. The pod is the source of truth: a file deleted or made private here disappears from the bucket
+2. Put `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT` (`https://<account-id>.r2.cloudflarestorage.com`) and
+   `R2_BUCKET` in `fileserver-r2.enc.yaml` (SOPS). Reloader restarts the pod. The pod is the source of truth: a file deleted or made private here disappears from the bucket
    within a minute or two. A sync that would delete more than 50 files fails (`--max-delete 50`) and is retried; raise it for a bulk clean-up.
 3. Check `kubectl -n fileserver-system logs deploy/fileserver -c r2-sync` until the first sync has finished.
 4. Cloudflare: bucket > Settings > Custom domains > `shared-files.portableinfo.cloud`, a WAF rate-limiting rule and a Transform Rule for
-   HSTS and `nosniff` (what the Traefik middlewares used to do).
+   HSTS and `nosniff`.
 
 ## Upload token
 
@@ -32,11 +31,7 @@ that replaces it every 30 days) in the namespace `secret-store`. An ExternalSecr
 restarts the fileserver. The runners read `FILESERVER_TOKEN` when they start; an upload that is running during
 a rotation fails and is retried. The admin page shows the token.
 
-## First deploy
-
-1. Set up the R2 bucket as described above.
-2. The token needs no action: External Secrets creates it on the first sync. To rotate it now, delete the key `current`
-   in the Secret `secret-store/fileserver-upload-token`, or wait for the next 30 days.
+To rotate the token now, delete the key `current` in the Secret `secret-store/fileserver-upload-token`, or wait for the next 30 days.
 
 ## Upload from a workflow
 

@@ -11,9 +11,10 @@ spec:
   prune: true
   dependsOn:
     - name: gitops-infra-post
+    - name: gitops-infra-kubevirt
   sourceRef:
     kind: GitRepository
-    name: flux-system #gitops
+    name: flux-system
   path: ../../k8s/virtualmachines
   postBuild:
     substitute:

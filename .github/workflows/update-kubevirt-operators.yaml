@@ -1,7 +1,6 @@
 name: Update KubeVirt operators
 
-# The vendored operator manifests in k8s/infra/kubevirt/ are generated from the release pinned in
-# versions.env (bumped by Renovate). This regenerates them on the PR branch and commits the result back.
+# Regenerates the vendored operator manifests (versions.env, bumped by Renovate) on the PR branch and commits them.
 on:
   workflow_dispatch:
   pull_request:
@@ -12,21 +11,20 @@ on:
 
 permissions: {}
 
-# One run per ref; a newer push supersedes the running one
 concurrency:
   group: update-kubevirt-operators-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   update:
-    # Fork PRs get a read-only token and cannot be pushed to
+    # a fork's token is read-only
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read # the App token below does the writing
     steps:
-      # Push as the Renovate GitHub App instead of GITHUB_TOKEN, so the commit triggers the other workflows
+      # the App token, not GITHUB_TOKEN, so the commit triggers the other workflows
       - name: Get a GitHub App token
         id: app-token
         uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
@@ -38,7 +36,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # On pull_request the default ref is the merge commit; check out the branch to push to it
+          # the PR merge commit is the default ref; push needs the branch
           ref: ${{ github.head_ref || github.ref_name }}
           token: ${{ steps.app-token.outputs.token }}
 
@@ -48,7 +46,7 @@ jobs:
       - name: Stage changes
         run: git add -A
 
-      # Creates the commit through the GitHub API with the app token, so it is signed (Verified)
+      # via the GitHub API, so the commit is signed (Verified)
       - uses: qoomon/actions--create-commit@7102b1a8b3cb8716dc70dbeb6d774c375d779d2f # v1.2.5
         id: commit
         with:

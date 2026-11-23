@@ -7,13 +7,18 @@ metadata:
   name: harper-pad-db
   namespace: harper-pad
 spec:
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: postgresql-minimal-trixie
+    major: 18
   instances: 1
-  # A single instance has nothing to fail over to, so the default PDB (minAvailable 1) only blocks node drains and Talos upgrades.
+  # A single instance has nothing to fail over to; the default PDB would only block drains and Talos upgrades.
   enablePDB: false
   enableSuperuserAccess: false
   storage:
-    size: 2Gi
-    storageClass: local-path
+    size: 5Gi
+    storageClass: lvm-fast
   resources:
     requests:
       cpu: 30m
@@ -23,14 +28,13 @@ spec:
   bootstrap:
     initdb:
       database: harper
-      # harper_admin owns the database and so its tables, and harper-pad-admin runs the migrations as this role. harper_sync (the
-      # public API's role) is only a login role below; the migrations grant it row-level rights and it has no DDL. initdb runs only when
-      # the cluster is first created: postgres-database.yaml keeps the owner right on a cluster that already exists.
+      # harper_admin owns the database and runs the migrations; harper_sync (public API) is login-only and gets
+      # row-level rights from the migrations. initdb runs only at first creation.
       owner: harper_admin
       encoding: UTF8
   managed:
     roles:
-      # No password: access is by client certificate only (see pg_hba below).
+      # No password: client certificate only (pg_hba below).
       - name: harper_admin
         ensure: present
         login: true
@@ -46,8 +50,7 @@ spec:
     replicationTLSSecret: harper-pad-db-replication
   postgresql:
     pg_hba:
-      # Placed before CNPG's default "host all all all scram-sha-256" rule.
-      # cert auth matches the certificate CN against the role name.
+      # Before CNPG's default "host all all all scram-sha-256" rule; cert auth matches CN against the role name.
       - hostssl harper harper_sync all cert
       - hostssl harper harper_admin all cert
   inheritedMetadata:

@@ -17,12 +17,43 @@ spec:
   cluster:
     type: kubernetes
     multitenant: false
-    networkPolicy: true
+    networkPolicy: false # replaced by k8s/infra/flux-system/ciliumnetworkpolicy.yaml
     domain: "cluster.local"
+    size: small
+  kustomize:
+    patches:
+      # opt the namespace in to the ops tier of the Elevate page (the operator creates it, Git cannot label it otherwise)
+      - target:
+          kind: Namespace
+          name: flux-system
+        patch: |
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: flux-system
+            labels:
+              claude-elevate/ops: "true"
+              claude-elevate/flux: "true" # reconcile a Kustomization now (annotation only, see the claude-flux role and its admission policy)
+      # median working set 95-110Mi against the 64Mi default request
+      - target:
+          kind: Deployment
+          name: "(source|kustomize|helm)-controller"
+        patch: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: not-used
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: manager
+                    resources:
+                      requests:
+                        memory: 128Mi
   sync:
     kind: GitRepository
     url: "https://github.com/cthtrifork/talos-gitops"
     ref: "refs/heads/main"
     path: "k8s/clusters/homelab"
     interval: 1h # fallback poll; the webhook receiver (k8s/infra/flux-system) triggers a fetch on push
-    #pullSecret: "flux-system"

@@ -1,12 +1,6 @@
-# The Polaris dashboard audits the cluster once, on its first request, and then serves that result from memory; the chart has
-# no refresh option (helm-release.yaml), so the score goes stale. The Flux Operator re-runs a Job for every new commit on
-# main: the ResourceSetInputProvider exports the branch's sha, and the ResourceSet renders one Job per sha (a Job spec is
-# immutable, so a new name is how it runs again; Flux prunes the old one). dependsOn holds the Job back until the Flux
-# Kustomizations are Ready. That is not tied to the sha: right after a push they can still be Ready at the previous commit,
-# so the audit may see the cluster a few minutes behind and the next commit corrects it. The Job restarts the dashboard and
-# requests /results.json from the new one, which runs the audit. The restart is a rolling one, so the old pod keeps serving
-# its stale report until the new one is Ready; HelmRelease polaris ignores the restartedAt annotation it sets.
-# https://fluxoperator.dev/docs/resourcesets/staged-jobs/
+# Polaris audits once on its first request and has no refresh option, so the score goes stale. A Job per main commit sha
+# (a new name is how an immutable Job runs again) restarts the dashboard and requests /results.json to trigger the audit.
+# dependsOn is not tied to the sha: right after a push the audit may see the cluster one commit behind; the next commit corrects it.
 ---
 apiVersion: fluxcd.controlplane.io/v1
 kind: ResourceSet
@@ -60,7 +54,7 @@ spec:
                   - -eu
                   - -c
                   - |
-                    # a rolling restart: the old pod keeps serving its (stale) report until the new one is Ready
+                    # rolling: the old pod serves the stale report until the new one is Ready
                     kubectl rollout restart deployment/polaris-dashboard -n policy-system
                     kubectl rollout status deployment/polaris-dashboard -n policy-system --timeout=180s
                     # the new pod audits on its first request

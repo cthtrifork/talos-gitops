@@ -1,0 +1,40 @@
+---
+# Fast tier: two raw volumes, one per free NVMe region (the old 200 GB partition leaves a gap before EPHEMERAL).
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-fast-a
+provisioning:
+  diskSelector:
+    match: disk.transport == 'nvme'
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-fast-b
+provisioning:
+  diskSelector:
+    match: disk.transport == 'nvme'
+  minSize: 20GB
+---
+# Bulk tier: the whole 4 TB USB disk
+apiVersion: v1alpha1
+kind: RawVolumeConfig
+name: lvm-bulk-a
+provisioning:
+  diskSelector:
+    match: disk.transport == 'usb'
+  minSize: 20GB
+---
+apiVersion: v1alpha1
+kind: LVMVolumeGroupConfig
+name: vg-fast
+provisioning:
+  volumeSelector:
+    match: volume.partition_label.startsWith("r-lvm-fast")
+---
+apiVersion: v1alpha1
+kind: LVMVolumeGroupConfig
+name: vg-bulk
+provisioning:
+  volumeSelector:
+    match: volume.partition_label.startsWith("r-lvm-bulk")

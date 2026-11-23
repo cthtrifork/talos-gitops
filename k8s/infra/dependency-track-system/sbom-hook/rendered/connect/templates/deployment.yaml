@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: sbom-hook
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redpanda-connect
+    app.kubernetes.io/version: 4.118.0
+    helm.sh/chart: redpanda-connect-3.2.37
+  name: sbom-hook
+  namespace: dependency-track-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: sbom-hook
+      app.kubernetes.io/name: redpanda-connect
+  template:
+    metadata:
+      annotations:
+        checksum/config: 2dba109591f6455aaa1315b761906de26d843e92b709143158dca1a34e12eb5b
+        reloader.stakater.com/auto: "true"
+      labels:
+        app.kubernetes.io/instance: sbom-hook
+        app.kubernetes.io/name: redpanda-connect
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - -c
+        - /etc/connect/redpanda-connect.yaml
+        - --disable-telemetry
+        env:
+        - name: DT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: api-key
+              name: dependency-track-api-key
+              optional: true
+        image: mirror.gcr.io/redpandadata/connect:4.119.0@sha256:64a140553f57eaefe897ad9613b9190e30a51e08fa8cdc9ebb02120440654fa7
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /ping
+            port: http
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 2
+        name: connect
+        ports:
+        - containerPort: 4195
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 1
+          httpGet:
+            path: /ready
+            port: http
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 2
+        resources:
+          limits:
+            memory: 512Mi
+          requests:
+            cpu: 20m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /redpanda-connect.yaml
+          name: config
+          readOnly: true
+          subPath: redpanda-connect.yaml
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /queue
+          name: queue
+        - mountPath: /etc/connect/redpanda-connect.yaml
+          name: connect-config
+          readOnly: true
+          subPath: redpanda-connect.yaml
+      restartPolicy: Always
+      securityContext:
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: sbom-hook
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - configMap:
+          name: sbom-hook-config
+        name: config
+      - emptyDir: {}
+        name: tmp
+      - emptyDir:
+          sizeLimit: 512Mi
+        name: queue
+      - configMap:
+          name: sbom-hook-connect-config
+        name: connect-config

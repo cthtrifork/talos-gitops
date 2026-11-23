@@ -1,0 +1,73 @@
+---
+# Flux post-build substitution runs over this file, hence the $$ escapes.
+http:
+  enabled: true
+  address: 0.0.0.0:4195
+  debug_endpoints: false
+
+# trivy-operator ignores the answer, so the buffer acknowledges at once and the upload happens in the background.
+input:
+  http_server:
+    path: /sbom
+    allowed_verbs:
+      - POST
+
+buffer:
+  sqlite:
+    path: /queue/sbom.db # on disk: a restart keeps queued reports and a backlog does not use memory
+
+pipeline:
+  processors:
+    - mapping: |
+        if this.kind != "SbomReport" {
+          root = deleted()
+        } else {
+          # project per image, version = digest: VEX statements only match by digest
+          let server = this.report.registry.server.or("")
+          let repo = this.report.artifact.repository
+          let name = if $server != "" { $server + "/" + $repo } else { $repo }
+          let version = this.report.artifact.digest.not_empty().or(this.report.artifact.tag)
+          let digest = this.report.artifact.digest.or("")
+          meta dedupe_key = $name + ":" + $version + ":" + $digest
+          root = {
+            "projectName": $name,
+            "projectVersion": $version,
+            "autoCreate": true,
+            "projectTags": [{"name": "kubernetes"}],
+            "bom": this.report.components.format_json().encode("base64")
+          }
+        }
+    # rescans of unchanged images and workloads sharing one image
+    - dedupe:
+        cache: sbom_seen
+        key: '$${!metadata("dedupe_key")}'
+
+cache_resources:
+  - label: sbom_seen
+    memory:
+      default_ttl: 24h
+
+output:
+  switch:
+    cases:
+      # dry run until the API key Secret exists
+      - check: env("DT_API_KEY").or("") == ""
+        output:
+          processors:
+            - mapping: 'root = "DRY RUN: would upload " + this.projectName + ":" + this.projectVersion'
+          stdout: {}
+      - output:
+          http_client:
+            url: http://dependency-track-api-server.dependency-track-system.svc.cluster.local:8080/api/v1/bom
+            verb: PUT
+            headers:
+              Content-Type: application/json
+              X-Api-Key: $${DT_API_KEY}
+            timeout: 60s
+            max_in_flight: 4 # each upload holds the report, its base64 copy and the body in memory
+            retries: 3
+            drop_on:
+              - 400
+              - 404
+              - 409
+              - 422

@@ -1,0 +1,45 @@
+# Used by the ClusterSecretStore claude-vm-source; may read ghcr-pull and claude-github-app and nothing else.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: claude-vm-source
+  namespace: claude-system
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: claude-vm-source
+  namespace: claude-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - ghcr-pull
+      - claude-github-app
+    verbs:
+      - get
+  # the store checks its own permissions when it is created
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - selfsubjectrulesreviews
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: claude-vm-source
+  namespace: claude-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: claude-vm-source
+subjects:
+  - kind: ServiceAccount
+    name: claude-vm-source
+    namespace: claude-system

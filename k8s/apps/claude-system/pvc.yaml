@@ -1,28 +1,28 @@
-# claude-home holds the Claude login (~/.claude) for the claude-rc Deployment. Delete it to sign out.
-# claude-workspace is /workspace (clones, scratch): it survives restarts, unlike a per-pod volume.
+# claude-home-lvm holds the Claude login (~/.claude) for the claude-rc Deployment. Delete it to sign out.
+# claude-workspace-lvm is /workspace (clones, scratch). The -lvm suffix stays because a PVC cannot be renamed.
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: claude-home
+  name: claude-home-lvm
   namespace: claude-system
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 5Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: claude-workspace
-  namespace: claude-system
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: lvm-fast
   resources:
     requests:
       storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claude-workspace-lvm
+  namespace: claude-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: lvm-fast
+  resources:
+    requests:
+      storage: 50Gi

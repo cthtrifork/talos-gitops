@@ -1,0 +1,63 @@
+# Default deny, then runners of arc-runners-system on 3000 and GitHub (OIDC verification, artifact pass-through). A job
+# that fails to connect: find the host in the drop metrics (skill cilium-drops) and add it below.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: gha-cache-system-default-deny
+  namespace: gha-cache-system
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: gha-cache-system-allow-dns
+  namespace: gha-cache-system
+spec:
+  endpointSelector: {}
+  egress:
+    # DNS, proxy on so Cilium learns the addresses behind the hosts below
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: gha-cache
+  namespace: gha-cache-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: github-actions-cache-server
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: arc-runners-system
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
+  egress:
+    - toFQDNs:
+        # OIDC token verification (JWKS) and the results service
+        - matchName: token.actions.githubusercontent.com
+        - matchPattern: "*.actions.githubusercontent.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

@@ -1,21 +1,13 @@
 ---
-# The elevate page and its API. The grant and revoke calls go straight to the Kubernetes API with the pod's own token; the API server decides
-# what is allowed (RBAC, the admission policies, the token limits), so there is no validation here: a missing or malformed field fails in a
-# mapping or at the API server and answers 502 with the reason. The tier and the namespace go into URL paths, so they are escaped once, on the way in. Nothing is cleaned up afterwards, not even after a failed grant: a token expires on its own, and the ServiceAccount and
-# RoleBinding left behind (one pair per tier and namespace) are replaced by the next grant.
-#
-# GET  /                  the page
-# GET  /api/v1/status     allowed namespaces and max minutes per tier, and the active grants, all read from the API server
-# POST /api/v1/grants     {"tier": "<tier>", "minutes": <n>, "namespace": "<namespace>", "csrf": "<csrf>"}
-# POST /api/v1/revoke     {"tier": "<tier>", "namespace": "<namespace>", "csrf": "<csrf>"}
-# The status carries `csrf`, a hash of the pod's token that only a page reading the status can know, so a form on another site cannot post.
-# (A header cannot do that here: Connect also copies query parameters into the same metadata.) An error answers 502 with the API's message.
+# No validation here: the API server decides (RBAC, admission policies, token limits) and failures answer 502 with the reason.
+# Nothing is cleaned up after a failed grant; the next grant replaces the leftover ServiceAccount and RoleBinding.
+# CSRF guard is a hash of the pod's token from the status, not a header: Connect copies query parameters into metadata.
 http:
   enabled: true
   address: 0.0.0.0:4195
   debug_endpoints: false
 
-# the pod's token rotates, so it is read from the file on every request
+# the token rotates, so it is read on every request
 cache_resources:
   - label: serviceaccount
     file:
@@ -68,6 +60,13 @@ pipeline:
                 root = {"tier": $b.tier.escape_url_path(), "namespace": $b.namespace.escape_url_path(), "csrf": $b.csrf}
             - resource: revoke
 
+        - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/jobs"'
+          processors:
+            - mapping: |
+                let b = content().parse_json()
+                root = {"namespace": $b.namespace.escape_url_path(), "cronjob": $b.cronjob.escape_url_path(), "csrf": $b.csrf}
+            - resource: run_job
+
         - processors:
             - mapping: |
                 meta status = "404"
@@ -86,12 +85,10 @@ output:
   sync_response: {}
 
 processor_resources:
-  # fails unless the message's csrf is the hash the status hands out (needs the metadata field `token`), and drops it from the message
   - label: check_csrf
     mapping: |
       root = if this.csrf != metadata("token").hash("sha256").encode("hex") { throw("bad csrf token") } else { this.without("csrf") }
 
-  # puts the pod's token in the metadata field `token`; the other resources send it
   - label: login
     branch:
       request_map: 'root = ""'
@@ -102,7 +99,6 @@ processor_resources:
             key: token
       result_map: 'meta token = content().string().trim()'
 
-  # The five calls to the API server. The caller sets the metadata field `path`; the body is the message.
   - label: get
     http:
       url: 'https://kubernetes.default.svc${! @path }'
@@ -160,7 +156,6 @@ processor_resources:
         enabled: true
         root_cas_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
-  # GET /api/v1/status
   - label: status
     try:
       - resource: login
@@ -185,8 +180,22 @@ processor_resources:
           processors:
             - resource: get
           result_map: 'meta serviceaccounts = this.items'
+      - branch:
+          request_map: |
+            meta path = "/apis/batch/v1/cronjobs"
+            root = ""
+          processors:
+            - resource: get
+          result_map: 'meta cronjobs = this.items'
       - mapping: |
           root.csrf = @token.hash("sha256").encode("hex")
+          root.cronjobs = @cronjobs.filter(c -> @namespaces.filter(n -> n.metadata.name == c.metadata.namespace && n.metadata.labels.or({}).get("claude-elevate/jobs") == "true").length() > 0).map_each(c -> {
+            "namespace": c.metadata.namespace,
+            "name": c.metadata.name,
+            "schedule": c.spec.schedule,
+            "suspended": c.spec.suspend.or(false),
+            "description": c.metadata.annotations.or({}).get("claude-elevate/description").or("")
+          })
           root.max_minutes = @limits.map_each(kv -> kv.value.number())
           root.allowed_namespaces = @limits.map_each(kv -> @namespaces.filter(n -> n.metadata.labels.or({}).get("claude-elevate/" + kv.key) == "true").map_each(n -> n.metadata.name))
           root.grants = @serviceaccounts.filter(s -> s.metadata.annotations.or({}).get("claude-elevate/expires-at").type() == "string").map_each(s -> {
@@ -195,8 +204,7 @@ processor_resources:
             "expires_at": s.metadata.annotations.get("claude-elevate/expires-at")
           })
 
-  # Deletes the ServiceAccount, the RoleBinding and the kubeconfig key of the tier and namespace in the message. The ServiceAccount goes first:
-  # deleting it invalidates its tokens at once.
+  # The ServiceAccount goes first: deleting it invalidates its tokens at once.
   - label: remove
     try:
       - branch:
@@ -219,7 +227,6 @@ processor_resources:
           processors:
             - resource: merge
 
-  # POST /api/v1/grants: the message is {tier, namespace, minutes}
   - label: grant
     try:
       - resource: login
@@ -293,7 +300,6 @@ processor_resources:
             tier: '${! this.tier }'
       - mapping: 'root = {"granted": true, "until": metadata("expires")}'
 
-  # POST /api/v1/revoke: the message is {tier, namespace}
   - label: revoke
     try:
       - resource: login
@@ -309,3 +315,47 @@ processor_resources:
             action: revoke
             tier: '${! this.tier }'
       - mapping: 'root = {"revoked": true}'
+
+  - label: run_job
+    try:
+      - resource: login
+      - resource: check_csrf
+      - branch:
+          request_map: |
+            meta path = "/apis/batch/v1/namespaces/" + this.namespace + "/cronjobs/" + this.cronjob
+            root = ""
+          processors:
+            - resource: get
+          result_map: 'meta cronjob = this'
+      - branch:
+          request_map: |
+            let cj = metadata("cronjob")
+            let name = $cj.metadata.name.slice(0, 40) + "-manual-" + now().ts_unix().string()
+            meta job_name = $name
+            meta path = "/apis/batch/v1/namespaces/" + this.namespace + "/jobs"
+            root = {
+              "apiVersion": "batch/v1",
+              "kind": "Job",
+              "metadata": {
+                "name": $name,
+                "namespace": $cj.metadata.namespace,
+                "labels": $cj.spec.jobTemplate.metadata.labels.or({}),
+                "annotations": $cj.spec.jobTemplate.metadata.annotations.or({}).merge({"cronjob.kubernetes.io/instantiate": "manual"}),
+                "ownerReferences": [{"apiVersion": "batch/v1", "kind": "CronJob", "name": $cj.metadata.name, "uid": $cj.metadata.uid, "controller": true}]
+              },
+              "spec": $cj.spec.jobTemplate.spec
+            }
+          processors:
+            - resource: post
+          # the API server answers with the created Job; a meta set in request_map does not reach this message
+          result_map: 'meta job_name = this.metadata.name'
+      - log:
+          message: job started
+          fields_mapping: 'root = {"namespace": this.namespace, "cronjob": this.cronjob, "job": metadata("job_name")}'
+      - metric:
+          type: counter
+          name: elevate_requests
+          labels:
+            action: run_job
+            tier: jobs
+      - mapping: 'root = {"started": true, "job": metadata("job_name")}'

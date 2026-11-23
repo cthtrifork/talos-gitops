@@ -1,0 +1,19 @@
+# policyEnforcementMode: always also denies the health endpoint: without this the cilium-health probes are dropped.
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumclusterwidenetworkpolicy_v2.json
+---
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: cilium-health
+spec:
+  endpointSelector:
+    matchLabels:
+      reserved:health: ""
+  ingress:
+    - fromEntities:
+        - host
+        - remote-node
+  egress:
+    - toEntities:
+        - host
+        - remote-node

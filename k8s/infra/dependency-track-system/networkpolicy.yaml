@@ -1,0 +1,282 @@
+# Default deny both ways, then per workload what Hubble showed it needs. Prometheus scrapes via the cluster-wide policy in kube-prometheus-stack.
+# The Omni service exposer runs on the host network, so its traffic arrives as host or remote-node.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: dependency-track-system-default-deny
+  namespace: dependency-track-system
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: dependency-track-system-allow-dns-apiserver
+  namespace: dependency-track-system
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - kube-apiserver
+---
+# Dependency-Track API (192.168.1.242, the LB IP, is seen as world).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: dependency-track-api-server
+  namespace: dependency-track-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: dependency-track-api-server
+  ingress:
+    - fromEntities:
+        - world
+        - host
+        - remote-node
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: sbom-hook
+        - matchLabels:
+            app.kubernetes.io/name: dependency-track-config
+        - matchLabels:
+            app.kubernetes.io/name: dependency-track-vex-export
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: traefik-system
+            k8s:app.kubernetes.io/name: traefik
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: claude-system
+            k8s:app: claude-rc
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: dependency-track-db
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: trivy-system
+            k8s:app.kubernetes.io/name: trivy-server
+      toPorts:
+        - ports:
+            - port: "4954"
+              protocol: TCP
+    # DNS with the proxy on, so Cilium learns the addresses behind the hosts below
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # vulnerability feeds and package metadata
+    - toFQDNs:
+        - matchName: www.cisa.gov
+        - matchName: raw.githubusercontent.com
+        - matchName: api.github.com
+        - matchName: github.com
+        - matchName: services.nvd.nist.gov
+        - matchName: nvd.nist.gov
+        - matchName: api.osv.dev
+        - matchName: osv-vulnerabilities.storage.googleapis.com
+        - matchName: proxy.golang.org
+        - matchName: pypi.org
+        - matchName: repo1.maven.org
+        - matchName: packages.atlassian.com
+        - matchName: maven.artifacts.atlassian.com
+        - matchName: repository.jboss.org
+        - matchName: repo.clojars.org
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+# Dependency-Track frontend
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: dependency-track-frontend
+  namespace: dependency-track-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: dependency-track-frontend
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: traefik-system
+            k8s:app.kubernetes.io/name: traefik
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+# Dependency-Track database (CloudNativePG)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: dependency-track-db
+  namespace: dependency-track-system
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: dependency-track-db
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: dependency-track-api-server
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+            k8s:app.kubernetes.io/name: cloudnative-pg
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+            - port: "5432"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: dependency-track-db
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+            - port: "5432"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: dependency-track-db
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+            - port: "5432"
+              protocol: TCP
+---
+# sbom-hook
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sbom-hook
+  namespace: dependency-track-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: sbom-hook
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: trivy-system
+            k8s:app.kubernetes.io/name: trivy-operator
+      toPorts:
+        - ports:
+            - port: "4195"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: dependency-track-api-server
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+# Config CronJob (the Kubernetes API comes from the default allow)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: dependency-track-config
+  namespace: dependency-track-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: dependency-track-config
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: dependency-track-api-server
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+# VEX export CronJob
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: dependency-track-vex-export
+  namespace: dependency-track-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: dependency-track-vex-export
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: dependency-track-api-server
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    # DNS with the proxy on, so Cilium learns the FQDN addresses
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        - matchName: github.com
+        - matchName: api.github.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

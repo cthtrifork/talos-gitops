@@ -1,6 +1,4 @@
-# Default deny both ways for the namespace, then DNS, the Kubernetes API and the webhook. Only the controller uses the
-# pod network (Hubble: kube-apiserver in and out, nothing else); the speaker and frr-k8s pods run on the host network,
-# which these policies do not cover. The Prometheus ServiceMonitor is disabled, so metrics need no rule.
+# Only the controller is on the pod network; speaker and frr-k8s run on the host network and are not covered.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -23,7 +21,6 @@ metadata:
 spec:
   endpointSelector: {}
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -32,11 +29,9 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-    # Kubernetes API
     - toEntities:
         - kube-apiserver
 ---
-# Admission webhook (service port 443 to 9443), called by the API server on the host network.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

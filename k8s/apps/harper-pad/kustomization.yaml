@@ -16,4 +16,5 @@ resources:
   - middleware.yaml
   - admin-deployment.yaml
   - networkpolicy.yaml
+  - ciliumnetworkpolicy.yaml
   - podmonitor.yaml

@@ -1,6 +1,6 @@
 ---
-# Cockpit page and read-only status API; architecture in the README. Not a Flux template (configMapGenerator disables postBuild envsubst).
-# The ingest listener (:8081) has no authentication: the NetworkPolicy lets in the claude-rc pod only, and a spoofed sender could only change what the page shows.
+# Cockpit page and read-only status API; architecture in the README.
+# The ingest listener (:8081) has no authentication: the NetworkPolicy admits claude-rc only.
 http:
   enabled: true
   address: 0.0.0.0:4195
@@ -96,7 +96,7 @@ processor_resources:
               meta content_type = "text/plain"
               root = "ok"
 
-      # The plan limits, posted every few minutes by the usage-poller container of claude-rc (usage-poller/poll-usage); one login, one value.
+      # Plan limits, posted by the usage-poller container of claude-rc.
       - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/usage"'
         processors:
           - mapping: |
@@ -171,8 +171,7 @@ processor_resources:
         User-Agent: claude-cockpit
       timeout: 10s
 
-  # The digest of the latest image of the metadata field `image`: the sha256 of the manifest is its digest. The pull token is requested with the
-  # read:packages credential of ghcr-pull, because homeserver-bootc is a private package.
+  # The pull token uses the read:packages credential of ghcr-pull because homeserver-bootc is private.
   - label: image_digest
     processors:
       - branch:
@@ -209,8 +208,7 @@ processor_resources:
       verb: GET
       timeout: 10s
 
-  # Same states as the Flux Operator web UI: Ready=True is ready, Ready=False with DependencyNotReady is progressing (it waits), any other False is
-  # failed, Ready=Unknown is progressing unless its reason says otherwise, and suspended wins over all of them.
+  # Same states as the Flux Operator web UI; DependencyNotReady counts as progressing, not failed.
   - label: flux_summary
     mapping: |
       map state {
@@ -233,15 +231,17 @@ processor_resources:
       root.unknown = $items.filter(i -> i.state == "unknown").length()
       root.problems = $items.filter(i -> i.state == "failed" || i.state == "unknown" || i.state == "progressing").sort_by(i -> (if i.state == "failed" { "0" } else if i.state == "unknown" { "1" } else { "2" }) + i.namespace + i.name).slice(0, 8).map_each(i -> {"namespace": i.namespace, "name": i.name, "state": i.state, "message": i.message})
 
-  # a failed branch is left out and named in meta.workflow.failed; the catch clears the error flag so the rest is still answered
+  # a failed branch is left out and named in meta.workflow.failed
   - label: status
     processors:
-      - mapping: 'root = {"generated_at": now().ts_unix()}'
+      - mapping: |
+          meta drops_window = if @drops == "15m" { "15m" } else { "1h" }
+          root = {"generated_at": now().ts_unix(), "drops_window": @drops_window}
       - workflow:
           branches:
             drops_total:
               request_map: |
-                meta path = "/api/v1/query?query=" + "sum(increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[1h]))".escape_url_query()
+                meta path = "/api/v1/query?query=" + ("sum(increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[" + @drops_window + "]))").escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
@@ -250,7 +250,9 @@ processor_resources:
             drops_series:
               request_map: |
                 let end = now().ts_unix()
-                meta path = "/api/v1/query_range?query=" + "sum(increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[5m]))".escape_url_query() + "&start=" + ($end - 3600).string() + "&end=" + $end.string() + "&step=300"
+                let short = @drops_window == "15m"
+                let step = if $short { 60 } else { 300 }
+                meta path = "/api/v1/query_range?query=" + ("sum(increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[" + $step.string() + "s]))").escape_url_query() + "&start=" + ($end - (if $short { 900 } else { 3600 })).string() + "&end=" + $end.string() + "&step=" + $step.string()
                 root = ""
               processors:
                 - resource: prom_get
@@ -258,14 +260,14 @@ processor_resources:
 
             drops_top:
               request_map: |
-                meta path = "/api/v1/query?query=" + "topk(3, sum by (source_workload, destination_ip, destination_namespace, destination_workload) (increase(hubble_drop_total{reason=\"POLICY_DENIED\"}[1h])) > 0)".escape_url_query()
+                meta path = "/api/v1/query?query=" + ("topk(3, (sum by (source_workload, destination, destination_namespace, destination_workload) (increase(hubble_drop_total{reason=\"POLICY_DENIED\",destination!=\"\"}[" + @drops_window + "])) or sum by (source_workload, destination_ip, destination_namespace, destination_workload) (increase(hubble_drop_total{reason=\"POLICY_DENIED\",destination=\"\"}[" + @drops_window + "]))) > 0)").escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
               result_map: |
                 root.drops_top = this.data.result.map_each(r -> {
                   "source": r.metric.source_workload.or("unknown"),
-                  "destination": if r.metric.destination_workload.or("") != "" { r.metric.destination_namespace.or("-") + "/" + r.metric.destination_workload } else { r.metric.destination_ip.or("unknown") },
+                  "destination": if r.metric.destination_workload.or("") != "" { r.metric.destination_namespace.or("-") + "/" + r.metric.destination_workload } else { r.metric.destination.or(r.metric.destination_ip.or("unknown")) },
                   "count": r.value.index(1).number().round()
                 })
 
@@ -283,17 +285,83 @@ processor_resources:
                   "since": a.activeAt.or("")
                 }).sort_by(a -> a.name)
 
-            disk:
+            # kubelet_volume_stats_* exists only for mounted filesystem volumes
+            pvcs:
               request_map: |
-                meta path = "/api/v1/query?query=" + "100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/var/mnt/local-path-provisioner\"} / node_filesystem_size_bytes{mountpoint=\"/var/mnt/local-path-provisioner\"}) * on(instance) group_left(nodename) node_uname_info".escape_url_query()
+                meta path = "/api/v1/query?query=" + "topk(5, 100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes)".escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
               result_map: |
-                root.disk = this.data.result.map_each(r -> {
-                  "node": r.metric.nodename.or(r.metric.instance.or("unknown")),
+                root.pvcs = this.data.result.map_each(r -> {
+                  "name": r.metric.namespace.or("-") + "/" + r.metric.persistentvolumeclaim.or("unknown"),
                   "used_pct": r.value.index(1).number().round()
-                }).sort_by(n -> n.node)
+                })
+
+            pvc_sizes:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "kubelet_volume_stats_capacity_bytes and on (namespace, persistentvolumeclaim) topk(5, 100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes)".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.pvc_sizes = this.data.result.map_each(r -> {
+                  "name": r.metric.namespace.or("-") + "/" + r.metric.persistentvolumeclaim.or("unknown"),
+                  "bytes": r.value.index(1).number().round()
+                })
+
+            pvc_count:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "count(kubelet_volume_stats_capacity_bytes)".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: 'root.pvc_count = this.data.result.index(0).value.index(1).number().round().catch(0)'
+
+            pvc_total:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "count(kube_persistentvolumeclaim_info)".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: 'root.pvc_total = this.data.result.index(0).value.index(1).number().round().catch(0)'
+
+            # node-exporter's instance is the node IP, so it is joined to kube_node_info for the name
+            var_avail:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "node_filesystem_avail_bytes{mountpoint=\"/var\"} * on (instance) group_left (node) label_replace(kube_node_info, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\")".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.var_avail = this.data.result.map_each(r -> {"node": r.metric.node.or("unknown"), "bytes": r.value.index(1).number().round()})
+
+            var_size:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "node_filesystem_size_bytes{mountpoint=\"/var\"} * on (instance) group_left (node) label_replace(kube_node_info, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\")".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.var_size = this.data.result.map_each(r -> {"node": r.metric.node.or("unknown"), "bytes": r.value.index(1).number().round()})
+
+            vg_free:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "lvm_vg_free_size_bytes * on (pod) group_left (node) kube_pod_info{namespace=\"openebs-system\"}".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.vg_free = this.data.result.map_each(r -> {"node": r.metric.node.or("unknown"), "name": r.metric.name.or(""), "bytes": r.value.index(1).number().round()})
+
+            vg_total:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "lvm_vg_total_size_bytes * on (pod) group_left (node) kube_pod_info{namespace=\"openebs-system\"}".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.vg_total = this.data.result.map_each(r -> {"node": r.metric.node.or("unknown"), "name": r.metric.name.or(""), "bytes": r.value.index(1).number().round()})
 
             polaris:
               request_map: 'root = ""'
@@ -304,14 +372,20 @@ processor_resources:
                     timeout: 15s
                 - mapping: |
                     let failing = this.Results.map_each(r -> [
-                      r.Results.or({}).values(),
-                      r.PodResult.Results.or({}).values(),
-                      r.PodResult.ContainerResults.or([]).map_each(c -> c.Results.or({}).values()).flatten()
-                    ].flatten()).flatten().filter(x -> x.Success == false)
+                      r.Results.or({}).key_values(),
+                      r.PodResult.Results.or({}).key_values(),
+                      r.PodResult.ContainerResults.or([]).map_each(c -> c.Results.or({}).key_values()).flatten()
+                    ].flatten().filter(x -> x.value.Success == false).map_each(x -> {
+                      "workload": r.Namespace.or("cluster") + "/" + r.Name,
+                      "check": x.key,
+                      "severity": x.value.Severity,
+                      "message": x.value.Message
+                    })).flatten()
                     root.score = this.Score
                     root.audit_time = this.AuditTime
-                    root.danger = $failing.filter(x -> x.Severity == "danger").length()
-                    root.warning = $failing.filter(x -> x.Severity == "warning").length()
+                    root.danger = $failing.filter(x -> x.severity == "danger").length()
+                    root.warning = $failing.filter(x -> x.severity == "warning").length()
+                    root.top = $failing.filter(x -> x.severity == "danger" || x.severity == "warning").sort_by(x -> (if x.severity == "danger" { "0" } else { "1" }) + x.workload + x.check).slice(0, 5)
               result_map: 'root.polaris = this'
 
             flux_ks:
@@ -372,7 +446,6 @@ processor_resources:
                     timeout: 10s
               result_map: 'root.vm_upgrade = this'
 
-            # The URL requests of the share-URLs pod (never the page content): what waits for the owner's approval and what was decided in the last 24h.
             urlshare:
               request_map: 'root = ""'
               processors:
@@ -395,6 +468,22 @@ processor_resources:
                     root.failed = $reqs.filter(r -> r.status == "failed").length()
                     root.items = $reqs.sort_by(r -> (if r.status == "pending" { "0" } else { "1" }) + (9999999999 - r.requested_at.number()).string()).slice(0, 3)
               result_map: 'root.urlshare = this'
+
+            # tier, namespace and expiry only: the status also carries the csrf value, which must not be copied
+            elevate:
+              request_map: 'root = ""'
+              processors:
+                - http:
+                    url: '${ELEVATE_URL:http://claude-elevate.claude-system.svc}/api/v1/status'
+                    verb: GET
+                    timeout: 10s
+                - mapping: |
+                    root.grants = this.grants.or([]).map_each(g -> {
+                      "tier": g.tier.or("").slice(0, 20),
+                      "namespace": g.namespace.or("").slice(0, 63),
+                      "expires_at": g.expires_at.or("")
+                    })
+              result_map: 'root.elevate = this'
 
             vm_image_claude_vm:
               request_map: |

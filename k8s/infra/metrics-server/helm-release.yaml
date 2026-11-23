@@ -18,10 +18,15 @@ spec:
       interval: 12h
   driftDetection:
     mode: enabled
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
   # https://github.com/kubernetes-sigs/metrics-server/blob/master/charts/metrics-server/values.yaml
   values:
     image:
-      # No digest yet: registry.k8s.io was not reachable when this was written. Renovate pins it (pinDigests).
       # renovate: datasource=docker depName=registry.k8s.io/metrics-server/metrics-server versioning=docker
       tag: v0.9.1@sha256:9b0ba1926e1d3089673f45461c3c1416109dea33b3ba3434048defd380df329b
     args:
@@ -49,7 +54,6 @@ spec:
       initialDelaySeconds: 60
       timeoutSeconds: 10
     tolerations:
-      # Tolerate the control plane taint
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule

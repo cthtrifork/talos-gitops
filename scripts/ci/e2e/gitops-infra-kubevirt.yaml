@@ -1,0 +1,6 @@
+---
+# gitops-infra-image-policies is suspended in e2e, so depending on it would never be ready.
+spec:
+  dependsOn:
+    - name: gitops-infra-bootstrap
+    - name: gitops-infra-controllers

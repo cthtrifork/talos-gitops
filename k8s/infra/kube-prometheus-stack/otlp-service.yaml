@@ -1,6 +1,5 @@
-# OTLP from the Claude VM: the Claude VM's egress gateway forwards plain HTTP by Host on port 80.
-# The Service reaches the whole Prometheus HTTP API (the admin API is off); the OTLP receiver is /api/v1/otlp/v1/metrics.
-# 192.168.1.243 is free in the MetalLB pool; the Cloudflare A record otel.portableinfo.cloud points at it.
+# Claude VM OTLP: its egress gateway forwards plain HTTP by Host on port 80 to this LB (192.168.1.243; Cloudflare A record otel.portableinfo.cloud).
+# The Service reaches the whole Prometheus HTTP API (admin API off); OTLP is /api/v1/otlp/v1/metrics.
 ---
 apiVersion: v1
 kind: Service

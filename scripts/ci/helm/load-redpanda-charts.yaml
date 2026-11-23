@@ -1,0 +1,15 @@
+---
+# https://github.com/redpanda-data/helm-charts/issues/1680
+source:
+  repo:
+    kind: HELM
+    url: "https://charts.redpanda.com/"
+target:
+  repo:
+    kind: OCI
+    url: "https://ghcr.io/cthtrifork/talos-gitops/charts"
+
+charts:
+  - connect
+
+skipImages: true

@@ -1,0 +1,17 @@
+# Home directory, kept apart from the rootdisk (which `bootc upgrade` or a re-import may replace). A raw block volume
+# (blank virtio disk, formatted by the cloud-init script in virtualmachine.yaml). A plain PVC, not a CDI DataVolume, so
+# it lands on the node the rootdisk pins the pod to (see claude-vm/pvc.yaml).
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: homeserver-vm-home-disk
+  namespace: homeserver-vm
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Block
+  storageClassName: lvm-fast
+  resources:
+    requests:
+      storage: 10Gi

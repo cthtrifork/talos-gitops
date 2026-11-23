@@ -1,7 +1,5 @@
 ---
-# Migrate to OCIRepository when
-# https://github.com/FairwindsOps/charts/issues/1755
-# is resolved
+# Migrate to OCIRepository when https://github.com/FairwindsOps/charts/issues/1755 is resolved
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:

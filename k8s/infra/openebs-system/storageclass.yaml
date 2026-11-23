@@ -1,0 +1,31 @@
+# The volume group is the tier: vg-fast is NVMe, vg-bulk slower disks. No redundancy, no thin provisioning.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/storage.k8s.io/storageclass_v1.json
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: lvm-fast
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: local.csi.openebs.io
+parameters:
+  storage: lvm
+  volgroup: vg-fast
+  fsType: xfs
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/storage.k8s.io/storageclass_v1.json
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: lvm-bulk
+provisioner: local.csi.openebs.io
+parameters:
+  storage: lvm
+  volgroup: vg-bulk
+  fsType: xfs
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer

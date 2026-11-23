@@ -13,4 +13,4 @@ spec:
     digest: sha256:d327bd0fc1c77b62e481791650ef6fcfff9982646bcaca4cd2483c447630fe77
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
-    operation: extract # can be 'extract' or 'copy', defaults to 'extract'
+    operation: extract

@@ -1,20 +1,21 @@
 ---
-# Persistent runner volumes. They use the default (node-local) storage class, which does not enforce
-# the requested size: all of them share the one node disk. The sizes below are only a scheduling hint, not a
-# quota, so a runaway build can fill the node regardless. The homeserver-bootc workflows therefore check free
-# space on /var/lib/containers/storage and prune old images (.github/actions/build-cleanup).
+# lvm-fast is NVMe, lvm-bulk is a USB HDD. Only the cache volumes carry the Flux force annotation (recreated on a
+# storageClass change), so every class is named explicitly.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: dnf-cache
   namespace: arc-runners-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled
 spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-bulk
   resources:
     requests:
-      storage: 25Gi
+      storage: 32Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -25,37 +26,43 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast
   resources:
     requests:
-      storage: 15Gi
+      storage: 32Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: cross-run-cache
   namespace: arc-runners-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled
 spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-bulk
   resources:
     requests:
-      storage: 5Gi
+      storage: 10Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  # Read-only additionalimagestores for rootless podman (/var/lib/shared). homeserver-bootc only creates the
-  # directory and points storage.conf at it; nothing in its workflows populates it, so it is likely empty.
+  # Read-only additionalimagestores for rootless podman; likely empty, nothing in homeserver-bootc populates it.
   name: container-shared-storage
   namespace: arc-runners-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled
 spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-bulk
   resources:
     requests:
-      storage: 24Gi
+      storage: 32Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -65,37 +72,40 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: lvm-fast
   resources:
     requests:
-      storage: 32Gi
+      storage: 64Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  # Rootless podman storage. The image build itself is rootful (sudo buildah, container-storage-rootful), but the
-  # "Run on PR" and "Trivy scan" jobs pull and scan PR images rootless, so this volume is still needed.
+  # Rootless storage: PR and Trivy jobs pull images rootless (the build itself uses container-storage-rootful).
   name: container-rootless-storage
   namespace: arc-runners-system
 spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-fast
   resources:
     requests:
-      storage: 32Gi
+      storage: 64Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  # The ISO builder (arc-iso-bootc, github-runner-bootc): its container storage (the OS image and bootc-image-builder) in
-  # `containers`, and bootc-image-builder's osbuild store and RPM metadata (`bib`), so the installer RPMs are not
-  # downloaded on every build (11 of 19 minutes). Only that scale set uses it (maxRunners 1: one pod at a time).
+  # ISO builder cache: `containers` storage and bootc-image-builder's `bib` osbuild store (saves 11 of 19 minutes).
+  # One pod at a time (maxRunners 1).
   name: bootc-iso-cache
   namespace: arc-runners-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled
 spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
+  storageClassName: lvm-bulk
   resources:
     requests:
-      storage: 40Gi
+      storage: 80Gi

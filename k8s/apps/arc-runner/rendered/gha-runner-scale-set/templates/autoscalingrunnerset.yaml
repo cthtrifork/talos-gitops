@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 385a4b9dc7aafff553c9d0d221615f0d053c92290eda1604f31070030999a12
+    actions.github.com/values-hash: 92ca5af5655ce42e42ead4b3d283ab6d9a31577790eecd99a4b723173510595
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -60,10 +60,21 @@ spec:
       kubernetes.io/ingress-bandwidth: 300M
   template:
     spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: github-actions-cache-server
+              namespaces:
+                - gha-cache-system
+              topologyKey: kubernetes.io/hostname
       imagePullSecrets:
         - name: github-auth
       securityContext:
         fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
       restartPolicy: Never
       serviceAccountName: arc-ubuntu-gha-rs-no-permission
       initContainers:
@@ -84,19 +95,47 @@ spec:
               cpu: 25m
               memory: 128Mi
           securityContext:
-            allowPrivilegeEscalation: true
-            privileged: true
-            runAsGroup: 0
-            runAsUser: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
           volumeMounts:
             - mountPath: /tmp/arc-cache
               name: cross-run-cache
+        - command:
+            - chmod
+            - "1777"
+            - /tmp
+          image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+          imagePullPolicy: IfNotPresent
+          name: tmp-perms
+          resources:
+            limits:
+              memory: 32Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 0
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp-memory
         - command:
             - cp
             - -r
             - /home/runner/externals/.
             - /home/runner/tmpDir/
-          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261123.33@sha256:23beaea4d501a868353503220de45c38ccdc1e629530d56adfbbec6d9f1c89f2
           imagePullPolicy: IfNotPresent
           name: init-dind-externals
           resources:
@@ -110,6 +149,7 @@ spec:
             capabilities:
               drop:
                 - ALL
+            readOnlyRootFilesystem: true
             runAsGroup: 1001
             runAsNonRoot: true
             runAsUser: 1001
@@ -155,8 +195,9 @@ spec:
       containers:
         - name: runner
           command:
+            - /usr/local/bin/use-cache-server
             - /home/runner/run.sh
-          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261115.5@sha256:f81f290854b872f0ef3bebf642d6d3148f9bdd6886136860a4102701382c7fd8
+          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261123.33@sha256:23beaea4d501a868353503220de45c38ccdc1e629530d56adfbbec6d9f1c89f2
           imagePullPolicy: IfNotPresent
           resources:
             limits:
@@ -181,6 +222,8 @@ spec:
               value: chroot
             - name: BUILDAH_LAYERS
               value: "true"
+            - name: ACTIONS_RESULTS_URL
+              value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
             - name: RUNNER_UPDATE_CA_CERTS
               value: "1"
             - name: FILESERVER_TOKEN
@@ -237,19 +280,40 @@ spec:
             path: /dev
             type: Directory
           name: host-dev
-        - emptyDir:
-            sizeLimit: 32Gi
+        - ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 32Gi
+                storageClassName: lvm-fast
           name: work
         - emptyDir: {}
           name: dind-sock
         - emptyDir:
             sizeLimit: 2Gi
           name: dind-externals
-        - emptyDir:
-            sizeLimit: 32Gi
+        - ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 32Gi
+                storageClassName: lvm-fast
           name: docker-lib
-        - emptyDir:
-            sizeLimit: 20Gi
+        - ephemeral:
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 20Gi
+                storageClassName: lvm-fast
           name: tmp-memory
         - name: container-storage-rootful
           persistentVolumeClaim:

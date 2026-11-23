@@ -7,7 +7,6 @@ spec:
   selfSigned: {}
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/clusterissuer_v1.json
-# Final single ClusterIssuer backed by the minted Root CA
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:

@@ -6,23 +6,40 @@ resources:
   - gitops-infra-bootstrap.yaml
   - gitops-infra-controllers.yaml
   - gitops-infra-cilium.yaml
-  - gitops-infra-local-path-provisioner.yaml
   - gitops-infra-openebs-system.yaml
   - gitops-infra-flux-system.yaml
   - gitops-infra-metrics-server.yaml
   - gitops-infra-coredns.yaml
   - gitops-infra-kube-prometheus-stack.yaml
   - gitops-infra-policy-system.yaml
+  - gitops-infra-kyverno.yaml
+  - gitops-infra-image-policies.yaml
   - gitops-infra-registry-system.yaml
   - gitops-infra-secret-store.yaml
-  - gitops-infra-security-system.yaml
+  - gitops-infra-dependency-track-system.yaml
+  - gitops-infra-trivy-system.yaml
+  - gitops-infra-reloader-system.yaml
   #- gitops-infra-external-dns.yaml
+  - gitops-infra-kubevirt.yaml
   - gitops-infra-post.yaml
+  - gitops-infra-post-workloads.yaml
   - app-controllers.yaml
   - app-adguard.yaml
   - app-arc-runner.yaml
   - app-claude-system.yaml
   - app-fileserver.yaml
+  - app-gha-cache.yaml
   - app-harper-pad.yaml
   - renovate.yaml
-  #- virtualmachines.yaml
+  - virtualmachines.yaml
+patches:
+  - target:
+      kind: FluxInstance
+      name: flux
+    patch: | #yaml
+      # Only add storage setting after flux takes ownership of itself, since the CSI driver in not available until then. This is a workaround to avoid the chicken and egg problem of flux needing storage to run, but storage not being available until flux runs.
+      - op: add
+        path: /spec/storage
+        value:
+          class: "lvm-bulk"
+          size: "10Gi"

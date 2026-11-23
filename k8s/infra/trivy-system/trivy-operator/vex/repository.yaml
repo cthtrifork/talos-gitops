@@ -1,0 +1,12 @@
+---
+# Mounted at /.trivy/vex/repository.yaml in the scan jobs. Names must match images/vex-cache/repository.yaml;
+# skip-vex-repo-update keeps Trivy from downloading, so the URLs are not fetched.
+repositories:
+  # the Trivy VEX hub
+  - name: default
+    url: https://github.com/aquasecurity/vexhub
+    enabled: true
+  # our own statements: vex/ in this repository (see vex/README.md)
+  - name: homelab-vexhub
+    url: https://github.com/cthtrifork/talos-gitops
+    enabled: true

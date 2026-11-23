@@ -1,0 +1,7 @@
+# Talos' default threshold (100) lets the ~25 Failed pods per node reboot ("rejected as the node is shutting down") pile up.
+# Only kube-controller-manager restarts.
+---
+cluster:
+  controllerManager:
+    extraArgs:
+      terminated-pod-gc-threshold: "20"

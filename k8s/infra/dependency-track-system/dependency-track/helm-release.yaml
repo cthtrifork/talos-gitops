@@ -1,0 +1,111 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: dependency-track
+  namespace: dependency-track-system
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: dependency-track
+  driftDetection:
+    mode: enabled
+  interval: 30m
+  timeout: 10m
+  install:
+    disableWait: true
+    strategy:
+      name: RetryOnFailure
+  upgrade:
+    disableWait: true
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  # The chart's ServiceMonitor has no relabeling setting: drop the histogram buckets (9k series), keep _sum and _count.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: ServiceMonitor
+              name: dependency-track-api-server-metrics
+            patch: |
+              - op: add
+                path: /spec/endpoints/0/metricRelabelings
+                value:
+                  - action: drop
+                    sourceLabels: [__name__]
+                    regex: .+_bucket
+  # https://github.com/DependencyTrack/helm-charts/blob/main/charts/dependency-track/values.yaml
+  values:
+    image:
+      registry: mirror.gcr.io
+    database:
+
+      jdbcUrl: "jdbc:postgresql://dependency-track-db-rw.dependency-track-system.svc.cluster.local:5432/dtrack"
+      existingSecret:
+        name: dependency-track-db-app # created by CNPG
+    secretManagement:
+      database:
+        kek:
+
+          existingSecret:
+            name: dependency-track-kek
+            key: kek
+    fileStorage:
+      provider: local
+      local:
+        size: 10Gi
+        storageClassName: ${DEFAULT_STORAGE_CLASS:=lvm-fast}
+    apiServer:
+      # Seeds the telemetry setting on a fresh install only; the database owns it afterwards.
+      extraEnv:
+        - name: DT_TELEMETRY_SUBMISSION_DEFAULT_ENABLED
+          value: "false"
+      podLabels:
+        prometheus-scrape: "true"
+      image:
+        # renovate: datasource=docker depName=mirror.gcr.io/dependencytrack/apiserver versioning=semver
+        tag: 5.2.2@sha256:cd5bed12ff30fd36980dbee2d6c3b177c37b99c63b60f5a5b15fbca0b31d0f38
+      serviceMonitor:
+        enabled: true
+        namespace: dependency-track-system
+      web:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 1Gi
+          limits:
+            memory: 2Gi
+      worker:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 1Gi
+          limits:
+            memory: 2Gi
+    frontend:
+      image:
+        # renovate: datasource=docker depName=mirror.gcr.io/dependencytrack/frontend versioning=semver
+        tag: 5.2.2@sha256:fd15b6cdc38692518a703eab0ed2867fa34e1276034cbe00773c61a9975cf719
+      # The browser calls the API on its own origin: the IngressRoute sends /api to the api-server.
+      apiBaseUrl: "https://dtrack.portableinfo.cloud"
+      # Read-only root fs: the entrypoint hook cannot write static/config.json, so it is mounted from a ConfigMap
+      # that repeats apiBaseUrl above (keep in step).
+      podAnnotations:
+        reloader.stakater.com/auto: "true" # restart on a change of the config ConfigMap
+      securityContext:
+        readOnlyRootFilesystem: true
+      additionalVolumes:
+        - name: nginx-conf
+          emptyDir: {}
+        - name: frontend-config
+          configMap:
+            name: dependency-track-frontend-config
+      additionalVolumeMounts:
+        - name: nginx-conf
+          mountPath: /etc/nginx/conf.d
+        - name: frontend-config
+          mountPath: /opt/owasp/dependency-track-frontend/static/config.json
+          subPath: config.json
+          readOnly: true

@@ -1,0 +1,85 @@
+---
+# https://gha-cache-server.falcondev.io/getting-started
+# Filesystem storage and SQLite on one lvm-fast volume, one replica: losing it only costs a cold cache.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: gha-cache
+  namespace: gha-cache-system
+spec:
+  interval: 30m
+  releaseName: gha-cache
+  chartRef:
+    kind: OCIRepository
+    name: gha-cache
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  # No strategy value in the chart; a rolling update would run two pods on the same SQLite file
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: gha-cache
+            patch: |
+              - op: add
+                path: /spec/strategy
+                value:
+                  type: Recreate
+  # https://github.com/falcondev-oss/github-actions-cache-server/blob/dev/install/kubernetes/github-actions-cache-server/values.yaml
+  values:
+    fullnameOverride: gha-cache
+    image:
+      # renovate: datasource=docker depName=ghcr.io/falcondev-oss/github-actions-cache-server versioning=docker
+      tag: 10.0.2@sha256:177adabc4586adab0ab65cbb889bd87483bd3c6b4cb5209e4c52990405a865fd
+    config:
+      # 80 GiB of the 100Gi volume, LRU eviction
+      cacheMaxSizeBytes: 85899345920
+      cacheCleanupOlderThanDays: 30
+    # Own claim (pvc.yaml); an LVM volume cannot move between nodes
+    persistentVolumeClaim:
+      enabled: false
+    # Same node as the runners (their podAffinity follows this pod): cross-node cache uploads stalled
+    nodeSelector:
+      kubernetes.io/hostname: talos-11a-esj
+
+    podLabels:
+      prometheus-scrape: "true"
+
+    serviceAccount:
+      automount: false
+    podSecurityContext:
+      fsGroup: 1000
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+      runAsNonRoot: true
+      runAsUser: 1000
+    # read-only root filesystem
+    extraVolumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: gha-cache-data-v2
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+    extraVolumeMounts:
+      - name: data
+        mountPath: /data
+      - name: tmp
+        mountPath: /tmp
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 1Gi

@@ -1,0 +1,14 @@
+---
+# Cache and SQLite database. lvm-fast binds on the node of the first pod (the nodeSelector of the HelmRelease).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gha-cache-data-v2
+  namespace: gha-cache-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: lvm-fast
+  resources:
+    requests:
+      storage: 100Gi

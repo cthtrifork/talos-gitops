@@ -1,0 +1,30 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: gha-cache-alerts
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: gha-cache
+      rules:
+        - alert: GhaCacheDown
+          expr: kube_deployment_status_replicas_available{namespace="gha-cache-system", deployment="gha-cache"} < 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: The GitHub Actions cache server is down
+            description: "The e2e runners (and any scale set that sets ACTIONS_RESULTS_URL) cannot restore or save caches and their cache steps can hang: kubectl -n gha-cache-system get pods"
+        - alert: GhaCacheNoRequests
+          # a week without a lookup means runners no longer reach the server (a runner self-update restores the stock
+          # binary and silently sends caches back to GitHub)
+          expr: (sum(increase(cache_requests_total[7d])) or vector(0)) == 0
+          for: 1h
+          labels:
+            severity: info
+          annotations:
+            summary: The GitHub Actions cache server has had no requests for a week
+            description: "The runners may have fallen back to GitHub's cache: check ACTIONS_RESULTS_URL and the use-cache-server wrapper in the scale sets (k8s/apps/arc-runner)."

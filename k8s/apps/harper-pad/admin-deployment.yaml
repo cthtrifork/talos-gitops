@@ -1,10 +1,8 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/deployment-apps-v1.json
-# harper-pad-admin: NO Service. The app listens on 127.0.0.1 only; a cloudflared native sidecar maps the
-# admin hostname (remotely managed tunnel, behind Cloudflare Access with OIDC) to http://localhost:9001.
+# harper-pad-admin: NO Service. The app listens on loopback only; a cloudflared sidecar maps the admin hostname
+# (behind Cloudflare Access) to it.
 #
-# Needs the Secret harper-pad-admin-tunnel (key `token`), a SOPS-encrypted file (see "Secrets (SOPS)" in the root readme.md).
-# The app listens on loopback, which kubelet cannot probe, and its image has no shell or health command, so the app has
-# no probes (Polaris exemption); the cloudflared sidecar is probed with `cloudflared tunnel ready`.
+# No app probes (Polaris exemption): kubelet cannot probe loopback and the image has no shell.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -37,7 +35,7 @@ spec:
       initContainers:
         # Native sidecar: up before the app, outlives it.
         - name: cloudflared
-          image: mirror.gcr.io/cloudflare/cloudflared:2026.11.1@sha256:e613aadbc2d9511785d2e67a86b0c8ac18dd63a3f9af0d06faf04cbfdcb35f2d
+          image: mirror.gcr.io/cloudflare/cloudflared:2026.11.2@sha256:55c7e3e8d89d5e8d20b75a82f3602cbf98e06db406e73e282073cfdc5a9a3af6
           restartPolicy: Always
           args:
             - "tunnel"
@@ -51,7 +49,7 @@ spec:
                 secretKeyRef:
                   name: harper-pad-admin-tunnel
                   key: token
-          # kubelet cannot reach the loopback metrics port, so ask cloudflared itself (exec)
+          # kubelet cannot reach the loopback metrics port, so exec
           livenessProbe:
             exec:
               command:
@@ -87,8 +85,8 @@ spec:
                 - "ALL"
       containers:
         - name: admin
-          # No args: the image's CMD is "serve"; it listens on LISTEN_ADDR (loopback).
-          image: ghcr.io/cthtrifork/harper-pad-admin:v4.1.0@sha256:f93e7623166689d26a4a510a1e7cff870d95ffeed6afb53bae3575ad461ab352
+
+          image: ghcr.io/cthtrifork/harper-pad-admin:v4.4.0@sha256:5cd998d5795bd5a01837459d619872317cbaad039c6dc7bfb947ae1c2e11714f
           env:
             - name: LISTEN_ADDR
               value: 127.0.0.1:9001

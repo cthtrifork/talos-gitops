@@ -29,11 +29,27 @@ data:
       topologySpreadConstraint: ignore
     exemptions:
       - controllerNames:
+        - openebs-lvm-node
+        - openebs-lvm-controller
+        namespace: openebs-system
+        rules:
+        - runAsPrivileged
+        - runAsRootAllowed
+        - privilegeEscalationAllowed
+        - linuxHardening
+        - insecureCapabilities
+        - notReadOnlyRootFilesystem
+        - hostPathSet
+      - controllerNames:
         - cilium
-        - hubble-ui
-        - hubble-relay
         namespace: kube-system
         rules: []
+      - controllerNames:
+        - hubble-ui
+        namespace: kube-system
+        rules:
+        - livenessProbeMissing
+        - readinessProbeMissing
       - containerNames:
         - kube-apiserver
         - kube-controller-manager
@@ -104,15 +120,34 @@ data:
       - controllerNames:
         - arc-ubuntu
         - arc-iso-bootc
+        - arc-e2e-talos-gitops
         namespace: arc-runners-system
         rules:
         - runAsPrivileged
-        - runAsRootAllowed
         - privilegeEscalationAllowed
-        - linuxHardening
         - insecureCapabilities
-        - notReadOnlyRootFilesystem
+      - controllerNames:
+        - arc-ubuntu
+        - arc-e2e-talos-gitops
+        namespace: arc-runners-system
+        rules:
+        - runAsRootAllowed
+      - controllerNames:
+        - arc-ubuntu
+        - arc-iso-bootc
+        namespace: arc-runners-system
+        rules:
         - hostPathSet
+      - controllerNames:
+        - arc-ubuntu
+        - arc-iso-bootc
+        - arc-files-bootc
+        - arc-e2e-talos-gitops
+        namespace: arc-runners-system
+        rules:
+        - notReadOnlyRootFilesystem
+        - readinessProbeMissing
+        - livenessProbeMissing
       - controllerNames:
         - metallb-speaker
         - metallb-controller
@@ -138,14 +173,6 @@ data:
         - trust-manager
         rules:
         - livenessProbeMissing
-      - controllerNames:
-        - arc-ubuntu
-        - arc-files-bootc
-        - arc-iso-bootc
-        rules:
-        - readinessProbeMissing
-        - livenessProbeMissing
-        - notReadOnlyRootFilesystem
       - controllerNames:
         - coredns
         - metallb-speaker
@@ -185,31 +212,6 @@ data:
         - livenessProbeMissing
         - readinessProbeMissing
       - controllerNames:
-        - local-path-provisioner
-        - openebs-localpv-localpv-provisioner
-        rules:
-        - runAsRootAllowed
-        - privilegeEscalationAllowed
-        - linuxHardening
-        - insecureCapabilities
-        - notReadOnlyRootFilesystem
-      - controllerNames:
-        - helper-pod-
-        namespace: local-path-storage
-        rules:
-        - runAsRootAllowed
-        - privilegeEscalationAllowed
-        - linuxHardening
-        - insecureCapabilities
-        - notReadOnlyRootFilesystem
-        - tagNotSpecified
-        - hostPathSet
-        - cpuRequestsMissing
-        - memoryRequestsMissing
-        - memoryLimitsMissing
-        - livenessProbeMissing
-        - readinessProbeMissing
-      - controllerNames:
         - zot
         namespace: registry-system
         rules:
@@ -244,6 +246,30 @@ data:
         - memoryLimitsMissing
         - notReadOnlyRootFilesystem
       - controllerNames:
+        - cdi-apiserver
+        - cdi-deployment
+        - cdi-uploadproxy
+        namespace: cdi
+        rules:
+        - notReadOnlyRootFilesystem
+      - controllerNames:
+        - cdi-deployment
+        namespace: cdi
+        rules:
+        - livenessProbeMissing
+      - controllerNames:
+        - virt-handler
+        namespace: kubevirt
+        rules:
+        - privilegeEscalationAllowed
+        - runAsPrivileged
+        - runAsRootAllowed
+        - insecureCapabilities
+        - hostPIDSet
+        - hostPathSet
+        - linuxHardening
+        - notReadOnlyRootFilesystem
+      - controllerNames:
         - metrics-server:system:auth-delegator
         - metrics-server-auth-reader
         namespace: kube-system
@@ -252,6 +278,19 @@ data:
         - clusterrolebindingPodExecAttach
         - rolebindingClusterAdminRole
         - rolebindingRolePodExecAttach
+      - controllerNames:
+        - claude-elevate-flux
+        - claude-elevate-ops
+        - claude-elevate-storage
+        rules:
+        - rolebindingClusterAdminRole
+      - controllerNames:
+        - kyverno:admission-controller
+        namespace: policy-system
+        rules:
+        - clusterrolebindingClusterAdmin
+        - clusterrolebindingPodExecAttach
+        - clusterrolePodExecAttach
       - controllerNames:
         - adguard-deployment
         rules:

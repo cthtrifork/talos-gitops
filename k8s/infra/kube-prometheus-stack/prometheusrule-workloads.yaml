@@ -1,0 +1,53 @@
+# Pods refused at admission show up as workloads below their replica count. The ruleSelector requires the release label.
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: workload-alerts
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: workloads
+      rules:
+        - alert: DeploymentReplicasUnavailable
+          expr: kube_deployment_spec_replicas - kube_deployment_status_replicas_available > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.deployment }} has had fewer available replicas than wanted for 15m"
+            description: "kubectl -n {{ $labels.namespace }} describe deployment {{ $labels.deployment }}; the events of its ReplicaSet show an admission refusal"
+        - alert: StatefulSetReplicasUnavailable
+          expr: kube_statefulset_replicas - kube_statefulset_status_replicas_ready > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.statefulset }} has had fewer ready replicas than wanted for 15m"
+            description: "kubectl -n {{ $labels.namespace }} describe statefulset {{ $labels.statefulset }}"
+        - alert: DaemonSetPodsUnavailable
+          expr: kube_daemonset_status_number_unavailable > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.daemonset }} has pods unavailable for 15m"
+            description: "kubectl -n {{ $labels.namespace }} describe daemonset {{ $labels.daemonset }}"
+        - alert: PodContainerFailing
+          expr: kube_pod_container_status_waiting_reason{reason=~"CrashLoopBackOff|ImagePullBackOff|ErrImagePull|CreateContainerConfigError"} == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} container {{ $labels.container }} is waiting with {{ $labels.reason }}"
+            description: "kubectl -n {{ $labels.namespace }} describe pod {{ $labels.pod }}"
+        - alert: AdmissionPolicyFailed
+          # an ImageValidatingPolicy result of fail: refused under Deny, admitted with a warning under Warn
+          expr: sum by (policy_name, resource_namespace, resource_kind)(increase(kyverno_image_validating_policy_results_total{result="fail"}[10m])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "Policy {{ $labels.policy_name }} failed a {{ $labels.resource_kind }} in {{ $labels.resource_namespace }}"
+            description: "Unsigned or wrongly signed image: kubectl -n {{ $labels.resource_namespace }} get events, and crane manifest on the image's sha256-<digest> referrers tag"

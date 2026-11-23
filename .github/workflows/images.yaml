@@ -1,0 +1,394 @@
+name: Images
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PYYAML_VERSION: "6.0.4" # renovate: datasource=pypi depName=PyYAML
+  CHECK_JSONSCHEMA_VERSION: "0.39.0" # renovate: datasource=pypi depName=check-jsonschema
+  # no release tag has the schema, so Renovate tracks the commit
+  OPENVEX_SCHEMA_SHA: "93139bd2c65390b504e47f82f11c50451289f93a" # renovate: depName=https://github.com/openvex/spec branch=main
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Find changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      k8s_images: ${{ steps.k8s.outputs.images || '[]' }}
+      k8s_count: ${{ steps.k8s.outputs.count || '0' }}
+      vex_images: ${{ steps.vex.outputs.images }}
+      vex_count: ${{ steps.vex.outputs.count }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the old manifests are read from the base commit
+          persist-credentials: false
+
+      - name: Get changed VEX files
+        id: vex_changed
+        if: github.event_name != 'workflow_dispatch'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            vex/**
+            images/vex-cache/**
+            scripts/ci/vex-*
+            scripts/ci/scan-*
+            scripts/vex-index.sh
+            .github/workflows/images.yaml
+            .github/workflows/update-trivy-db.yaml
+            .github/actions/**
+      - name: Decide whether to build
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          ANY_CHANGED: ${{ steps.vex_changed.outputs.any_changed }}
+        run: |
+          [[ "${EVENT}" == workflow_dispatch || "${ANY_CHANGED}" == true ]] && echo "build=true" >> "${GITHUB_OUTPUT}" || echo "build=false" >> "${GITHUB_OUTPUT}"
+      - name: Get changed VEX documents
+        id: vex_docs
+        if: github.event_name == 'pull_request'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            vex/pkg/oci/**/*.openvex.json
+      - name: List the images of the VEX documents
+        id: vex
+        env:
+          CHANGED: ${{ steps.vex_docs.outputs.all_changed_files }}
+          EVENT: ${{ github.event_name }}
+        # manual run: every document; pull request: the changed ones; push: none
+        run: |
+          read -ra docs <<< "${CHANGED}"
+          if [[ "${EVENT}" == push || ( "${EVENT}" == pull_request && ${#docs[@]} -eq 0 ) ]]; then images='[]'; else images=$(python3 -I scripts/ci/vex-images.py "${docs[@]}"); fi
+          echo "images=${images}" >> "${GITHUB_OUTPUT}"
+          echo "count=$(jq length <<< "${images}")" >> "${GITHUB_OUTPUT}"
+
+      - name: Get changed k8s YAML files
+        id: k8s_changed
+        if: github.event_name == 'pull_request'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            k8s/**/*.{yaml,yml}
+          files_ignore: |
+            k8s/**/policies/tests/**
+          separator: "\n"
+          # the default escaping leaves a backslash on every path but the last, which `[ -f ]` then skips
+          safe_output: false
+      - name: Install PyYAML
+        if: github.event_name != 'push'
+        run: pip install --quiet "pyyaml==${PYYAML_VERSION}"
+      - name: Extract changed images
+        if: github.event_name != 'push'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CHANGED_FILES: ${{ steps.k8s_changed.outputs.all_changed_files }}
+        run: |
+          [ -n "${BASE_SHA}" ] || CHANGED_FILES="$(git ls-files 'k8s/*.yaml' 'k8s/*.yml')"
+          : > old.yaml
+          while IFS= read -r file; do
+            [ -n "${file}" ] || continue
+            if [ ! -f "${file}" ]; then
+              echo "::warning::${file} is not a file in this checkout (deleted, or a mangled path), so its images are not scanned" >&2
+              continue
+            fi
+            git show "${BASE_SHA}:${file}" > old.yaml 2> /dev/null || : > old.yaml
+            python scripts/ci/extract-images.py old.yaml "${file}"
+          done <<< "${CHANGED_FILES}" > tuples.json
+      - name: Build the k8s scan matrix
+        id: k8s
+        if: github.event_name != 'push'
+        run: |
+          jq -s -c '
+            add // []
+            | group_by([.oldref, .ref])
+            | map({oldref: .[0].oldref, ref: .[0].ref, files: map(.file)})
+            | to_entries
+            | map(.value + {id: .key})
+          ' tuples.json > images.json
+          jq -r '.[] | "\(.oldref) -> \(.ref)"' images.json
+          echo "images=$(cat images.json)" >> "${GITHUB_OUTPUT}"
+          echo "count=$(jq length images.json)" >> "${GITHUB_OUTPUT}"
+
+  # a scan job is skipped together with its database job
+  trivy-db-k8s:
+    name: Trivy database (k8s)
+    needs: changes
+    if: needs.changes.outputs.k8s_count != '0'
+    uses: ./.github/workflows/update-trivy-db.yaml
+
+  trivy-db-vex:
+    name: Trivy database (VEX)
+    needs: changes
+    if: needs.changes.outputs.vex_count != '0'
+    uses: ./.github/workflows/update-trivy-db.yaml
+
+  scan-k8s:
+    name: Scan ${{ matrix.image.ref }}
+    needs: [changes, trivy-db-k8s]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.changes.outputs.k8s_images) }}
+    env:
+      TRIVY_SKIP_DB_UPDATE: true
+      TRIVY_SKIP_JAVA_DB_UPDATE: true
+      # as in the trivy-operator scans
+      TRIVY_IGNORE_STATUS: not_affected,will_not_fix
+    permissions:
+      contents: read
+      packages: read # pull ghcr.io/cthtrifork/* images
+      pull-requests: write # the PR comment
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: mkdir out
+      - name: Scan new image
+        id: new
+        uses: ./.github/actions/trivy-scan
+        with:
+          image: ${{ matrix.image.ref }}
+          output: out/new.json
+          version: ${{ needs.trivy-db-k8s.outputs.version }}
+          severity: CRITICAL,HIGH
+          trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
+          ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
+      - name: Scan old image
+        id: old
+        if: matrix.image.oldref != ''
+        uses: ./.github/actions/trivy-scan
+        with:
+          image: ${{ matrix.image.oldref }}
+          output: out/old.json
+          version: ${{ needs.trivy-db-k8s.outputs.version }}
+          skip-setup: true
+          severity: CRITICAL,HIGH
+          trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
+          ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
+      - name: Write the comment
+        # image references come from the PR: env only
+        env:
+          NEW_REF: ${{ matrix.image.ref }}
+          OLD_REF: ${{ matrix.image.oldref }}
+          ID: ${{ matrix.image.id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # a failed scan has no report: an empty object stands in
+          echo '{}' > empty.json
+          new=out/new.json old=out/old.json
+          [ -s "${new}" ] || new=empty.json
+          [ -s "${old}" ] || old=empty.json
+          jq -r --arg new_ref "${NEW_REF}" --arg old_ref "${OLD_REF}" --arg run_url "${RUN_URL}" --slurpfile o "${old}" -f scripts/ci/scan-comment.jq "${new}" > out/comment.md
+          if [ -s out/new.json ]; then
+            trivy convert --format template --template "@scripts/ci/vuln-list.tpl" out/new.json > list.md
+            count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' out/new.json)
+            if [ "${count}" -gt 0 ]; then
+              { echo "<details><summary>All ${count} in the new image</summary>"; echo; head -n 27 list.md; echo
+                [ "${count}" -le 25 ] || { echo "…and $((count - 25)) more in the full report."; echo; }
+                echo "</details>"; echo; } >> out/comment.md
+            fi
+          fi
+          # an unzipped artifact is named after its file
+          name="$(sed -E 's/@.*$//; s/[^A-Za-z0-9._-]+/_/g' <<< "${NEW_REF}")"
+          [ ! -s out/new.json ] || mv out/new.json "out/${ID}-${name}.trivy.json"
+      - name: Report
+        uses: ./.github/actions/scan-report
+        with:
+          comment: out/comment.md
+          report: out/*.trivy.json
+          header: scan-images ${{ matrix.image.oldref }} ${{ matrix.image.ref }}
+      - name: Fail if a scan failed
+        # findings never fail the job; a scan that could not run does (usually transient: re-run)
+        if: steps.new.outputs.outcome == 'failure' || steps.old.outputs.outcome == 'failure'
+        run: |
+          echo "::error::A Trivy scan failed (see the scan step above); re-run the job"
+          exit 1
+
+  lint:
+    name: Lint VEX documents
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate documents against the OpenVEX schema
+        if: hashFiles('vex/pkg/**/*.openvex.json') != ''
+        run: |
+          schema="https://raw.githubusercontent.com/openvex/spec/${OPENVEX_SCHEMA_SHA}/openvex_json_schema.json"
+          git ls-files -z 'vex/pkg/*.openvex.json' | xargs -0 pipx run "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}" --schemafile "${schema}"
+      - name: Check that the Trivy versions agree
+        # the vex-cache Dockerfile pins its own Trivy image
+        run: |
+          version=$(grep -oP 'TRIVY_VERSION: v\K[0-9.]+' .github/workflows/update-trivy-db.yaml)
+          grep -q "trivy:${version}@" images/vex-cache/Dockerfile
+      - name: Check vex/index.json
+        # the script stamps updated_at, which is ignored here
+        run: scripts/vex-index.sh && git diff --exit-code -I '"updated_at"' -- vex/index.json
+
+  scan-vex:
+    name: Scan ${{ matrix.image.ref }} (VEX)
+    needs: [lint, changes, trivy-db-vex]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.changes.outputs.vex_images) }}
+    env:
+      TRIVY_SKIP_DB_UPDATE: true
+      TRIVY_SKIP_JAVA_DB_UPDATE: true
+    permissions:
+      contents: read
+      packages: read # pull ghcr.io/cthtrifork/* images
+      pull-requests: write # the PR comment
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Scan with the document as VEX
+        id: scan
+        uses: ./.github/actions/trivy-scan
+        with:
+          image: ${{ matrix.image.ref }}
+          output: vex-${{ strategy.job-index }}.trivy.json
+          version: ${{ needs.trivy-db-vex.outputs.version }}
+          vex: ${{ matrix.image.doc }}
+      - name: Write the comment
+        env:
+          REF: ${{ matrix.image.ref }}
+          DOC: ${{ matrix.image.doc }}
+          REPORT: vex-${{ strategy.job-index }}.trivy.json
+        run: |
+          trivy convert --format table --show-suppressed --output scan.txt "${REPORT}"
+          cat scan.txt
+          jq -r --arg ref "${REF}" --arg doc "${DOC}" --slurpfile d "${DOC}" -f scripts/ci/vex-comment.jq "${REPORT}" > comment.md
+      - name: Report
+        uses: ./.github/actions/scan-report
+        with:
+          comment: comment.md
+          report: vex-${{ strategy.job-index }}.trivy.json
+          header: vex ${{ matrix.image.ref }}
+      - name: Check that every statement is applied
+        env:
+          DOC: ${{ matrix.image.doc }}
+          REPORT: vex-${{ strategy.job-index }}.trivy.json
+        run: >-
+          jq -e -n -r --slurpfile d "${DOC}" --slurpfile s "${REPORT}"
+          '($d[0].statements | map(.vulnerability.name)) - [$s[0].Results[]?.ExperimentalModifiedFindings[]? | .Finding.VulnerabilityID]
+          | if length == 0 then "all statements applied" else error("not suppressed: " + join(", ")) end'
+
+  build-and-publish:
+    name: Build and publish (vex-cache)
+    needs: [changes, lint]
+    if: ${{ needs.changes.outputs.build == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # for signing with cosign
+      packages: write # for pushing and signing the image
+    env:
+      PUBLISH: ${{ github.event_name != 'pull_request' }}
+      IMAGE: ghcr.io/${{ github.repository }}/vex-cache
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Compute build tag
+        id: prep
+        run: echo "BUILD_TAG=$(date -u +'%Y%m%d-%H%M')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GitHub Container Registry
+        if: ${{ env.PUBLISH == 'true' }}
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # no layer cache: the download layer must run on every build
+      - name: Build image${{ env.PUBLISH == 'true' && ' and push to GHCR' || ' (no push on pull requests)' }}
+        id: build-push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ./images/vex-cache/Dockerfile
+          platforms: linux/amd64
+          push: ${{ env.PUBLISH == 'true' }}
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ steps.prep.outputs.BUILD_TAG }}
+          no-cache: true
+          secrets: |
+            github_token=${{ secrets.GITHUB_TOKEN }}
+          sbom: false
+          provenance: false # keep a plain image manifest: it is mounted as a volume, not run
+
+      - name: Install cosign
+        if: ${{ env.PUBLISH == 'true' }}
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      - name: Sign image with cosign (keyless)
+        if: ${{ env.PUBLISH == 'true' }}
+        env:
+          DIGEST: ${{ steps.build-push.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - name: Summarize build
+        if: ${{ always() }}
+        env:
+          DIGEST: ${{ steps.build-push.outputs.digest }}
+          BUILD_TAG: ${{ steps.prep.outputs.BUILD_TAG }}
+        run: |
+          {
+            echo "### vex-cache"
+            echo "- Reference: \`${IMAGE}:latest\`, \`${IMAGE}:${BUILD_TAG}\`"
+            echo "- Digest: \`${DIGEST:-n/a}\`"
+            echo "- Published: ${PUBLISH}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  complete:
+    # the one check to require in branch protection
+    name: Images complete
+    needs: [changes, trivy-db-k8s, scan-k8s, trivy-db-vex, lint, scan-vex, build-and-publish]
+    if: always()
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - name: Fail if a job failed or was cancelled
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: ${RESULTS}"
+          case " ${RESULTS} " in *" failure "* | *" cancelled "*) exit 1 ;; esac

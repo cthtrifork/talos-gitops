@@ -1,10 +1,11 @@
 ---
-# "Update VMs" buttons (see vm-upgrade/redpanda-connect.yaml and the README). The pod only holds a flag per VM; the VMs poll it.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: claude-vm-upgrade
   namespace: claude-system
+  annotations:
+    secret.reloader.stakater.com/reload: vm-upgrade-tokens
 spec:
   replicas: 1
   selector:
@@ -26,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: connect
-          image: mirror.gcr.io/redpandadata/connect:4.118.0@sha256:2c6dd2fe757eaa588eeee90376ec2220a5d1731940d71a2005d8b249296dd2be # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
+          image: mirror.gcr.io/redpandadata/connect:4.119.0@sha256:64a140553f57eaefe897ad9613b9190e30a51e08fa8cdc9ebb02120440654fa7 # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
           args:
             - -c
             - /etc/connect/redpanda-connect.yaml
@@ -38,6 +39,17 @@ spec:
               containerPort: 8081
             - name: metrics
               containerPort: 4195
+          env:
+            - name: VM_TOKEN_CLAUDE_VM
+              valueFrom:
+                secretKeyRef:
+                  name: vm-upgrade-tokens
+                  key: claude-vm
+            - name: VM_TOKEN_HOMESERVER
+              valueFrom:
+                secretKeyRef:
+                  name: vm-upgrade-tokens
+                  key: homeserver
           readinessProbe:
             httpGet:
               path: /ready

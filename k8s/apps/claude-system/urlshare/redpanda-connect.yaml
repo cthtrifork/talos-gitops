@@ -1,35 +1,12 @@
 ---
-# URL sharing with approval. Claude asks for a page, the owner approves the exact URL on a page, the pod fetches it once and keeps the
-# HTML for a while. Two listeners:
-#
-#   :8080  ui   the approval page and its API   Omni service exposer (Omni login)
-#   :8081  api  Claude asks for a page          MetalLB, LAN, plain HTTP, only claude-rc and the LAN are let in
-#
-# api  GET /?url=<URL-encoded URL>   (also /https:/host/path: a client that sends https://host/path has it cleaned to this form by the server)
-#      GET /<id>                     the id from an earlier answer
-#      200 the stored page (approved) | 202 pending or being fetched | 403 rejected | 404 unknown id | 410 expired
-#      | 502 the fetch failed (the reason is in "error") | 400 not an acceptable URL | 429 too many requests waiting
-#      A URL that is not known becomes pending and is NOT fetched. Only the owner's approval on the ui listener fetches it.
-# ui   GET  /                                 the page
-#      GET  /api/v1/requests                  every request (never the page content)
-#      POST /api/v1/requests/<id>/approve     fetch the page now (needs the header X-Requested-With: urlshare-approval)
-#      POST /api/v1/requests/<id>/reject
-#
-# State is in memory and expires: a request waits 24h for an answer, a page and a decision are kept 24h (cache TTLs below). A pod restart
-# drops everything, so the URLs have to be approved again.
-#
-# Which destinations are reachable is decided by the CiliumNetworkPolicy, not here (Redpanda Connect cannot check the address it connects
-# to): egress is only TCP 80 and 443 to addresses outside the private, loopback, link-local and other special ranges, which also holds for redirects
-# and for a name that resolves to a private address. Here the URL must be http(s) with a host name that ends in a letter-only label, no user name,
-# no IP literal and port 80 or 443, at most 2048 bytes. Only html and plain text are kept, at most 2 MiB. The size is checked after the download:
-# Connect has no download limit, so the memory limit and the 10s timeout bound a page that is larger.
-# Not a Flux template (configMapGenerator disables postBuild envsubst).
+# State is in memory (24h TTLs). Reachable destinations are enforced by the CiliumNetworkPolicy: Connect cannot check the address.
+# The 2 MiB limit is checked after the download; the memory limit and 10s timeout bound larger pages.
 http:
   enabled: true
   address: 0.0.0.0:4195
   debug_endpoints: false
 
-# One thread: the index of ids is read, changed and written back. The cost is that a fetch (at most 10s) holds up the other requests.
+# One thread: the index is read-modify-written. A fetch (up to 10s) blocks other requests.
 pipeline:
   threads: 1
   processors:
@@ -42,7 +19,6 @@ pipeline:
           processors:
             - resource: client_api
 
-# --- state: "req:<id>" the request (json), "body:<id>" the page, "index" the list of ids ---
 cache_resources:
   - label: state
     memory:
@@ -92,11 +68,9 @@ output:
   sync_response: {}
 
 processor_resources:
-  # ------------------------------------------------------------------------------------------------
-  # State helpers. The whole list of requests is one cache key, so there is nothing to fan out and expire one by one.
-  # ------------------------------------------------------------------------------------------------
+  # State helpers: the whole request list is one cache key.
 
-  # Reads the live requests into the metadata field `entries`, and the one named by `id` (when set) into `entry` (null when there is none).
+  # Loads live requests into `entries`, and the one named by `id` into `entry`.
   - label: load_entry
     processors:
       - branch:
@@ -113,7 +87,7 @@ processor_resources:
           meta entries = @entries.filter(e -> e.expires_at > now().ts_unix())
           meta entry = @entries.filter(e -> e.id == @id.or("")).index(0).catch(null)
 
-  # Stores the field `entry` (a new request, or a changed one) in `entries` and writes them. It expires in 24h.
+  # Upserts `entry` into `entries` and writes them back.
   - label: save_entry
     processors:
       - mapping: |
@@ -129,9 +103,7 @@ processor_resources:
                 value: '${! content() }'
                 ttl: 30h
 
-  # ------------------------------------------------------------------------------------------------
   # Turns the field `raw` into the canonical URL `url` and the id, or sets `url_error`.
-  # ------------------------------------------------------------------------------------------------
   - label: normalize_url
     mapping: |
       let m = @raw.trim().re_find_object("^(?i)(https?)://([a-z0-9][a-z0-9.-]*\\.[a-z][a-z0-9-]*)(?::(80|443))?(/[^#\\s]*)?(?:#.*)?$")
@@ -151,9 +123,6 @@ processor_resources:
       meta url = $scheme + "://" + $host + $port + $m.4.or("/")
       meta id = @url.hash("sha256").encode("hex").slice(0, 32)
 
-  # ------------------------------------------------------------------------------------------------
-  # Replies
-  # ------------------------------------------------------------------------------------------------
   - label: reply_entry
     mapping: |
       meta status = match @entry.status {
@@ -181,9 +150,6 @@ processor_resources:
       meta status = "404"
       root = {"error": "not found"}
 
-  # ------------------------------------------------------------------------------------------------
-  # The client listener (Claude)
-  # ------------------------------------------------------------------------------------------------
   - label: client_api
     switch:
       - check: '@http_server_request_path == "/healthz"'
@@ -192,7 +158,6 @@ processor_resources:
               meta content_type = "text/plain"
               root = "ok"
 
-      # What the request names: ?url=, a path that starts with a scheme, a 32 character id, or nothing (the help).
       - check: '@url.or("") != "" || @http_server_request_path.re_match("^/https?:/+[^/]")'
         processors:
           - mapping: |
@@ -232,7 +197,7 @@ processor_resources:
       - processors:
           - resource: not_found
 
-  # Needs `id`, `url` (when asked by URL) and `entry`. A known request is answered by its status; an unknown one becomes pending.
+  # An unknown request becomes pending (not fetched).
   - label: serve_or_request
     switch:
       - check: '@entry == null'
@@ -266,9 +231,6 @@ processor_resources:
       - processors:
           - resource: reply_entry
 
-  # ------------------------------------------------------------------------------------------------
-  # The approval listener (the owner)
-  # ------------------------------------------------------------------------------------------------
   - label: ui_api
     switch:
       - check: '@http_server_verb == "GET" && @http_server_request_path == "/"'
@@ -325,7 +287,6 @@ processor_resources:
       - processors:
           - resource: not_found
 
-  # Fetches @entry.url and stores the page. The answer is the request, with status "approved" or "failed".
   - label: approve
     processors:
       - mapping: |

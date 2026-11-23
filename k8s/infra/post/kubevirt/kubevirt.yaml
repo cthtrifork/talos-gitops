@@ -5,17 +5,31 @@ metadata:
   name: kubevirt
   namespace: kubevirt
 spec:
+  # memory limits (several times the usage seen on 2026-11-21) and liveness probes for Polaris
+  customizeComponents:
+    patches:
+      - resourceType: Deployment
+        resourceName: virt-api
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"virt-api","resources":{"limits":{"memory":"1Gi"}},"livenessProbe":{"httpGet":{"path":"/apis/subresources.kubevirt.io/v1/healthz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":30,"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":6}}]}}}}'
+      - resourceType: Deployment
+        resourceName: virt-controller
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"virt-controller","resources":{"limits":{"memory":"1Gi"}}}]}}}}'
+      - resourceType: Deployment
+        resourceName: virt-exportproxy
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"exportproxy","resources":{"limits":{"memory":"512Mi"}},"livenessProbe":{"httpGet":{"path":"/healthz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":30,"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":6}}]}}}}'
   configuration:
     developerConfiguration:
-      featureGates:
-        #- LiveMigration
-        - NetworkBindingPlugins
+      # Beta gates are on by default since v1.9 and the set changes per release: review it on every KubeVirt bump
+      featureGates: []
+    # off: no digest env var on the operator, so require-image-digest denies the virt-template-apiserver image
+    virtTemplateDeployment:
+      enabled: false
     smbios:
       sku: "TalosCloud"
       version: "v0.1.0"
       manufacturer: "Talos Virtualization"
       product: "talosvm"
       family: "ccio"
-  #workloadUpdateStrategy:
-  #  workloadUpdateMethods:
-  #  - LiveMigrate # enable if you have deployed either Longhorn or NFS-CSI for shared storage.

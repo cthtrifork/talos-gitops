@@ -4,9 +4,9 @@ kind: Kustomization
 resources:
   - secret.enc.yaml
   - deployment.yaml
-  #- pdb.yaml
   - certificate.yaml
   - exporter-deployment.yaml
+  - podmonitor.yaml
   - service.yaml
   - namespace.yaml
   - networkpolicy.yaml

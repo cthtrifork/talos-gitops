@@ -7,7 +7,7 @@ mounted through a generated ConfigMap: edit it there, not in the pod (pod change
 
 - Inside the cluster as the `claude-system:claude` ServiceAccount, in the pod `claude-rc` (Deployment in `claude-system`).
   Talos Linux, managed with Flux (GitOps).
-- `/workspace` is a persistent volume (`claude-workspace`, 10 Gi on local-path, size not enforced): clones survive restarts,
+- `/workspace` is a persistent volume (`claude-workspace-lvm`, 50 Gi on `lvm-fast`, a real limit, expandable): clones survive restarts,
   `/tmp` does not. Still commit and push what is worth keeping, and delete clones you no longer need.
 - Use the session scratchpad directory for temporary files, not `/tmp`.
 
@@ -39,7 +39,7 @@ mounted through a generated ConfigMap: edit it there, not in the pod (pod change
 - Renovate manages versions and pins images by digest. Keep that style; do not bump versions by hand unless asked.
 - Keep manifests minimal and in the style of their neighbours. Validate with `kubectl kustomize <dir>` before the PR.
 - Where things live: zot `k8s/infra/registry-system/` (retention in the `zot-config` ConfigMap), ARC `k8s/apps/arc-runner/`
-  (`rendered/` is generated), Prometheus `k8s/infra/kube-prometheus-stack/`, local-path `k8s/infra/local-path-provisioner/`,
+  (`rendered/` is generated), Prometheus `k8s/infra/kube-prometheus-stack/`, OpenEBS LVM `k8s/infra/openebs-system/`,
   this pod `k8s/apps/claude-system/`.
 
 ## Working in the repo: one git worktree per task
@@ -78,7 +78,7 @@ edit or commit in the shared clone; give every task its own worktree.
 ## Skills
 
 Task-specific runbooks live in skills (`claude-md/skills/`): `cluster-alerts`, `cilium-drops`, `cluster-disk-usage`,
-`polaris-report`, `image-inspect`, `bandwidth-test`, `ci-k8s-reference`, `urlshare`. Guardrails that hold even if a skill is not
+`polaris-report`, `image-inspect`, `bandwidth-test`, `ci-k8s-reference`, `urlshare`, `dependency-track`. Guardrails that hold even if a skill is not
 loaded: `crane` is inspection only (never push, copy, tag, delete, append, mutate or flatten), bandwidth tests go only to
 `speed.cloudflare.com`, pages the egress allowlist does not cover are read only through `urlshare` (never around it), and registry
 credentials are never printed or copied.

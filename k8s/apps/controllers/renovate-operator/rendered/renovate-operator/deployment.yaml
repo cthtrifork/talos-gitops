@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: renovate-operator
-          image: ghcr.io/mogenius/renovate-operator:6.9.0
+          image: ghcr.io/mogenius/renovate-operator:6.10.0@sha256:a7f7e7448a5f5c8ea91f56566b940754fe1fe46447c75d375eacf4ced12e6655
           imagePullPolicy: IfNotPresent
           args:
             - "--zap-log-level=info"
@@ -69,6 +69,8 @@ spec:
               value: "8081"
             - name: HEALTH_PROBE_PORT
               value: "8083"
+            - name: LEADER_ELECTION_ID
+              value: "renovate-operator-leader"
             - name: VALKEY_HOST
               value: "renovate-operator-valkey"
             - name: VALKEY_PORT

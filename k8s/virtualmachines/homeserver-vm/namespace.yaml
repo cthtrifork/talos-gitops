@@ -1,0 +1,12 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: homeserver-vm
+  labels:
+    # virt-launcher needs more than "restricted" allows (NET_BIND_SERVICE, /dev/kvm device)
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: baseline
+    # Elevate page: ops restarts the VM (deletes the virt-launcher pod); storage deletes the DataVolume and PVCs (loses data)
+    claude-elevate/ops: "true"
+    claude-elevate/storage: "true"

@@ -22,7 +22,9 @@
   "semanticCommitScope": null,
   "commitMessageSuffix": "({{updateType}})",
   "ignorePaths": [
-    "scripts/**",
+    "scripts/ci/**",
+    "scripts/*.sh",
+    "scripts/*.py",
     "k8s/**/rendered/**",
     "k8s/**/sync.yaml",
     "k8s/**/cluster.yaml"
@@ -72,6 +74,17 @@
         "patch",
         "digest"
       ]
+    },
+    {
+      "description": "The OpenVEX schema is tracked as a spec-repo commit: monthly, automerged if the VEX lint passes.",
+      "matchPackageNames": [
+        "https://github.com/openvex/spec"
+      ],
+      "schedule": [
+        "* 0-5 1 * *"
+      ],
+      "automerge": true,
+      "automergeType": "pr"
     },
     {
       "automerge": false,
@@ -161,6 +174,17 @@
       "groupSlug": "dependency-track-images"
     },
     {
+      "description": "The CNPG image catalog keeps one image per PostgreSQL major, each tracked by the regex manager (renovate comment) with a versioning regex pinned to that major. The kubernetes and helm-values managers read the same image lines with plain docker versioning and would offer 17 -> 18 as a major bump, so those duplicates are off.",
+      "matchManagers": [
+        "kubernetes",
+        "helm-values"
+      ],
+      "matchFileNames": [
+        "k8s/infra/post-workloads/cnpg-system/postgresql-clusterimagecatalog.yaml"
+      ],
+      "enabled": false
+    },
+    {
       "description": "sbom-hook pulls redpandadata/connect through mirror.gcr.io, which has no digest lookup. The regex manager tracks the same tag as docker.io/redpandadata/connect (renovate comment), so the helm-values duplicate is off.",
       "matchManagers": [
         "helm-values"
@@ -175,21 +199,28 @@
       "matchDatasources": [
         "docker"
       ],
-      "matchPackageNames": [
-        "quay.io/kubevirt/virt-operator",
-        "quay.io/kubevirt/cdi-operator"
+      "matchFileNames": [
+        "k8s/infra/kubevirt/*-operator.yaml"
       ],
       "enabled": false
     },
     {
-      "description": "KubeVirt and CDI operator upgrades change CRDs and RBAC: review them, no automerge.",
-      "matchDatasources": [
-        "github-releases"
-      ],
+      "description": "KubeVirt and CDI upgrades change CRDs and RBAC: review them, no automerge. Each release (versions.env) and the digest pins of the images its operator starts (kustomization.yaml) move in one PR.",
       "matchPackageNames": [
         "kubevirt/kubevirt",
-        "kubevirt/containerized-data-importer"
+        "quay.io/kubevirt/virt-*"
       ],
+      "groupName": "kubevirt",
+      "groupSlug": "kubevirt",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": [
+        "kubevirt/containerized-data-importer",
+        "quay.io/kubevirt/cdi-*"
+      ],
+      "groupName": "cdi",
+      "groupSlug": "cdi",
       "automerge": false
     },
     {
@@ -264,6 +295,17 @@
     }
   ],
   "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Image references in env values (the images the KubeVirt and CDI operators start), pinned by tag and digest",
+      "managerFilePatterns": [
+        "/^k8s/infra/kubevirt/kustomization\\.yaml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+value: (?<depName2>[^\\s:@]+):(?<currentValue>[-a-zA-Z0-9.]+)@(?<currentDigest>sha256:[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "{{{datasource}}}"
+    },
     {
       "customType": "regex",
       "description": "npm packages the cockpit and usage pages load from jsDelivr, in their import map or an import (cdn.jsdelivr.net/npm/<package>@<version>/...)",
@@ -352,6 +394,16 @@
       ],
       "datasourceTemplate": "{{{datasource}}}",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^.github/.*\\.yaml$/"
+      ],
+      "matchStrings": [
+        "[A-Z_]+:\\s\"?(?<currentDigest>[a-f0-9]{40})\"?\\s+# renovate:\\s*depName=(?<depName>\\S+)\\s+branch=(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "git-refs"
     }
   ]
 }

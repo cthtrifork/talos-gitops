@@ -1,0 +1,24 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/traefik.io/middleware_v1alpha1.json
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: flux-hook-ratelimit
+  namespace: flux-system
+spec:
+  rateLimit:
+    average: 5
+    burst: 10
+    period: 1s
+    sourceCriterion:
+      # every request arrives from the tunnel: use the client address Cloudflare sets
+      requestHeaderName: Cf-Connecting-Ip
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: flux-hook-bodylimit
+  namespace: flux-system
+spec:
+  buffering:
+    maxRequestBodyBytes: 26214400 # GitHub caps webhook payloads at 25 MiB

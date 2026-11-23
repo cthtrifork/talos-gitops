@@ -4,5 +4,5 @@ kind: Namespace
 metadata:
   name: openebs-system
   labels:
-    # The helper pods mount the host path and run xfs_quota
+    # the node plugin runs lvm against the host's /dev
     pod-security.kubernetes.io/enforce: privileged

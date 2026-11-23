@@ -7,7 +7,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Renovate bumps the version. The linux-x64 checksum is read from the release manifest at build time
 # (https://downloads.claude.ai/claude-code-releases/<version>/manifest.json), so there is nothing to bump by hand.
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG CLAUDE_CODE_VERSION=2.1.325
+ARG CLAUDE_CODE_VERSION=2.1.329
 # Keep within one minor version of the cluster
 ARG KUBECTL_VERSION=v1.34.1
 # renovate: datasource=github-releases depName=cli/cli
@@ -17,15 +17,17 @@ ARG CRANE_VERSION=0.22.1
 # renovate: datasource=github-releases depName=mikefarah/yq
 ARG YQ_VERSION=4.54.3
 # renovate: datasource=github-releases depName=controlplaneio-fluxcd/flux-operator
-ARG FLUX_OPERATOR_VERSION=0.62.1
+ARG FLUX_OPERATOR_VERSION=0.63.1
 # renovate: datasource=github-releases depName=kubernetes-sigs/kustomize extractVersion=^kustomize/v(?<version>.+)$
 ARG KUSTOMIZE_VERSION=5.8.3
 # renovate: datasource=github-releases depName=yannh/kubeconform
 ARG KUBECONFORM_VERSION=0.8.0
+# renovate: datasource=github-releases depName=fluxcd/flux-schema
+ARG FLUX_SCHEMA_VERSION=0.18.0
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VERSION=4.3.2
 # renovate: datasource=github-releases depName=fluxcd/flux2
-ARG FLUX_VERSION=2.10.0
+ARG FLUX_VERSION=2.10.1
 # renovate: datasource=github-releases depName=rhysd/actionlint
 ARG ACTIONLINT_VERSION=1.7.12
 # renovate: datasource=pypi depName=yamllint
@@ -33,7 +35,7 @@ ARG YAMLLINT_VERSION=1.38.0
 # renovate: datasource=github-releases depName=siderolabs/talos
 ARG TALOSCTL_VERSION=1.14.6
 # renovate: datasource=github-releases depName=siderolabs/omni
-ARG OMNICTL_VERSION=1.13.3
+ARG OMNICTL_VERSION=1.14.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       git curl ca-certificates openssh-client jq python3 python3-pip shellcheck make \
@@ -113,6 +115,15 @@ RUN base="https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_
  && tar -xzf "${tarball}" kubeconform \
  && install -m 0755 kubeconform /usr/local/bin/kubeconform \
  && rm -rf "${tarball}" kubeconform
+
+RUN base="https://github.com/fluxcd/flux-schema/releases/download/v${FLUX_SCHEMA_VERSION}" \
+ && tarball="flux-schema_${FLUX_SCHEMA_VERSION}_linux_amd64.tar.gz" \
+ && cd /tmp \
+ && curl -fsSL "${base}/${tarball}" -o "${tarball}" \
+ && curl -fsSL "${base}/flux-schema_${FLUX_SCHEMA_VERSION}_checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
+ && tar -xzf "${tarball}" flux-schema \
+ && install -m 0755 flux-schema /usr/local/bin/flux-schema \
+ && rm -rf "${tarball}" flux-schema
 
 RUN tarball="helm-v${HELM_VERSION}-linux-amd64.tar.gz" \
  && cd /tmp \

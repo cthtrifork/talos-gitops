@@ -1,6 +1,5 @@
-# Break-glass roles, bound by the elevate page (elevate/) to a per-grant ServiceAccount whose token is short-lived.
-# A grant's ServiceAccount has no other rights, so each role includes the reads its commands start with (kubectl gets the target first).
-# No role can patch workloads or Flux objects: a patch is a full write of the pod or Flux spec, which RBAC cannot narrow.
+# Break-glass roles, bound by the elevate page. Each includes the reads its commands start with (kubectl gets the target first).
+# No role can patch workloads: RBAC cannot narrow a patch of the pod spec.
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
 apiVersion: rbac.authorization.k8s.io/v1
@@ -22,6 +21,25 @@ rules:
       - pods/eviction
     verbs:
       - create
+  # volumeClaimTemplates are immutable: changing a PVC's class means deleting the StatefulSet (and the PVCs, tier storage)
+  - apiGroups:
+      - apps
+    resources:
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - delete
+  # Trivy operator reports: deleting one makes the operator scan the workload again (and sbom-hook upload a fresh SBOM)
+  - apiGroups:
+      - aquasecurity.github.io
+    resources:
+      - vulnerabilityreports
+      - sbomreports
+    verbs:
+      - get
+      - list
+      - delete
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
 # Exec reaches whatever the pod can, including its mounted Secrets and ServiceAccount token
@@ -68,3 +86,47 @@ rules:
       - get
       - list
       - delete
+  # A single-instance CloudNativePG Cluster has no primary to rebuild from: changing its storage class means delete and recreate, losing the data.
+  - apiGroups:
+      - postgresql.cnpg.io
+    resources:
+      - clusters
+    verbs:
+      - get
+      - list
+      - delete
+  # A Succeeded DataVolume is not re-imported when its PVC is deleted: delete the DataVolume and the VM's dataVolumeTemplates recreate it.
+  - apiGroups:
+      - cdi.kubevirt.io
+    resources:
+      - datavolumes
+    verbs:
+      - get
+      - list
+      - delete
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
+# RBAC cannot narrow a patch to annotations: the ValidatingAdmissionPolicy claude-flux-reconcile-only rejects anything but the reconcile.fluxcd.io annotations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: claude-flux
+rules:
+  - apiGroups:
+      - helm.toolkit.fluxcd.io
+    resources:
+      - helmreleases
+    verbs:
+      - get
+      - list
+      - watch
+      - patch
+  - apiGroups:
+      - kustomize.toolkit.fluxcd.io
+    resources:
+      - kustomizations
+    verbs:
+      - get
+      - list
+      - watch
+      - patch

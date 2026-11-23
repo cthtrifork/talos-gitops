@@ -1,0 +1,6 @@
+---
+# Accepted risk only, always with an expiry; prefer a VEX statement for "not affected".
+# vulnerabilities:
+#   - id: CVE-2024-00000
+#     statement: why it is accepted
+#     expired_at: 2027-01-01

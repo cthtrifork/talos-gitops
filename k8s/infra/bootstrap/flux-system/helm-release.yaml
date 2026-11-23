@@ -11,15 +11,26 @@ spec:
   chartRef:
     kind: OCIRepository
     name: flux-operator
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
   # https://github.com/controlplaneio-fluxcd/charts/blob/main/charts/flux-operator/values.yaml
   values:
     image:
       # renovate: datasource=docker depName=ghcr.io/controlplaneio-fluxcd/flux-operator versioning=docker
-      tag: v0.62.1@sha256:1d09a3f96524d0895fb11e8072d84a3dd029cecdec0f869efa371be6b001469c
+      tag: v0.63.1@sha256:460cc140dba2958261b05466acca40dfbee3addd1a6c33b885c1cd4e4e5d0489
+    resources:
+      requests:
+        memory: 256Mi
     serviceMonitor:
       create: true
+    web:
+      networkPolicy:
+        create: false # k8s/infra/flux-system/ciliumnetworkpolicy.yaml (flux-operator-web)
     tolerations:
-      # Tolerate the control plane taint
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule

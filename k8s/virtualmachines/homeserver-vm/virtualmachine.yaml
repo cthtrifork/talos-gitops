@@ -1,0 +1,110 @@
+# homeserver-bootc as a KubeVirt VM (https://github.com/cthtrifork/homeserver-bootc).
+# The disk is imported once; after that the VM updates itself with `bootc upgrade`, so changing the DataVolume source
+# does not touch the running disk.
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: homeserver-vm
+  namespace: homeserver-vm
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: homeserver-vm
+    spec:
+      # Only nodes with /dev/kvm
+      nodeSelector:
+        kubevirt.io/schedulable: "true"
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 192.168.1.1
+      domain:
+        cpu:
+          cores: 2
+        memory:
+          guest: 24Gi
+        firmware:
+          bootloader:
+            efi:
+              secureBoot: false # the bootc image is not signed for Secure Boot
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+            # shows up as /dev/disk/by-id/virtio-home
+            - name: home
+              disk:
+                bus: virtio
+              serial: home
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+              ports:
+                - port: 22
+                  protocol: TCP
+        resources:
+          requests:
+            memory: 24Gi
+          limits:
+            memory: 26Gi
+      networks:
+        - name: default
+          pod: {}
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: homeserver-vm-rootdisk
+        - name: home
+          persistentVolumeClaim:
+            claimName: homeserver-vm-home-disk
+        # Per-deployment cloud-init (the image has an inert one: write_files and runcmd only). The first boot already made
+        # the account on the root disk, so runcmd formats the blank home disk and seeds it with cp -an before mounting.
+        # On an image without cloud-init the disk is ignored.
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              write_files:
+                - path: /etc/fstab
+                  append: true
+                  content: |
+                    /dev/disk/by-id/virtio-home  /var/home  xfs  defaults,nofail,x-systemd.growfs,x-systemd.device-timeout=10s  0 0
+                - path: /var/lib/homeserver-disks.sh
+                  permissions: "0755"
+                  content: |
+                    #!/bin/sh
+                    set -eu
+                    home=/dev/disk/by-id/virtio-home
+                    [ -b "$home" ] || { echo "$home is missing, skipped" >&2; exit 0; }
+                    blkid "$home" >/dev/null 2>&1 || mkfs.xfs -q "$home"
+                    mkdir -p /run/home-seed
+                    mount "$home" /run/home-seed
+                    cp -an /var/home/. /run/home-seed/
+                    umount /run/home-seed
+                    systemctl daemon-reload
+                    mount /var/home
+                    restorecon -RF /var/home || true
+              runcmd:
+                - [/var/lib/homeserver-disks.sh]
+  dataVolumeTemplates:
+    - metadata:
+        name: homeserver-vm-rootdisk
+      spec:
+        source:
+          registry:
+            url: docker://ghcr.io/cthtrifork/homeserver-bootc/homeserver-containerdisk:latest
+            secretRef: ghcr-pull-cdi
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: lvm-fast
+          resources:
+            requests:
+              storage: 110Gi # 100 GiB disk plus boot partitions; keep in step with config-homeserver.toml in homeserver-bootc

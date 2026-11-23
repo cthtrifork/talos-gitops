@@ -4,4 +4,7 @@ kind: Namespace
 metadata:
   name: registry-system
   labels:
+    claude-elevate/ops: "true"
+    claude-elevate/storage: "true" # zot is a cache: its PVC can be recreated
+    claude-elevate/flux: "true"
     pod-security.kubernetes.io/enforce: privileged

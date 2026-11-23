@@ -1,0 +1,98 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/helm.toolkit.fluxcd.io/helmrelease_v2.json
+# Only the admission controller, which is all the ImageValidatingPolicies need.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kyverno
+  namespace: policy-system
+spec:
+  interval: 1h
+  chartRef:
+    kind: OCIRepository
+    name: kyverno
+  driftDetection:
+    mode: enabled
+  install:
+    strategy:
+      name: RetryOnFailure
+  upgrade:
+    remediation:
+      retries: 3
+  # https://github.com/kyverno/kyverno/blob/main/charts/kyverno/values.yaml
+  values:
+    config:
+      defaultRegistry: mirror.gcr.io
+    global:
+      image:
+        # not reg.kyverno.io: zot mirrors ghcr.io, so Trivy can scan the images offline
+        registry: ghcr.io
+    admissionController:
+      initContainer:
+        image:
+          # renovate: datasource=docker depName=ghcr.io/kyverno/kyvernopre versioning=docker
+          tag: v1.20.0@sha256:339067e083430e0c97007541bef9cfdbac89bee13f7228772c77ae8aead14b8b
+      container:
+        image:
+          # renovate: datasource=docker depName=ghcr.io/kyverno/kyverno versioning=docker
+          tag: v1.20.0@sha256:9de49c5416ea536f00a205527197ac048abdf32c5a75d633cd9afff8928f359d
+      # the image policy fails closed: one pod would block creation of our pods while it restarts
+      replicas: 2
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: admission-controller
+              app.kubernetes.io/part-of: kyverno
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+      podLabels:
+        prometheus-scrape: "true"
+      serviceMonitor:
+        enabled: true
+        additionalLabels:
+          release: kube-prometheus-stack
+    backgroundController:
+      enabled: false
+    cleanupController:
+      enabled: false
+    reportsController:
+      enabled: false
+    webhooksCleanup:
+      enabled: false
+    upgrade:
+      legacyPolicyCheck:
+        enabled: false
+    crds:
+      migration:
+        enabled: false
+      groups:
+        # legacy types are not executed since 1.20; updaterequests and globalcontextentries stay: the admission
+        # controller exits with "failed to wait for cache sync" without them
+        kyverno:
+          cleanuppolicies: false
+          clustercleanuppolicies: false
+          clusterpolicies: false
+          globalcontextentries: true
+          policies: false
+          policyexceptions: false
+          updaterequests: true
+        reports:
+          clusterephemeralreports: false
+          ephemeralreports: false
+        wgpolicyk8s:
+          clusterpolicyreports: false
+          policyreports: false
+    features:
+      admissionReports:
+        enabled: false
+      aggregateReports:
+        enabled: false
+      policyReports:
+        enabled: false
+      validatingAdmissionPolicyReports:
+        enabled: false
+      backgroundScan:
+        enabled: false
+      generateValidatingAdmissionPolicy:
+        enabled: false

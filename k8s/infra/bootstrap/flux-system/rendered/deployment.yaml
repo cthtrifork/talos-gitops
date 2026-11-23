@@ -6,10 +6,10 @@ metadata:
   name: flux-operator
   namespace: flux-system
   labels:
-    helm.sh/chart: flux-operator-0.62.1
+    helm.sh/chart: flux-operator-0.63.1
     app.kubernetes.io/name: flux-operator
     app.kubernetes.io/instance: flux-operator
-    app.kubernetes.io/version: "v0.62.1"
+    app.kubernetes.io/version: "v0.63.1"
     app.kubernetes.io/managed-by: Helm
 spec:
   selector:
@@ -23,10 +23,10 @@ spec:
         prometheus.io/port: "8080"
         prometheus.io/path: "/metrics"
       labels:
-        helm.sh/chart: flux-operator-0.62.1
+        helm.sh/chart: flux-operator-0.63.1
         app.kubernetes.io/name: flux-operator
         app.kubernetes.io/instance: flux-operator
-        app.kubernetes.io/version: "v0.62.1"
+        app.kubernetes.io/version: "v0.63.1"
         app.kubernetes.io/managed-by: Helm
     spec:
       serviceAccountName: flux-operator
@@ -52,7 +52,7 @@ spec:
             runAsNonRoot: true
             seccompProfile:
               type: RuntimeDefault
-          image: "ghcr.io/controlplaneio-fluxcd/flux-operator:v0.62.1@sha256:1d09a3f96524d0895fb11e8072d84a3dd029cecdec0f869efa371be6b001469c"
+          image: "ghcr.io/controlplaneio-fluxcd/flux-operator:v0.63.1@sha256:460cc140dba2958261b05466acca40dfbee3addd1a6c33b885c1cd4e4e5d0489"
           imagePullPolicy: "IfNotPresent"
           ports:
             - name: http-metrics
@@ -82,7 +82,7 @@ spec:
               memory: 1Gi
             requests:
               cpu: 100m
-              memory: 64Mi
+              memory: 256Mi
           volumeMounts:
             - name: temp
               mountPath: /tmp

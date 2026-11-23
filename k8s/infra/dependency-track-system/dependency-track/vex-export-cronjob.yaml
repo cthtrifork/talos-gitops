@@ -1,0 +1,92 @@
+# Daily export of Dependency-Track analysis decisions as OpenVEX into vex/ (one document per image repository) via a pull request,
+# never a push to main. Only components with a PURL are exported: a statement without a subcomponent would cover the whole image.
+# Without the GitHub token (README.md) or API key the Job does a dry run: exit 0, nothing pushed.
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dependency-track-vex-export
+  namespace: dependency-track-system
+  annotations:
+    claude-elevate/description: Exports the VEX decisions made in Dependency-Track and opens a pull request with the changed documents.
+spec:
+  schedule: "43 5 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: dependency-track-vex-export # selected by the network policy
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            fsGroup: 65532 # lets the Job read the token file (mode 0440)
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: export
+              image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
+              command:
+                - bash
+                - /scripts/vex-export.sh
+              env:
+                - name: HOME
+                  value: /work
+                - name: DT_URL
+                  value: http://dependency-track-api-server.dependency-track-system.svc.cluster.local:8080
+                - name: REPO
+                  value: cthtrifork/talos-gitops
+                - name: GIT_URL
+                  value: https://github.com/cthtrifork/talos-gitops.git
+                - name: GITHUB_API
+                  value: https://api.github.com
+                - name: BRANCH
+                  value: dependency-track/vex-export
+                - name: API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: dependency-track-vex-api-key
+                      key: api-key
+                      optional: true
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: github
+                  mountPath: /github
+                  readOnly: true
+                - name: work
+                  mountPath: /work
+              resources:
+                requests:
+                  cpu: 20m
+                  memory: 128Mi
+                limits:
+                  memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: scripts
+              configMap:
+                name: dependency-track-vex-export
+            - name: github
+              secret:
+                secretName: dependency-track-vex-github
+                defaultMode: 0440
+                optional: true
+            - name: work
+              emptyDir:
+                sizeLimit: 256Mi

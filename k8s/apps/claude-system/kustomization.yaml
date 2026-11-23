@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - rbac.yaml
+  - dependency-track/rbac.yaml
   - clusterrole-elevated.yaml
   - networkpolicy.yaml
   - pvc.yaml
@@ -12,6 +13,10 @@ resources:
   - externalsecret.yaml
   - claude-github-app.enc.yaml
   - ghcr-pull.enc.yaml
+  - claude-vm-source/rbac.yaml
+  - claude-vm-source/clustersecretstore.yaml
+  - homeserver-vm-source/rbac.yaml
+  - homeserver-vm-source/clustersecretstore.yaml
   - claude-cloudflare.enc.yaml
   - omni-service-account.enc.yaml
   - prometheusrule.yaml
@@ -19,6 +24,7 @@ resources:
   - usage/service.yaml
   - usage/podmonitor.yaml
   - vm-upgrade/deployment.yaml
+  - vm-upgrade/externalsecret.yaml
   - vm-upgrade/service.yaml
   - vm-upgrade/podmonitor.yaml
   - urlshare/deployment.yaml
@@ -53,7 +59,6 @@ configMapGenerator:
     namespace: claude-system
     options:
       annotations:
-        # Redpanda Connect interpolations and a web page, not Flux variables: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - vm-upgrade/redpanda-connect.yaml
@@ -62,7 +67,6 @@ configMapGenerator:
     namespace: claude-system
     options:
       annotations:
-        # Redpanda Connect interpolations and a web page, not Flux variables: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - urlshare/redpanda-connect.yaml
@@ -71,7 +75,6 @@ configMapGenerator:
     namespace: claude-system
     options:
       annotations:
-        # Redpanda Connect interpolations and a web page, not Flux variables: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - elevate/redpanda-connect.yaml
@@ -80,7 +83,6 @@ configMapGenerator:
     namespace: claude-system
     options:
       annotations:
-        # Redpanda Connect interpolations and a web page, not Flux variables: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - cockpit/redpanda-connect.yaml
@@ -105,7 +107,6 @@ configMapGenerator:
     namespace: claude-system
     options:
       annotations:
-        # Markdown, not a Flux template: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - cluster-alerts.md=claude-md/skills/cluster-alerts/SKILL.md
@@ -116,3 +117,4 @@ configMapGenerator:
       - bandwidth-test.md=claude-md/skills/bandwidth-test/SKILL.md
       - ci-k8s-reference.md=claude-md/skills/ci-k8s-reference/SKILL.md
       - urlshare.md=claude-md/skills/urlshare/SKILL.md
+      - dependency-track.md=claude-md/skills/dependency-track/SKILL.md

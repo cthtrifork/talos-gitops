@@ -17,20 +17,11 @@ operator        -> Cloudflare Access -> tunnel -> cloudflared (sidecar) -> harpe
 
 Cloudflare owns DNS and TLS. There is no certificate or LAN address for the API.
 
-## Status
+## Images
 
-Both Deployments run `ghcr.io/cthtrifork/harper-pad-sync` and `-admin`. Everything around the images follows the
-application's contract:
-
-| | sync | admin |
-|---|---|---|
-| Listens on | `:9000` | `127.0.0.1:9001` |
-| Liveness | `GET :9102/healthz` (process only) | none (loopback) |
-| Readiness | `GET :9102/readyz` (PostgreSQL round trip) | none (loopback) |
-| Metrics | `:9102/metrics`, scraped through `podmonitor.yaml`; the NetworkPolicy lets only Prometheus in | off |
-
-The probes are served on the metrics port, which Traefik does not route, so neither `/healthz` nor `/readyz` is public (the
-kubelet reaches the port directly). Both tunnel tokens exist.
+Both Deployments run `ghcr.io/cthtrifork/harper-pad-sync` and `-admin`, and follow the application's contract for ports, probes and
+env. The sync probes (`/healthz`, `/readyz`) are served on the metrics port `:9102`, which Traefik does not route, so neither is
+public (the kubelet reaches the port directly). The admin has no probes (loopback).
 
 **The two images are versioned together.** The admin applies the schema and a new sync image is not ready until the matching admin has
 applied it, so bump both in one pull request.
@@ -103,15 +94,15 @@ the migrations' grants give rights to. `postgres-cluster.yaml` sets this for a n
 deleting that object never drops the database.
 
 CloudNativePG manages the database, not its content (its documentation: "it does not manage database content beyond extensions and schemas
-(e.g., tables)"), so tables that were created while `harper_sync` was the owner keep that owner, and `harper-pad-admin` could not alter them.
-Check once after the change, as the postgres user inside the pod (superuser access from outside is off):
+(e.g., tables)"), so tables that were created while `harper_sync` was the owner keep that owner, and `harper-pad-admin` cannot alter them.
+To check, as the postgres user inside the pod (superuser access from outside is off):
 
 ```sh
 kubectl -n harper-pad get database harper-pad-db-harper        # APPLIED should be true
 kubectl -n harper-pad exec harper-pad-db-1 -c postgres -- psql -d harper -c "select schemaname, tablename, tableowner from pg_tables where schemaname = 'public'"
 ```
 
-If every table is owned by `harper_admin`, or there are none yet, there is nothing to do. If some are owned by `harper_sync`, move them once:
+If some tables are owned by `harper_sync`, move them:
 
 ```sh
 kubectl -n harper-pad exec harper-pad-db-1 -c postgres -- psql -d harper -c "REASSIGN OWNED BY harper_sync TO harper_admin"

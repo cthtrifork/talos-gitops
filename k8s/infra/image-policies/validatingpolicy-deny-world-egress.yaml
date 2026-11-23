@@ -1,0 +1,51 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/validatingpolicy_v1.json
+# Only admission is checked, and CIDR rules such as 0.0.0.0/0 are not covered.
+# claude-vm has its own egress gateway with a domain allowlist; homeserver-vm has no fixed host list.
+# Cluster-wide policies are still checked: the namespace exclusions do not apply to them.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: deny-world-egress
+spec:
+  validationActions:
+    - Deny
+  # an outage must not block network policy changes
+  failurePolicy: Ignore
+  evaluation:
+    background:
+      enabled: false
+  webhookConfiguration:
+    timeoutSeconds: 10
+  matchConstraints:
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - claude-vm
+            - homeserver-vm
+    resourceRules:
+      - apiGroups:
+          - cilium.io
+        apiVersions:
+          - v2
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - ciliumnetworkpolicies
+          - ciliumclusterwidenetworkpolicies
+  variables:
+    - name: denied
+      expression: "['world', 'world-ipv4', 'world-ipv6', 'all']"
+  validations:
+    - expression: >-
+        !(has(object.spec) && has(object.spec.egress) &&
+          object.spec.egress.exists(r, has(r.toEntities) && r.toEntities.exists(e, e in variables.denied)))
+      message: spec.egress must not allow toEntities world or all; allow named hosts (toFQDNs) or addresses (toCIDRSet) instead
+    - expression: >-
+        !(has(object.specs) &&
+          object.specs.exists(s, has(s.egress) &&
+            s.egress.exists(r, has(r.toEntities) && r.toEntities.exists(e, e in variables.denied))))
+      message: specs[].egress must not allow toEntities world or all; allow named hosts (toFQDNs) or addresses (toCIDRSet) instead

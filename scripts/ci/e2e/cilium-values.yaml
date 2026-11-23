@@ -1,0 +1,32 @@
+---
+# Overrides on the real cluster's values; ${POD_IP} is envsubst'd.
+# the API server is on the runner pod's IP, not KubePrism
+k8sServiceHost: "${POD_IP}"
+k8sServicePort: 6443
+# the pod CIDR of scripts/kind.yaml
+ipv4NativeRoutingCIDR: "10.200.0.0/16"
+operator:
+  replicas: 1
+  prometheus:
+    serviceMonitor:
+      enabled: false
+# no allow policies in a fresh cluster
+policyEnforcementMode: default
+policyAuditMode: true
+# no ServiceMonitor CRDs or cert-manager yet
+prometheus:
+  serviceMonitor:
+    enabled: false
+    trustCRDsExist: false
+hubble:
+  metrics:
+    serviceMonitor:
+      enabled: false
+  tls:
+    auto:
+      method: helm
+clustermesh:
+  apiserver:
+    tls:
+      auto:
+        method: helm

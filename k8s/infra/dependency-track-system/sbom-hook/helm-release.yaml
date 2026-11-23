@@ -1,0 +1,96 @@
+---
+# Receives trivy-operator's webhook broadcast and uploads each SbomReport to Dependency-Track.
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: sbom-hook
+  namespace: dependency-track-system
+spec:
+  chart:
+    spec:
+      chart: connect
+      version: 3.2.37
+      sourceRef:
+        kind: HelmRepository
+        name: redpanda
+  driftDetection:
+    mode: enabled
+  interval: 30m
+  timeout: 10m
+  install:
+    strategy:
+      name: RetryOnFailure
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  # https://github.com/redpanda-data/helm-charts/blob/main/charts/connect/values.yaml
+  values:
+    fullnameOverride: sbom-hook
+    image:
+      repository: mirror.gcr.io/redpandadata/connect
+      # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
+      tag: 4.119.0@sha256:64a140553f57eaefe897ad9613b9190e30a51e08fa8cdc9ebb02120440654fa7
+    resources:
+      requests:
+        cpu: 20m
+        memory: 256Mi
+      limits:
+        memory: 512Mi
+
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 10001
+      runAsGroup: 10001
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+    env:
+      - name: DT_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: dependency-track-api-key
+            key: api-key
+            optional: true # dry run until config-cronjob.yaml has created it
+    deployment:
+      podAnnotations:
+        reloader.stakater.com/auto: "true"
+    args:
+      - -c
+      - /etc/connect/redpanda-connect.yaml
+      - --disable-telemetry
+    extraVolumes:
+      - name: tmp
+        emptyDir: {}
+      - name: queue
+        emptyDir:
+          sizeLimit: 512Mi # sqlite buffer: survives a container restart, not a pod replacement
+      - name: connect-config
+        configMap:
+          name: sbom-hook-connect-config
+    extraVolumeMounts:
+      - name: tmp
+        mountPath: /tmp
+      - name: queue
+        mountPath: /queue
+      - name: connect-config
+        mountPath: /etc/connect/redpanda-connect.yaml
+        subPath: redpanda-connect.yaml
+        readOnly: true
+  # the chart has no value for the pod-level token mount
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: sbom-hook
+            patch: |
+              - op: add
+                path: /spec/template/spec/automountServiceAccountToken
+                value: false

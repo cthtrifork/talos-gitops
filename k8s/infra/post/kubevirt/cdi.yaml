@@ -4,8 +4,27 @@ kind: CDI
 metadata:
   name: cdi
 spec:
+  # memory limits and liveness probes for Polaris; cdi-deployment keeps its exec readiness probe only
+  customizeComponents:
+    patches:
+      - resourceType: Deployment
+        resourceName: cdi-apiserver
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"cdi-apiserver","resources":{"limits":{"memory":"512Mi"}},"livenessProbe":{"httpGet":{"path":"/healthz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":30,"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":6}}]}}}}'
+      - resourceType: Deployment
+        resourceName: cdi-deployment
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"cdi-deployment","resources":{"limits":{"memory":"1Gi"}}}]}}}}'
+      - resourceType: Deployment
+        resourceName: cdi-uploadproxy
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"cdi-uploadproxy","resources":{"limits":{"memory":"512Mi"}},"livenessProbe":{"httpGet":{"path":"/healthz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":30,"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":6}}]}}}}'
   config:
-    scratchSpaceStorageClass: local-path
+    # schedule the VM pod first so the node-bound volumes of one VM land together on a node with room
+    # (WaitForFirstConsumer classes such as lvm-fast otherwise import wherever the importer pods land)
+    featureGates:
+      - HonorWaitForFirstConsumer
+    scratchSpaceStorageClass: lvm-bulk # scratch space is as big as the image: keep it off the small NVMe groups
     podResourceRequirements:
       requests:
         cpu: "100m"

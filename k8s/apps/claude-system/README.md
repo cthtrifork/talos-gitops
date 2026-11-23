@@ -15,17 +15,17 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | `externalsecret.yaml` | ExternalSecret that writes the one-hour GitHub App installation token into `claude-github-token` every 30 minutes |
 | `deployment.yaml` | `claude-rc`: idles until a login exists, then runs `claude remote-control`; non-root, read-only root filesystem |
 | `claude-md/CLAUDE.md` | The only `CLAUDE.md` (user-level and repo notes together), generated into the `claude-md` ConfigMap by `kustomization.yaml` and symlinked to `~/.claude/CLAUDE.md` at pod start. Edit it in Git; the ConfigMap name hash rolls the pod |
-| `claude-md/skills/<name>/SKILL.md` | Task-specific runbooks split out of `CLAUDE.md`, generated into the `claude-skills` ConfigMap and mounted at `/etc/claude-skills` (items map each key to `<name>/SKILL.md`); each is symlinked into `~/.claude/skills/` at pod start |
+| `claude-md/skills/<name>/SKILL.md` | Task-specific runbooks split out of `CLAUDE.md`, generated into the `claude-skills` ConfigMap and mounted at `/etc/claude-skills` (items map each key to `<name>/SKILL.md`); copied into `~/.claude/skills/` at pod start |
 | `usage/` | Usage page and JSON API out: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml` for the Redpanda Connect; `redpanda-connect.yaml` (PromQL behind each endpoint), `index.html` (the page) |
 | `vm-upgrade/` | "Update VMs" buttons (claude-vm and homeserver): `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (a flag per VM, two listeners), `index.html` (the page) |
-| `cockpit/` | The cockpit status page (below): `deployment.yaml`, `service.yaml`, `podmonitor.yaml` and `rbac.yaml`; `redpanda-connect.yaml` (one read-only status call, a branch per source), `index.html` (the page), `mockup.html` (the reviewed UX mockup, example data) |
+| `cockpit/` | The cockpit status page (below): `deployment.yaml`, `service.yaml`, `podmonitor.yaml` and `rbac.yaml`; `redpanda-connect.yaml` (one read-only status call, a branch per source), `index.html` (the page) |
 | `urlshare/` | Approval-gated URL sharing: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (requests, fetch, TTL), `index.html` (the approval page) |
-| `pvc.yaml` | 5Gi volume holding the login (`/home/claude`); delete it to sign out |
+| `pvc.yaml` | `claude-home-lvm` (10Gi) holds the login (`/home/claude`); delete it to sign out. `claude-workspace-lvm` (50Gi) is `/workspace` |
 | `../../../images/claude-runner/` | Image: Anthropic publishes none, so this wraps the `claude` binary (checksum verified) plus `kubectl`, `gh`, `crane`, `talosctl`, `omnictl`, the Flux MCP server and a git credential helper |
 
 ## 1. Build the image
 
-A merge that changes `images/claude-runner/**` (or a manual run of **Build and release the Claude runner image**) publishes
+A merge that changes `images/claude-runner/**`, the weekly rebuild or a manual run of **Build and release the Claude runner image** publishes
 `ghcr.io/cthtrifork/talos-gitops/claude-runner:<Claude Code version>-<date>.<run>` and a release `claude-<that tag>`. Put that tag, pinned by digest,
 in `deployment.yaml`. Renovate bumps `CLAUDE_CODE_VERSION` in the Dockerfile; the checksum is read from the release manifest at build time
 (checksum: `https://downloads.claude.ai/claude-code-releases/<version>/manifest.json`, `linux-x64`).
@@ -59,8 +59,6 @@ kubectl -n claude-system get secret claude-github-token
 If it is not ready, `kubectl -n claude-system describe externalsecret claude-github-token` shows the error (a wrong App ID,
 installation ID or key, or api.github.com blocked: see the `cilium-drops` skill). Git pushes fail until the Secret exists (the pod itself starts without it).
 
-`claude-github-app` is `claude-github-app.enc.yaml`; add it to `kustomization.yaml` `resources:` the first time.
-
 ### Pull token for private images (optional)
 
 `crane` in the pod reads private ghcr.io packages through a Docker config from the Secret `ghcr-pull`, mounted at
@@ -78,7 +76,7 @@ kubectl -n claude-system exec -it deploy/claude-rc -- claude
 Run `/login`, open the URL on your own machine, paste the code back, then `/exit`. Within 30 seconds the
 pod starts `claude remote-control` and the session appears at <https://claude.ai/code>. The login and
 its token refreshes stay on the PVC, so restarts need no new login. To sign out, delete the
-`claude-home` PVC. The PVC holds your login: anyone with node access can act as you.
+`claude-home-lvm` PVC. The PVC holds your login: anyone with node access can act as you.
 
 ## Flux MCP server
 
@@ -112,17 +110,9 @@ talosctl -n <node-ip> reboot        # PermissionDenied
 ```
 
 **Create** the service account on your machine with `omnictl serviceaccount create claude-rc --role Reader --use-user-role=false --ttl 8760h`
-(the key is shown once), then encrypt it (command and `enc` helper: "Secrets (SOPS)" in the root `readme.md`):
-
-```sh
-enc k8s/apps/claude-system/omni-service-account.enc.yaml \
-  kubectl -n claude-system create secret generic omni-service-account \
-    --from-literal=OMNI_SERVICE_ACCOUNT_KEY="$OMNI_SERVICE_ACCOUNT_KEY" \
-    --from-literal=OMNI_ENDPOINT="$OMNI_ENDPOINT"
-```
-
-and list the file in `kustomization.yaml` `resources:`. **Renew** before the key expires (TTL 365 days; `prometheusrule.yaml` alerts 30 and 7 days before the date recorded there, so
-update that date to the new expiry in the same PR): `omnictl serviceaccount renew claude-rc --ttl 8760h`, re-run the command above with the new key and merge. Reloader
+(the key is shown once), then store it in `omni-service-account.enc.yaml` as the keys `OMNI_SERVICE_ACCOUNT_KEY` and `OMNI_ENDPOINT` ("Secrets (SOPS)" in the root `readme.md`).
+**Renew** before the key expires (TTL 365 days; `prometheusrule.yaml` alerts 30 and 7 days before the date recorded there, so
+update that date to the new expiry in the same PR): `omnictl serviceaccount renew claude-rc --ttl 8760h`, put the new key in the Secret and merge. Reloader
 (or a manual restart) rolls the pod. The pod then holds a credential for the node-management plane next to the claude.ai login and
 the GitHub token, and node files and logs read with `talosctl` are input Claude acts on, so keep the role at Reader.
 
@@ -146,7 +136,7 @@ API, but the GitHub token and your claude.ai login are in this pod, so treat the
 Claude Code exports OpenTelemetry metrics (tokens, cost, sessions, lines of code, commits, pull requests, active time) from
 `claude-rc` and from the Claude VM ([homeserver-bootc](https://github.com/cthtrifork/homeserver-bootc)) straight into the
 cluster Prometheus, through its OTLP receiver (`enableOTLPReceiver` in `k8s/infra/kube-prometheus-stack/helm-release.yaml`).
-Both send `environment=<name>` as a resource attribute (`claude-rc`, `claude-vm`), which is promoted to a label.
+Both send `environment=<name>` as a resource attribute (`claude-k8s-helper`, `claude-vm`), which is promoted to a label.
 
 Both senders set exactly these variables (`claude-rc` in `deployment.yaml`, the VM in homeserver-bootc `managed-settings.json`);
 only the endpoint and the environment name differ:
@@ -158,7 +148,7 @@ only the endpoint and the environment name differ:
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | what Prometheus' receiver takes |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | VM: `http://otel.portableinfo.cloud/api/v1/otlp`; `claude-rc`: `http://kube-prom-prometheus.kube-prometheus-stack-system.svc:9090/api/v1/otlp` | Claude Code appends `/v1/metrics`; the pod stays inside the cluster, so its telemetry does not depend on Cloudflare DNS or the load balancer address |
 | `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` | `delta` | the default is cumulative, and with `session_id` off several `claude` processes (the VM has several sessions and two users) would write the same series with different totals; deltas add up |
-| `OTEL_RESOURCE_ATTRIBUTES` | `environment=claude-rc` / `claude-vm` | promoted to a label |
+| `OTEL_RESOURCE_ATTRIBUTES` | `environment=claude-k8s-helper` / `claude-vm` | promoted to a label |
 | `OTEL_METRICS_INCLUDE_SESSION_ID` | `false` | see the labels note below |
 | `OTEL_METRICS_INCLUDE_ACCOUNT_UUID` | `false` | constant, so no use as a label |
 
@@ -174,13 +164,13 @@ only the endpoint and the environment name differ:
   Example, USD per day: `sum by (environment,model)(increase(claude_code_cost_usage[1d]))`.
 - **Retention:** 30 days on a 20Gi volume (`retentionSize` 16GiB). To afford it, histogram buckets are dropped from the apiserver,
   kubelet and Dependency-Track scrapes (they were 104k of 193k series); `_sum` and `_count` stay, percentiles of those are gone.
-  `local-path` does not enforce the volume size; watch `NodeFilesystemAlmostFull` for the node.
+  The volume is a real 20Gi `lvm-fast` volume (expandable online); watch the `openebs-lvm-alerts` for the volume group.
 - Claude Code sends its attributes on every datapoint and Prometheus keeps them all as labels: besides `environment`, `model` and
   `type` also `user_email`, `user_id`, `organization_id`, `terminal_type`, `effort` and `query_source`. They are kept: with one or two
   users they cost nothing, and they allow a per-user split. `session_id` and `user_account_uuid` are switched off with
   `OTEL_METRICS_INCLUDE_SESSION_ID=false` and `OTEL_METRICS_INCLUDE_ACCOUNT_UUID=false`, for accuracy rather than size: every session
   would be its own cumulative series, `increase()` cannot see the first export of a series, and a session that exports once or twice
-  would count as zero (`increase(claude_code_session_count[1h])` came back empty). Series stored before that keep their `session_id`.
+  would count as zero.
   The usage API always sums by `environment`, so it is unaffected by the extra labels.
 
 ### Usage page and API
@@ -231,7 +221,7 @@ sequenceDiagram
     UI-->>You: queued
 
     loop every 60 s, per VM
-        Timer->>Poll: POST /api/v1/vms/VM/report: booted and staged deployment (NetworkPolicy: only the VMs' IPs)
+        Timer->>Poll: POST /api/v1/vms/VM/report: booted and staged deployment (Cilium adds the VM's X-Upgrade-Token)
         Poll->>Flag: store VM status, set VM:last_poll = now
         Timer->>Timer: last upgrade under 1 h ago? then skip the claim
         Timer->>Poll: POST /api/v1/vms/VM/claim
@@ -250,28 +240,35 @@ sequenceDiagram
 | Listener | Reached through | Endpoints |
 |---|---|---|
 | `:8080` page | Omni service exposer, `Service/claude-vm-upgrade` (port 50092, behind Omni login) | `GET /` the page, `GET /api/v1/status`, `POST /api/v1/vms/<vm>/upgrade` (needs the header `X-Requested-With: vm-upgrade-button`, so a form on another site cannot post it) |
-| `:8081` poll | MetalLB `claude-vm-upgrade-lb`, 192.168.1.244, plain HTTP, only from the VMs | `POST /api/v1/vms/<vm>/report`: the VM's booted and staged ostree deployment (also counts as a poll); `POST /api/v1/vms/<vm>/claim`: answers `{"upgrade": true}` once per click, then clears the flag |
+| `:8081` poll | MetalLB `claude-vm-upgrade-lb`, 192.168.1.244, plain HTTP; every request needs the `X-Upgrade-Token` of the VM in the path | `POST /api/v1/vms/<vm>/report`: the VM's booted and staged ostree deployment (also counts as a poll); `POST /api/v1/vms/<vm>/claim`: answers `{"upgrade": true}` once per click, then clears the flag |
 
 `<vm>` is `claude-vm` or `homeserver` (the list is `vm_names` in `redpanda-connect.yaml`); anything else is a 404. A third VM needs its name there, two more lines in
-the `/api/v1/status` handler, its address in `CiliumNetworkPolicy/claude-vm-upgrade`, and a label in `index.html`.
+the `/api/v1/status` handler, its pod selector in `CiliumNetworkPolicy/claude-vm-upgrade` (ingress and egress), a label in `index.html`, a token (a `Password`
+generator and `PushSecret` in `k8s/infra/secret-store/`, three `ExternalSecret`s in `vm-upgrade/externalsecret.yaml`, an env var in `deployment.yaml`), and the
+injection rule in the VM's egress policy.
 
 The flag lives 10 minutes and is cleared by the first claim, so one click is at most one upgrade; a pod restart drops an unclaimed click.
 The poll listener has no way to queue an upgrade, and the page listener has no `claim`.
 
 ### Access and DNS
 
-There is no token. The poll listener is reachable only from the VMs' static addresses: `CiliumNetworkPolicy/claude-vm-upgrade` allows
-`192.168.1.138/32` (claude-vm) and `192.168.1.173/32` (homeserver) on 8081, and the LoadBalancer Service uses `externalTrafficPolicy: Local` so
-Cilium sees the VM's address and not a node's. This is weaker than a secret: a host on the same LAN segment that spoofs one of those addresses could
-claim a click (or poll as a VM), a VM can claim another VM's click (both sit behind the same policy), and the poll is plain HTTP, so a host in the
-path could answer `{"upgrade": true}` (bounded by each VM's one-upgrade-per-hour limit). If a VM's address changes, change its `/32` in `networkpolicy.yaml`.
+Each VM has its own token (`claude-vm-upgrade-token`, `homeserver-vm-upgrade-token`), generated in `secret-store` and never stored on a VM. The VM's egress policy
+(`k8s/virtualmachines/*/networkpolicy.yaml`) sends its HTTP requests to `192.168.1.244:80` through Cilium's Envoy, which sets `X-Upgrade-Token` from a Secret in
+`cilium-secrets` (`headerMatches` with `mismatch: REPLACE`, so a value the VM sends is overwritten). The listener answers 401 unless the header equals the token of
+the VM in the path (and 401 for every VM when its token is unset). A VM can therefore only claim and report for itself, and a LAN host, a node's host-network
+process or a pod that is not a VM has no token. The `/healthz` path is open.
 
-Both VM images poll `http://vm-upgrade.portableinfo.cloud`, hardcoded, so nothing is seeded on the VMs. The one manual step is the Cloudflare record
-(DNS only, like `otel.portableinfo.cloud`): an `A` record `vm-upgrade` -> `192.168.1.244`. Until it exists the VMs log that the page is unreachable
-and try again a minute later. The name is in both images (`poll-upgrade` and `vm-upgrade-poll`); changing it means rebuilding them.
+Ingress still lets in the two VM pods and, for traffic source-NATed to the node the VM runs on, `host` and `remote-node` (`CiliumNetworkPolicy/claude-vm-upgrade`);
+the token, not the source address, is the authentication. Limits: the poll is plain HTTP, so a host in the path could answer `{"upgrade": true}` (bounded by each
+VM's one-upgrade-per-hour limit); anything running inside a VM can make requests that get the token injected; the token is compared with `==`, not in constant
+time. Rotating a token: delete the key in the `secret-store` namespace Secret; External Secrets regenerates it, Cilium reloads it, and Reloader restarts the listener.
 
-Check from a VM: `curl -s -XPOST http://vm-upgrade.portableinfo.cloud/api/v1/vms/claude-vm/claim` answers `{"upgrade":false}` while nothing is queued (from
-any other address the request times out).
+The VMs resolve `vm-upgrade.portableinfo.cloud` through the router (`dnsConfig` in `virtualmachine.yaml`), and both images poll `http://vm-upgrade.portableinfo.cloud`,
+hardcoded. The one manual step is the Cloudflare record (DNS only, like `otel.portableinfo.cloud`): an `A` record `vm-upgrade` -> `192.168.1.244`. Until it exists the
+VMs log that the page is unreachable and try again a minute later. The name is in both images (`poll-upgrade` and `vm-upgrade-poll`); changing it means rebuilding them.
+
+Check from a VM: `curl -s -XPOST http://vm-upgrade.portableinfo.cloud/api/v1/vms/claude-vm/claim` answers `{"upgrade":false}` while nothing is queued. From any
+other address it answers 401. To confirm the injection, request the claim path of the other VM from a VM: 401.
 
 The page shows, per VM, when it last polled and what it runs (booted version and image digest, and the staged version if any), so a dead timer is
 visible and you can tell whether an update is waiting for a reboot.
@@ -285,25 +282,31 @@ needs a registry request, which the VM does not make for the page. A spoofed rep
 A page behind the Omni exposer (`Service/claude-elevate`, port 50094): pick a tier, namespaces and a time, and Claude gets a short-lived token for
 that tier there, as `/etc/elevated/<tier>-<namespace>.kubeconfig` (a Secret mount the kubelet refreshes within about a minute, so no restart: the
 Secret has no Reloader annotation, a restart would end the session; use it with `kubectl --kubeconfig`). One Redpanda Connect container calls the
-Kubernetes API with the pod's own token; the steps and the API are in `elevate/redpanda-connect.yaml`.
+Kubernetes API with the pod's own token; the routes and steps are in the pipeline, `elevate/redpanda-connect.yaml`.
 
 | Tier | Role | Max | Grants |
 |---|---|---|---|
-| `ops` | `claude-ops` | 10-60 min | delete or evict pods |
-| `debug` | `claude-debug` | 10-15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
-| `storage` | `claude-storage` | 10-15 min | delete PersistentVolumeClaims (both storage classes reclaim with `Delete`: a bound claim loses its data) |
+| `ops` | `claude-ops` | up to 60 min | delete or evict pods, delete StatefulSets (to recreate their PVCs), delete Trivy `vulnerabilityreports` and `sbomreports` (to force a rescan) |
+| `debug` | `claude-debug` | up to 15 min | `pods/exec`, `pods/portforward`, `pods/ephemeralcontainers` |
+| `flux` | `claude-flux` | up to 15 min | ask Flux to reconcile a HelmRelease or Kustomization (`reconcile.fluxcd.io/requestedAt`, `forceAt`, `resetAt` annotations only; the admission policy `claude-flux-reconcile-only` rejects any other change) |
+| `storage` | `claude-storage` | up to 15 min | delete PersistentVolumeClaims (both storage classes reclaim with `Delete`: a bound claim loses its data), CloudNativePG `Cluster`s and CDI `DataVolume`s (so Flux recreates them) |
 
-- **Opt-in.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` in its own manifest (`adguard-system`: all three,
-  `external-dns-system`: `ops` only, since exec there could read the DNS API token).
+- **Run a job.** The page also runs a CronJob now (`POST /api/v1/jobs`), the way `kubectl create job --from=cronjob/<name>` does. The elevator creates the Job
+  from the CronJob's own template and owner reference; Claude's tokens get no `jobs` rights. Only in namespaces labelled `claude-elevate/jobs: "true"`
+  (`dependency-track-system`); the page shows each CronJob's one-line description from its annotation `claude-elevate/description` (add it to every CronJob in such a namespace), enforced by the admission policy `claude-elevator-jobs` (manual annotation, one CronJob owner). The policy cannot compare the pod spec
+  with the CronJob's, so the elevator pod's token (`create jobs` cluster-wide, gated by that label) is the trust boundary, as it already is for tokens and bindings.
+- **Opt-in.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` in its own manifest (`grep -r claude-elevate/ k8s`). `debug` is only
+  set in `adguard-system` (exec elsewhere could read secrets), and `external-dns-system` has `ops` only, since exec there could read the DNS API token.
+  `flux-system` is managed by the flux-operator, so its labels (`ops`, `flux`) come from a patch in the `FluxInstance`.
 - **Expiry.** The token expires on the API server by itself and nothing cleans up afterwards: the ServiceAccount, RoleBinding and kubeconfig key left
   behind hold no valid token, and the next grant replaces them. A revoke deletes the ServiceAccount, which kills its tokens at once.
-- **Limits.** The API server validates. RBAC pins the pod to the three roles and to `claude-elevate-<tier>` objects;
+- **Limits.** The API server validates. RBAC pins the pod to the four roles and to `claude-elevate-<tier>` objects;
   `claude-elevator-rolebindings` allows only that ServiceAccount, only in an opted-in namespace; `claude-elevator-tokens` caps a token at the tier's
   minutes in `ConfigMap/claude-elevate-limits` (the page reads it too). The page container holds a credential that can grant, bounded by these.
-- **Reach.** Only the Omni exposer and Prometheus (metrics port) reach the pod, never `claude-rc`. A POST must carry the `csrf` value from the status
+- **Reach.** Only the Omni exposer, the cockpit (page port, to list the active grants; it drops the csrf value) and Prometheus (metrics port) reach the pod, never `claude-rc`. A POST must carry the `csrf` value from the status
   (a hash of the pod's token, which a page on another site cannot read; a header would not do, Connect copies query parameters into the same metadata),
   and requests are handled one at a time.
-- **Not offered.** Patching workloads or Flux objects (rollout restarts, forced reconciles). `debug` reads whatever a pod in the namespace can
+- **Not offered.** Patching workloads (rollout restarts) and any Flux change beyond the reconcile annotations. `debug` reads whatever a pod in the namespace can
   (mounted Secrets, its ServiceAccount token).
 - **Token storage and audit.** The token is plain text in the Secret (readable with `get secrets` in `claude-system`) and in the mount. Grants and
   revokes are log lines on the container (no log shipper: `kubectl logs`) and count in `elevate_requests{action,tier}`; who clicked is not recorded.
@@ -356,7 +359,7 @@ A request is `pending` until you decide, then `approved`, `failed` (approve agai
 
 Status page for the cluster, GitHub and the homelab (issue #849), behind the Omni login (`Service/claude-cockpit`, port 50097). A Redpanda Connect pod:
 `GET /api/v1/status` reads every source in parallel, one branch each, so a source that is down only leaves its own panel out. It sends only GETs and keeps
-no state except the VM's session data.
+no state except the usage value pushed by `claude-rc`.
 
 Redpanda Connect is reused rather than a new runtime: the other pages here already run it, it queries Prometheus (`usage/`) and calls the Kubernetes API (`elevate/`), and a status page is a few HTTP reads with a small mapping each. Nothing extra to build, scan or keep pinned.
 
@@ -391,10 +394,19 @@ flowchart LR
 | Pull requests, issues | GitHub search over all repositories of the owner the App is installed on (private ones included), with the cockpit's own one-hour read-only App token (`githubaccesstoken.yaml`, `externalsecret.yaml`) |
 | Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io`, read with the runner's `ghcr-pull` read:packages token (`homeserver-bootc` is a private package) |
 | Share URLs | `claude-urlshare` `GET /api/v1/requests` on the approval listener (read-only, never the page content): what waits for approval and what was decided in the last 24 hours. `CiliumNetworkPolicy/claude-urlshare` lets the cockpit pod in on `:8080` |
+| Elevate Claude | `claude-elevate` `GET /api/v1/status` on the page listener: the active grants (tier, namespace, expiry), nothing else; the status's csrf value is dropped in the mapping. `CiliumNetworkPolicy/claude-elevate` lets the cockpit pod in on `:8080` |
 | Claude usage | Pushed every 5 minutes by the `usage-poller` container of `claude-rc` (see "Claude usage from the pod") to `POST /api/v1/usage` on `:8081`, one value kept in memory for 24 hours |
 
 The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in the `app=claude-rc` pod only, through the ClusterIP Service
 `claude-cockpit-ingest`, so a spoofed sender could only change what the page shows.
+
+### On the iPhone Home Screen (cockpit and share URLs pages)
+
+The page is made for Safari's "Add to Home Screen": it opens full screen (`apple-mobile-web-app-capable`), has an inline 180 px touch icon, keeps clear of
+the notch and home indicator (`viewport-fit=cover` and `env(safe-area-inset-*)`), uses 44 px touch targets and no hover-only styles, and refreshes on resume
+and on a pull down from the top (there is no reload button in a Home Screen app). There is no manifest and no service worker: the page is behind the Omni
+login, and neither request would carry its cookies, so the icon is a data URI and the page needs the network. After changing the icon, remove the Home Screen
+entry and add it again; iOS caches it.
 
 ### Claude usage from the pod
 

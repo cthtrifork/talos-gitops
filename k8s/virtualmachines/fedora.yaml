@@ -11,7 +11,7 @@ metadata:
 spec:
   loadBalancerIP: 192.168.1.222
   externalTrafficPolicy: Local
-  ipFamilyPolicy: SingleStack # IPv4
+  ipFamilyPolicy: SingleStack
   ports:
     - name: ssh
       port: 22
@@ -31,7 +31,6 @@ metadata:
   name: fedora-vm-test
   namespace: kubevirt-system
 spec:
-  #running: true
   runStrategy: Manual
   template:
     metadata:
@@ -40,7 +39,6 @@ spec:
       annotations:
         kubevirt.io/allow-pod-bridge-network-live-migration: "true"
     spec:
-      #evictionStrategy: LiveMigrate
       domain:
         cpu:
           cores: 1
@@ -103,7 +101,7 @@ spec:
               storage: 35Gi
           accessModes:
             - ReadWriteOnce
-          storageClassName: "local-path"
+          storageClassName: "lvm-fast"
         source:
           http:
             url: "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2"

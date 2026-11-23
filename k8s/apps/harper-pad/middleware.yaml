@@ -1,5 +1,4 @@
-# Public sync API. Cloudflare terminates TLS at its edge and forwards through the tunnel to Traefik's
-# plain-HTTP "web" entrypoint (the redirect to HTTPS is Cloudflare's "Always Use HTTPS"). The app takes
+# Cloudflare terminates TLS and forwards through the tunnel to Traefik's plain-HTTP "web" entrypoint. The app takes
 # its scheme from PUBLIC_URL, not from headers.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/traefik.io/middleware_v1alpha1.json
@@ -32,11 +31,11 @@ metadata:
   name: sync-ratelimit
   namespace: harper-pad
 spec:
-  # Generous on purpose: a device syncing many drafts, or several devices behind one NAT, must not hit it. It only stops a runaway client.
+  # Generous on purpose: many drafts or several devices behind one NAT must not hit it; it only stops a runaway client.
   rateLimit:
     average: 50
     burst: 200
     period: 1s
     sourceCriterion:
-      # the real client address as set by Cloudflare; every request arrives from the tunnel
+      # every request arrives from the tunnel; this is the real client address
       requestHeaderName: Cf-Connecting-Ip

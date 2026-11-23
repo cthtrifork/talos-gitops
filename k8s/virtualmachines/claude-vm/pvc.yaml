@@ -1,0 +1,18 @@
+# ~/workspace of the claude user: survives restarts and rootdisk re-imports. A raw block volume (blank virtio disk,
+# formatted by the cloud-init script in externalsecret.yaml).
+# A plain PVC, not a CDI DataVolume: CDI importers run on any node, but a local volume lives on one. lvm-fast is
+# WaitForFirstConsumer, so the scheduler puts it where the rootdisk pins the pod.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claude-vm-workspace-disk
+  namespace: claude-vm
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Block
+  storageClassName: lvm-fast
+  resources:
+    requests:
+      storage: 50Gi

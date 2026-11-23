@@ -27,7 +27,7 @@ spec:
   values:
     fullnameOverride: kube-prom
     nameOverride: prom
-    # Histogram buckets were 104k of 193k series. _sum and _count stay, so averages remain; percentiles of these are gone.
+    # Dropping the histogram buckets (104k of 193k series) keeps _sum and _count: averages remain, percentiles are gone.
     kubeApiServer:
       serviceMonitor:
         metricRelabelings:
@@ -45,6 +45,10 @@ spec:
       enabled: false
     crds:
       enabled: false
+      upgradeJob:
+        image:
+          busybox:
+            registry: mirror.gcr.io
     defaultRules:
       create: false
     alertmanager:
@@ -57,9 +61,14 @@ spec:
         image:
           # renovate: datasource=docker depName=quay.io/prometheus-operator/prometheus-config-reloader versioning=docker
           tag: v0.95.2@sha256:cc74ddedad4ab1c49446971f6d51302ad4303d8660a2018af925c7f62c114304
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 64Mi
       enabled: true
-      # The chart's CiliumNetworkPolicy selects on the version and chart labels, which the pod template does not carry,
-      # so it matched no pod. The operator is covered by prom-operator in networkpolicy.yaml.
+      # The chart's CiliumNetworkPolicy matched no pod (it selects on version/chart labels the template lacks); covered by prom-operator in networkpolicy.yaml.
       networkPolicy:
         enabled: false
       resources:
@@ -82,9 +91,8 @@ spec:
               memory: 128Mi
     kube-state-metrics:
       image:
-        # No digest yet: registry.k8s.io was not reachable when this was written. Renovate pins it (pinDigests).
         # renovate: datasource=docker depName=registry.k8s.io/kube-state-metrics/kube-state-metrics versioning=docker
-        tag: v2.20.0
+        tag: v2.20.0@sha256:42cfe3723a5f058171c627537fb57a3ea0f26e4380fa18555a95cb1a1b4cfc5b
       podLabels:
         prometheus-scrape: "true"
       resources:
@@ -121,21 +129,13 @@ spec:
         # The chart would append "-distroless" after the digest, so the variant is part of the tag instead.
         distroless: false
         # renovate: datasource=docker depName=quay.io/prometheus/node-exporter versioning=docker
-        tag: v1.12.1-distroless@sha256:8c9bac11973b94b59be88d6e11fee4429aa743c8846cdc75d65b18db33f6a106
+        tag: v1.13.1-distroless@sha256:dbc46b5381ae47c5634a6ad16d7b4862191979b0ba4f4cfbdee85e5aa2fcd1e3
       resources:
         requests:
           cpu: 50m
           memory: 32Mi
         limits:
           memory: 128Mi
-    prometheusConfigReloader:
-      resources:
-        requests:
-          cpu: 20m
-          memory: 64Mi
-        limits:
-          cpu: 50m
-          memory: 64Mi
     prometheus:
       enabled: true
       podDisruptionBudget:
@@ -152,9 +152,8 @@ spec:
         image:
           # renovate: datasource=docker depName=quay.io/prometheus/prometheus versioning=docker
           tag: v3.16.0-distroless@sha256:9764044e09eb2c9e1abdb12d0f0188d4efb7384b0262d3c080f0fc59045c89ba
-        # The operator parses the version from the image tag and rejects the digest and the -distroless suffix
-        # ("failed to parse Prometheus version"), which stops every change to the Prometheus resource (rule files,
-        # ServiceMonitors). Renovate bumps it together with the tag above.
+        # The operator rejects the digest and -distroless suffix in the image tag ("failed to parse Prometheus version"),
+        # which stops every change to the Prometheus resource. Renovate bumps it with the tag above.
         # renovate: datasource=docker depName=quay.io/prometheus/prometheus versioning=docker
         version: v3.16.0
         podMetadata:
@@ -162,8 +161,7 @@ spec:
             prometheus-scrape: "true"
         replicas: 1
         enableRemoteWriteReceiver: true
-        # OTLP from Claude Code (claude-rc and the Claude VM) on /api/v1/otlp/v1/metrics. Claude Code sends delta
-        # counters, which otlp-deltatocumulative turns into cumulative ones (kept in memory: a restart starts them at 0).
+        # Claude Code OTLP; delta counters become cumulative via otlp-deltatocumulative (in memory: a restart starts at 0)
         enableOTLPReceiver: true
         enableFeatures:
           - exemplar-storage
@@ -179,7 +177,7 @@ spec:
         resources:
           requests:
             cpu: 100m
-            memory: 512Mi
+            memory: 1Gi
           limits:
             cpu: 1000m
             memory: 4Gi
@@ -191,7 +189,7 @@ spec:
           storage:
             volumeClaimTemplate:
               spec:
-                storageClassName: local-path
+                storageClassName: lvm-fast
                 resources:
                   requests:
                     storage: 20Gi
@@ -205,7 +203,7 @@ spec:
     - kustomize:
         patches:
           - target:
-              # Ignore these objects from Flux diff as they are mutated from chart hooks
+              # mutated by chart hooks
               kind: (ValidatingWebhookConfiguration|MutatingWebhookConfiguration)
               name: kube-prometheus-stack-admission
             patch: |

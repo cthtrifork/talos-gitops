@@ -3,3 +3,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: arc-controller-system
+  labels:
+    claude-elevate/ops: "true"
+    claude-elevate/flux: "true"
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
