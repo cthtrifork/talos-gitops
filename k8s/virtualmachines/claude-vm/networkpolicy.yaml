@@ -101,3 +101,20 @@ spec:
         - ports:
             - port: "22"
               protocol: TCP
+---
+# Replies of the vm-upgrade pod to the VM's polls. The L7 rule for 192.168.1.244:80 sends them through Cilium's Envoy, so the
+# reply has no connection state on this endpoint and the default-deny ingress drops it (SYN-ACK to the ephemeral client port).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-vm-upgrade-replies
+  namespace: claude-vm
+spec:
+  endpointSelector:
+    matchLabels:
+      kubevirt.io/vm: claude-vm
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: claude-system
+            k8s:app: claude-vm-upgrade
