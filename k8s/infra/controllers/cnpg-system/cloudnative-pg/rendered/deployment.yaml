@@ -20,9 +20,9 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/rbac: 36b1b54514eaf72876ee84299a5b0535d68baed987e073a91e3b9b1fca63d59c
-        checksum/config: 9413fa284e062c4b07219e514d21d350164174ad8f0d6965aa38d09e709e3f0c
-        checksum/monitoring-config: 09a9280ece4d1cb8b009b15f90b862c4d04943af6d7fa6c20a3937f08d82cfcb
+        checksum/rbac: c765a8ae8fff7b45668492a04989ab44775814c58f321aafbf3844eee7c34e6f
+        checksum/config: f621aa3457233e6e2a903001d741292c1d05e57ce4c190519dfded3834f5817c
+        checksum/monitoring-config: 66fed5d857a6a61d8cd25a07b92b58386880e97565030ab819bed84a01cd71d1
       labels:
         app.kubernetes.io/name: cloudnative-pg
         app.kubernetes.io/instance: cloudnative-pg
