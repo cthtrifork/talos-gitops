@@ -16,7 +16,7 @@ fullnameOverride: ""
 image:
   name: stakater/reloader
   repository: ghcr.io/stakater/reloader
-  tag: v1.4.24
+  tag: v1.4.25
   # digest: sha256:1234567
   # repository, tag and digest are rendered with tpl, so they may reference other values.
   pullPolicy: IfNotPresent
@@ -139,7 +139,7 @@ reloader:
     labels:
       provider: stakater
       group: com.stakater.platform
-      version: v1.4.24
+      version: v1.4.25
     # Support for extra environment variables.
     env:
       # Open supports Key value pair as environment variables.
