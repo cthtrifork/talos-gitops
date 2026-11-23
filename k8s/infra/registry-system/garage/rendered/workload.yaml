@@ -119,7 +119,7 @@ spec:
         name: meta
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: "local-path"
+        storageClassName: "lvm-fast"
         resources:
           requests:
             storage: "2Gi"
@@ -127,7 +127,7 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: "local-path"
+        storageClassName: "lvm-bulk"
         resources:
           requests:
             storage: "20Gi"
