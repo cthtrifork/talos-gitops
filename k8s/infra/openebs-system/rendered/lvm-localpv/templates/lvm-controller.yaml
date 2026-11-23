@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: openebs-lvm-controller
+    chart: lvm-localpv-1.10.1
+    component: openebs-lvm-controller
+    heritage: Helm
+    openebs.io/component-name: openebs-lvm-controller
+    openebs.io/version: 1.10.1
+    release: openebs-lvm
+    role: openebs-lvm
+  name: openebs-lvm-controller
+  namespace: openebs-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openebs-lvm-controller
+      component: openebs-lvm-controller
+      release: openebs-lvm
+  template:
+    metadata:
+      labels:
+        app: openebs-lvm-controller
+        chart: lvm-localpv-1.10.1
+        component: openebs-lvm-controller
+        heritage: Helm
+        name: openebs-lvm-controller
+        openebs.io/component-name: openebs-lvm-controller
+        openebs.io/logging: "true"
+        openebs.io/version: 1.10.1
+        release: openebs-lvm
+        role: openebs-lvm
+    spec:
+      containers:
+      - args:
+        - --v=5
+        - --csi-address=$(ADDRESS)
+        env:
+        - name: ADDRESS
+          value: /var/lib/csi/sockets/pluginproxy/csi.sock
+        image: registry.k8s.io/sig-storage/csi-resizer:v2.3.0@sha256:48fb3deb93cd848e3c8998b6368f4322c93bb5ce4a90d1307b6dda0dbefb9a0e
+        imagePullPolicy: IfNotPresent
+        name: csi-resizer
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /var/lib/csi/sockets/pluginproxy/
+          name: socket-dir
+      - args:
+        - --csi-address=$(ADDRESS)
+        - --v=5
+        - --feature-gates=Topology=true
+        - --strict-topology
+        - --enable-capacity=true
+        - --extra-create-metadata=true
+        - --default-fstype=ext4
+        env:
+        - name: ADDRESS
+          value: /var/lib/csi/sockets/pluginproxy/csi.sock
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        image: registry.k8s.io/sig-storage/csi-provisioner:v6.4.0@sha256:6ebe60fd8ed67a7f8a90d34402e9e706b274e53612d6fa5fbb8285728db622e2
+        imagePullPolicy: IfNotPresent
+        name: csi-provisioner
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /var/lib/csi/sockets/pluginproxy/
+          name: socket-dir
+      - args:
+        - --endpoint=$(OPENEBS_CSI_ENDPOINT)
+        - --plugin=$(OPENEBS_CONTROLLER_DRIVER)
+        - --kube-api-qps=0
+        - --kube-api-burst=0
+        env:
+        - name: OPENEBS_CONTROLLER_DRIVER
+          value: controller
+        - name: OPENEBS_CSI_ENDPOINT
+          value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+        - name: OPENEBS_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: OPENEBS_IO_INSTALLER_TYPE
+          value: lvm-localpv-helm
+        - name: OPENEBS_IO_ENABLE_ANALYTICS
+          value: "false"
+        image: mirror.gcr.io/openebs/lvm-driver:1.10.1@sha256:41f73aba7f31eee4a033053d9c2f203e007a838c14823f3fd472c50651a98999
+        imagePullPolicy: IfNotPresent
+        name: openebs-lvm-plugin
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /var/lib/csi/sockets/pluginproxy/
+          name: socket-dir
+      priorityClassName: openebs-lvm-lvm-localpv-csi-controller-critical
+      serviceAccountName: openebs-lvm-controller-sa
+      volumes:
+      - emptyDir: {}
+        name: socket-dir

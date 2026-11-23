@@ -32,7 +32,30 @@ resources:
   - app-harper-pad.yaml
   - renovate.yaml
   - virtualmachines.yaml
+configMapGenerator:
+  - name: cluster-vars
+    namespace: flux-system
+    envs:
+      - cluster-vars.env
+    options:
+      disableNameSuffixHash: true # the Kustomizations below refer to it by name
 patches:
+  # Every Kustomization substitutes the variables of cluster-vars.env (${NAME:=default} in its manifests). Optional, so a missing
+  # ConfigMap just leaves the defaults.
+  - target:
+      group: kustomize.toolkit.fluxcd.io
+      kind: Kustomization
+    patch: |-
+      apiVersion: kustomize.toolkit.fluxcd.io/v1
+      kind: Kustomization
+      metadata:
+        name: not-used
+      spec:
+        postBuild:
+          substituteFrom:
+            - kind: ConfigMap
+              name: cluster-vars
+              optional: true
   - target:
       kind: FluxInstance
       name: flux

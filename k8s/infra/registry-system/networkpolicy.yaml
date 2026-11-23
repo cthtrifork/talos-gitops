@@ -62,6 +62,9 @@ spec:
         - matchLabels:
             # the other replicas of the scale-out cluster proxy a request to the replica that owns the repository
             k8s:app.kubernetes.io/name: zot
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: flux-system
+            k8s:app: source-controller
       toPorts:
         - ports:
             - port: "5000"
@@ -83,6 +86,7 @@ spec:
         - matchName: docker.io
         - matchName: registry-1.docker.io
         - matchName: auth.docker.io
+        - matchName: production.cloudfront.docker.com
         - matchName: production.cloudflare.docker.com
         - matchName: mirror.gcr.io
         - matchName: ghcr.io

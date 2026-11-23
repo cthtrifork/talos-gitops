@@ -7,7 +7,7 @@ metadata:
   namespace: kube-prometheus-stack-system
 spec:
   interval: 12h
-  url: oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/prometheus-community/charts/kube-prometheus-stack
   ref:
     tag: 93.9.0
     digest: sha256:94502f60f17d73065f58a0e95b25b117336a099646d1095ca252b07581114aa1

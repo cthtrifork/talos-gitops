@@ -10,7 +10,7 @@ spec:
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
-  url: oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/actions/actions-runner-controller-charts/gha-runner-scale-set
   ref:
     tag: "0.15.1"
     digest: "sha256:2ae7e43db61047aa3c4182e73c8f58ace35e796fa07d41b64fb3c39e81e1f365"

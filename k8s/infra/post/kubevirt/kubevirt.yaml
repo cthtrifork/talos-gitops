@@ -8,6 +8,11 @@ spec:
   # memory limits (several times the usage seen on 2026-11-21) and liveness probes for Polaris
   customizeComponents:
     patches:
+      # peak 208Mi over 1.4 days across 4 nodes; the operator already sets its requests (325Mi)
+      - resourceType: DaemonSet
+        resourceName: virt-handler
+        type: strategic
+        patch: '{"spec":{"template":{"spec":{"containers":[{"name":"virt-handler","resources":{"limits":{"memory":"1Gi"}}}]}}}}'
       - resourceType: Deployment
         resourceName: virt-api
         type: strategic
@@ -23,7 +28,9 @@ spec:
   configuration:
     developerConfiguration:
       # Beta gates are on by default since v1.9 and the set changes per release: review it on every KubeVirt bump
-      featureGates: []
+      # EnableVirtioFsConfigVolumes: Secrets shared into VMs over virtiofs (poll tokens)
+      featureGates:
+        - EnableVirtioFsConfigVolumes
     # off: no digest env var on the operator, so require-image-digest denies the virt-template-apiserver image
     virtTemplateDeployment:
       enabled: false

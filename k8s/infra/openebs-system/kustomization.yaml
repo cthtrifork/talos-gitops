@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - networkpolicy.yaml
-  - helm-repository-lvm.yaml
-  - helm-release-lvm.yaml
+  - helm-repository.yaml
+  - helm-release.yaml
   - storageclass.yaml
   - prometheusrule.yaml

@@ -7,14 +7,9 @@ metadata:
 spec:
   interval: 30m
   timeout: 10m
-  chart:
-    spec:
-      chart: polaris
-      version: 6.0.1
-      sourceRef:
-        name: fairwinds
-        kind: HelmRepository
-        namespace: policy-system
+  chartRef:
+    kind: OCIRepository
+    name: polaris
   driftDetection:
     mode: enabled
     ignore:
@@ -94,6 +89,14 @@ spec:
             - insecureCapabilities
             - notReadOnlyRootFilesystem
             - hostPathSet
+        # chart has no probe values, and the controller's sidecars and driver serve nothing to probe (the node pods are probed in
+        # openebs-system/helm-release.yaml)
+        - namespace: openebs-system
+          controllerNames:
+            - openebs-lvm-controller
+          rules:
+            - livenessProbeMissing
+            - readinessProbeMissing
         - namespace: kube-system
           controllerNames:
             - cilium
@@ -394,3 +397,14 @@ spec:
             - renovate-operator
           rules:
             - sensitiveContainerEnvVar
+  postRenderers:
+    - kustomize:
+        patches:
+          # The chart sets app.kubernetes.io/version to .Chart.Version without sanitizing it.
+          # Flux appends the OCI digest as build metadata (e.g. 6.0.1+b448b3d95feb), and '+' is
+          # not allowed in label values, so the API server rejects every resource with the label.
+          - target:
+              labelSelector: "app.kubernetes.io/version"
+            patch: |
+              - op: remove
+                path: /metadata/labels/app.kubernetes.io~1version

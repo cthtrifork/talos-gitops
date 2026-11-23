@@ -1,0 +1,168 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    chart: lvm-localpv-1.10.1
+    heritage: Helm
+    name: openebs-lvm-node
+    openebs.io/component-name: openebs-lvm-node
+    openebs.io/version: 1.10.1
+    release: openebs-lvm
+    role: openebs-lvm
+  name: openebs-lvm-node
+  namespace: openebs-system
+spec:
+  selector:
+    matchLabels:
+      name: openebs-lvm-node
+      release: openebs-lvm
+  template:
+    metadata:
+      labels:
+        app: openebs-lvm-node
+        chart: lvm-localpv-1.10.1
+        heritage: Helm
+        name: openebs-lvm-node
+        openebs.io/component-name: openebs-lvm-node
+        openebs.io/logging: "true"
+        openebs.io/version: 1.10.1
+        prometheus-scrape: "true"
+        release: openebs-lvm
+        role: openebs-lvm
+    spec:
+      containers:
+      - args:
+        - --v=5
+        - --csi-address=$(ADDRESS)
+        - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+        env:
+        - name: ADDRESS
+          value: /plugin/csi.sock
+        - name: DRIVER_REG_SOCK_PATH
+          value: /var/lib/kubelet/plugins/lvm-localpv/csi.sock
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NODE_DRIVER
+          value: openebs-lvm
+        image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.18.0@sha256:b7fefd08651f00ac4df1a196ed4c621c2451fbb899297fe9fad9e36c667af0c0
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - rm -rf /registration/lvm-localpv /registration/lvm-localpv-reg.sock
+        livenessProbe:
+          exec:
+            command:
+            - /csi-node-driver-registrar
+            - --kubelet-registration-path=/var/lib/kubelet/plugins/lvm-localpv/csi.sock
+            - --mode=kubelet-registration-probe
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 15
+        name: csi-node-driver-registrar
+        readinessProbe:
+          exec:
+            command:
+            - /csi-node-driver-registrar
+            - --kubelet-registration-path=/var/lib/kubelet/plugins/lvm-localpv/csi.sock
+            - --mode=kubelet-registration-probe
+          periodSeconds: 30
+          timeoutSeconds: 15
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /plugin
+          name: plugin-dir
+        - mountPath: /registration
+          name: registration-dir
+      - args:
+        - --nodeid=$(OPENEBS_NODE_ID)
+        - --endpoint=$(OPENEBS_CSI_ENDPOINT)
+        - --plugin=$(OPENEBS_NODE_DRIVER)
+        - --kube-api-qps=0
+        - --kube-api-burst=0
+        - --listen-address=$(METRICS_LISTEN_ADDRESS)
+        - --kubelet-dir=/var/lib/kubelet/
+        env:
+        - name: OPENEBS_NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: OPENEBS_CSI_ENDPOINT
+          value: unix:///plugin/csi.sock
+        - name: OPENEBS_NODE_DRIVER
+          value: agent
+        - name: OPENEBS_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: METRICS_LISTEN_ADDRESS
+          value: :9500
+        - name: ALLOWED_TOPOLOGIES
+          value: kubernetes.io/hostname,
+        image: mirror.gcr.io/openebs/lvm-driver:1.10.1@sha256:41f73aba7f31eee4a033053d9c2f203e007a838c14823f3fd472c50651a98999
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          initialDelaySeconds: 10
+          periodSeconds: 20
+          tcpSocket:
+            port: 9500
+        name: openebs-lvm-plugin
+        readinessProbe:
+          periodSeconds: 10
+          tcpSocket:
+            port: 9500
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: true
+          privileged: true
+        volumeMounts:
+        - mountPath: /plugin
+          name: plugin-dir
+        - mountPath: /dev
+          name: device-dir
+        - mountPath: /var/lib/kubelet/
+          mountPropagation: Bidirectional
+          name: pods-mount-dir
+      hostNetwork: false
+      priorityClassName: openebs-lvm-lvm-localpv-csi-node-critical
+      serviceAccountName: openebs-lvm-node-sa
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: /dev
+          type: Directory
+        name: device-dir
+      - hostPath:
+          path: /var/lib/kubelet/plugins_registry/
+          type: DirectoryOrCreate
+        name: registration-dir
+      - hostPath:
+          path: /var/lib/kubelet/plugins/lvm-localpv/
+          type: DirectoryOrCreate
+        name: plugin-dir
+      - hostPath:
+          path: /var/lib/kubelet/
+          type: Directory
+        name: pods-mount-dir
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 100%
+    type: RollingUpdate
