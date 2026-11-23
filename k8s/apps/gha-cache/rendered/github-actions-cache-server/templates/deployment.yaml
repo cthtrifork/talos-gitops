@@ -59,7 +59,7 @@ spec:
           value: sqlite
         - name: DB_SQLITE_PATH
           value: /data/cache-server.db
-        image: ghcr.io/falcondev-oss/github-actions-cache-server:10.0.1@sha256:6ff4d471db50e87008d1ad2f43819b5bbd2aad23e7e7e233cf5ccbdd01447df6
+        image: ghcr.io/falcondev-oss/github-actions-cache-server:10.0.2@sha256:177adabc4586adab0ab65cbb889bd87483bd3c6b4cb5209e4c52990405a865fd
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
