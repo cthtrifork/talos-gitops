@@ -55,6 +55,26 @@ HELM_REPOSITORY_NAME=$(extract_and_validate '.metadata.name' "$HELM_REPOSITORY_F
 
 HELM_REPOSITORY_URL=$(extract_and_validate '.spec.url' "$HELM_REPOSITORY_FILE".tmp)
 
+# OCIRepositories pull through the in-cluster zot (oci://<zot>/<cache>/<path>), which CI cannot reach: render from the
+# upstream registry the cache stands for (the same mapping as patches/11-zot-mirrors.yaml)
+ZOT_URL_PREFIX="oci://zot.registry-system.svc.cluster.local:5000/"
+if [[ "$HELM_REPOSITORY_URL" == "$ZOT_URL_PREFIX"* ]]; then
+  zot_path="${HELM_REPOSITORY_URL#"$ZOT_URL_PREFIX"}"
+  case "${zot_path%%/*}" in
+    docker-hub-cache) upstream_registry="docker.io" ;;
+    ghcr-cache) upstream_registry="ghcr.io" ;;
+    gcr-cache) upstream_registry="gcr.io" ;;
+    k8s-cache) upstream_registry="registry.k8s.io" ;;
+    quay-cache) upstream_registry="quay.io" ;;
+    google-ar-cache) upstream_registry="us-docker.pkg.dev" ;;
+    *)
+      echo "Error: unknown zot cache in '$HELM_REPOSITORY_URL'." >&2
+      exit 1
+      ;;
+  esac
+  HELM_REPOSITORY_URL="oci://${upstream_registry}/${zot_path#*/}"
+fi
+
 HELM_REPOSITORY_TYPE=$(extract_and_validate '.kind' "$HELM_REPOSITORY_FILE".tmp "false")
 
 HELM_RELEASE_NAME=$(extract_and_validate '.metadata.name' "$HELM_RELEASE_FILE")

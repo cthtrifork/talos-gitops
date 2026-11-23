@@ -7,7 +7,7 @@ metadata:
   namespace: external-secrets-system
 spec:
   interval: 12h
-  url: oci://ghcr.io/external-secrets/charts/external-secrets
+  url: oci://zot.registry-system.svc.cluster.local:5000/ghcr-cache/external-secrets/charts/external-secrets
   ref:
     tag: 2.15.0
     digest: sha256:839666a0c7dd395b4c6bdc616e31b3a839407afbedf33620696578ab6f2268cb

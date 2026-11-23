@@ -57,6 +57,9 @@ spec:
             k8s:io.kubernetes.pod.namespace: arc-runners-system
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: trivy-system
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: flux-system
+            k8s:app: source-controller
       toPorts:
         - ports:
             - port: "5000"

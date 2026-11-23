@@ -146,11 +146,29 @@ spec:
         - matchName: quay.io
         - matchPattern: "cdn*.quay.io"
         - matchPattern: "*.github.io"
-        - matchName: charts.redpanda.com
-        - matchName: charts.fairwinds.com
       toPorts:
         - ports:
             - port: "443"
+              protocol: TCP
+---
+# OCIRepositories pull their charts through zot, which has to admit flux-system as well (k8s/infra/registry-system/networkpolicy.yaml).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: flux-system-egress-zot
+  namespace: flux-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: source-controller
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: registry-system
+            k8s:app.kubernetes.io/name: zot
+      toPorts:
+        - ports:
+            - port: "5000"
               protocol: TCP
 ---
 apiVersion: cilium.io/v2
@@ -185,8 +203,6 @@ spec:
         - matchName: quay.io
         - matchPattern: "cdn*.quay.io"
         - matchPattern: "*.github.io"
-        - matchName: charts.redpanda.com
-        - matchName: charts.fairwinds.com
       toPorts:
         - ports:
             - port: "443"

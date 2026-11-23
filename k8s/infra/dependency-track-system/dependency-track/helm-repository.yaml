@@ -7,7 +7,7 @@ metadata:
   namespace: dependency-track-system
 spec:
   interval: 12h
-  url: oci://ghcr.io/dependencytrack/helm-charts/dependency-track
+  url: oci://zot.registry-system.svc.cluster.local:5000/ghcr-cache/dependencytrack/helm-charts/dependency-track
   ref:
     tag: 2.10.0
     digest: sha256:d1fe4382efeb00d39b02222a01d4bc431b99ad4866c7158851dc62eba7e46035

@@ -1,10 +1,18 @@
 ---
-# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/source.toolkit.fluxcd.io/helmrepository_v1.json
+# Redpanda publishes no OCI chart (https://github.com/redpanda-data/helm-charts/issues/1680): the chart is mirrored to
+# ghcr.io/cthtrifork/talos-gitops/charts by .github/workflows/helm-chart-sync.yaml and pulled through zot.
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/source.toolkit.fluxcd.io/ocirepository_v1.json
 apiVersion: source.toolkit.fluxcd.io/v1
-kind: HelmRepository
+kind: OCIRepository
 metadata:
-  name: redpanda
+  name: redpanda-connect
   namespace: dependency-track-system
 spec:
   interval: 12h
-  url: https://charts.redpanda.com
+  url: oci://zot.registry-system.svc.cluster.local:5000/ghcr-cache/cthtrifork/talos-gitops/charts/connect
+  ref:
+    tag: 3.2.37
+    digest: sha256:db85982c63e78e81aad0c787787b0b3b6e6da7243dbd9f3048b3a935120e5a51
+  layerSelector:
+    mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
+    operation: extract

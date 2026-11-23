@@ -1,5 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  // OCIRepositories pull through the in-cluster zot (see docs/registry-mirrors.md); Renovate looks the charts up upstream.
+  // Add a line here when an OCIRepository uses another zot cache.
+  "registryAliases": {
+    "zot.registry-system.svc.cluster.local:5000/ghcr-cache": "ghcr.io",
+    "zot.registry-system.svc.cluster.local:5000/quay-cache": "quay.io"
+  },
   "extends": [
     "config:best-practices",
     "group:recommended"

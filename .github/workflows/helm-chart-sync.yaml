@@ -55,4 +55,4 @@ jobs:
         env:
           TARGET_REPO_AUTH_USERNAME: ${{ github.actor }}
           TARGET_REPO_AUTH_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-          DRY_RUN: 'false' # ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+          DRY_RUN: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}

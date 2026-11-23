@@ -7,13 +7,9 @@ metadata:
   name: sbom-hook
   namespace: dependency-track-system
 spec:
-  chart:
-    spec:
-      chart: connect
-      version: 3.2.37
-      sourceRef:
-        kind: HelmRepository
-        name: redpanda
+  chartRef:
+    kind: OCIRepository
+    name: redpanda-connect
   driftDetection:
     mode: enabled
   interval: 30m

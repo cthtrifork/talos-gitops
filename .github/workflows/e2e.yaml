@@ -126,6 +126,26 @@ jobs:
           wait="${WAIT:-5m}"
           cilium status --wait --interactive="${interactive}" --wait-duration="${wait}" # will exit when ready
 
+      - name: Resolve the cluster zot inside kind
+        timeout-minutes: 3
+        run: |
+          # kind's CoreDNS answers cluster.local itself and has no zot Service (the zot release is suspended), so give
+          # the OCIRepositories the address the runner pod resolves for the real zot
+          zot_host="${ZOT%%:*}"
+          zot_ip="$(getent hosts "${zot_host}" | awk '{print $1; exit}')"
+          [ -n "${zot_ip}" ] || { echo "::error::${zot_host} does not resolve on the runner"; exit 1; }
+          kubectl -n kube-system get configmap coredns -o jsonpath='{.data.Corefile}' |
+            ZOT_IP="${zot_ip}" ZOT_HOST="${zot_host}" awk '
+              /^[[:space:]]*kubernetes / && !done {
+                print "    hosts {"; print "        " ENVIRON["ZOT_IP"] " " ENVIRON["ZOT_HOST"]; print "        fallthrough"; print "    }"; done = 1
+              }
+              { print }' > "${RUNNER_TEMP}/Corefile"
+          grep -q "${zot_host}" "${RUNNER_TEMP}/Corefile" || { echo "::error::no kubernetes block in the CoreDNS Corefile"; exit 1; }
+          kubectl -n kube-system create configmap coredns --from-file=Corefile="${RUNNER_TEMP}/Corefile" \
+            --dry-run=client -o yaml | kubectl -n kube-system replace -f -
+          kubectl -n kube-system rollout restart deployment/coredns
+          kubectl -n kube-system rollout status deployment/coredns --timeout=2m
+
       - name: Install latest flux-operator
         timeout-minutes: 3
         run: |
@@ -134,6 +154,13 @@ jobs:
             --namespace flux-system \
             --create-namespace \
             --wait --timeout 2m
+
+      - name: Trust the private CA in flux-system
+        timeout-minutes: 1
+        run: |
+          # on the real cluster trust-manager creates this ConfigMap; the FluxInstance mounts it into source-controller
+          kubectl -n flux-system create configmap portableinfo-ca-bundle \
+            --from-file=ca-bundle.crt=/usr/local/share/ca-certificates/private-ca.crt
 
       - name: Deploy flux instance
         timeout-minutes: 2

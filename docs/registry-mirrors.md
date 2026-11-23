@@ -96,6 +96,27 @@ Patch 11 is applied per node. The init log of a new Spegel pod shows what its no
   manifest, so digest-pinned images stay available without internet. Tagged and untagged manifests of the caches and the catch-all policy are also kept 720 hours after their last pull or push. `pr/**` and `buildcache/**` keep 72 hours.
 - the zot volume is 150Gi on `lvm-fast`, a real volume of that size (expandable online); a PVC's storage class cannot change in place, so moving it means recreating the StatefulSet and the PVC (the cache refills on demand).
 
+## OCIRepositories (Flux charts)
+
+source-controller has no containerd, so its OCIRepositories cannot fall back to the upstream registry: their `spec.url` names zot itself,
+`oci://zot.registry-system.svc.cluster.local:5000/<cache>/<upstream path>` (`ghcr-cache` for ghcr.io, `quay-cache` for quay.io; the same
+cache names as `patches/11-zot-mirrors.yaml`). A zot outage therefore stalls chart reconciliation, and the digest pin in `spec.ref` stays valid
+because zot keeps the upstream manifests unchanged.
+
+- Not routed through zot: the charts zot depends on, which would deadlock a cluster rebuilt from empty: Cilium, flux-operator,
+  cert-manager, trust-manager, openebs-lvm (zot's volume), Spegel, zot itself and prometheus-operator-crds (bootstrap). They keep their upstream URL.
+- Charts without an upstream OCI chart (polaris, metrics-server, Redpanda `connect`) are mirrored to
+  `ghcr.io/cthtrifork/talos-gitops/charts` by `.github/workflows/helm-chart-sync.yaml` (configs in `scripts/ci/helm/`) and read from there
+  through `ghcr-cache`. A new chart version appears in Git only after the sync has pushed it.
+- TLS: the FluxInstance patch in `k8s/clusters/homelab/flux-instance.yaml` mounts the trust-manager ConfigMap `portableinfo-ca-bundle` into
+  source-controller (`SSL_CERT_DIR`). The volume is optional so source-controller still starts before trust-manager exists.
+- Network policy: `flux-system-egress-zot` (`k8s/infra/flux-system/`) and the `zot` policy in `k8s/infra/registry-system/networkpolicy.yaml`.
+- Renovate: `registryAliases` in `renovate.json5` maps `zot.registry-system.svc.cluster.local:5000/<cache>` back to the upstream registry, so the
+  flux manager still looks versions up upstream. A new cache needs a line there and in `scripts/ci/render-manifests.sh`, which renders the
+  chart from the upstream registry because CI cannot reach zot.
+- e2e: kind's CoreDNS gets a `hosts` entry for the zot service name and `portableinfo-ca-bundle` is created from the runner's CA
+  (steps "Resolve the cluster zot inside kind" and "Trust the private CA in flux-system" in `.github/workflows/e2e.yaml`).
+
 ## Using Spegel alone
 
 Set the Spegel values to `mirroredRegistries: []` and `prependExisting: false`, then restart the Spegel pods. Spegel then writes one

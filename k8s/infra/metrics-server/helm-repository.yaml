@@ -1,9 +1,17 @@
 ---
+# metrics-server publishes no OCI chart (https://github.com/kubernetes-sigs/metrics-server/issues/1527): the chart is mirrored to
+# ghcr.io/cthtrifork/talos-gitops/charts by .github/workflows/helm-chart-sync.yaml and pulled through zot.
 apiVersion: source.toolkit.fluxcd.io/v1
-kind: HelmRepository
+kind: OCIRepository
 metadata:
   name: metrics-server
   namespace: kube-system
 spec:
-  interval: 24h
-  url: https://kubernetes-sigs.github.io/metrics-server/
+  interval: 12h
+  url: oci://zot.registry-system.svc.cluster.local:5000/ghcr-cache/cthtrifork/talos-gitops/charts/metrics-server
+  ref:
+    tag: 3.14.0
+    digest: sha256:a0420647d7181036524f9bfe911368760557290926acb69d821bd77b7564191d
+  layerSelector:
+    mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
+    operation: extract
