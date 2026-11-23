@@ -11,5 +11,7 @@ configMapGenerator:
     namespace: registry-system
     options:
       disableNameSuffixHash: true
+      annotations:
+        kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - configure.sh
