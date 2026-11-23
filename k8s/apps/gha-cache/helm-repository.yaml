@@ -9,5 +9,5 @@ spec:
   interval: 12h
   url: oci://ghcr.io/falcondev-oss/charts/github-actions-cache-server
   ref:
-    tag: "2.0.1"
-    digest: "sha256:b5a2657ad24671c08b7c762e98d5450a5bd0fcf762485704e8d7d0d96e7706de"
+    tag: "2.0.2"
+    digest: "sha256:49e7311215496077f213de29d40aa20121e966a9b91edddcd187ced90010fc34"
