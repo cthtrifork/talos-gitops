@@ -143,9 +143,6 @@ spec:
         - matchName: api.github.com
         - matchPattern: "*.githubusercontent.com"
         - matchName: ghcr.io
-        - matchName: quay.io
-        - matchPattern: "cdn*.quay.io"
-        - matchPattern: "*.github.io"
       toPorts:
         - ports:
             - port: "443"
@@ -196,13 +193,14 @@ spec:
           rules:
             dns:
               - matchPattern: "*"
+    # Through zot (flux-system-egress-zot) these are not needed. They are the fallback of a cluster without zot, where
+    # the ZOT_MIRROR_* variables in k8s/clusters/homelab/cluster-vars.env are unset and the OCIRepositories pull from upstream.
     - toFQDNs:
         - matchName: github.com
         - matchPattern: "*.githubusercontent.com"
         - matchName: ghcr.io
         - matchName: quay.io
         - matchPattern: "cdn*.quay.io"
-        - matchPattern: "*.github.io"
       toPorts:
         - ports:
             - port: "443"
