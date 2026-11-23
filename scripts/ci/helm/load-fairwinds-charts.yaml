@@ -1,3 +1,4 @@
+---
 # https://github.com/FairwindsOps/charts/issues/1755
 source:
   repo:
@@ -10,5 +11,5 @@ target:
 
 charts:
   - polaris
-  
+
 skipImages: true
