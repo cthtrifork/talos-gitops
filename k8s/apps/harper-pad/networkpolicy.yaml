@@ -137,7 +137,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: storage-system # CNPG operator: status 8000, 5432
+              kubernetes.io/metadata.name: cnpg-system # CNPG operator: status 8000, 5432
       ports:
         - protocol: TCP
           port: 8000

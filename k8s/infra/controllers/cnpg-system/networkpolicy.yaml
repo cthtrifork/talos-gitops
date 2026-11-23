@@ -3,8 +3,8 @@
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: storage-system-default-deny
-  namespace: storage-system
+  name: cnpg-system-default-deny
+  namespace: cnpg-system
 spec:
   endpointSelector: {}
   ingress:
@@ -15,8 +15,8 @@ spec:
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: storage-system-allow-dns-apiserver
-  namespace: storage-system
+  name: cnpg-system-allow-dns-apiserver
+  namespace: cnpg-system
 spec:
   endpointSelector: {}
   egress:
@@ -35,7 +35,7 @@ apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
   name: cloudnative-pg
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   endpointSelector:
     matchLabels:

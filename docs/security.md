@@ -91,7 +91,7 @@ An allowlist of kube-dns, the Kubernetes API where needed, and named hosts (`toF
 
 Labels are on each namespace (`grep -r pod-security.kubernetes.io k8s`). Enforced level:
 
-- `restricted`: the application namespaces, `cert-manager-system`, `traefik-system`, `storage-system`, `reloader-system`, `external-secrets-system`, `external-dns-system`, `secret-store`, `cilium-secrets`.
+- `restricted`: the application namespaces, `cert-manager-system`, `traefik-system`, `cnpg-system`, `reloader-system`, `external-secrets-system`, `external-dns-system`, `secret-store`, `cilium-secrets`.
 - `baseline`: `policy-system`, `dependency-track-system`, `arc-controller-system`, `cdi`, `adguard-system`, `trivy-system`, `kubevirt-system`, `claude-vm`, `homeserver-vm`.
 - `privileged`: `arc-runners-system`, `metallb-system`, `openebs-system`, `registry-system`, `kubevirt`, `kube-prometheus-stack-system`.
 - Unlabelled: `kube-system` (exempt) and `flux-system`, which get the API-server default (`patches/19-pod-security.yaml`: enforce `baseline`, audit and warn `restricted`).

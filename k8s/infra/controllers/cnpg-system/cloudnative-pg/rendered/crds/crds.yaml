@@ -6,7 +6,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
   name: backups.postgresql.cnpg.io
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   group: postgresql.cnpg.io
   names:
@@ -484,7 +484,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
   name: clusterimagecatalogs.postgresql.cnpg.io
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   group: postgresql.cnpg.io
   names:
@@ -701,7 +701,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
   name: clusters.postgresql.cnpg.io
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   group: postgresql.cnpg.io
   names:
@@ -8330,7 +8330,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
   name: databaseroles.postgresql.cnpg.io
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   group: postgresql.cnpg.io
   names:
@@ -8653,7 +8653,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
   name: databases.postgresql.cnpg.io
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   group: postgresql.cnpg.io
   names:
@@ -9237,7 +9237,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
   name: failoverquorums.postgresql.cnpg.io
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   group: postgresql.cnpg.io
   names:
@@ -9316,7 +9316,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
   name: imagecatalogs.postgresql.cnpg.io
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   group: postgresql.cnpg.io
   names:
@@ -9533,7 +9533,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
   name: poolers.postgresql.cnpg.io
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   group: postgresql.cnpg.io
   names:
@@ -18939,7 +18939,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
   name: publications.postgresql.cnpg.io
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   group: postgresql.cnpg.io
   names:
@@ -19132,7 +19132,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
   name: scheduledbackups.postgresql.cnpg.io
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   group: postgresql.cnpg.io
   names:
@@ -19328,7 +19328,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
   name: subscriptions.postgresql.cnpg.io
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   group: postgresql.cnpg.io
   names:
