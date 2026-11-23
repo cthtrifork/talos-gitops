@@ -1,24 +1,22 @@
----
-# Source: cilium/templates/hubble/tls-certmanager/ui-client-certs.yaml
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: hubble-ui-client-certs
   namespace: kube-system
 spec:
+  commonName: '*.hubble-ui.cilium.io'
+  dnsNames:
+  - '*.hubble-ui.cilium.io'
+  duration: 720h0m0s
+  isCA: false
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
     name: certificate-cluster-issuer
-  secretName: hubble-ui-client-certs
-  commonName: "*.hubble-ui.cilium.io"
-  dnsNames:
-    - "*.hubble-ui.cilium.io"
-  duration: 720h0m0s
   privateKey:
     rotationPolicy: Always
-  isCA: false
+  secretName: hubble-ui-client-certs
   usages:
-    - signing
-    - key encipherment
-    - client auth
+  - signing
+  - key encipherment
+  - client auth

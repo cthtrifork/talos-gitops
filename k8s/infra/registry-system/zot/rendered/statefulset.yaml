@@ -25,6 +25,7 @@ spec:
         app.kubernetes.io/name: zot
         prometheus-scrape: "true"
     spec:
+      automountServiceAccountToken: false
       containers:
       - env:
         - name: GOGC
@@ -58,6 +59,12 @@ spec:
           requests:
             cpu: 200m
             memory: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
         startupProbe:
           failureThreshold: 3
           httpGet:
@@ -80,7 +87,10 @@ spec:
           readOnly: true
       dnsPolicy: ClusterFirst
       securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
         runAsNonRoot: true
+        runAsUser: 1000
         seccompProfile:
           type: RuntimeDefault
       serviceAccountName: zot

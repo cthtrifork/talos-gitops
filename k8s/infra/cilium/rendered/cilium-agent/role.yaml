@@ -1,38 +1,35 @@
----
-# Source: cilium/templates/cilium-agent/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    app.kubernetes.io/part-of: cilium
+    helm.sh/chart: cilium-1.20.5
   name: cilium-config-agent
   namespace: kube-system
-  labels:
-    app.kubernetes.io/part-of: cilium
-    helm.sh/chart: cilium-1.20.5
 rules:
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - get
-      - list
-      - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
 ---
-# Source: cilium/templates/cilium-agent/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: cilium-tlsinterception-secrets
-  namespace: "cilium-secrets"
   labels:
     app.kubernetes.io/part-of: cilium
     helm.sh/chart: cilium-1.20.5
+  name: cilium-tlsinterception-secrets
+  namespace: cilium-secrets
 rules:
-  - apiGroups:
-      - ""
-    resources:
-      - secrets
-    verbs:
-      - get
-      - list
-      - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch

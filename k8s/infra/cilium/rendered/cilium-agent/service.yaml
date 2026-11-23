@@ -1,22 +1,20 @@
----
-# Source: cilium/templates/cilium-agent/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: cilium-agent
-  namespace: kube-system
   labels:
-    k8s-app: cilium
     app.kubernetes.io/name: cilium-agent
     app.kubernetes.io/part-of: cilium
     helm.sh/chart: cilium-1.20.5
+    k8s-app: cilium
+  name: cilium-agent
+  namespace: kube-system
 spec:
   clusterIP: None
-  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9962
+    protocol: TCP
+    targetPort: prometheus
   selector:
     k8s-app: cilium
-  ports:
-    - name: metrics
-      port: 9962
-      protocol: TCP
-      targetPort: prometheus
+  type: ClusterIP

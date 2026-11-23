@@ -1,25 +1,23 @@
----
-# Source: cilium/templates/hubble-ui/service.yaml
-kind: Service
 apiVersion: v1
+kind: Service
 metadata:
-  name: hubble-ui
-  namespace: kube-system
   annotations:
     omni-kube-service-exposer.sidero.dev/icon: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iI2I0NTMwOSIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMuNSAxMlM3IDYgMTIgNnM4LjUgNiA4LjUgNi0zLjUgNi04LjUgNlMzLjUgMTIgMy41IDEyeiIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjIuNSIvPjwvZz48L3N2Zz4=
     omni-kube-service-exposer.sidero.dev/label: Hubble
     omni-kube-service-exposer.sidero.dev/port: "50081"
     omni-kube-service-exposer.sidero.dev/prefix: hubble
   labels:
-    k8s-app: hubble-ui
     app.kubernetes.io/name: hubble-ui
     app.kubernetes.io/part-of: cilium
     helm.sh/chart: cilium-1.20.5
+    k8s-app: hubble-ui
+  name: hubble-ui
+  namespace: kube-system
 spec:
-  type: "ClusterIP"
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8081
   selector:
     k8s-app: hubble-ui
-  ports:
-    - name: http
-      port: 80
-      targetPort: 8081
+  type: ClusterIP
