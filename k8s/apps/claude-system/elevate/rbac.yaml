@@ -106,8 +106,7 @@ subjects:
     name: claude-elevator
     namespace: claude-system
 ---
-# The kubeconfigs of the active grants, one key per <tier>-<namespace>.kubeconfig, mounted by claude-rc at /etc/elevated. Created empty; the
-# elevator fills it, so Flux only creates it. Not annotated for Reloader: a restart of claude-rc would end the session.
+# Filled by the elevator (Flux only creates it). Not annotated for Reloader: a restart of claude-rc would end the session.
 apiVersion: v1
 kind: Secret
 metadata:

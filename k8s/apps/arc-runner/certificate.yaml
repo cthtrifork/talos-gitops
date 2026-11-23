@@ -10,7 +10,7 @@ spec:
   usages:
     - client auth
     - digital signature
-  commonName: arc-runners # user name
+  commonName: arc-runners
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer

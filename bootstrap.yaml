@@ -5,7 +5,7 @@ metadata:
   name: gitops
   namespace: flux-system
 spec:
-  interval: 2m0s # todo
+  interval: 2m0s
   url: https://github.com/cthtrifork/talos-gitops
   ref:
     branch: main

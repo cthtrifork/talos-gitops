@@ -5,7 +5,7 @@ metadata:
   name: claude-vm-ssh
   namespace: claude-vm
   annotations:
-    metallb.io/loadBalancerIPs: 192.168.1.246 # the pool does not auto-assign; free at the time of writing
+    metallb.io/loadBalancerIPs: 192.168.1.246 # explicit address: the pool does not auto-assign
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local

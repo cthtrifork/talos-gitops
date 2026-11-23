@@ -1,8 +1,7 @@
 # trivy-system
 
-Split out of `dependency-track-system` so the cluster-wide scanner (it reads every workload and starts scan jobs) and Reloader no longer share a
-namespace, network policy set and Flux Kustomization with Dependency-Track and its database. Dependency-Track and `sbom-hook` stay in
-[`dependency-track-system`](../dependency-track-system/README.md); Reloader is in `reloader-system`.
+The cluster-wide scanner (it reads every workload and starts scan jobs). Dependency-Track and `sbom-hook` are in
+[`dependency-track-system`](../dependency-track-system/README.md).
 
 - `trivy-operator/`: vulnerability scanning of running workloads, in client/server mode with one shared
   `trivy-service`. The trivy server pulls its vulnerability and Java databases (and the policy bundle) from the in-cluster
@@ -39,7 +38,7 @@ it at start); a scan job reads it when it starts.
 ## Network policies
 
 `networkpolicy.yaml` denies all traffic in both directions for the namespace and then allows, per workload, what Hubble showed
-it needs (one policy each for the trivy operator, the trivy server and the scan jobs). The scan jobs may reach the trivy server
-(4954), zot (5000) and the internet; clients reach `trivy-service` (4954): the operator, the scan jobs, zot and the
+it needs (one policy each for the trivy operator, the trivy server and the scan jobs). The scan jobs may reach only the trivy server
+(4954) and zot (5000), no internet; clients reach `trivy-service` (4954): the operator, the scan jobs, zot and the
 Dependency-Track api-server in `dependency-track-system`. The operator reaches `sbom-hook` in `dependency-track-system` (4195). Peers in other
 namespaces carry their `k8s:io.kubernetes.pod.namespace` label in the rules on both sides (here, `dependency-track-system` and `registry-system`).

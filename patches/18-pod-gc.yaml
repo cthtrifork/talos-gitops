@@ -1,6 +1,5 @@
-# Control-plane nodes: garbage-collect terminated pods sooner. The default is 100 (Talos), so the Failed pods that every node reboot leaves behind
-# ("Pod was rejected as the node is shutting down", a cilium-operator replica placed on the node that goes down: about 25 per reboot) pile up until there are
-# more than 100. 20 keeps `kubectl get pods -A` readable. Only kube-controller-manager restarts (a static pod), no node reboot.
+# Talos' default threshold (100) lets the ~25 Failed pods per node reboot ("rejected as the node is shutting down") pile up.
+# Only kube-controller-manager restarts.
 ---
 cluster:
   controllerManager:

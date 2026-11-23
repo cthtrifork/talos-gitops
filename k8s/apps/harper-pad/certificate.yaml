@@ -1,6 +1,5 @@
-# Database PKI (docs/sync.md, "Database access"): no passwords anywhere. PostgreSQL requires TLS and a
-# client certificate whose CN equals the role name. One dedicated CA signs the server, replication and
-# client certificates; cert-manager (not CNPG) owns the CA key.
+# Database PKI: no passwords. PostgreSQL requires TLS and a client certificate whose CN equals the role name; one CA
+# signs server, replication and client certificates, and cert-manager (not CNPG) owns its key.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
 apiVersion: cert-manager.io/v1
@@ -19,7 +18,6 @@ spec:
     name: portableinfo-pmx01-root-ca-bootstrap
     kind: ClusterIssuer
 ---
-# Server certificate for the CNPG cluster services.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -60,7 +58,6 @@ spec:
     kind: Issuer
     group: cert-manager.io
 ---
-# Client certificate for harper-pad-sync (role harper_sync).
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -79,7 +76,6 @@ spec:
     kind: Issuer
     group: cert-manager.io
 ---
-# Client certificate for harper-pad-admin (role harper_admin).
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

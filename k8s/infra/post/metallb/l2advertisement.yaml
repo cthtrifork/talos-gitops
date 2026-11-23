@@ -7,6 +7,3 @@ metadata:
 spec:
   ipAddressPools:
     - first-pool
-  #interfaces:
-  #  - eno1
-  #  - enp87s0

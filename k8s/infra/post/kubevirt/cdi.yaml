@@ -4,7 +4,7 @@ kind: CDI
 metadata:
   name: cdi
 spec:
-  # Memory limits and liveness probes the upstream deployments lack (Polaris). cdi-deployment keeps its exec readiness probe only.
+  # memory limits and liveness probes for Polaris; cdi-deployment keeps its exec readiness probe only
   customizeComponents:
     patches:
       - resourceType: Deployment
@@ -20,12 +20,11 @@ spec:
         type: strategic
         patch: '{"spec":{"template":{"spec":{"containers":[{"name":"cdi-uploadproxy","resources":{"limits":{"memory":"512Mi"}},"livenessProbe":{"httpGet":{"path":"/healthz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":30,"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":6}}]}}}}'
   config:
-    # Wait for the VM pod before importing: on a WaitForFirstConsumer class (lvm-fast) CDI otherwise runs its importer pods right away, wherever the scheduler puts them, and
-    # the node-bound volumes of one VM end up on different nodes or on a node without room for the VM. With the gate the VM pod is scheduled first, on a node that fits its memory and
-    # volumes, and the import runs there (CDI v1.66 feature-gates.go: HonorWaitForFirstConsumer).
+    # schedule the VM pod first so the node-bound volumes of one VM land together on a node with room
+    # (WaitForFirstConsumer classes such as lvm-fast otherwise import wherever the importer pods land)
     featureGates:
       - HonorWaitForFirstConsumer
-    scratchSpaceStorageClass: lvm-bulk # the temporary conversion space of an import (as big as the image): off the small NVMe groups, onto the idle 4 TB bulk disks
+    scratchSpaceStorageClass: lvm-bulk # scratch space is as big as the image: keep it off the small NVMe groups
     podResourceRequirements:
       requests:
         cpu: "100m"

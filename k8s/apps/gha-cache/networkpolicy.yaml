@@ -1,6 +1,5 @@
-# Default deny both ways for the namespace, then what the cache server needs: the runners of arc-runners-system on 3000, and
-# GitHub for what it does not store itself (it verifies the runner's OIDC token and passes artifact requests on to the results
-# service). When a job fails on connect, find the host in the drop metrics (skill cilium-drops) and add it below.
+# Default deny, then runners of arc-runners-system on 3000 and GitHub (OIDC verification, artifact pass-through). A job
+# that fails to connect: find the host in the drop metrics (skill cilium-drops) and add it below.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -23,7 +22,7 @@ metadata:
 spec:
   endpointSelector: {}
   egress:
-    # DNS through kube-dns, with the proxy on so Cilium learns the addresses behind the hosts below
+    # DNS, proxy on so Cilium learns the addresses behind the hosts below
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -55,7 +54,7 @@ spec:
               protocol: TCP
   egress:
     - toFQDNs:
-        # OIDC token verification (JWKS) and the GitHub results service
+        # OIDC token verification (JWKS) and the results service
         - matchName: token.actions.githubusercontent.com
         - matchPattern: "*.actions.githubusercontent.com"
       toPorts:

@@ -56,4 +56,3 @@ spec:
     ref: "refs/heads/main"
     path: "k8s/clusters/homelab"
     interval: 1h # fallback poll; the webhook receiver (k8s/infra/flux-system) triggers a fetch on push
-    #pullSecret: "flux-system"
