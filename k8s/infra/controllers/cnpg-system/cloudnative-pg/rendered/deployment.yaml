@@ -4,7 +4,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cloudnative-pg
-  namespace: storage-system
+  namespace: cnpg-system
   labels:
     helm.sh/chart: cloudnative-pg-0.29.2
     app.kubernetes.io/name: cloudnative-pg

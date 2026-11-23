@@ -4,4 +4,4 @@ kind: Namespace
 metadata:
   annotations:
     kustomize.toolkit.fluxcd.io/prune: disabled
-  name: storage-system
+  name: cnpg-system

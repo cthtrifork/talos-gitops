@@ -4,7 +4,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cnpg-default-monitoring
-  namespace: storage-system
+  namespace: cnpg-system
   labels:
     helm.sh/chart: cloudnative-pg-0.29.2
     app.kubernetes.io/name: cloudnative-pg

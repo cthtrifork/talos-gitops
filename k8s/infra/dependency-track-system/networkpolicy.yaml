@@ -1,7 +1,5 @@
-# Default deny both ways for the namespace, then per workload what Hubble showed it needs. Reverse-direction flows in
-# Hubble are replies on allowed connections and need no rule of their own.
-# Fixed names used below: the Omni service exposer (host network: arrives as host or remote-node). Prometheus reaches the
-# pods that carry the label prometheus-scrape through the cluster-wide policy in kube-prometheus-stack, not here.
+# Default deny both ways, then per workload what Hubble showed it needs. Prometheus scrapes via the cluster-wide policy in kube-prometheus-stack.
+# The Omni service exposer runs on the host network, so its traffic arrives as host or remote-node.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -24,7 +22,6 @@ metadata:
 spec:
   endpointSelector: {}
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -33,13 +30,10 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-    # Kubernetes API
     - toEntities:
         - kube-apiserver
 ---
-# Dependency-Track API: the LAN clients (dependency-track-api-server-lb, 192.168.1.242 is world), Traefik (the UI's /api
-# through the Cloudflare tunnel), sbom-hook. Needs the database, Trivy (trivy-system) and the
-# internet (vulnerability feeds).
+# Dependency-Track API (192.168.1.242, the LB IP, is seen as world).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -104,7 +98,7 @@ spec:
           rules:
             dns:
               - matchPattern: "*"
-    # vulnerability feeds: the KEV lists in extensions.json, NVD, GitHub advisories and OSV, plus Go module, PyPI, Maven Central and Atlassian package metadata
+    # vulnerability feeds and package metadata
     - toFQDNs:
         - matchName: www.cisa.gov
         - matchName: raw.githubusercontent.com
@@ -126,7 +120,7 @@ spec:
             - port: "443"
               protocol: TCP
 ---
-# Dependency-Track frontend: Traefik only (the Cloudflare tunnel, see post/dependency-track-system/dependency-track-ingressroute.yaml).
+# Dependency-Track frontend
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -146,8 +140,7 @@ spec:
             - port: "8080"
               protocol: TCP
 ---
-# Dependency-Track database (CloudNativePG): the API server, the operator in storage-system (status 8000 and SQL),
-# and the instances of the same cluster.
+# Dependency-Track database (CloudNativePG)
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -167,7 +160,7 @@ spec:
               protocol: TCP
     - fromEndpoints:
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: storage-system
+            k8s:io.kubernetes.pod.namespace: cnpg-system
             k8s:app.kubernetes.io/name: cloudnative-pg
       toPorts:
         - ports:
@@ -195,7 +188,7 @@ spec:
             - port: "5432"
               protocol: TCP
 ---
-# sbom-hook: receives the trivy-operator webhook from trivy-system (service port 80 to 4195) and uploads to Dependency-Track.
+# sbom-hook
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -223,8 +216,7 @@ spec:
             - port: "8080"
               protocol: TCP
 ---
-# Config-as-code CronJob (dependency-track/config-cronjob.yaml): talks to the Dependency-Track API (the Kubernetes API comes
-# from the default allow).
+# Config CronJob (the Kubernetes API comes from the default allow)
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -235,7 +227,6 @@ spec:
     matchLabels:
       app.kubernetes.io/name: dependency-track-config
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -252,8 +243,7 @@ spec:
             - port: "8080"
               protocol: TCP
 ---
-# VEX export CronJob (dependency-track/vex-export-cronjob.yaml): reads the VEX documents from the Dependency-Track API, pushes
-# a branch and opens a pull request on github.com / api.github.com (the Kubernetes API comes from the default allow).
+# VEX export CronJob
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -271,7 +261,7 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
-    # DNS with the proxy on, so Cilium learns the addresses behind the hosts below
+    # DNS with the proxy on, so Cilium learns the FQDN addresses
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
