@@ -23,4 +23,4 @@ UEFI, pod network with an SSH LoadBalancer at 192.168.1.246.
   The disk image must contain cloud-init. The Claude login and the signing key (`claude-vm-signing-key`) are done by hand over SSH.
 - **Egress:** open to `world` at the pod level, because the VM's own egress gateway enforces the host allowlist. The `claude-vm` namespace is
   exempt from the `deny-world-egress` Kyverno policy for this (`k8s/infra/image-policies/`); every other namespace is still checked.
-- **Update VMs button:** the VM polls `vm-upgrade.portableinfo.cloud` (the MetalLB address 192.168.1.244); the VM pod's egress policy has Cilium inject its `X-Upgrade-Token`, so no token is stored in the VM.
+- **Update VMs button:** the VM polls `vm-upgrade.portableinfo.cloud` (the MetalLB address 192.168.1.244); the VM sends its `X-Upgrade-Token`, read from the virtiofs share `upgrade-token` (Secret `vm-upgrade-token`, mounted in the guest), so a rotated token needs no restart.

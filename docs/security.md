@@ -94,7 +94,7 @@ Specs are in HelmRelease values (`k8s/apps/arc-runner/`), not `rendered/`.
 
 - `claude-vm` and `homeserver-vm` run in KubeVirt (masquerade; `claude-vm` forwards only port 22). Both namespaces opt in to the `ops` and `storage` elevate tiers.
 - `claude-vm` holds the same GitHub App credential as the `claude-rc` pod, via cloud-init.
-- The VMs poll `claude-vm-upgrade` over plain HTTP. Their egress policy sends port 80 to `192.168.1.244` through Cilium's Envoy, which sets `X-Upgrade-Token` from a Secret in `cilium-secrets`, overwriting what the VM sent. The token is not in the VM.
+- The VMs poll `claude-vm-upgrade` over plain HTTP. Each VM sends its own `X-Upgrade-Token`, read from a virtiofs share of a per-VM Secret (rotated live, readable by root in that VM). The listener rejects a token that does not match the VM in the path.
   On VM API paths the listener answers 401 unless the header matches the token of the VM in the path, so a VM acts only as itself. `/healthz` needs no token; sources the network policy rejects get no answer.
   Anything inside a VM can still make requests that get its token injected; a host in the path could answer `{"upgrade": true}`; the token is compared with `==` (`k8s/apps/claude-system/README.md`).
 
@@ -121,7 +121,7 @@ Kyverno policies run at admission only; running pods are not re-evaluated. Files
 ## Secrets
 
 - Committed secrets are SOPS/age encrypted (`.sops.yaml`), checked in CI. Flux decrypts with `flux-system/sops-age`; the age key is outside Git.
-- Generated secrets never enter Git (Dependency-Track KEK and admin password, fileserver upload token, per-VM poll tokens, Garage keys). They come from External Secrets in `secret-store`, a ClusterSecretStore usable only from `secret-store`, `renovate-system`, `dependency-track-system`, `fileserver-system`, `arc-runners-system`, `claude-system`, `cilium-secrets`; its ServiceAccount reads and writes Secrets in `secret-store` only.
+- Generated secrets never enter Git (Dependency-Track KEK and admin password, fileserver upload token, per-VM poll tokens, Garage keys). They come from External Secrets in `secret-store`, a ClusterSecretStore usable only from `secret-store`, `renovate-system`, `dependency-track-system`, `fileserver-system`, `arc-runners-system`, `claude-system`, `claude-vm`, `homeserver-vm`; its ServiceAccount reads and writes Secrets in `secret-store` only.
 - Losing the Dependency-Track KEK makes its encrypted content unreadable.
 - Certificates: internal CA (`portableinfo-root-ca`) for zot, Hubble and the runners' trust bundle; Let's Encrypt DNS-01 through Cloudflare for AdGuard. harper-pad's database uses client certificates.
 

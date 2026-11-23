@@ -213,7 +213,7 @@ spec:
               protocol: TCP
 ---
 # Update-VMs buttons. The VMs poll 8081 and appear as their launcher pod or, across nodes, as host / remote-node, so ingress
-# cannot tell them apart. The listener authenticates them by the X-Upgrade-Token that Cilium injects into each VM's egress.
+# cannot tell them apart. The listener authenticates them by the X-Upgrade-Token each VM sends from its virtiofs-shared Secret.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

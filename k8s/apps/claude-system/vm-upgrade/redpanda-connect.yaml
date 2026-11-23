@@ -1,6 +1,6 @@
 ---
-# The poll listener (:8081) requires the X-Upgrade-Token of the VM named in the path. Cilium sets the header on each VM's
-# egress (k8s/virtualmachines/*/networkpolicy.yaml), replacing any value the VM sends, so a VM can only act as itself.
+# The poll listener (:8081) requires the X-Upgrade-Token of the VM named in the path. Each VM sends the token it reads from the
+# virtiofs share of its own Secret (k8s/virtualmachines/*/virtualmachine.yaml), so a VM can only act as itself.
 # State is in memory; a click lives 10m and the first claim clears it.
 http:
   enabled: true

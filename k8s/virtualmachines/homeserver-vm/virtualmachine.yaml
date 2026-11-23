@@ -43,6 +43,11 @@ spec:
             - name: cloudinitdisk
               disk:
                 bus: virtio
+          # Mounted in the guest with `mount -t virtiofs upgrade-token <dir>`. Kubelet keeps the Secret up to date and virtiofs shows
+          # it live, so a rotated token reaches the running VM without a restart.
+          filesystems:
+            - name: upgrade-token
+              virtiofs: {}
           interfaces:
             - name: default
               masquerade: {}
@@ -58,6 +63,9 @@ spec:
         - name: default
           pod: {}
       volumes:
+        - name: upgrade-token
+          secret:
+            secretName: vm-upgrade-token
         - name: rootdisk
           dataVolume:
             name: homeserver-vm-rootdisk
