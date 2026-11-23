@@ -35,7 +35,7 @@ ARG YAMLLINT_VERSION=1.38.0
 # renovate: datasource=github-releases depName=siderolabs/talos
 ARG TALOSCTL_VERSION=1.14.6
 # renovate: datasource=github-releases depName=siderolabs/omni
-ARG OMNICTL_VERSION=1.13.3
+ARG OMNICTL_VERSION=1.14.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       git curl ca-certificates openssh-client jq python3 python3-pip shellcheck make \
