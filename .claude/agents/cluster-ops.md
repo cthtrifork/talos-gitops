@@ -45,7 +45,8 @@ Run `kubectl auth can-i list pods -A` once at the start of a cluster task.
    digest pins; do not bump them by hand unless asked.
 4. Validate before proposing: `kubectl kustomize <dir>` for every touched kustomization,
    `scripts/ci/check-secrets-encrypted.sh` if a Secret is touched, `make render-manifests RENDER_DIRS="<dir>"` for
-   Helm directories, and `scripts/validate.sh` when kubeconform can reach its schema hosts.
+   Helm directories, and `scripts/validate.sh` when flux-schema can reach its schema hosts
+   (`schemas.fluxoperator.dev`, `raw.githubusercontent.com`).
 5. Ship through Git only: never `kubectl apply`, patch or delete live objects, and never push to `main`.
 
 ## Hard rules

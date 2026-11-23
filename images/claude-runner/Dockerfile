@@ -20,8 +20,8 @@ ARG YQ_VERSION=4.54.3
 ARG FLUX_OPERATOR_VERSION=0.63.1
 # renovate: datasource=github-releases depName=kubernetes-sigs/kustomize extractVersion=^kustomize/v(?<version>.+)$
 ARG KUSTOMIZE_VERSION=5.8.3
-# renovate: datasource=github-releases depName=yannh/kubeconform
-ARG KUBECONFORM_VERSION=0.8.0
+# renovate: datasource=github-releases depName=fluxcd/flux-schema
+ARG FLUX_SCHEMA_VERSION=0.18.0
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VERSION=4.3.2
 # renovate: datasource=github-releases depName=fluxcd/flux2
@@ -105,14 +105,14 @@ RUN base="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomi
  && install -m 0755 kustomize /usr/local/bin/kustomize \
  && rm -rf "${tarball}" kustomize
 
-RUN base="https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}" \
- && tarball="kubeconform-linux-amd64.tar.gz" \
+RUN base="https://github.com/fluxcd/flux-schema/releases/download/v${FLUX_SCHEMA_VERSION}" \
+ && tarball="flux-schema_${FLUX_SCHEMA_VERSION}_linux_amd64.tar.gz" \
  && cd /tmp \
  && curl -fsSL "${base}/${tarball}" -o "${tarball}" \
- && curl -fsSL "${base}/CHECKSUMS" | grep -F "  ${tarball}" | sha256sum -c - \
- && tar -xzf "${tarball}" kubeconform \
- && install -m 0755 kubeconform /usr/local/bin/kubeconform \
- && rm -rf "${tarball}" kubeconform
+ && curl -fsSL "${base}/flux-schema_${FLUX_SCHEMA_VERSION}_checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
+ && tar -xzf "${tarball}" flux-schema \
+ && install -m 0755 flux-schema /usr/local/bin/flux-schema \
+ && rm -rf "${tarball}" flux-schema
 
 RUN tarball="helm-v${HELM_VERSION}-linux-amd64.tar.gz" \
  && cd /tmp \

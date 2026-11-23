@@ -19,6 +19,7 @@ spec:
     multitenant: false
     networkPolicy: false # replaced by k8s/infra/flux-system/ciliumnetworkpolicy.yaml
     domain: "cluster.local"
+    size: small
   kustomize:
     patches:
       # opt the namespace in to the ops tier of the Elevate page (the operator creates it, Git cannot label it otherwise)
