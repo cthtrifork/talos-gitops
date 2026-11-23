@@ -15,6 +15,7 @@ spec:
       labels:
         app: adguard-exporter
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         seccompProfile:

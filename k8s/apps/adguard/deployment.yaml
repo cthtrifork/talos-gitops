@@ -17,6 +17,7 @@ spec:
       labels:
         app: adguard-home
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534

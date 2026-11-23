@@ -112,7 +112,7 @@ The `deny-world-egress` Kyverno policy (below) rejects `world` and `all` entitie
 | `baseline`, enforce + audit + warn | `adguard-system` (file capability needs `allowPrivilegeEscalation`), `trivy-system` (scan jobs are created at runtime), `kubevirt-system` |
 | `baseline`, enforce + warn | `claude-vm`, `homeserver-vm` (virt-launcher needs `NET_BIND_SERVICE` and `/dev/kvm`) |
 | `privileged`, enforce | `arc-runners-system`, `metallb-system` (both also audit + warn), `openebs-system`, `registry-system`, `kubevirt`, `kube-prometheus-stack-system` (warn `baseline`) |
-| no PSA label in the repo | `kube-system` and `flux-system`; the API server's default Pod Security configuration applies (not set in this repo) |
+| no PSA label in the repo | `kube-system` (exempt) and `flux-system`; the default in `patches/19-pod-security.yaml` applies: `enforce: baseline`, `audit` and `warn: restricted` |
 
 ### Container baseline
 
@@ -120,7 +120,7 @@ Workloads written in this repo and the charts configured to match set `runAsNonR
 `capabilities.drop: [ALL]` and `seccompProfile: RuntimeDefault`. The CI job `polaris` (`.github/workflows/validate.yaml`) audits `k8s/` and fails below a score of 100;
 every exception is an explicit exemption in `k8s/infra/policy-system/polaris/helm-release.yaml` (`missingNetworkPolicy` and `automountServiceAccountToken` checks are ignored there).
 
-`automountServiceAccountToken: false` is set on: claude-cockpit, elevate, urlshare, usage, vm-upgrade, fileserver, harper-pad, Dependency-Track api-server, frontend and vex-export, trivy-server, valkey, hubble-relay, node-exporter, `secret-store`.
+`automountServiceAccountToken: false` is set on: claude-cockpit, elevate, urlshare, usage, vm-upgrade, fileserver, harper-pad, AdGuard Home and its exporter, Dependency-Track api-server, frontend, vex-export and sbom-hook, trivy-server, valkey, hubble-relay, node-exporter, zot, `secret-store`.
 Other pods get the default token.
 
 ### Exceptions to the baseline
@@ -169,12 +169,11 @@ The runner pod specs are in HelmRelease values (`k8s/apps/arc-runner/`), not in 
 
 | Policy | Action | On Kyverno outage | Checks |
 |---|---|---|---|
-| `require-image-digest` | Deny | Allows (`failurePolicy: Ignore`) | Every container, init and ephemeral image contains `@sha256:`. Exempt in `kube-system` only: the apiserver, controller-manager and scheduler images, CoreDNS and `ghcr.io/siderolabs/kube-service-exposer` |
 | `cthtrifork-images` | Deny | Blocks (`failurePolicy: Fail`; `matchConditions` limit the webhook to pods with these images) | Images under `ghcr.io/cthtrifork/talos-gitops/**` and `ghcr.io/cthtrifork/harper-pad-*` carry a keyless cosign signature from `build-*.yaml@refs/heads/main` of `talos-gitops` (or `release.yml@refs/heads/main` of `harper-pad`), verified against Rekor. No namespace is exempt. The expression verifies `images.containers` |
 | `deny-world-egress` | Deny | Allows (`failurePolicy: Ignore`) | Cilium (cluster-wide) policies may not allow `toEntities` `world`, `world-ipv4`, `world-ipv6` or `all`. Not applied in `claude-vm` and `homeserver-vm` |
 | `require-helmrelease-remediation` | Deny | Allows | HelmReleases set retries. Operational only |
 
-- All four set `evaluation.background.enabled: false`: they run at admission, running pods are not re-evaluated. Kyverno runs the admission controller only, with two replicas (`k8s/infra/kyverno/helm-release.yaml`).
+- All three set `evaluation.background.enabled: false`: they run at admission, running pods are not re-evaluated. Kyverno runs the admission controller only, with two replicas (`k8s/infra/kyverno/helm-release.yaml`).
 - Files: `k8s/infra/image-policies/`.
 - Images built in this repo (`claude-runner`, `fileserver`, `github-actions-runner`, `vex-cache`) are pushed with an SBOM and provenance, signed keyless with cosign and attested (`.github/workflows/build-release-image.yaml`).
 
@@ -182,6 +181,10 @@ ValidatingAdmissionPolicies for the elevate page (`k8s/apps/claude-system/elevat
 the flux tier limited to `reconcile.fluxcd.io/*` annotations, Jobs created from a CronJob only in namespaces labelled `claude-elevate/jobs` (only `dependency-track-system`).
 
 `require-namespace-psa-enforce` (`k8s/infra/policy-system/`, native ValidatingAdmissionPolicy, `failurePolicy: Fail`, evaluated by the API server without Kyverno): creating or updating a Namespace is denied unless `pod-security.kubernetes.io/enforce` is `privileged`, `baseline` or `restricted`. `default`, `kube-system`, `kube-public`, `kube-node-lease` and `flux-system` are exempt.
+
+`require-image-digest` (`k8s/infra/image-policies/`, native ValidatingAdmissionPolicy, `failurePolicy: Fail`, evaluated by the API server without Kyverno): a Pod create or update is denied unless every container, init and ephemeral image contains `@sha256:`. Exempt in `kube-system` only: the apiserver, controller-manager and scheduler images, CoreDNS and `ghcr.io/siderolabs/kube-service-exposer`. It matches `pods`, not the `pods/ephemeralcontainers` subresource, so `kubectl debug` with a tag is not denied.
+
+The Pod Security Admission default for unlabelled namespaces is set in `patches/19-pod-security.yaml`: `enforce: baseline`, `audit` and `warn: restricted`, `kube-system` exempt.
 
 ## Identity and RBAC
 
@@ -248,8 +251,8 @@ Dependency-Track analysis (not affected, false positive, resolved) -> daily vex-
 
 ## Gaps and exceptions, stated as facts
 
-- `kube-system` and `flux-system` carry no PSA label in the repo; the API server's default Pod Security configuration applies to them (not set in this repo).
-- `require-image-digest` and `deny-world-egress` allow everything while Kyverno is unavailable. Only `cthtrifork-images` blocks.
+- `kube-system` and `flux-system` carry no PSA label in the repo; the default in `patches/19-pod-security.yaml` applies to `flux-system` (`kube-system` is exempt).
+- `deny-world-egress` allows everything while Kyverno is unavailable. Only `cthtrifork-images` blocks.
 - `cthtrifork-images` and the other policies are admission-only: a running pod is not re-checked.
 - `deny-world-egress` does not see CIDR rules or Kubernetes NetworkPolicies; the `claude-urlshare` and `harper-pad-admin` rules are of that kind.
 - Host-network pods (Cilium, MetalLB speaker and `frr-k8s`, node-exporter, Omni exposer, the control-plane static pods) are outside Cilium policy enforcement.

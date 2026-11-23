@@ -83,3 +83,14 @@ spec:
         mountPath: /etc/connect/redpanda-connect.yaml
         subPath: redpanda-connect.yaml
         readOnly: true
+  # the chart has no value for the pod-level token mount
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: sbom-hook
+            patch: |
+              - op: add
+                path: /spec/template/spec/automountServiceAccountToken
+                value: false
