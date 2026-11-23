@@ -31,7 +31,6 @@ spec:
       networkPolicy:
         create: false # k8s/infra/flux-system/ciliumnetworkpolicy.yaml (flux-operator-web)
     tolerations:
-      # Tolerate the control plane taint
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule

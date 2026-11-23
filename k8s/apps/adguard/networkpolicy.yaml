@@ -1,5 +1,4 @@
-# Default deny both ways for the namespace. AdGuard is the LAN's DNS server (adguard-dns, 192.168.1.253), so the
-# ingress rules admit world as well as the cluster.
+# AdGuard is the LAN's DNS server (192.168.1.253), so ingress admits world as well as the cluster.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -22,7 +21,6 @@ metadata:
 spec:
   endpointSelector: {}
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -31,7 +29,6 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-    # Kubernetes API
     - toEntities:
         - kube-apiserver
 ---
@@ -45,7 +42,7 @@ spec:
     matchLabels:
       app: adguard-home
   ingress:
-    # DNS (53 plain, 853 DNS-over-TLS) and DNS-over-HTTPS (443) from the LAN and the cluster
+    # DNS, DoT, DoH
     - fromEntities:
         - world
         - cluster
@@ -57,7 +54,7 @@ spec:
               protocol: TCP
             - port: "443"
               protocol: TCP
-    # Web UI (adguard-web, 80 to 3000): the Omni service exposer on the host network, and the exporter
+    # Web UI: Omni service exposer (host network) and the exporter
     - fromEntities:
         - host
         - remote-node
@@ -73,7 +70,7 @@ spec:
             - port: "3000"
               protocol: TCP
   egress:
-    # DNS with the proxy on, so Cilium learns the addresses behind the hosts below
+    # DNS proxy on, so Cilium learns the addresses behind the hosts below
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -95,7 +92,7 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
-    # DoH upstream addresses: AdGuard resolves the hosts above through the bootstrap resolvers, not kube-dns, so Cilium never learns them for toFQDNs
+    # DoH upstream IPs: AdGuard resolves them via the bootstrap resolvers, not kube-dns, so toFQDNs never learns them
     - toCIDRSet:
         - cidr: 162.159.61.8/32
         - cidr: 172.64.41.8/32
@@ -132,7 +129,6 @@ spec:
     matchLabels:
       app: adguard-exporter
   ingress:
-    # Prometheus scrape
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system

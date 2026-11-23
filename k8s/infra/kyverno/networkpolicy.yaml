@@ -1,6 +1,5 @@
 ---
-# Kyverno admission controller: the API server calls the webhook (9443), and the controller reads image signatures from the
-# registry and the Sigstore trust root and transparency log. Add a registry here when an ImageValidatingPolicy covers images from it.
+# Add a registry here when an ImageValidatingPolicy covers images from it.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -30,12 +29,11 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-          # lets Cilium learn the addresses behind the hosts below
           rules:
             dns:
               - matchPattern: "*"
     - toFQDNs:
-        # registry of the images in ClusterImagePolicy (token, manifests, signature bundles)
+        # registry of the images in the ImageValidatingPolicy (token, manifests, signature bundles)
         - matchName: ghcr.io
         - matchName: pkg-containers.githubusercontent.com
         # Sigstore trust root (TUF) and transparency log

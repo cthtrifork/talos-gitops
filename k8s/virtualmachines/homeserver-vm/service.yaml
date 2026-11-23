@@ -5,7 +5,7 @@ metadata:
   name: homeserver-vm-ssh
   namespace: homeserver-vm
   annotations:
-    metallb.io/loadBalancerIPs: 192.168.1.247 # the pool does not auto-assign; free at the time of writing
+    metallb.io/loadBalancerIPs: 192.168.1.247 # explicit address: the pool does not auto-assign
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local

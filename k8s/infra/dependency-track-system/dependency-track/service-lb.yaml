@@ -1,5 +1,4 @@
-# LAN-only access to the api-server through MetalLB, as for zot-lb, for API clients (the UI is served by the IngressRoute
-# in post/dependency-track-system/). Plain HTTP.
+# LAN-only API access through MetalLB for API clients (the UI goes through the IngressRoute). Plain HTTP.
 ---
 apiVersion: v1
 kind: Service

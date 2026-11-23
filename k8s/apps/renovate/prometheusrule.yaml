@@ -1,5 +1,4 @@
-# Alerts on the renovate-operator's metrics (docs/operations/metrics.md in mogenius/renovate-operator). There is no Alertmanager:
-# nothing is sent, the alerts are read from Prometheus. The release label is how Prometheus selects rules.
+# There is no Alertmanager: alerts are read from Prometheus.
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule

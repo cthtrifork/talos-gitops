@@ -1,5 +1,4 @@
-# Default deny both ways for the namespace, then what the ARC controller and the scale-set listener need: DNS, the
-# Kubernetes API (they work through the EphemeralRunnerSet resources) and HTTPS to GitHub. Nothing connects to them.
+# Default deny, then DNS, the Kubernetes API and HTTPS to GitHub for the ARC controller and listener.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -22,7 +21,6 @@ metadata:
 spec:
   endpointSelector: {}
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -34,10 +32,9 @@ spec:
           rules:
             dns:
               - matchPattern: "*"
-    # Kubernetes API
     - toEntities:
         - kube-apiserver
-    # GitHub (the Actions service, its broker and the API), by DNS name: anything not listed is dropped
+    # GitHub (Actions service, broker, API)
     - toFQDNs:
         - matchName: github.com
         - matchName: api.github.com

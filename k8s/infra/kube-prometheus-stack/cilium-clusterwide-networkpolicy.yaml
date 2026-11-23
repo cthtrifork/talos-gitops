@@ -15,9 +15,8 @@ spec:
             k8s:app.kubernetes.io/name: prometheus
       toPorts:
         - ports:
-            # zot, the Prometheus config-reloader and the operator-managed exporters, Dependency-Track management,
-            # Prometheus itself, the Harper Pad sync and database metrics, the AdGuard exporter, the Claude usage API
-            # (Redpanda Connect, 4195), the fileserver metrics (9102 to 9104)
+            # zot, config-reloader, operator-managed exporters, Dependency-Track, Prometheus, Harper Pad, AdGuard exporter,
+            # Claude usage API (Redpanda Connect 4195), fileserver metrics (9102 to 9104)
             - port: "4195"
               protocol: TCP
             - port: "5000"

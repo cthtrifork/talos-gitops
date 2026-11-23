@@ -1,7 +1,6 @@
 ---
-# PostgreSQL egress: a CiliumNetworkPolicy because the CNPG instance manager needs the Kubernetes API (a plain
-# NetworkPolicy cannot allow it, see the header). Only DNS, the API and the other instances of the cluster.
-# Ingress stays with db-ingress above.
+# PostgreSQL egress (DNS, API, other instances): Cilium because the CNPG instance manager needs the Kubernetes API.
+# Ingress is db-ingress in networkpolicy.yaml.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

@@ -1,6 +1,4 @@
-# Public path to the Flux webhook receiver. Same pattern as the sync API: Cloudflare terminates TLS and forwards through
-# the Traefik tunnel to the plain-HTTP "web" entrypoint. Only /hook/ is routed, so nothing else of notification-controller
-# is reachable. A request needs the unguessable path (a hash of the token) and a valid GitHub HMAC signature.
+# Only /hook/ is routed; the path is a hash of the token and requests need a valid GitHub HMAC signature.
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute

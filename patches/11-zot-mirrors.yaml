@@ -49,8 +49,7 @@ endpoints:
   - url: https://192.168.1.240:5000/v2/google-ar-cache
     overridePath: true
 ---
-# zot serves TLS with a certificate from certificate-cluster-issuer (k8s/infra/post/registry-system/zot-certificate.yaml);
-# ca is the public certificate of portableinfo-root-ca, valid until 2036-11-07
+# ca: public certificate of portableinfo-root-ca (issues zot's certificate), valid until 2036-11-07
 apiVersion: v1alpha1
 kind: RegistryTLSConfig
 name: 192.168.1.240:5000

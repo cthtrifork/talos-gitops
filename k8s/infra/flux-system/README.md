@@ -36,5 +36,5 @@ If the token changes, the path changes: read it again and update both the secret
 
 ```sh
 kubectl -n flux-system get receiver github-receiver   # READY True
-flux reconcile source git flux-system --with-source 2>/dev/null; kubectl -n flux-system get gitrepository flux-system
+kubectl -n flux-system get gitrepository flux-system  # the revision follows a push at once
 ```

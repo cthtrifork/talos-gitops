@@ -1,5 +1,4 @@
-# Default deny both ways for the namespace, then DNS and the Kubernetes API for the controllers.
-# Hubble reports anything dropped here as hubble_drop_total{reason="POLICY_DENIED"}.
+# Default deny both ways, then DNS and the Kubernetes API. Drops show as hubble_drop_total{reason="POLICY_DENIED"}.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -22,7 +21,6 @@ metadata:
 spec:
   endpointSelector: {}
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -31,12 +29,10 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-    # Kubernetes API
     - toEntities:
         - kube-apiserver
 ---
-# Polaris dashboard: read by the claude-rc pod and the cockpit (/results.json) and published by the Omni service exposer, which runs
-# on the host network, so its traffic arrives as the host or remote-node entity.
+# Polaris dashboard: the Omni service exposer runs on the host network, so its traffic arrives as host or remote-node.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -67,7 +63,7 @@ spec:
             - port: "8080"
               protocol: TCP
 ---
-# The Job asks the dashboard for /results.json (the new pod audits on that first request)
+# The new pod audits on that first request
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

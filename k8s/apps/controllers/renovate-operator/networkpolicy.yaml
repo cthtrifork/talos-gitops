@@ -1,8 +1,5 @@
-# Default deny both ways for the namespace, then what each part needs. The operator talks to the API server and GitHub
-# (to turn the App credentials into tokens); the Renovate job pods talk to GitHub, the registries and package hosts their
-# repositories use, and to Valkey and Garage for the cache; Garage's pods talk to each other. Scraping is opt-in by the
-# prometheus-scrape label (see kube-prometheus-stack). Egress to the internet is an allowlist by DNS name; when a run
-# fails on connect, find the host in the drop metrics (skill cilium-drops) and add it to the job list below.
+# Default deny, then per-component allows. Internet egress is an allowlist by DNS name; a job that fails to connect:
+# find the host in the drop metrics (skill cilium-drops) and add it to the job list below.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -25,7 +22,6 @@ metadata:
 spec:
   endpointSelector: {}
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -38,7 +34,7 @@ spec:
             dns:
               - matchPattern: "*"
 ---
-# The operator: the UI for the Omni service exposer, the Kubernetes API (it creates the job pods), GitHub, and the Valkey it keeps its sessions in
+# The operator
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -49,7 +45,7 @@ spec:
     matchLabels:
       app: renovate-operator
   ingress:
-    # The UI (renovate-operator-ui, 80 to 8081): the Omni service exposer runs on the host network
+    # UI; the Omni service exposer runs on the host network
     - fromEntities:
         - host
         - remote-node
@@ -74,7 +70,7 @@ spec:
             - port: "6379"
               protocol: TCP
 ---
-# The Renovate job pods (label renovate-job, set by podLabelTemplates in the operator values)
+# The Renovate job pods (label set by podLabelTemplates in the operator values)
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -86,14 +82,11 @@ spec:
       renovate-job: "true"
   egress:
     - toFQDNs:
-        # GitHub: the API and git over HTTPS, release assets and raw files
         - matchName: github.com
         - matchName: api.github.com
         - matchName: codeload.github.com
         - matchName: github-cloud.s3.amazonaws.com
-        # Registries and chart repositories the repositories' images and charts live on
         - matchName: ghcr.io
-        # raw files, release assets and the registry blob redirects
         - matchPattern: "*.githubusercontent.com"
         - matchName: quay.io
         - matchPattern: "*.quay.io"
@@ -106,20 +99,19 @@ spec:
         - matchName: registry.fedoraproject.org
         - matchName: registry.k8s.io
         - matchName: cdn.registry.k8s.io
-        # registry.k8s.io redirects image requests to Artifact Registry (europe-west4-docker.pkg.dev, ...)
+        # registry.k8s.io redirects images to Artifact Registry
         - matchPattern: "*.pkg.dev"
         - matchName: index.docker.io
         - matchName: registry-1.docker.io
         - matchName: auth.docker.io
         - matchName: production.cloudflare.docker.com
         - matchName: production.cloudfront.docker.com
-        # Docker Hub release dates and source links
         - matchName: hub.docker.com
         - matchName: helm.cilium.io
         - matchName: kubernetes-sigs.github.io
         - matchName: charts.fairwinds.com
         - matchName: charts.redpanda.com
-        # Package registries (npm, Go modules, PyPI) and the Node.js release index
+        # Package registries
         - matchName: registry.npmjs.org
         - matchName: proxy.golang.org
         - matchName: sum.golang.org
@@ -130,7 +122,7 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
-    # The shared cache: Valkey (Renovate's redisUrl) and Garage (the repository cache over S3)
+    # Valkey (redisUrl) and Garage (repository cache over S3)
     - toEndpoints:
         - matchLabels:
             app.kubernetes.io/name: valkey
@@ -167,8 +159,8 @@ spec:
             - port: "6379"
               protocol: TCP
 ---
-# Garage: S3 only from the job pods; the RPC (3901) and admin (3903) ports only between Garage's own pods, which include
-# the configure Job (it sets up the layout, the bucket and the key through them). Garage finds its peers through the API server.
+# Garage: S3 only from job pods; RPC (3901) and admin (3903) only between Garage pods, including the configure Job.
+# Peers are found through the API server.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

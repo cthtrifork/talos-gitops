@@ -25,8 +25,8 @@ spec:
       tag: v1.4.25@sha256:db8b1818f5da373ab85c05b30220fcae80a9ac0532052e6d68a6a5999111f18f
     reloader:
       watchGlobally: true
-      reloadOnCreate: true # the optional API key Secrets (sbom-hook, claude-rc) are created by the config CronJob after the pods start
-      # annotations on the pod template instead of an injected STAKATER_<NAME>_SECRET env var (trips Polaris' sensitiveContainerEnvVar)
+      reloadOnCreate: true # the optional API key Secrets are created by a CronJob after the pods start
+      # not env vars: STAKATER_<NAME>_SECRET trips Polaris' sensitiveContainerEnvVar
       reloadStrategy: annotations
       deployment:
         resources:

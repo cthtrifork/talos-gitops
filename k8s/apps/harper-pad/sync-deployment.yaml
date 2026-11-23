@@ -1,13 +1,9 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/deployment-apps-v1.json
-# harper-pad-sync: the API on :9000, reachable only from Traefik (see networkpolicy.yaml). TLS, DNS and the
-# public hostname are Cloudflare's: a tunnel in the Traefik pod (k8s/infra/ingress-system) carries the traffic.
+# harper-pad-sync: the API on :9000, reachable only from Traefik. TLS and DNS are Cloudflare's, via a tunnel in the
+# Traefik pod.
 #
-# The pull secret comes from the ServiceAccount (serviceaccount.yaml). No args: the image's CMD is "serve". The
-# probes, ports and env follow the app's contract (backend/README.md in harper-pad).
-#
-# Probes: /healthz is liveness and never touches PostgreSQL; /readyz is readiness and does a database round trip
-# (2 s limit, cached for 2 s), so timeoutSeconds is 3. Both are served on port 9102 next to /metrics (podmonitor.yaml), not on
-# the public port :9000, so the internet cannot see the database state. Needs a harper-pad-sync image that has the probes there.
+# Probes are on :9102 next to /metrics, not the public port, so the internet cannot see the database state.
+# /readyz does a database round trip (2 s limit), hence timeoutSeconds 3.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -42,18 +38,15 @@ spec:
         - name: sync
           image: ghcr.io/cthtrifork/harper-pad-sync:v4.4.0@sha256:83a6e262968de0d61168f61d63a2749d7c9b540d1da3befc44217f3cb99cfb13
           env:
-            # Must be https: or the service refuses to start; the scheme is taken from here, not from headers.
+            # Must be https: or the service refuses to start.
             - name: PUBLIC_URL
               value: https://harper-sync.portableinfo.cloud
-            # The browser origins that may call the API, exact and comma-separated (no path, no trailing slash, never "*").
-            # Empty allows none, and then the web app and the desktop app cannot sync. https://harper.portableinfo.cloud is the
-            # Pages site. wails://localhost (Linux, macOS) and http://wails.localhost (Windows) are the desktop window's origin. A
-            # new origin is logged once when rejected (kubectl -n harper-pad logs deploy/harper-pad-sync | grep -i cors). PR previews do not sync.
+            # Empty allows none. PR previews do not sync.
             - name: CORS_ALLOWED_ORIGINS
               value: https://harper.portableinfo.cloud,wails://localhost,http://wails.localhost
             - name: LISTEN_ADDR
               value: ":9000"
-            # Standard libpq settings; no password, client certificate only.
+            # libpq settings; client certificate only, no password.
             - name: PGHOST
               value: harper-pad-db-rw
             - name: PGPORT

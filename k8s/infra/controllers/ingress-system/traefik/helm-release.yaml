@@ -1,9 +1,3 @@
-# Cluster ingress. Nothing is exposed on the LAN: a Cloudflare tunnel (cloudflared sidecar in the Traefik
-# pod) carries public traffic in, and Cloudflare owns DNS and TLS. In the Cloudflare Zero Trust dashboard,
-# create a remotely managed tunnel whose public hostnames point at http://localhost:8000 (the "web"
-# entrypoint below) and store its token as the SOPS-encrypted Secret `cloudflared-tunnel-token` (key `token`) in this
-# namespace (see "Secrets (SOPS)" in the root readme.md).
-# Routing and middlewares live with each app (IngressRoute).
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -19,7 +13,7 @@ spec:
   driftDetection:
     mode: enabled
   install:
-    # the cloudflared sidecar needs a tunnel token, so gitops-infra-controllers must not wait for the pod
+    # the tunnel token Secret may not exist yet; do not block gitops-infra-controllers on the pod
     disableWait: true
     strategy:
       name: RetryOnFailure
@@ -38,7 +32,7 @@ spec:
       annotations:
         reloader.stakater.com/auto: "true" # restart when the tunnel token Secret changes
       additionalContainers:
-        # A regular (not native) sidecar: if the token is missing only the tunnel restarts, Traefik stays up.
+        # not a native sidecar: a missing token restarts only the tunnel, Traefik stays up
         - name: cloudflared
           image: mirror.gcr.io/cloudflare/cloudflared:2026.11.1@sha256:e613aadbc2d9511785d2e67a86b0c8ac18dd63a3f9af0d06faf04cbfdcb35f2d
           args:
@@ -53,7 +47,7 @@ spec:
                 secretKeyRef:
                   name: cloudflared-tunnel-token
                   key: token
-          # kubelet cannot reach the loopback metrics port, so ask cloudflared itself (exec)
+          # exec: the kubelet cannot reach the loopback metrics port
           livenessProbe:
             exec:
               command:
@@ -91,8 +85,7 @@ spec:
     podDisruptionBudget:
       enabled: true
       maxUnavailable: 1
-    # one replica per node; the tainted control-plane node is not a domain (nodeTaintsPolicy), and a drained node
-    # leaves its replica Pending until it is back, which the PDB expects
+    # a drained node leaves its replica Pending until it is back; the PDB expects that
     topologySpreadConstraints:
       - labelSelector:
           matchLabels:
@@ -110,7 +103,7 @@ spec:
         port: 8000
         exposedPort: 80
         forwardedHeaders:
-          # cloudflared connects from loopback; keep the client address headers Cloudflare set
+          # cloudflared connects from loopback
           trustedIPs:
             - 127.0.0.1/32
       websecure:

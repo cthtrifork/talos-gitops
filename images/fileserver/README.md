@@ -1,41 +1,42 @@
 # fileserver
 
-Public downloads, an admin page and a CI upload API in one static Go binary with no dependencies. State is the directory a file is
-in, so there is no database. It runs as three containers in one pod (`k8s/apps/fileserver`).
+An admin page and a CI upload API in one static Go binary with no dependencies. State is the directory a file is
+in, so there is no database. The pod (`k8s/apps/fileserver`) runs the `admin` and `upload` modes as two containers, plus an `r2-sync`
+container that copies `public/` to Cloudflare R2, which serves the downloads.
 
 | Mode | Port | Mounts | What it does |
 |---|---|---|---|
-| `--mode=public` | 8080 | `public/` read-only | `GET /<name>`, no listing. Behind Traefik and the Cloudflare tunnel |
+| `--mode=public` | 8080 | `public/` read-only | `GET /<name>`, no listing. Not deployed: R2 serves the downloads |
 | `--mode=admin` | 8081 | everything | List, upload, download, delete, move between public and private, show the upload token. No login: only Omni reaches it |
 | `--mode=upload` | 8082 | everything | `PUT /v1/files/<name>?visibility=public\|private` with the bearer token. Cluster-internal |
 
 ```mermaid
 flowchart TB
-    NET["Internet<br/>files.portableinfo.cloud"] --> CF["Cloudflare"] --> TR["Traefik<br/>rateLimit, inFlightReq"]
+    NET["Internet<br/>shared-files.portableinfo.cloud"] --> R2["Cloudflare R2"]
     OP["Operator"] --> OMNI["Omni service exposer"]
     RUN["ARC runner (arc-runners-system)<br/>env FILESERVER_TOKEN"]
-    CJ["CronJob, monthly<br/>curl: new token"]
+    ES["External Secrets<br/>new token every 30 days"]
     RL["Reloader"]
     subgraph POD["Pod fileserver (fileserver-system)"]
-        PUB["public :8080<br/>public/ read-only"]
+        SYNC["r2-sync<br/>public/ read-only"]
         ADM["admin :8081<br/>shows the token"]
         UPL["upload :8082<br/>checks the token"]
     end
     S1[("Secret fileserver-system/<br/>fileserver-upload-token")]
     S2[("Secret arc-runners-system/<br/>fileserver-upload-token")]
-    subgraph PVC["PVC 20 GiB"]
+    subgraph PVC["PVC"]
         D1["public/"]
         D2["private/"]
         D3[".tmp/"]
     end
-    TR -->|":8080"| PUB
+    SYNC -->|"rclone sync every minute"| R2
     OMNI -->|":8081"| ADM
     RUN -->|":8082"| UPL
-    CJ --> S1 & S2
+    ES --> S1 & S2
     S1 -.-> ADM & UPL
     S2 -.-> RUN
     RL -.->|"restarts the pod when its Secret changes"| POD
-    PUB --> D1
+    SYNC --> D1
     ADM --> D1 & D2
     UPL --> D1 & D2 & D3
 ```
@@ -53,12 +54,12 @@ flowchart TB
 
 ## Upload token
 
-A CronJob writes a new token into the Secret every month (`current` and `rotated-at`); Reloader restarts the pod. The app only
+External Secrets writes a new token into the Secret every 30 days (`current` and `rotated-at`); Reloader restarts the pod. The app only
 reads the mounted files. Only the upload API accepts the token, and the admin page shows it.
 
 ## Metrics
 
-`/metrics` and `/healthz` are on `HEALTH_ADDR`, which Traefik and Omni do not route to: requests, uploads by result, files, free disk
+`/metrics` and `/healthz` are on `HEALTH_ADDR`, which Omni does not route to: requests, uploads by result, files, free disk
 and the last token rotation.
 
 ## Configuration

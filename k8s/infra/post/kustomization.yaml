@@ -12,6 +12,5 @@ resources:
   - kubevirt/networkpolicy.yaml
   - metallb/ipaddresspool.yaml
   - metallb/l2advertisement.yaml
-  # resources that use CRDs installed by the HelmReleases in k8s/infra (cert-manager); the ones for CloudNativePG and Traefik are in ../post-workloads
   - kube-system/ciliumnetworkpolicy.yaml
   - registry-system/zot-certificate.yaml

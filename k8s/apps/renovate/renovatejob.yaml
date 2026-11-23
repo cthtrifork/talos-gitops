@@ -1,7 +1,5 @@
-# Renovate for the cthtrifork repositories, run by the operator in renovate-system. Live for the repositories in
-# discoveryFilters; see
-# ../controllers/renovate-operator/README.md for how to turn it on. The global config below is Renovate's global
-# (self-hosted) config: no credentials in it, the token comes from the GitHub App.
+# Renovate for the cthtrifork repos in discoveryFilters (see ../controllers/renovate-operator/README.md). No credentials
+# in the config: the token comes from the GitHub App.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/renovate-operator.mogenius.com/renovatejob_v1alpha1.json
 apiVersion: renovate-operator.mogenius.com/v1alpha1
@@ -17,12 +15,12 @@ spec:
   image: ghcr.io/renovatebot/renovate:44.257.9-full@sha256:2a5f5bb9d5cd9c3dd737d76e22ebd7ea3cf7146dd862e0a0d65ee5aa05c490cb
   parallelism: 2
   extraEnv:
-    # The operator reads PR activity (the PRs a run created, updated or automerged, and the PR metrics) from Renovate's debug log
+    # The operator reads PR activity from Renovate's debug log
     - name: LOG_LEVEL
       value: debug
     - name: RENOVATE_LOG_LEVEL
       value: debug
-    # the root filesystem is read-only below: tools that write under their home (npm, go, pip caches) use the scratch volume
+    # read-only root filesystem: tool caches (npm, go, pip) go to the scratch volume
     - name: HOME
       value: /tmp
   provider:
