@@ -62,7 +62,7 @@ spec:
             - key: k8s:io.kubernetes.pod.namespace
               operator: In
               values:
-                - security-system
+                - dependency-track-system
             - key: k8s:app.kubernetes.io/instance
               operator: In
               values:
@@ -74,7 +74,7 @@ spec:
     # Dependency-Track API (query findings, record an analysis with the key of the claude-triage team)
     - toEndpoints:
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: security-system
+            k8s:io.kubernetes.pod.namespace: dependency-track-system
             k8s:app.kubernetes.io/name: dependency-track-api-server
       toPorts:
         - ports:

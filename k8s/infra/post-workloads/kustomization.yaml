@@ -6,5 +6,5 @@ resources:
   - storage-system/postgresql-clusterimagecatalog.yaml
   - flux-system/ingressroute.yaml
   - flux-system/middleware.yaml
-  - security-system/dependency-track-postgres-cluster.yaml
-  - security-system/dependency-track-ingressroute.yaml
+  - dependency-track-system/dependency-track-postgres-cluster.yaml
+  - dependency-track-system/dependency-track-ingressroute.yaml

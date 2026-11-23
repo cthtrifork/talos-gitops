@@ -91,10 +91,10 @@ spec:
     # Dependency-Track: the frontend and the api-server (web, 8080)
     - toEndpoints:
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: security-system
+            k8s:io.kubernetes.pod.namespace: dependency-track-system
             k8s:app.kubernetes.io/name: dependency-track-frontend
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: security-system
+            k8s:io.kubernetes.pod.namespace: dependency-track-system
             k8s:app.kubernetes.io/name: dependency-track-api-server
       toPorts:
         - ports:
