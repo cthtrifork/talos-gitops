@@ -18,6 +18,7 @@ spec:
           - UPDATE
         resources:
           - pods
+          - pods/ephemeralcontainers
   variables:
     - name: images
       expression: >-
