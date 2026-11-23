@@ -7,5 +7,7 @@ resources:
   - networkpolicy.yaml
   - polaris/
   - rbac.yaml
+  - validatingadmissionpolicy-namespace-psa-label.yaml
+  - validatingadmissionpolicybinding-namespace-psa-label.yaml
   - polaris-refresh-resourcesetinputprovider.yaml
   - polaris-refresh-resourceset.yaml

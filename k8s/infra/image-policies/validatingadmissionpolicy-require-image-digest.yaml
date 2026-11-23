@@ -1,0 +1,35 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
+# A moved tag cannot swap what runs. Exempt: the kube-system images that Omni and Talos set.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: require-image-digest
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pods
+  variables:
+    - name: images
+      expression: >-
+        (object.spec.containers + object.spec.?initContainers.orValue([]) +
+        object.spec.?ephemeralContainers.orValue([])).map(c, c.image)
+    # image references come from the Talos and Omni machine config
+    - name: exempt
+      expression: >-
+        ['registry.k8s.io/kube-apiserver', 'registry.k8s.io/kube-controller-manager', 'registry.k8s.io/kube-scheduler',
+        'registry.k8s.io/coredns/coredns', 'ghcr.io/siderolabs/kube-service-exposer']
+  validations:
+    - expression: >-
+        object.metadata.namespace == 'kube-system' && variables.images.all(i, i.contains('@sha256:') || i.split(':')[0] in variables.exempt) ||
+        variables.images.all(i, i.contains('@sha256:'))
+      message: every image must be pinned by digest (name@sha256:...)

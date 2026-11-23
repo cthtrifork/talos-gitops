@@ -68,6 +68,7 @@ spec:
               runAsUser: 0
               runAsGroup: 0
               allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
               capabilities:
                 drop:
                   - ALL
@@ -172,6 +173,8 @@ spec:
           - name: github-auth
         securityContext:
           fsGroup: 1001
+          seccompProfile:
+            type: RuntimeDefault
         volumes:
           - name: ca-certs
             configMap:

@@ -80,6 +80,8 @@ spec:
           - name: github-auth
         securityContext:
           fsGroup: 1001
+          seccompProfile:
+            type: RuntimeDefault
         volumes:
           # a disk image is too big for memory
           - name: work

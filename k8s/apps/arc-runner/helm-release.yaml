@@ -66,10 +66,14 @@ spec:
                 find /tmp/arc-cache -type f -mtime +14 -print -delete
                 find /tmp/arc-cache -type d -empty -mtime +14 -print -delete || true
             securityContext:
-              runAsUser: 0
-              runAsGroup: 0
-              privileged: true
-              allowPrivilegeEscalation: true
+              runAsUser: 1001
+              runAsGroup: 1001
+              runAsNonRoot: true
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                  - ALL
             resources:
               limits:
                 memory: 128Mi
@@ -92,6 +96,7 @@ spec:
               runAsUser: 0
               runAsGroup: 0
               allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
               capabilities:
                 drop:
                   - ALL
@@ -128,6 +133,7 @@ spec:
               runAsGroup: 1001
               runAsNonRoot: true
               allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
               capabilities:
                 drop:
                   - ALL
@@ -263,6 +269,8 @@ spec:
           - name: github-auth
         securityContext:
           fsGroup: 1001
+          seccompProfile:
+            type: RuntimeDefault
         volumes:
           - name: ca-certs
             # trust-manager keeps this in step with the root CA; the leaf's ca.crt goes stale when the CA is re-issued

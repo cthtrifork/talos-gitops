@@ -97,9 +97,13 @@ spec:
         - namespace: kube-system
           controllerNames:
             - cilium
-            - hubble-ui
-            - hubble-relay
           rules: []
+        - namespace: kube-system
+          controllerNames:
+            - hubble-ui
+          rules:
+            - livenessProbeMissing
+            - readinessProbeMissing
         # Talos static pods
         - namespace: kube-system
           containerNames:
@@ -178,19 +182,42 @@ spec:
             - spegel
           rules:
             - hostPathSet
-        # Docker-in-Docker runner (privileged by design, own namespace) and the rootful podman runner for ISO builds
+        # ARC runner scale sets (own namespace): the runner and the dind sidecar are privileged by design; the e2e runner calls
+        # sudo (setuid) for update-ca-certificates, so it keeps privilege escalation and default capabilities
+        - namespace: arc-runners-system
+          controllerNames:
+            - arc-ubuntu
+            - arc-iso-bootc
+            - arc-e2e-talos-gitops
+          rules:
+            - runAsPrivileged
+            - privilegeEscalationAllowed
+            - insecureCapabilities
+        # dind runs as root; the tmp-perms init container chmods /tmp as root (arc-ubuntu also matches arc-ubuntu-podman)
+        - namespace: arc-runners-system
+          controllerNames:
+            - arc-ubuntu
+            - arc-e2e-talos-gitops
+          rules:
+            - runAsRootAllowed
+        # host /dev and /run/udev for loopback partitions in bootc installs
         - namespace: arc-runners-system
           controllerNames:
             - arc-ubuntu
             - arc-iso-bootc
           rules:
-            - runAsPrivileged
-            - runAsRootAllowed
-            - privilegeEscalationAllowed
-            - linuxHardening
-            - insecureCapabilities
-            - notReadOnlyRootFilesystem
             - hostPathSet
+        # the runner image writes to /etc and patches Runner.Worker.dll; the chart has no probe values for runner pods
+        - namespace: arc-runners-system
+          controllerNames:
+            - arc-ubuntu
+            - arc-iso-bootc
+            - arc-files-bootc
+            - arc-e2e-talos-gitops
+          rules:
+            - notReadOnlyRootFilesystem
+            - readinessProbeMissing
+            - livenessProbeMissing
         # keyword false positives: names and file references, not credentials
         - controllerNames:
             - metallb-speaker
@@ -220,15 +247,6 @@ spec:
             - trust-manager
           rules:
             - livenessProbeMissing
-        # generated listener/runner pods: no probe values, runner needs a writable root fs
-        - controllerNames:
-            - arc-ubuntu
-            - arc-files-bootc
-            - arc-iso-bootc
-          rules:
-            - readinessProbeMissing
-            - livenessProbeMissing
-            - notReadOnlyRootFilesystem
         # coredns (Talos, no seccomp profile set) and the MetalLB speaker (raw sockets)
         - controllerNames:
             - coredns

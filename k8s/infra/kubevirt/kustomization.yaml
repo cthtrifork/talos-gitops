@@ -10,6 +10,18 @@ resources:
 # Inline patches on purpose: Polaris would audit a partial Deployment file as a complete one.
 patches:
   - target:
+      kind: Namespace
+      name: cdi
+    patch: |-
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: cdi
+        labels:
+          pod-security.kubernetes.io/enforce: baseline
+          pod-security.kubernetes.io/audit: restricted
+          pod-security.kubernetes.io/warn: restricted
+  - target:
       kind: Deployment
       name: virt-operator
     patch: |-

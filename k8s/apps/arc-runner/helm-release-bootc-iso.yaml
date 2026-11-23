@@ -143,6 +143,8 @@ spec:
           - name: github-auth
         securityContext:
           fsGroup: 1001
+          seccompProfile:
+            type: RuntimeDefault
         volumes:
           - name: ca-certs
             configMap:

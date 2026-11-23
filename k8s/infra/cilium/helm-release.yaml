@@ -214,3 +214,26 @@ spec:
       autoMount:
         enabled: false
       hostRoot: /sys/fs/cgroup
+  # the chart exposes no value for the Hubble UI container security contexts
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: hubble-ui
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: hubble-ui
+                namespace: kube-system
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: frontend
+                        securityContext:
+                          readOnlyRootFilesystem: true
+                      - name: backend
+                        securityContext:
+                          readOnlyRootFilesystem: true
