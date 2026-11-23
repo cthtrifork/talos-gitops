@@ -12,4 +12,5 @@ validate:
     - v1/Secret:/sops
     # the datree schema lags the vendored KubeVirt v1.10 CRD
     - kubevirt.io/v1/KubeVirt:/spec/configuration/virtTemplateDeployment
-  skipMissingSchemas: true
+  # a CRD without a schema in any location fails the run: add a schema location or a skipKind for it
+  skipMissingSchemas: false
