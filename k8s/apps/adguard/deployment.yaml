@@ -9,11 +9,6 @@ metadata:
     reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
-  #strategy: # always have atleast 1 available pod during updates
-  #  type: RollingUpdate
-  #  rollingUpdate:
-  #    maxSurge: 1
-  #    maxUnavailable: 0
   selector:
     matchLabels:
       app: adguard-home
@@ -22,6 +17,7 @@ spec:
       labels:
         app: adguard-home
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534
@@ -30,7 +26,6 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       tolerations:
-        # Tolerate the control plane taint
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
@@ -45,7 +40,7 @@ spec:
                       operator: In
                       values:
                         - adguard-home
-                topologyKey: "kubernetes.io/hostname" # Ensure 1 pod per node
+                topologyKey: "kubernetes.io/hostname"
 
       initContainers:
         - name: copy-config
@@ -94,20 +89,17 @@ spec:
             - name: tmp
               mountPath: /tmp
             - name: adguard-data
-              mountPath: /opt/adguardhome/work/ # AdGuard Runtime data
+              mountPath: /opt/adguardhome/work/
             - name: adguard-config
-              mountPath: /opt/adguardhome/conf/ # AdGuard configuration
+              mountPath: /opt/adguardhome/conf/
             - name: adguard-tls-cert
-              mountPath: /opt/adguardhome/conf/tls/ # TLS certs
-          # The image's AdGuardHome binary has the file capability cap_net_bind_service=+eip (setcap in its Dockerfile),
-          # which is how it binds ports 53, 443 and 853 as non-root. For that to work the capability must be in the
-          # container's bounding set (hence drop ALL, add NET_BIND_SERVICE) and no_new_privs must be off, i.e.
-          # allowPrivilegeEscalation must stay true. With every capability dropped, or with allowPrivilegeEscalation: false,
-          # the kernel refuses to exec the binary ("operation not permitted").
+              mountPath: /opt/adguardhome/conf/tls/
+          # The binary has file capability cap_net_bind_service=+eip to bind 53/443/853 as non-root. That needs the
+          # capability in the bounding set and no_new_privs off, so allowPrivilegeEscalation must stay true or exec fails.
           securityContext:
             allowPrivilegeEscalation: true
             privileged: false
-            # writes only to the conf and work volumes (and /tmp)
+
             readOnlyRootFilesystem: true
             capabilities:
               drop:

@@ -5,5 +5,8 @@ metadata:
   name: trivy-system
   labels:
     claude-elevate/ops: "true"
-    claude-elevate/storage: "true" # the PVC flip of docs/storage-plan.md: delete PVCs
+    claude-elevate/storage: "true"
     claude-elevate/flux: "true"
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/warn: baseline

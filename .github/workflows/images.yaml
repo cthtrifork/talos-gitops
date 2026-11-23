@@ -1,7 +1,5 @@
 name: Images
 
-# Image scans, VEX checks and the vex-cache build. The Trivy version and database cache come from update-trivy-db.yaml;
-# the steps both scans share are in .github/actions/.
 on:
   pull_request:
     branches:
@@ -92,15 +90,13 @@ jobs:
           files_ignore: |
             k8s/**/policies/tests/**
           separator: "\n"
-          # The default escaping turns the newline separator into a backslash + newline, so every path but the last
-          # ends in a backslash and `[ -f ]` below skips it.
+          # the default escaping leaves a backslash on every path but the last, which `[ -f ]` then skips
           safe_output: false
       - name: Install PyYAML
         if: github.event_name != 'push'
         run: pip install --quiet "pyyaml==${PYYAML_VERSION}"
       - name: Extract changed images
         if: github.event_name != 'push'
-        # One (old image, new image) list per changed file; manual runs treat every file as new.
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           CHANGED_FILES: ${{ steps.k8s_changed.outputs.all_changed_files }}
@@ -119,7 +115,6 @@ jobs:
       - name: Build the k8s scan matrix
         id: k8s
         if: github.event_name != 'push'
-        # A unique list of (old image, new image) tuples, each with the files it changed in.
         run: |
           jq -s -c '
             add // []
@@ -132,7 +127,7 @@ jobs:
           echo "images=$(cat images.json)" >> "${GITHUB_OUTPUT}"
           echo "count=$(jq length images.json)" >> "${GITHUB_OUTPUT}"
 
-  # one per scan type, so a scan job is skipped with its database job when there is nothing to scan
+  # a scan job is skipped together with its database job
   trivy-db-k8s:
     name: Trivy database (k8s)
     needs: changes
@@ -155,7 +150,6 @@ jobs:
       matrix:
         image: ${{ fromJson(needs.changes.outputs.k8s_images) }}
     env:
-      # from the cache the trivy-db job fills
       TRIVY_SKIP_DB_UPDATE: true
       TRIVY_SKIP_JAVA_DB_UPDATE: true
       # as in the trivy-operator scans
@@ -188,7 +182,7 @@ jobs:
           image: ${{ matrix.image.oldref }}
           output: out/old.json
           version: ${{ needs.trivy-db-k8s.outputs.version }}
-          skip-setup: true # Trivy and its database are already in place from the scan above
+          skip-setup: true
           severity: CRITICAL,HIGH
           trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
           ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
@@ -200,13 +194,12 @@ jobs:
           ID: ${{ matrix.image.id }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          # a failed scan has no report: an empty object stands in and the comment says so
+          # a failed scan has no report: an empty object stands in
           echo '{}' > empty.json
           new=out/new.json old=out/old.json
           [ -s "${new}" ] || new=empty.json
           [ -s "${old}" ] || old=empty.json
           jq -r --arg new_ref "${NEW_REF}" --arg old_ref "${OLD_REF}" --arg run_url "${RUN_URL}" --slurpfile o "${old}" -f scripts/ci/scan-comment.jq "${new}" > out/comment.md
-          # the list of everything in the new image: the first 25 rows of the Trivy template
           if [ -s out/new.json ]; then
             trivy convert --format template --template "@scripts/ci/vuln-list.tpl" out/new.json > list.md
             count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' out/new.json)
@@ -226,7 +219,7 @@ jobs:
           report: out/*.trivy.json
           header: scan-images ${{ matrix.image.oldref }} ${{ matrix.image.ref }}
       - name: Fail if a scan failed
-        # findings never fail the job; a scan that could not run does (usually a transient registry error: re-run)
+        # findings never fail the job; a scan that could not run does (usually transient: re-run)
         if: steps.new.outputs.outcome == 'failure' || steps.old.outputs.outcome == 'failure'
         run: |
           echo "::error::A Trivy scan failed (see the scan step above); re-run the job"
@@ -326,6 +319,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Compute build tag
         id: prep

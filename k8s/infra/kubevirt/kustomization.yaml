@@ -1,17 +1,26 @@
 ---
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# No namespace override: the operator manifests create and use their own namespaces (kubevirt, cdi)
+# no namespace override: the operator manifests set their own
 resources:
   - kubevirt-operator.yaml
   - cdi-operator.yaml
   - networkpolicy.yaml
-# The operators start their own pods (virt-api, virt-handler, virt-launcher, the CDI importer, ...) from the image references in
-# the env vars patched below. The upstream manifests use tags only, which the require-image-digest policy denies, so each one is
-# pinned by digest. Renovate bumps every tag and digest here (customManagers in renovate.json5, grouped per project together with
-# versions.env); update-kubevirt-operators.sh only checks that they agree with versions.env. The patches are inline on purpose:
-# a separate file holding a partial Deployment would be audited by Polaris as if it were a complete one.
+# Digest pins for the images the operators start (upstream uses tags, which require-image-digest denies).
+# Inline patches on purpose: Polaris would audit a partial Deployment file as a complete one.
 patches:
+  - target:
+      kind: Namespace
+      name: cdi
+    patch: |-
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: cdi
+        labels:
+          pod-security.kubernetes.io/enforce: baseline
+          pod-security.kubernetes.io/audit: restricted
+          pod-security.kubernetes.io/warn: restricted
   - target:
       kind: Deployment
       name: virt-operator
