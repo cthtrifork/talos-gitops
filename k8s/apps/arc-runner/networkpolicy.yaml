@@ -40,6 +40,8 @@ spec:
         - matchPattern: "**.githubusercontent.com"
         - matchPattern: "*.blob.core.windows.net"
         - matchName: datreeio.github.io
+        # flux-schema CRD catalogs (scripts/validate.sh, scripts/ci/build-flux-paths.sh)
+        - matchName: schemas.fluxoperator.dev
         - matchName: github-cloud.s3.amazonaws.com
         - matchName: ghcr.io
 

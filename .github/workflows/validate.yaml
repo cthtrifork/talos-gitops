@@ -57,15 +57,9 @@ jobs:
       - name: Install tools
         uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
-          install_args: "yq kubeconform kustomize"
-      - name: Validate manifests -- /apps
-        run: ./scripts/validate.sh --dir k8s/apps
-      - name: Validate manifests -- /infra
-        run: ./scripts/validate.sh --dir k8s/infra
-      - name: Validate manifests -- /clusters
-        run: ./scripts/validate.sh --dir k8s/clusters
-      - name: Validate manifests -- /virtualmachines
-        run: ./scripts/validate.sh --dir k8s/virtualmachines
+          install_args: "github:fluxcd/flux-schema"
+      - name: Validate manifests
+        run: ./scripts/validate.sh
   kustomize:
     runs-on: ubuntu-latest
     steps:
@@ -76,7 +70,7 @@ jobs:
       - name: Install tools
         uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
-          install_args: "yq kubeconform kustomize"
+          install_args: "yq github:fluxcd/flux-schema"
       - name: Build Flux Kustomization paths
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
   polaris:

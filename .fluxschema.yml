@@ -1,0 +1,16 @@
+apiVersion: schema.plugin.fluxcd.io/v1beta1
+kind: Config
+validate:
+  # Tried in order: the built-in catalog (Kubernetes, Flux), the CNCF ecosystem catalog, then the community
+  # datree catalog, which is the only one with the KubeVirt and CDI CRDs.
+  schemaLocation:
+    - default
+    - ecosystem
+    - "https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.Kind}}_{{.Version}}.json"
+  skipJSONPath:
+    # SOPS-encrypted Secrets carry a sops: key that Flux strips at apply time
+    - v1/Secret:/sops
+    # the datree schema lags the vendored KubeVirt v1.10 CRD
+    - kubevirt.io/v1/KubeVirt:/spec/configuration/virtTemplateDeployment
+  # a CRD without a schema in any location fails the run: add a schema location or a skipKind for it
+  skipMissingSchemas: false
