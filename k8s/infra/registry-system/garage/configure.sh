@@ -51,5 +51,5 @@ if ! echo "$SECRET_KEY" | grep -qE '^[0-9a-fA-F]{64}$'; then
   exit 1
 fi
 run_garage key import "$KEY_ID" "$SECRET_KEY" --yes -n zot || true
-run_garage bucket allow zot --key "$KEY_ID" --read --write || true
+run_garage bucket allow zot --key "$KEY_ID" --read --write
 echo "Done."
