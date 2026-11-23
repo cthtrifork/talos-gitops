@@ -221,7 +221,7 @@ sequenceDiagram
     UI-->>You: queued
 
     loop every 60 s, per VM
-        Timer->>Poll: POST /api/v1/vms/VM/report: booted and staged deployment (Cilium adds the VM's X-Upgrade-Token)
+        Timer->>Poll: POST /api/v1/vms/VM/report: booted and staged deployment (with the VM's X-Upgrade-Token)
         Poll->>Flag: store VM status, set VM:last_poll = now
         Timer->>Timer: last upgrade under 1 h ago? then skip the claim
         Timer->>Poll: POST /api/v1/vms/VM/claim
@@ -252,16 +252,18 @@ The poll listener has no way to queue an upgrade, and the page listener has no `
 
 ### Access and DNS
 
-Each VM has its own token (`claude-vm-upgrade-token`, `homeserver-vm-upgrade-token`), generated in `secret-store` and never stored on a VM. The VM's egress policy
-(`k8s/virtualmachines/*/networkpolicy.yaml`) sends its HTTP requests to `192.168.1.244:80` through Cilium's Envoy, which sets `X-Upgrade-Token` from a Secret in
-`cilium-secrets` (`headerMatches` with `mismatch: REPLACE`, so a value the VM sends is overwritten). The listener answers 401 unless the header equals the token of
-the VM in the path (and 401 for every VM when its token is unset). A VM can therefore only claim and report for itself, and a LAN host, a node's host-network
-process or a pod that is not a VM has no token. The `/healthz` path is open.
+Each VM has its own token (`claude-vm-upgrade-token`, `homeserver-vm-upgrade-token`), generated in `secret-store`. An ExternalSecret in the VM's namespace
+(`vm-upgrade-token`) copies it, and `virtualmachine.yaml` shares that Secret into the guest over virtiofs (feature gate `EnableVirtioFsConfigVolumes`, tag
+`upgrade-token`). The guest mounts it (`mount -t virtiofs upgrade-token <dir>`, an `/etc/fstab` line) and the poll scripts send the `token` file as `X-Upgrade-Token`.
+The listener answers 401 unless the header equals the token of the VM in the path (and 401 for every VM when its token is unset), so a VM can only claim and report
+for itself, and a LAN host, a node's host-network process or a pod that is not a VM has no token. The `/healthz` path is open. Cilium does not inject the header:
+an L7 rule on a LoadBalancer address backed by a pod sends the pod's replies around Envoy, and the VM resets them.
 
-Ingress still lets in the two VM pods and, for traffic source-NATed to the node the VM runs on, `host` and `remote-node` (`CiliumNetworkPolicy/claude-vm-upgrade`);
+Ingress lets in the two VM pods and, for traffic source-NATed to the node the VM runs on, `host` and `remote-node` (`CiliumNetworkPolicy/claude-vm-upgrade`);
 the token, not the source address, is the authentication. Limits: the poll is plain HTTP, so a host in the path could answer `{"upgrade": true}` (bounded by each
-VM's one-upgrade-per-hour limit); anything running inside a VM can make requests that get the token injected; the token is compared with `==`, not in constant
-time. Rotating a token: delete the key in the `secret-store` namespace Secret; External Secrets regenerates it, Cilium reloads it, and Reloader restarts the listener.
+VM's one-upgrade-per-hour limit); the token is readable by root in its VM; it is compared with `==`, not in constant time. Rotating a token: delete the key in the
+`secret-store` namespace Secret; External Secrets regenerates it, Reloader restarts the listener, and the VM's file follows within kubelet's sync delay (about a
+minute) with no VM restart. Polls fail with 401 until both sides have the new value.
 
 The VMs resolve `vm-upgrade.portableinfo.cloud` through the router (`dnsConfig` in `virtualmachine.yaml`), and both images poll `http://vm-upgrade.portableinfo.cloud`,
 hardcoded. The one manual step is the Cloudflare record (DNS only, like `otel.portableinfo.cloud`): an `A` record `vm-upgrade` -> `192.168.1.244`. Until it exists the

@@ -24,28 +24,9 @@ spec:
     matchLabels:
       kubevirt.io/vm: homeserver-vm
   egress:
-    # vm-upgrade.portableinfo.cloud (LAN LoadBalancer address): Envoy sets X-Upgrade-Token from the Cilium secret,
-    # so the VM never holds the token and cannot send another VM's
-    - toCIDRSet:
-        - cidr: 192.168.1.244/32
-      toPorts:
-        - ports:
-            - port: "80"
-              protocol: TCP
-          rules:
-            http:
-              - headerMatches:
-                  - name: X-Upgrade-Token
-                    mismatch: REPLACE
-                    secret:
-                      namespace: cilium-secrets
-                      name: homeserver-vm-upgrade-token
-    # Everything else. Not toEntities world: it would also select the vm-upgrade address and add an unrestricted rule
-    # for the L7 rule above.
+    # Everything else, including vm-upgrade.portableinfo.cloud. The poll authenticates itself with the token from the virtiofs share.
     - toCIDRSet:
         - cidr: 0.0.0.0/0
-          except:
-            - 192.168.1.244/32
 ---
 # CDI importer pod (pulls the containerDisk from ghcr.io; the CDI controller reads its progress)
 apiVersion: cilium.io/v2
@@ -95,20 +76,3 @@ spec:
         - ports:
             - port: "22"
               protocol: TCP
----
-# Replies of the vm-upgrade pod to the VM's polls. The L7 rule for 192.168.1.244:80 sends them through Cilium's Envoy, so the
-# reply has no connection state on this endpoint and the default-deny ingress drops it (SYN-ACK to the ephemeral client port).
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: homeserver-vm-upgrade-replies
-  namespace: homeserver-vm
-spec:
-  endpointSelector:
-    matchLabels:
-      kubevirt.io/vm: homeserver-vm
-  ingress:
-    - fromEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: claude-system
-            k8s:app: claude-vm-upgrade

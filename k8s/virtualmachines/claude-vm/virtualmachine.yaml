@@ -44,6 +44,10 @@ spec:
             - name: cloudinitdisk
               disk:
                 bus: virtio
+          # Poll token, updated live (virtiofs), so rotating it needs no restart
+          filesystems:
+            - name: upgrade-token
+              virtiofs: {}
           interfaces:
             - name: default
               masquerade: {}
@@ -60,6 +64,9 @@ spec:
         - name: default
           pod: {}
       volumes:
+        - name: upgrade-token
+          secret:
+            secretName: vm-upgrade-token
         - name: rootdisk
           dataVolume:
             name: claude-vm-rootdisk
