@@ -91,8 +91,10 @@ A lost admin Secret is recovered by seeding it with the current admin password.
 `dependency-track/vex-export-cronjob.yaml` is a daily CronJob that turns the analysis decisions made in Dependency-Track (state
 *not affected*, *false positive* or *resolved* on a finding) into OpenVEX documents in `vex/pkg/oci/<registry>/<repository>/`
 of this repository, regenerates `vex/index.json` and opens a pull request from the branch `dependency-track/vex-export`.
-Merge it and the `vex-cache` image is rebuilt from `vex/`; the next scan job hides those findings. It only changes files under `vex/`, never pushes to `main`,
-and only deletes documents whose author is `Dependency-Track`. Findings on components without a PURL are skipped.
+Merge it and the `vex-cache` image is rebuilt from `vex/`; the next scan job hides those findings. The exporter only changes
+files under `vex/`, never pushes to `main`, and rebuilds all of `vex/pkg/oci/` from the current Dependency-Track decisions
+on every run. Any existing OCI documents not produced from those decisions are removed, regardless of author; Dependency-Track
+is the only path for adding OCI assessments. Findings on components without a PURL are skipped.
 
 It pushes as a GitHub App, so no long-lived token is stored: each run signs a JWT with the App's private key and trades it for a
 one-hour installation token that the request narrows to this repository with Contents and Pull requests read/write.

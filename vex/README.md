@@ -12,14 +12,12 @@ vex/
 └── pkg/<type>/<namespace>/<name>/<anything>.openvex.json
 ```
 
-Everything under `pkg/oci/` is generated from the statements marked in Dependency-Track by `k8s/infra/dependency-track-system/dependency-track/vex-export-cronjob.yaml` and rebuilt on every run; do not edit it by hand.
+Everything under `pkg/oci/` is generated from the current decisions in Dependency-Track by `k8s/infra/dependency-track-system/dependency-track/vex-export-cronjob.yaml` and rebuilt from scratch on every run; do not edit it by hand.
 
 ## Adding a statement
 
-1. Write an [OpenVEX](https://github.com/openvex/spec) document under `pkg/`, for an image at
-   `pkg/oci/<registry>/<repository>/oci.openvex.json`, for example `pkg/oci/ghcr.io/aquasecurity/trivy/`. Every product
-   needs a PURL. For an image: `pkg:oci/trivy?repository_url=ghcr.io%2Faquasecurity%2Ftrivy`; version and qualifiers go
-   in the statements' `products`, not in the path.
+1. For OCI images, record the assessment in Dependency-Track; it is the only path for adding OCI statements. For other
+   products, write an [OpenVEX](https://github.com/openvex/spec) document under `pkg/`. Every product needs a PURL.
 2. Put all statements of a product into one document: only one document per PURL is distributed.
 3. Run `scripts/vex-index.sh` (needs `jq`) and commit `index.json` with the document.
 
