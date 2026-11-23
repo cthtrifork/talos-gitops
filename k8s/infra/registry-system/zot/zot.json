@@ -134,7 +134,7 @@
       "zot-1.zot-headless.registry-system.svc.cluster.local:5000",
       "zot-2.zot-headless.registry-system.svc.cluster.local:5000"
     ],
-    "hashKey": "d17431e110ea9b5ecc140a4d0738a24f",
+    "hashKey": "d17431e110ea9b5e",
     "tls": {
       "cacert": "/etc/zot/certs/ca.crt"
     }
