@@ -42,10 +42,14 @@ data:
         - hostPathSet
       - controllerNames:
         - cilium
-        - hubble-ui
-        - hubble-relay
         namespace: kube-system
         rules: []
+      - controllerNames:
+        - hubble-ui
+        namespace: kube-system
+        rules:
+        - livenessProbeMissing
+        - readinessProbeMissing
       - containerNames:
         - kube-apiserver
         - kube-controller-manager
@@ -116,15 +120,34 @@ data:
       - controllerNames:
         - arc-ubuntu
         - arc-iso-bootc
+        - arc-e2e-talos-gitops
         namespace: arc-runners-system
         rules:
         - runAsPrivileged
-        - runAsRootAllowed
         - privilegeEscalationAllowed
-        - linuxHardening
         - insecureCapabilities
-        - notReadOnlyRootFilesystem
+      - controllerNames:
+        - arc-ubuntu
+        - arc-e2e-talos-gitops
+        namespace: arc-runners-system
+        rules:
+        - runAsRootAllowed
+      - controllerNames:
+        - arc-ubuntu
+        - arc-iso-bootc
+        namespace: arc-runners-system
+        rules:
         - hostPathSet
+      - controllerNames:
+        - arc-ubuntu
+        - arc-iso-bootc
+        - arc-files-bootc
+        - arc-e2e-talos-gitops
+        namespace: arc-runners-system
+        rules:
+        - notReadOnlyRootFilesystem
+        - readinessProbeMissing
+        - livenessProbeMissing
       - controllerNames:
         - metallb-speaker
         - metallb-controller
@@ -150,14 +173,6 @@ data:
         - trust-manager
         rules:
         - livenessProbeMissing
-      - controllerNames:
-        - arc-ubuntu
-        - arc-files-bootc
-        - arc-iso-bootc
-        rules:
-        - readinessProbeMissing
-        - livenessProbeMissing
-        - notReadOnlyRootFilesystem
       - controllerNames:
         - coredns
         - metallb-speaker
