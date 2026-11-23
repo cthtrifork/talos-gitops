@@ -22,6 +22,9 @@ spec:
       retries: 3
     disableWait: true
   values:
+    global:
+      checkNewVersion: false
+      sendAnonymousUsage: false
     image:
       registry: mirror.gcr.io
       repository: library/traefik

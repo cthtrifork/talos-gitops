@@ -81,6 +81,7 @@ spec:
         - matchName: docker.io
         - matchName: registry-1.docker.io
         - matchName: auth.docker.io
+        - matchName: production.cloudfront.docker.com
         - matchName: production.cloudflare.docker.com
         - matchName: mirror.gcr.io
         - matchName: ghcr.io

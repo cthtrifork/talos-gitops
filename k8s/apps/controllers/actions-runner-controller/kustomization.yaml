@@ -6,3 +6,4 @@ resources:
   - helm-repository.yaml
   - namespace.yaml
   - networkpolicy.yaml
+  - podmonitor.yaml

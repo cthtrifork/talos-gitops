@@ -51,8 +51,8 @@ spec:
             - "--autoscaling-listener-max-concurrent-reconciles=2"
             - "--ephemeral-runner-set-max-concurrent-reconciles=2"
             - "--ephemeral-runner-max-concurrent-reconciles=4"
-            - "--listener-metrics-addr=0"
-            - "--listener-metrics-endpoint="
+            - "--listener-metrics-addr=:8080"
+            - "--listener-metrics-endpoint=/metrics"
             - "--metrics-addr=0"
             - "--health-probe-bind-address=:8081"
           command:

@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 92ca5af5655ce42e42ead4b3d283ab6d9a31577790eecd99a4b723173510595
+    actions.github.com/values-hash: 0cd41db27270b3b88f48778ba3d56a2255d43898e8f90db6b85f2bd37620ecb
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -30,9 +30,23 @@ spec:
   maxRunners: 1
   minRunners: 1
   listenerTemplate:
+    metadata:
+      labels:
+        prometheus-scrape: "true"
     spec:
       containers:
-        - name: listener
+        - livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          name: listener
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 8080
+            periodSeconds: 10
           resources:
             limits:
               memory: 256Mi
@@ -44,6 +58,7 @@ spec:
             capabilities:
               drop:
                 - ALL
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
       securityContext:

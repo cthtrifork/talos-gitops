@@ -24,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REGISTRY: ghcr.io
+      # Renovate PRs and manual runs get the render commit; any other PR must already contain its rendered manifests
+      COMMIT_RENDER: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login == 'renovatebot-private[bot]' }}
     permissions:
       contents: write
       packages: read
@@ -112,11 +114,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Fail on out-of-date rendered manifests
+        if: ${{ env.COMMIT_RENDER != 'true' }}
+        env:
+          DIRS: ${{ steps.select.outputs.dirs }}
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git status --short
+            git --no-pager diff --stat
+            echo "::error::Rendered manifests are out of date. Run 'make render-manifests RENDER_DIRS=\"${DIRS}\"' and commit the result."
+            exit 1
+          fi
+
       - name: Stage rendered changes
+        if: ${{ env.COMMIT_RENDER == 'true' }}
         run: git add -A
 
       # via the GitHub API, so the commit is signed (Verified) and authored by the Renovate app
       - uses: qoomon/actions--create-commit@7102b1a8b3cb8716dc70dbeb6d774c375d779d2f # v1.2.5
+        if: ${{ env.COMMIT_RENDER == 'true' }}
         id: commit
         with:
           message: "chore: render manifests"

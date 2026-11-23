@@ -1,0 +1,24 @@
+# flux-operator exports one info metric per Flux kind: flux_resource_info (HelmRelease, Kustomization, sources, Receiver), and
+# flux_instance_info, flux_resourceset_info and flux_resourcesetinputprovider_info. A HelmRelease that failed an upgrade and
+# rolled back stays Ready=False (RollbackSucceeded) while the old release keeps running, so only these metrics show it. The
+# ServiceMonitor scrapes them through two jobs, hence the max by.
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: flux-alerts
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: flux
+      rules:
+        - alert: FluxResourceNotReady
+          expr: max by (kind, exported_namespace, name, reason) ({__name__=~"flux_(resource|instance|resourceset|resourcesetinputprovider)_info", ready="False", suspended="False"})
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: The Flux {{ $labels.kind }} {{ $labels.exported_namespace }}/{{ $labels.name }} has not been ready for 15m ({{ $labels.reason }})
+            description: kubectl -n {{ $labels.exported_namespace }} describe {{ $labels.kind | toLower }} {{ $labels.name }} shows the failing condition.
