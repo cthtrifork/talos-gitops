@@ -7,7 +7,7 @@ metadata:
   namespace: reloader-system
 spec:
   interval: 12h
-  url: oci://zot.registry-system.svc.cluster.local:5000/ghcr-cache/stakater/charts/reloader
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/stakater/charts/reloader
   ref:
     tag: 2.2.21
     digest: sha256:d8daf25bbedcc180fa4bb35297709f9539c0e231f1d7815080541810deadaa98

@@ -33,6 +33,23 @@ resources:
   - renovate.yaml
   - virtualmachines.yaml
 patches:
+  # Where the Kustomizations below find the charts of their OCIRepositories: through zot (the cache names are those of
+  # patches/11-zot-mirrors.yaml). Without these variables the url defaults to the upstream registry, which is what CI renders.
+  # A Kustomization that gets a new OCIRepository needs its name here and postBuild substitution switched on.
+  - target:
+      group: kustomize.toolkit.fluxcd.io
+      kind: Kustomization
+      name: "^(app-controllers|app-arc-runner|app-gha-cache|renovate|gitops-infra-(controllers|dependency-track-system|kube-prometheus-stack|kyverno|metrics-server|policy-system|reloader-system|trivy-system))$"
+    patch: |-
+      apiVersion: kustomize.toolkit.fluxcd.io/v1
+      kind: Kustomization
+      metadata:
+        name: not-used
+      spec:
+        postBuild:
+          substitute:
+            ZOT_MIRROR_GHCR: zot.registry-system.svc.cluster.local:5000/ghcr-cache
+            ZOT_MIRROR_QUAY: zot.registry-system.svc.cluster.local:5000/quay-cache
   - target:
       kind: FluxInstance
       name: flux

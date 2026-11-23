@@ -9,7 +9,7 @@ metadata:
   namespace: dependency-track-system
 spec:
   interval: 12h
-  url: oci://zot.registry-system.svc.cluster.local:5000/ghcr-cache/cthtrifork/talos-gitops/charts/connect
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/cthtrifork/talos-gitops/charts/connect
   ref:
     tag: 3.2.37
     digest: sha256:db85982c63e78e81aad0c787787b0b3b6e6da7243dbd9f3048b3a935120e5a51
