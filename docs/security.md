@@ -7,7 +7,7 @@ Everything is read from the manifests; the file is named next to it. What lives 
 
 - Three nodes, all control plane; workloads run on them (`patches/13-lb-node-labels.yaml`). Talos Linux through Omni.
 - Cilium replaces the CNI and kube-proxy (`kubeProxyReplacement: true`). KubePrism and Talos hostDNS are on.
-- `UserNamespacesSupport` is on (`patches/08-feature-gate.yaml`); no manifest sets `hostUsers`.
+- `UserNamespacesSupport` is on (`patches/08-feature-gate.yaml`), which only makes user namespaces available. No pod sets `hostUsers: false` (Cilium sets `hostUsers: true`), so container UIDs are host UIDs.
 - Flux reconciles `main` of `cthtrifork/talos-gitops` with cluster-admin (`cluster.multitenant: false`, `k8s/clusters/homelab/flux-instance.yaml`).
   `main` needs a PR with a code-owner approval (`docs/branch-protection.md`, *outside the repo*).
 
@@ -18,7 +18,7 @@ Three ways in. The detail and the controls are in the sections below.
 ```mermaid
 flowchart TB
   net([Internet]) --> cf["Cloudflare: TLS and Access policy, outside the repo"]
-  cf -->|"tunnel, outbound from the pod"| tr["Traefik pod: cloudflared sidecar, HTTP on localhost:8000"]
+  cf -->|"tunnel, outbound from the pod"| tr["Traefik pod: cloudflared sidecar, HTTP on :8000"]
   tr --> dt["Dependency-Track frontend and API"]
   tr --> hs["harper-pad-sync"]
   tr --> fh["Flux webhook-receiver, /hook/ only"]
@@ -33,7 +33,7 @@ flowchart TB
 
 ### Internet
 
-All public traffic enters through a Cloudflare tunnel (outbound `cloudflared` sidecar in the Traefik pod). Traefik is `ClusterIP` with no ingress rule, listens on plain HTTP on `localhost:8000`, and has access logs off.
+All public traffic enters through a Cloudflare tunnel (outbound `cloudflared` sidecar in the Traefik pod). Traefik is `ClusterIP` with no ingress rule and has access logs off. It listens on plain HTTP on all addresses of the pod (`:8000`; the sidecar dials `localhost:8000`). Its network policy admits no ingress, so the isolation comes from the policy, not from a loopback bind.
 It allows `kubernetesCRD` only, no cross-namespace references, no dashboard (`k8s/infra/controllers/ingress-system/`).
 
 | Hostname | Routed to | Control in front |
@@ -53,10 +53,12 @@ MetalLB L2 pool `192.168.1.221-254`, `autoAssign: false`. Cilium LB-IPAM and L2 
 | `.240` | zot registry | 5000, TLS (internal CA) | `world`, host, remote-node, kube-apiserver. `zot.json` has no `auth` or `accessControl` |
 | `.242` | Dependency-Track API | 8080, plain HTTP | `world`, host, remote-node, kube-apiserver. Dependency-Track's own keys and logins |
 | `.243` | Prometheus | 80, plain HTTP | `192.168.1.0/24` on 9090. Whole HTTP API (admin API off), no authentication |
-| `.244` | `claude-vm-upgrade` poll listener | 80 (pod 8081), plain HTTP | The two VM pods, host, remote-node. The listener requires a per-VM `X-Upgrade-Token` (see *Virtual machines*); other sources get 401 |
+| `.244` | `claude-vm-upgrade` poll listener | 80 (pod 8081), plain HTTP | The two VM pods, host, remote-node. VM API paths need a per-VM `X-Upgrade-Token` (see *Virtual machines*), else 401; `/healthz` needs none |
 | `.245` | `claude-urlshare` API | 80 (pod 8081) | `192.168.1.0/24` |
 | `.246` / `.247` | SSH to `claude-vm` / `homeserver-vm` | 22 | `192.168.1.0/24` |
 | `.253` | AdGuard Home DNS | 53, 853, 443 | `world` and `cluster` |
+
+Host-network pods listen on node addresses, not MetalLB addresses, and no pod policy applies. node-exporter serves plain-HTTP metrics on `<node IP>:9100`. Whether the LAN reaches node addresses is up to the router and firewall (*outside the repo*).
 
 Policies: `k8s/infra/{registry-system,dependency-track-system,kube-prometheus-stack}/networkpolicy.yaml`, `k8s/apps/{claude-system,adguard}/networkpolicy.yaml`, `k8s/virtualmachines/*/networkpolicy.yaml`.
 
@@ -103,17 +105,20 @@ Pods created at runtime (CNPG, ARC, Kyverno, CDI, Trivy scan jobs) are not in th
 Workloads written here, and the charts configured to match, set `runAsNonRoot`, `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]` and `seccompProfile: RuntimeDefault`.
 CI audits `k8s/` with Polaris and fails below 100 (`.github/workflows/validate.yaml`). Every deviation is an exemption with its reason in `k8s/infra/policy-system/polaris/helm-release.yaml`.
 
+A read-only root filesystem does not cover mounted volumes: some pods have writable volume mounts (`claude-rc`: `/home/claude`, `/workspace`, `/tmp`). Check the pod's `volumeMounts` before ruling out a write.
+
 Service account tokens are not mounted on most workloads written here (`automountServiceAccountToken: false` in their manifests); other pods get the default token.
 
 ### Exceptions
 
 Workloads that run as root, privileged, on the host network or with host paths (reasons in the Polaris exemptions, Cilium in `k8s/infra/cilium/rendered/`):
 
-- Cilium agent, Envoy and operator: host network; the agent has `NET_ADMIN`, `SYS_ADMIN`, `SYS_RESOURCE` and more, seccomp `Unconfined`, hostPath `/proc`, `/sys/fs/bpf`, `/sys/fs/cgroup`.
+- Cilium agent, Envoy and operator: host network; the agent has `NET_ADMIN`, `SYS_ADMIN`, `SYS_RESOURCE` and more, seccomp `Unconfined`, hostPath `/proc`, `/sys/fs/bpf`, `/sys/fs/cgroup`; its `mount-bpf-fs` init container is privileged.
 - MetalLB speaker and `frr-k8s`, node-exporter, Omni exposer, Talos static pods: host network. node-exporter also reads host `/`, `/proc`, `/sys`.
 - OpenEBS LVM node plugin and KubeVirt `virt-handler`: privileged, root, hostPath `/dev`; `virt-handler` also host PID.
 - Spegel: root, containerd socket and content store.
-- Writable root filesystem: `virt-operator`, `cdi-operator`, CDI pods, Omni exposer.
+- Root without host access: CoreDNS, MetalLB speaker, `frr-k8s`, Omni exposer. `frr-k8s` and Omni exposer also allow privilege escalation.
+- Writable root filesystem: `virt-operator`, `cdi-operator`, CDI pods, `frr-k8s`, Omni exposer.
 - AdGuard Home: `allowPrivilegeEscalation: true` for a file capability.
 
 ### CI runners (`arc-runners-system`, `privileged`)
@@ -130,7 +135,7 @@ Pod specs are in HelmRelease values (`k8s/apps/arc-runner/`), not in `rendered/`
 - `claude-vm` and `homeserver-vm` run in KubeVirt (masquerade; `claude-vm` forwards only port 22). Both namespaces opt in to the `ops` and `storage` elevate tiers.
 - `claude-vm` holds the same GitHub App credential as the `claude-rc` pod, seeded through cloud-init.
 - The VMs poll `claude-vm-upgrade` over plain HTTP with a per-VM token. The token is not in the VM: the VM's egress policy sends port 80 to `192.168.1.244` through Cilium's Envoy, which sets `X-Upgrade-Token` from a Secret in `cilium-secrets` (overwriting any value the VM sends).
-  The listener answers 401 unless the header matches the token of the VM in the path, so a VM acts only as itself. Anything running inside a VM can still make requests that get its token injected, a host in the path could answer `{"upgrade": true}`, and the token is compared with `==` (`k8s/apps/claude-system/README.md`).
+  On the VM API paths the listener answers 401 unless the header matches the token of the VM in the path, so a VM acts only as itself; `/healthz` needs no token, and sources the network policy rejects get no answer at all. Anything running inside a VM can still make requests that get its token injected, a host in the path could answer `{"upgrade": true}`, and the token is compared with `==` (`k8s/apps/claude-system/README.md`).
 
 ```mermaid
 sequenceDiagram
@@ -157,7 +162,7 @@ sequenceDiagram
 | `deny-world-egress` | Kyverno | Allows (`Ignore`) | Cilium policies may not allow `world`, `world-ipv4`, `world-ipv6` or `all`. Not applied in the VM namespaces. CIDR rules and Kubernetes NetworkPolicies are not checked |
 | `require-helmrelease-remediation` | Kyverno | Allows | HelmReleases set retries. Operational only |
 | `require-namespace-psa-enforce` | Native VAP, `Fail` | API server | A Namespace needs `pod-security.kubernetes.io/enforce` of `privileged`, `baseline` or `restricted`. Exempt: system namespaces and `flux-system` |
-| `require-image-digest` | Native VAP, `Fail` | API server | Every container, init and ephemeral image contains `@sha256:`. Exempt in `kube-system`: Talos and Omni generated pods. Matches `pods`, not `pods/ephemeralcontainers` |
+| `require-image-digest` | Native VAP, `Fail` | API server | Every container, init and ephemeral image contains `@sha256:`. Exempt in `kube-system`: Talos and Omni generated pods. Matches `pods` and `pods/ephemeralcontainers` |
 
 - Kyverno policies run at admission only (`evaluation.background.enabled: false`); running pods are not re-evaluated. Two admission-controller replicas. Files: `k8s/infra/{image-policies,policy-system}/`.
 - The elevate page adds VAPs (`k8s/apps/claude-system/elevate/`, all `Fail`) that bound its grants: see *Identity and RBAC*.
@@ -165,11 +170,11 @@ sequenceDiagram
 
 ## Identity and RBAC
 
-- Flux is cluster-admin. Roles that can `pods/exec` (named in the Polaris exemptions): the Flux cluster-admin bindings, `flux-web-admin`, `flux-web-user` (wildcard read), the `cloudnative-pg` operator, and the `claude-debug` tier.
+- Flux is cluster-admin. Roles that can `pods/exec` (named in the Polaris exemptions): the Flux cluster-admin bindings, `flux-web-admin`, `flux-web-user` (wildcard read), the `cloudnative-pg` and `kubevirt-operator` operators, and the `claude-debug` tier.
 - `claude-rc` ServiceAccount `claude`: built-in `view` (no Secrets) plus read of nodes, PVs, StorageClasses, CRDs, ClusterRoles and bindings. No write verbs, no `pods/exec` (`k8s/apps/claude-system/rbac.yaml`).
 - The `claude-rc` pod also holds: the claude.ai login on a PVC; a one-hour GitHub App installation token (Contents, Pull requests, Workflows read/write on installed repositories); an Omni service account with role Reader (TTL 365 days);
   the Dependency-Track key of the `claude-triage` team (analysis read/create/update; no BOM upload, no admin); optionally a `read:packages` GHCR token and a read-only Cloudflare API token.
-- Elevate tiers (`ops`, `debug`, `storage`, `flux`) are ClusterRoles bound per opted-in namespace (`claude-elevate/<tier>` label) by `claude-elevator` for a short-lived token (`k8s/apps/claude-system/elevate/configmap.yaml`). No tier can patch workloads; `flux` patches annotations on HelmReleases and Kustomizations only. `debug` (`pods/exec`) is opted in by `adguard-system` only. Jobs from a CronJob are allowed only in `dependency-track-system`.
+- Elevate tiers (`ops`, `debug`, `storage`, `flux`) are ClusterRoles bound per opted-in namespace (`claude-elevate/<tier>` label) by `claude-elevator` for a short-lived token (`k8s/apps/claude-system/elevate/configmap.yaml`). No tier patches workloads, except `debug` on `pods/ephemeralcontainers`; `flux` patches annotations on HelmReleases and Kustomizations only. `debug` (`pods/exec`, `attach`, `portforward`, ephemeral containers) is opted in by `adguard-system` only. Jobs from a CronJob are allowed only in `dependency-track-system`.
 - `claude-elevator` can create ServiceAccounts, RoleBindings, Jobs and tokens cluster-wide; `bind`, `patch`, `delete` and `token` are pinned to the four tier names, and the VAPs bound where they apply.
 
 ## Secrets
@@ -183,34 +188,36 @@ sequenceDiagram
 ## Supply chain
 
 - Renovate pins digests and automerges patch and digest updates, except for the components listed in `renovate.json5`.
-- Image pull path: containerd, Spegel, zot, upstream (`docs/registry-mirrors.md`). Manifests pin digests, so the mirror path cannot change what runs.
+- Image pull path: containerd, Spegel, zot, upstream (`docs/registry-mirrors.md`). Container images in manifests pin digests, so the mirror path cannot change what runs. Other artifacts are by tag: the VM disks (`claude-vm-containerdisk:latest`, `homeserver-containerdisk:latest`, imported by CDI) and the Trivy `vex-cache:latest` image volume (`pullPolicy: Always`).
 - Images built here are signed keyless with cosign, attested, and scanned with Trivy (`.github/workflows/`).
 
 ### Vulnerability data flow
 
 ```mermaid
 flowchart TB
-  trivy["Trivy scan jobs: offline, databases from zot"] -->|"SBOM and vulnerabilities"| hook[sbom-hook]
-  hook --> dt["Dependency-Track: one project per image digest"]
+  trivy["Trivy scan jobs: offline, databases from zot"] -->|"SbomReport only"| hook[sbom-hook]
+  hook -->|"SBOM upload"| dt["Dependency-Track: one project per image, version = digest (tag if the report has none)"]
+  dt -->|"Trivy analyzer query"| ts[trivy-service]
   dt -->|"analysis: not affected, false positive, resolved"| vex["daily vex-export Job"]
-  vex -->|"PR to vex/, review required"| repo["vex/ on main"]
+  vex -->|"PR to vex/, review required"| repo["vex/ on main, also hand-written statements"]
   repo --> cache["vex-cache image"]
-  cache -->|"hides those findings"| trivy
+  hub["Trivy VEX Hub, upstream"] --> cache
+  cache -->|"hides those findings after the next report regeneration"| trivy
 ```
 
 - Trivy scans running workloads with `scanners: [vuln]` (exposed-secret scanning off). `arc-runners-system` and `arc-controller-system` are excluded. No scan of the Talos OS or VM guest operating systems is configured.
 - Trivy ignores `will_not_fix` and `not_affected`; its ignore file and Rego policy are empty. Scan jobs are offline and reach only the Trivy server and zot.
-- Only `Dependency-Track`-authored VEX documents are exported (`vex/README.md`); the export opens a PR as a GitHub App and `main` still needs review. Trivy matches a statement by PURL and digest, so a decision on a tag-versioned project is not exported.
+- Trivy reads the upstream VEX Hub, hand-written statements in `vex/` and the Dependency-Track export, so a hidden finding need not come from a Dependency-Track decision. A statement affects reports only after the `vex-cache` image is rebuilt and the report regenerated (`vex/README.md`). The export covers documents authored by `Dependency-Track`; it opens a PR as a GitHub App and `main` still needs review. Trivy matches a statement by PURL and digest, so a decision on a tag-versioned project is not exported.
 
 ## Using this for a CVE
 
 | If the vulnerability needs | Fact | Section |
 |---|---|---|
 | Network access from the internet | Only the five entries under *Internet*; everything else has default-deny ingress | Reachability |
-| Network access from the LAN | Only the LAN table; other services accept pod and node traffic as listed | Reachability |
+| Network access from the LAN | The LAN table, plus host-network listeners on node addresses (node-exporter 9100); other services accept pod and node traffic as listed | Reachability |
 | A connection out to an attacker host | FQDN allowlist for most namespaces; open for the VMs, `claude-urlshare`, `harper-pad-admin`; broad list for runners | Egress |
-| Writing to the container filesystem, root, extra capabilities, a privileged container, node access | Not available except the exceptions table and the runners | Exceptions, runners |
+| Writing to the container root filesystem, root, extra capabilities, a privileged container, node access | Not available except the exceptions list and the runners; mounted volumes can still be writable | Container baseline, exceptions, runners |
 | A service account token | Not mounted on the listed pods; otherwise check the pod's ServiceAccount | Container baseline |
 | Reading Secrets across namespaces | `claude` cannot read Secrets; `secret-store` reads only its own namespace | Identity and RBAC |
-| A shell in a pod | `pods/exec` is in the `debug` tier (`adguard-system` only), Flux, `flux-web-*` and the CloudNativePG operator | Identity and RBAC |
+| A shell in a pod | `pods/exec` is in the `debug` tier (`adguard-system` only), Flux, `flux-web-*`, the CloudNativePG and KubeVirt operators | Identity and RBAC |
 | A changed image or tag | Digests required by a native VAP (fail-closed); our own images also need a cosign signature (Kyverno, fail-closed) | Admission control |
