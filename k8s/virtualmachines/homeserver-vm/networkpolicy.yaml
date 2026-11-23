@@ -40,6 +40,24 @@ spec:
                     secret:
                       namespace: cilium-secrets
                       name: homeserver-vm-upgrade-token
+    # The same poll through the ClusterIP (10.102.95.157): Cilium translates a ClusterIP before the L7 redirect, so Envoy
+    # sees the pod and its reply comes back through the proxy, which a LoadBalancer address does not (see the service).
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: claude-system
+            k8s:app: claude-vm-upgrade
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
+          rules:
+            http:
+              - headerMatches:
+                  - name: X-Upgrade-Token
+                    mismatch: REPLACE
+                    secret:
+                      namespace: cilium-secrets
+                      name: homeserver-vm-upgrade-token
     # Everything else. Not toEntities world: it would also select the vm-upgrade address and add an unrestricted rule
     # for the L7 rule above.
     - toCIDRSet:
