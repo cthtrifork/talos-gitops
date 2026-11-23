@@ -32,16 +32,19 @@ resources:
   - app-harper-pad.yaml
   - renovate.yaml
   - virtualmachines.yaml
+configMapGenerator:
+  - name: cluster-vars
+    namespace: flux-system
+    envs:
+      - cluster-vars.env
+    options:
+      disableNameSuffixHash: true # the Kustomizations below refer to it by name
 patches:
-  # Where the Kustomizations below find the charts of their OCIRepositories: through zot (the cache names are those of
-  # patches/11-zot-mirrors.yaml). Without these variables the url defaults to the upstream registry, which is what CI renders.
-  # To bootstrap a cluster that has no zot yet (zot and Cilium come from OCIRepositories too), drop this patch until
-  # gitops-infra-registry-system is Ready, then restore it.
-  # A Kustomization that gets a new OCIRepository needs its name here and postBuild substitution switched on.
+  # Every Kustomization substitutes the variables of cluster-vars.env (${NAME:=default} in its manifests). Optional, so a missing
+  # ConfigMap just leaves the defaults.
   - target:
       group: kustomize.toolkit.fluxcd.io
       kind: Kustomization
-      name: "^(app-controllers|app-arc-runner|app-gha-cache|renovate|gitops-infra-(bootstrap|cilium|controllers|dependency-track-system|external-dns|kube-prometheus-stack|kyverno|metrics-server|openebs-system|policy-system|registry-system|reloader-system|trivy-system))$"
     patch: |-
       apiVersion: kustomize.toolkit.fluxcd.io/v1
       kind: Kustomization
@@ -49,10 +52,10 @@ patches:
         name: not-used
       spec:
         postBuild:
-          substitute:
-            ZOT_MIRROR_GHCR: zot.registry-system.svc.cluster.local:5000/ghcr-cache
-            ZOT_MIRROR_QUAY: zot.registry-system.svc.cluster.local:5000/quay-cache
-            ZOT_MIRROR_K8S: zot.registry-system.svc.cluster.local:5000/k8s-cache
+          substituteFrom:
+            - kind: ConfigMap
+              name: cluster-vars
+              optional: true
   - target:
       kind: FluxInstance
       name: flux

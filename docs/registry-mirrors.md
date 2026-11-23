@@ -109,15 +109,15 @@ cluster sets the variables, so Flux pulls through zot; everything that reads the
 sees the upstream registry. Every OCIRepository has such a variable, including the charts zot itself depends on (Cilium, flux-operator,
 cert-manager, trust-manager, openebs-lvm, Spegel, zot, prometheus-operator-crds).
 
-- Where the variables are set: one patch in `k8s/clusters/homelab/kustomization.yaml` adds `ZOT_MIRROR_GHCR`, `ZOT_MIRROR_QUAY` and
-  `ZOT_MIRROR_K8S` to the `postBuild.substitute` of the Flux Kustomizations listed in its `name` pattern. A Kustomization that gets a new
-  OCIRepository must be added there and have `var_substitution_enabled` on; if its name is missing the chart is silently pulled from
-  upstream. A new upstream registry needs a variable of its own, set there.
+- Where the variables are set: `k8s/clusters/homelab/cluster-vars.env` (`ZOT_MIRROR_GHCR`, `ZOT_MIRROR_QUAY`, `ZOT_MIRROR_K8S`). The cluster
+  kustomization turns it into the ConfigMap `cluster-vars` and one patch makes every Flux Kustomization substitute from it (`substituteFrom`,
+  optional), so a new OCIRepository needs nothing else. A new upstream registry needs a variable of its own there, plus an alias in
+  `renovate.json5`.
 - Bootstrapping a cluster without zot: zot and its dependencies come from OCIRepositories too, so a cluster rebuilt from empty cannot pull
-  them from a zot that does not exist yet. Leave the variables unset for the first sync (drop the patch above), wait until
-  `gitops-infra-registry-system` is Ready, then restore the patch: the OCIRepositories switch to zot on their next reconcile.
+  them from a zot that does not exist yet. Comment the variables out in `cluster-vars.env` for the first sync, wait until
+  `gitops-infra-registry-system` is Ready, then restore them: the OCIRepositories switch to zot on their next reconcile.
 - Zot outage on a running cluster: source-controller keeps the artifacts it already fetched, so releases keep running and only new chart
-  versions wait. To get past a zot that cannot start, drop the patch the same way.
+  versions wait. To get past a zot that cannot start, comment the variables out the same way.
 - Charts without an upstream OCI chart (polaris, metrics-server, Redpanda `connect`) are mirrored to
   `ghcr.io/cthtrifork/talos-gitops/charts` by `.github/workflows/helm-chart-sync.yaml` (configs in `scripts/ci/helm/`) and read from there
   through `ghcr-cache`. A new chart version appears in Git only after the sync has pushed it.

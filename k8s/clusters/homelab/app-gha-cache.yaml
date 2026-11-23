@@ -17,6 +17,3 @@ spec:
     kind: GitRepository
     name: flux-system
   path: ../../k8s/apps/gha-cache
-  postBuild:
-    substitute:
-      var_substitution_enabled: "true" # the OCIRepository url holds ${ZOT_MIRROR_GHCR:=ghcr.io}
