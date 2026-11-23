@@ -120,6 +120,7 @@ spec:
         - matchName: packages.atlassian.com
         - matchName: maven.artifacts.atlassian.com
         - matchName: repository.jboss.org
+        - matchName: repo.clojars.org
       toPorts:
         - ports:
             - port: "443"
