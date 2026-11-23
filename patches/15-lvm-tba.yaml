@@ -1,16 +1,5 @@
-# Cleanup: the cluster patches 03, 06 and 09 are gone from the repo (docs/storage-plan.md, phase 3). Remove them in Omni first; the `$patch: delete` documents below then
-# delete nothing and can be dropped from this machine patch (never before: with 03, 06 or 09 still applied, Talos would create those volumes again).
-# Per machine, for talos-tba-msi only (docs/storage-plan.md, phase 1; the pilot is 14-lvm-2jc.yaml): replaces its local-path volume with the LVM volume group vg-fast
-# for the OpenEBS LVM LocalPV driver. Order, data loss accepted: 1. apply in Omni; 2. reboot the node so the old volume unmounts; 3. merge the wipe Job
-# (k8s/apps/disk-wipe, disk-wipe-talos-tba-msi-2); 4. Talos creates the raw partition and the group. Check with: talosctl -n 192.168.1.146 get pvs,vgs,lvmvalidationerrors.
 ---
-apiVersion: v1alpha1
-kind: UserVolumeConfig
-name: local-path-provisioner
-$patch: delete
----
-# The fast tier: two raw volumes, one per free region of the NVMe: the 800 GB that was already free (lvm-fast-a, created at the first boot) and the old 200 GB
-# partition once it is wiped (lvm-fast-b). The system disk is the SATA SSD.
+# Fast tier: one raw volume per free NVMe region (800 GB already free, and the old 200 GB partition). SATA SSD is the system disk.
 apiVersion: v1alpha1
 kind: RawVolumeConfig
 name: lvm-fast-a

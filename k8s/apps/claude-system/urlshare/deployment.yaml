@@ -1,6 +1,5 @@
 ---
-# URL sharing with approval (see urlshare/redpanda-connect.yaml and the README). The pod holds the requests and the fetched pages in memory.
-# Its egress is the only thing that decides where pages can be fetched from: see CiliumNetworkPolicy/claude-urlshare.
+# Its egress (CiliumNetworkPolicy/claude-urlshare) is the only thing that decides where pages can be fetched from.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

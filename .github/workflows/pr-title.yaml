@@ -1,8 +1,7 @@
 name: PR title
 
-# Enforces Conventional Commits (`type(scope)!: summary`) on pull request titles and labels the PR from
-# the title (the labels come from the autolabeler in .github/release-drafter.yml). Squash merges use the title as the
-# commit subject, and the image release notes (docs/releasing.md) list those subjects.
+# Conventional Commits on PR titles (squash merges use the title as the subject listed in the image release notes);
+# the autolabeler in .github/release-drafter.yml labels the PR from it.
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize]
@@ -20,13 +19,13 @@ jobs:
     runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
-      pull-requests: read # read the PR title
+      pull-requests: read
     steps:
       - uses: amannn/action-semantic-pull-request@c5e23b7e584519ee15caa684cf60d056aa9f035f # v6.1.3
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          # Keep in step with .github/release-drafter.yml.
+          # keep in step with .github/release-drafter.yml
           types: |
             feat
             fix
@@ -48,6 +47,6 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read # the autolabeler reads .github/release-drafter.yml
-      pull-requests: write # add and remove labels
+      pull-requests: write
     steps:
       - uses: release-drafter/release-drafter/autolabeler@d1a19e60e81a7e650d00a7de9277f87e439117ea # v7.11.0

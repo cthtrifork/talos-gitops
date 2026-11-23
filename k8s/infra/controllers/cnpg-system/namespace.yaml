@@ -9,4 +9,4 @@ metadata:
   annotations:
     # deleting a Namespace deletes everything in it
     kustomize.toolkit.fluxcd.io/prune: disabled
-  name: storage-system
+  name: cnpg-system

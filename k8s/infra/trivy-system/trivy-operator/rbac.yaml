@@ -1,8 +1,6 @@
 ---
-# Operator 0.36.1 (helm-release.yaml) watches PersistentVolumes and PersistentVolumeClaims, which the 0.32.1 chart's
-# ClusterRole does not grant: the caches never sync and the operator exits. Chart 0.38.1 (appVersion 0.36.1) adds the
-# same two resources to its ClusterRole, but is not published to the OCI registry (the last tag there is 0.32.1).
-# Drop this file when the chart is bumped to one that has them.
+# Operator 0.36.1 watches PVs/PVCs, which the 0.32.1 chart's ClusterRole does not grant (the operator exits).
+# Drop this file once the chart is bumped to one that grants them (0.38.1 does but is not published to the OCI registry).
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

@@ -1,7 +1,7 @@
-# The workspace of the claude user (~/workspace), like /workspace of the claude-rc pod (k8s/apps/claude-system/pvc.yaml): clones and scratch that survive a restart
-# and a re-import of the rootdisk, 50Gi on lvm-fast. A raw block volume the guest sees as a blank virtio disk (the cloud-init script in externalsecret.yaml formats it).
-# A plain PVC, not a CDI DataVolume: a local volume lives on one node, and CDI placed blank disks wherever its importer pods ran, away from the rootdisk. A PVC waits
-# for its first consumer (lvm-fast is WaitForFirstConsumer), so the scheduler puts it on the node the rootdisk pins the pod to.
+# ~/workspace of the claude user: survives restarts and rootdisk re-imports. A raw block volume (blank virtio disk,
+# formatted by the cloud-init script in externalsecret.yaml).
+# A plain PVC, not a CDI DataVolume: CDI importers run on any node, but a local volume lives on one. lvm-fast is
+# WaitForFirstConsumer, so the scheduler puts it where the rootdisk pins the pod.
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

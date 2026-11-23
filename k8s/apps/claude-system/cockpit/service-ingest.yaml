@@ -1,6 +1,5 @@
 ---
-# In-cluster ingest for the claude-rc pod's status line: the :8081 listener, POST only in practice, reached by
-# CiliumNetworkPolicy/claude-cockpit from app=claude-rc only. Not on claude-cockpit, whose Omni exposer annotation publishes it.
+# Ingest for claude-rc's usage poller. Separate from claude-cockpit, whose Omni exposer annotation would publish it.
 apiVersion: v1
 kind: Service
 metadata:

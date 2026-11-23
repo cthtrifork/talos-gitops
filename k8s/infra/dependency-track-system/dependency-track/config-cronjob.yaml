@@ -1,22 +1,5 @@
-# Configuration as code for Dependency-Track: what Helm values and env vars cannot set because it lives in the database.
-# The desired state is data in the ConfigMap below (teams.json, properties.json, extensions.json); the script is a generic
-# loop over it. A CronJob that is safe to run repeatedly (hourly, and Reloader runs it when the ConfigMap changes; it also bootstraps a fresh install and
-# repairs drift):
-#  1. Admin: the built-in admin/admin must change its password on first login. The password is generated once by External
-#     Secrets (k8s/infra/secret-store/) and copied into the Secret dependency-track-admin (external-secret-admin.yaml), so
-#     it exists before this Job first runs. The Job logs in with it, or sets it on a fresh install. To use your own
-#     password, replace the key `password` in the Secret dependency-track-admin of the namespace secret-store.
-#  2. Teams from teams.json (`sbom-uploader`: key in dependency-track-api-key, used by sbom-hook; `vex-exporter`: key in
-#     dependency-track-vex-api-key, used by vex-export-cronjob.yaml; `claude-triage`: key in dependency-track-claude-api-key of the namespace claude-system,
-#     used by the claude-rc pod to read findings and record analyses). Permissions are only added, never removed. A key is only
-#     created if its Secret does not exist yet, or replaced if the stored key is no longer accepted (a recreated database), stored as `api-key` and never printed.
-#  3. Config properties from properties.json (group, name, value as a string), only the declared ones; the rest stays
-#     owned by the UI. An unknown property is a failure.
-#  4. Extension settings (Trivy analyzer, KEV data sources) from extensions.json, merged over the current settings
-#     through the v2 API. Add entries there for other vulnerability sources or analyzers (point/name/config; the config
-#     schema is GET /api/v2/extension-points/<point>/extensions/<name>/config-schema).
-# Every failure (API, Kubernetes, missing prerequisite) fails the Job. Not covered: notifications, policies, and the
-# NVD/GitHub/OSV vulnerability data sources (they keep their defaults).
+# Idempotent config-as-code for what Dependency-Track keeps in its database; the desired state is the ConfigMap JSON.
+# Team permissions are only added, never removed. Extension config schema: GET /api/v2/extension-points/<point>/extensions/<name>/config-schema
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -25,9 +8,9 @@ metadata:
   namespace: dependency-track-system
   annotations:
     claude-elevate/description: Applies the Dependency-Track configuration (teams, API keys, properties, analyzers) and repairs drift. Safe to repeat.
-    reloader.stakater.com/auto: "true" # Reloader starts a Job when the config ConfigMap changes
+    reloader.stakater.com/auto: "true"
 spec:
-  schedule: "7 * * * *" # minute 7 of every hour (UTC): minute hour day-of-month month day-of-week
+  schedule: "7 * * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
@@ -58,7 +41,6 @@ spec:
                 - |
                   cd /work
                   json='Content-Type: application/json'
-                  # Authenticated call: api METHOD PATH [curl args]
                   api() { m=$1; p=$2; shift 2; curl -sS -X "$m" "$DT_URL$p" -H "Authorization: Bearer $token" "$@"; }
                   login() {
                     curl -sS -o token.txt -w '%{http_code}' -X POST "$DT_URL/api/v1/user/login" \
@@ -67,11 +49,11 @@ spec:
 
                   curl -sf -o /dev/null "$DT_URL/api/version" || { echo "api-server not reachable yet" >&2; exit 1; }
 
-                  # 1. admin password, from the Secret External Secrets keeps in sync (it may not exist for a minute on a fresh install)
+                  # admin password (the Secret may not exist for a minute on a fresh install)
                   pw=$(kubectl get secret dependency-track-admin -o jsonpath='{.data.password}' | base64 -d)
                   [ -n "$pw" ] || { echo "Secret dependency-track-admin is not synced yet (kubectl -n dependency-track-system describe externalsecret dependency-track-admin)" >&2; exit 1; }
                   if [ "$(login "$pw")" != 200 ]; then
-                    # first start: the built-in admin/admin must be changed to the seeded password
+                    # first start: the built-in admin/admin must be changed
                     code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$DT_URL/api/v1/user/forceChangePassword" \
                       --data-urlencode username=admin --data-urlencode password=admin \
                       --data-urlencode "newPassword=$pw" --data-urlencode "confirmPassword=$pw")
@@ -83,7 +65,6 @@ spec:
                   fi
                   token=$(cat token.txt)
 
-                  # 2. teams, permissions, API keys: ensure_team TEAM SECRET NAMESPACE PERMISSION...
                   ensure_team() {
                     team=$1; secret=$2; ns=$3; shift 3
                     uuid=$(api GET /api/v1/team | jq -r --arg n "$team" '.[] | select(.name == $n) | .uuid')
@@ -97,7 +78,7 @@ spec:
                     done
                     mode=create
                     if kubectl -n "$ns" get secret "$secret" >/dev/null 2>&1; then
-                      # the key is checked with the team's own call, so a key from a database that was recreated is replaced
+                      # replace a key a recreated database no longer accepts
                       old=$(kubectl -n "$ns" get secret "$secret" -o jsonpath='{.data.api-key}' | base64 -d)
                       if [ -n "$old" ] && [ "$(curl -sS -o /dev/null -w '%{http_code}' -H "X-Api-Key: $old" "$DT_URL/api/v1/team/self")" = 200 ]; then
                         mode=keep
@@ -120,7 +101,7 @@ spec:
                   done < teams.jsonl
                   failed=0
 
-                  # 3. config properties: only the declared ones, values are strings, the type comes from the current property
+                  # the type comes from the current property
                   [ "$(api GET /api/v1/configProperty -o props.json -w '%{http_code}')" = 200 ] || { echo "cannot list config properties" >&2; exit 1; }
                   jq -c '.[]' /config/properties.json > properties.jsonl
                   while read -r p; do
@@ -136,7 +117,6 @@ spec:
                     esac
                   done < properties.jsonl
 
-                  # 4. extension settings, merged over the current ones
                   jq -c '.[]' /config/extensions.json > extensions.jsonl
                   while read -r e; do
                     point=$(echo "$e" | jq -r .point); name=$(echo "$e" | jq -r .name)

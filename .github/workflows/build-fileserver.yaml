@@ -1,8 +1,6 @@
 name: Build and release the fileserver image
 
-# A merge to images/fileserver or a manual run publishes and releases the image; a pull request builds it to check it.
-# It wraps no tool, so its version is 0.0.0 and the tag is 0.0.0-YYYYMMDD.<run number>. See docs/releasing.md and
-# build-release-image.yaml.
+# Caller of build-release-image.yaml. Wraps no tool, so the version is 0.0.0.
 on:
   push:
     branches:
@@ -22,8 +20,6 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  # only a pull request build is superseded. For pushes to main a newer push replaces a pending run, which is fine:
-  # the build of the latest commit covers it, and the notes list every commit since the previous release.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:

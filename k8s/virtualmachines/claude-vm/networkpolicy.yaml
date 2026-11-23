@@ -1,6 +1,5 @@
-# Default deny both ways, then what the VM needs. Egress to the world is open at the pod level on purpose: the VM runs its own
-# egress gateway (nftables + nginx + dnsmasq) that only lets the agent users reach the hosts in homeserver-bootc
-# build_files/claude-vm/egress-allowlist.txt. The claude-vm namespace is exempt from the deny-world-egress policy for this.
+# World egress is open at the pod level on purpose: the VM's own gateway (nftables + nginx + dnsmasq) restricts the
+# agent users to homeserver-bootc build_files/claude-vm/egress-allowlist.txt. The namespace is exempt from deny-world-egress.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
 apiVersion: cilium.io/v2
@@ -25,7 +24,6 @@ spec:
     matchLabels:
       kubevirt.io/vm: claude-vm
   egress:
-    # DNS through kube-dns
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -34,19 +32,37 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-    # Telemetry (otel.portableinfo.cloud) and the Update VMs poll (vm-upgrade.portableinfo.cloud): LoadBalancer addresses on the LAN
+    # otel.portableinfo.cloud (LAN LoadBalancer address)
     - toCIDRSet:
         - cidr: 192.168.1.243/32
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+    # vm-upgrade.portableinfo.cloud (LAN LoadBalancer address): Envoy sets X-Upgrade-Token from the Cilium secret,
+    # so the VM never holds the token and cannot send another VM's
+    - toCIDRSet:
         - cidr: 192.168.1.244/32
       toPorts:
         - ports:
             - port: "80"
               protocol: TCP
-    # Everything else outside the cluster; the VM's own gateway does the filtering
-    - toEntities:
-        - world
+          rules:
+            http:
+              - headerMatches:
+                  - name: X-Upgrade-Token
+                    mismatch: REPLACE
+                    secret:
+                      namespace: cilium-secrets
+                      name: claude-vm-upgrade-token
+    # Everything else; the VM's own gateway filters. Not toEntities world: it would also select the vm-upgrade address
+    # and add an unrestricted rule for the L7 rule above.
+    - toCIDRSet:
+        - cidr: 0.0.0.0/0
+          except:
+            - 192.168.1.244/32
 ---
-# The CDI importer pod that fills the disk runs in this namespace too, and pulls the containerDisk from ghcr.io
+# CDI importer pod (pulls the containerDisk from ghcr.io)
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -68,7 +84,7 @@ spec:
     - toEntities:
         - world
 ---
-# SSH from the LAN only (the Service is a MetalLB address with externalTrafficPolicy Local)
+# SSH from the LAN only
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

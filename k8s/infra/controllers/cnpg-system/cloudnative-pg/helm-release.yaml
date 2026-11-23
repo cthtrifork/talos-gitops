@@ -3,7 +3,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: cloudnative-pg
-  namespace: storage-system
+  namespace: cnpg-system
 spec:
   interval: 30m
   timeout: 10m
@@ -29,8 +29,6 @@ spec:
       create: true
     config:
       clusterWide: true
-   #  data:
-   #     INHERITED_LABELS: portableinfo.cloud/*
     monitoring:
       podMonitorEnabled: true
     podLabels:

@@ -1,7 +1,6 @@
 name: Build and release the GitHub Actions runner image
 
-# A merge to images/github-actions-runner, the weekly rebuild (new packages) or a manual run publishes and releases the image; a
-# pull request builds it to check it. See docs/releasing.md and build-release-image.yaml.
+# Caller of build-release-image.yaml.
 on:
   push:
     branches:
@@ -23,8 +22,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  # only a pull request build is superseded. For pushes to main a newer push replaces a pending run, which is fine:
-  # the build of the latest commit covers it, and the notes list every commit since the previous release.
+  # only PR builds are superseded; the latest push to main covers a pending one
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:

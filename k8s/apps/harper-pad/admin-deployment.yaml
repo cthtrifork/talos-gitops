@@ -1,10 +1,8 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/deployment-apps-v1.json
-# harper-pad-admin: NO Service. The app listens on 127.0.0.1 only; a cloudflared native sidecar maps the
-# admin hostname (remotely managed tunnel, behind Cloudflare Access with OIDC) to http://localhost:9001.
+# harper-pad-admin: NO Service. The app listens on loopback only; a cloudflared sidecar maps the admin hostname
+# (behind Cloudflare Access) to it.
 #
-# Needs the Secret harper-pad-admin-tunnel (key `token`), a SOPS-encrypted file (see "Secrets (SOPS)" in the root readme.md).
-# The app listens on loopback, which kubelet cannot probe, and its image has no shell or health command, so the app has
-# no probes (Polaris exemption); the cloudflared sidecar is probed with `cloudflared tunnel ready`.
+# No app probes (Polaris exemption): kubelet cannot probe loopback and the image has no shell.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -51,7 +49,7 @@ spec:
                 secretKeyRef:
                   name: harper-pad-admin-tunnel
                   key: token
-          # kubelet cannot reach the loopback metrics port, so ask cloudflared itself (exec)
+          # kubelet cannot reach the loopback metrics port, so exec
           livenessProbe:
             exec:
               command:
@@ -87,7 +85,7 @@ spec:
                 - "ALL"
       containers:
         - name: admin
-          # No args: the image's CMD is "serve"; it listens on LISTEN_ADDR (loopback).
+
           image: ghcr.io/cthtrifork/harper-pad-admin:v4.4.0@sha256:5cd998d5795bd5a01837459d619872317cbaad039c6dc7bfb947ae1c2e11714f
           env:
             - name: LISTEN_ADDR

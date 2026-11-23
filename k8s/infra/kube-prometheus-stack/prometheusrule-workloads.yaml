@@ -1,5 +1,4 @@
-# Generic workload alerts for every namespace. A pod refused at admission (the image policy) shows up as a Deployment or
-# StatefulSet below its replica count, since its ReplicaSet cannot create the pod. The Prometheus ruleSelector requires the release label.
+# Pods refused at admission show up as workloads below their replica count. The ruleSelector requires the release label.
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule

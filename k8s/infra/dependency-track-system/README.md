@@ -1,15 +1,14 @@
 # dependency-track-system
 
-- Trivy (`trivy-operator/`) moved to the namespace `trivy-system` (`k8s/infra/trivy-system/`) and Reloader to `reloader-system`.
-  Dependency-Track queries `trivy-service.trivy-system:4954`, and the trivy operator posts every SBOM to `sbom-hook` here.
-- `dependency-track/`: Dependency-Track 5 with a single-instance CNPG PostgreSQL (`dependency-track-db`).
+- `dependency-track/`: Dependency-Track 5 with a single-instance CNPG PostgreSQL (`dependency-track-db`, `k8s/infra/post-workloads/dependency-track-system/`).
+- `sbom-hook/`: receives the trivy operator's webhook in `trivy-system` and uploads every SBOM to Dependency-Track, which queries `trivy-service.trivy-system:4954`.
 
 ## Network policies
 
 `networkpolicy.yaml` denies all traffic in both directions for the namespace and then allows, per workload, what Hubble showed
-it needs (one policy each for Dependency-Track, its database, `sbom-hook` and the Dependency-Track jobs). Dependency-Track may
-reach Postgres (5432), `trivy-service` in `trivy-system` (4954) and the vulnerability feeds; `sbom-hook` takes the webhook of the
-trivy operator in `trivy-system` (4195).
+it needs. Dependency-Track may reach Postgres (5432), `trivy-service` in `trivy-system` (4954) and the vulnerability feeds;
+`sbom-hook` takes the webhook of the trivy operator (4195) and, like `dependency-track-config` and `dependency-track-vex-export`,
+reaches `dependency-track-api-server` (8080). The VEX exporter also needs HTTPS egress to GitHub.
 
 ## Assessing findings from the claude-rc pod
 
@@ -30,7 +29,7 @@ Until the ExternalSecret has synced, the api-server pods wait in `CreateContaine
 ## Access
 
 The UI is at `https://dtrack.portableinfo.cloud`: Cloudflare (with an Access policy) -> tunnel -> Traefik
-(`post/dependency-track-system/dependency-track-ingressroute.yaml`: `/api` to the api-server, the rest to the frontend). The browser
+(`post-workloads/dependency-track-system/dependency-track-ingressroute.yaml`: `/api` to the api-server, the rest to the frontend). The browser
 calls the API on the same origin, so there is no CORS and no second hostname. In the tunnel's **Public hostname** tab add
 `dtrack.portableinfo.cloud` with service `HTTP` `localhost:8000`, and put a Cloudflare Access policy on it in Zero Trust.
 
@@ -82,9 +81,9 @@ printed or overwritten. While the key Secret is missing, `sbom-hook` logs `DRY R
 prints that it has nothing to export.
 
 **Key rotation / recovery.** Delete the key Secret; the next run (within an hour, or run it from the Elevate page) creates a new key and Secret. The old
-key stays valid: revoke it in the UI (Administration, Access Management, Teams, the team's API keys). Then restart the
-consumer, which reads the key at start: `kubectl -n dependency-track-system rollout restart deploy/sbom-hook` (the VEX export reads it
-on each run). If the Job created a key but failed to store the Secret, the next run creates another; revoke the unused one.
+key stays valid: revoke it in the UI (Administration, Access Management, Teams, the team's API keys). Reloader restarts the
+consumers that read the key at start (`sbom-hook`, the claude-rc pod); the VEX export reads it
+on each run. If the Job created a key but failed to store the Secret, the next run creates another; revoke the unused one.
 A lost admin Secret is recovered by seeding it with the current admin password.
 
 ## Exporting Dependency-Track decisions to the VEX repository
@@ -104,9 +103,9 @@ Without the Secret the Job is a dry run that prints the documents it would write
    else off. Untick "Webhook active". Never make it a bypass actor in a ruleset.
 2. Generate a private key (`.pem`), install the App only on `talos-gitops`, and note the **App ID** and the **installation ID**
    (the number at the end of the installation's URL, `https://github.com/settings/installations/<id>`).
-3. Create the Secret `dependency-track-vex-github-app` in `dependency-track-system` with the keys `app-id`, `installation-id` and
-   `private-key.pem` as a SOPS-encrypted file `dependency-track/vex-github-app.enc.yaml` (same procedure as `claude-github-app`,
-   "Secrets (SOPS)" in the root `readme.md`), and add it to `dependency-track/kustomization.yaml` `resources:`. External Secrets
+3. The Secret `dependency-track-vex-github-app` in `dependency-track-system`, with the keys `app-id`, `installation-id` and
+   `private-key.pem`, is the SOPS-encrypted `dependency-track/vex-github-app.enc.yaml` (same procedure as `claude-github-app`,
+   "Secrets (SOPS)" in the root `readme.md`). External Secrets
    turns it into the one-hour token `dependency-track-vex-github` (`kubectl -n dependency-track-system get externalsecret dependency-track-vex-github`).
 4. Run it once instead of waiting for the schedule:
    `kubectl -n dependency-track-system create job --from=cronjob/dependency-track-vex-export vex-first` and read its logs.
@@ -114,15 +113,10 @@ Without the Secret the Job is a dry run that prints the documents it would write
 The API key comes from `config-cronjob.yaml` (team `vex-exporter`). Trivy identifies a scanned image by the PURL
 `pkg:oci/<name>@<digest>?repository_url=<registry>/<repository>` and matches a statement only if the version is the same, so
 `sbom-hook/` versions each Dependency-Track project by the image digest, not the tag. The export skips projects whose
-version is not a digest. Decisions made on projects created before
-that change (versioned by tag) stay in Dependency-Track but are not exported; repeat them on the digest project, or
-delete the old projects. A moved tag creates a new project per digest, so old ones pile up until retention removes them.
+version is not a digest. Decisions made on a project versioned by tag stay in Dependency-Track but are not exported;
+repeat them on the digest project, or delete the old project. A moved tag creates a new project per digest, so old ones pile up until retention removes them.
 
 Findings come from the projects/SBOMs uploaded to Dependency-Track. `sbom-hook/` (Redpanda Connect) receives every
 `SbomReport` that trivy-operator produces or regenerates through its webhook (`operator.webhookBroadcastURL`) and uploads
 it, one project per image; reports are regenerated after `scannerReportTTL`, so nothing needs a second upload path. It
-uses the API key created by `config-cronjob.yaml`; until the Secret exists its uploads fail with a 401.
-
-The default-deny network policies allow Dependency-Track to Postgres (5432),
-trivy-service (4954), and the vulnerability feeds; allow `sbom-hook`, `dependency-track-config` and
-`dependency-track-vex-export` to reach `dependency-track-api-server` (8080). The VEX exporter also needs HTTPS egress.
+uses the API key created by `config-cronjob.yaml`.

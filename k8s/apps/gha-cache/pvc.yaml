@@ -1,6 +1,5 @@
 ---
-# The cache and the SQLite database of the cache server. lvm-fast: the volume is created on the node of the first pod
-# that uses it (the nodeSelector of the HelmRelease); losing it only costs a cold cache.
+# Cache and SQLite database. lvm-fast binds on the node of the first pod (the nodeSelector of the HelmRelease).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

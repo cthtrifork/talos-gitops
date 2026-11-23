@@ -1,27 +1,27 @@
 ---
-# Source: cloudnative-pg/templates/validatingwebhookconfiguration.yaml
+# Source: cloudnative-pg/templates/mutatingwebhookconfiguration.yaml
 apiVersion: admissionregistration.k8s.io/v1
-kind: ValidatingWebhookConfiguration
+kind: MutatingWebhookConfiguration
 metadata:
-  name: cnpg-validating-webhook-configuration
+  name: cnpg-mutating-webhook-configuration
   labels:
     helm.sh/chart: cloudnative-pg-0.29.2
     app.kubernetes.io/name: cloudnative-pg
     app.kubernetes.io/instance: cloudnative-pg
     app.kubernetes.io/version: "1.30.2"
     app.kubernetes.io/managed-by: Helm
-  namespace: storage-system
+  namespace: cnpg-system
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
         name: cnpg-webhook-service
-        namespace: storage-system
-        path: /validate-postgresql-cnpg-io-v1-backup
+        namespace: cnpg-system
+        path: /mutate-postgresql-cnpg-io-v1-backup
         port: 443
     failurePolicy: Fail
-    name: vbackup.cnpg.io
+    name: mbackup.cnpg.io
     rules:
       - apiGroups:
           - postgresql.cnpg.io
@@ -38,11 +38,11 @@ webhooks:
     clientConfig:
       service:
         name: cnpg-webhook-service
-        namespace: storage-system
-        path: /validate-postgresql-cnpg-io-v1-cluster
+        namespace: cnpg-system
+        path: /mutate-postgresql-cnpg-io-v1-cluster
         port: 443
     failurePolicy: Fail
-    name: vcluster.cnpg.io
+    name: mcluster.cnpg.io
     rules:
       - apiGroups:
           - postgresql.cnpg.io
@@ -59,32 +59,11 @@ webhooks:
     clientConfig:
       service:
         name: cnpg-webhook-service
-        namespace: storage-system
-        path: /validate-postgresql-cnpg-io-v1-scheduledbackup
+        namespace: cnpg-system
+        path: /mutate-postgresql-cnpg-io-v1-database
         port: 443
     failurePolicy: Fail
-    name: vscheduledbackup.cnpg.io
-    rules:
-      - apiGroups:
-          - postgresql.cnpg.io
-        apiVersions:
-          - v1
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - scheduledbackups
-    sideEffects: None
-  - admissionReviewVersions:
-      - v1
-    clientConfig:
-      service:
-        name: cnpg-webhook-service
-        namespace: storage-system
-        path: /validate-postgresql-cnpg-io-v1-database
-        port: 443
-    failurePolicy: Fail
-    name: vdatabase.cnpg.io
+    name: mdatabase.cnpg.io
     rules:
       - apiGroups:
           - postgresql.cnpg.io
@@ -101,11 +80,11 @@ webhooks:
     clientConfig:
       service:
         name: cnpg-webhook-service
-        namespace: storage-system
-        path: /validate-postgresql-cnpg-io-v1-pooler
+        namespace: cnpg-system
+        path: /mutate-postgresql-cnpg-io-v1-scheduledbackup
         port: 443
     failurePolicy: Fail
-    name: vpooler.cnpg.io
+    name: mscheduledbackup.cnpg.io
     rules:
       - apiGroups:
           - postgresql.cnpg.io
@@ -115,9 +94,9 @@ webhooks:
           - CREATE
           - UPDATE
         resources:
-          - poolers
+          - scheduledbackups
     sideEffects: None
-# Source: cloudnative-pg/templates/validatingwebhookconfiguration.yaml
+# Source: cloudnative-pg/templates/mutatingwebhookconfiguration.yaml
 #
 # Copyright © contributors to CloudNativePG, established as
 # CloudNativePG a Series of LF Projects, LLC.

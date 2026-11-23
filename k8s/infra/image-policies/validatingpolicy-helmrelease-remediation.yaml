@@ -1,9 +1,6 @@
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/validatingpolicy_v1.json
-# A HelmRelease without retries goes Stalled after one failed install or upgrade and stays down until someone resets it by hand.
-# Upgrades need spec.upgrade.remediation.retries (non-zero, -1 retries forever); installs need spec.install.remediation.retries
-# or spec.install.strategy.name RetryOnFailure. Only admission is checked, so a HelmRelease that already exists keeps working
-# until it is next changed.
+# Without retries a HelmRelease goes Stalled after one failure. Only admission is checked.
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy
 metadata:
@@ -11,7 +8,7 @@ metadata:
 spec:
   validationActions:
     - Deny
-  # an outage of the Kyverno webhook must not block changes to HelmReleases
+  # an outage must not block HelmRelease changes
   failurePolicy: Ignore
   evaluation:
     background:
