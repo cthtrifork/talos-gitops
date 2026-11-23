@@ -89,6 +89,14 @@ spec:
             - insecureCapabilities
             - notReadOnlyRootFilesystem
             - hostPathSet
+        # chart has no probe values, and the controller's sidecars and driver serve nothing to probe (the node pods are probed in
+        # openebs-system/helm-release.yaml)
+        - namespace: openebs-system
+          controllerNames:
+            - openebs-lvm-controller
+          rules:
+            - livenessProbeMissing
+            - readinessProbeMissing
         - namespace: kube-system
           controllerNames:
             - cilium

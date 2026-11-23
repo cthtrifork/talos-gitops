@@ -1,0 +1,9 @@
+apiVersion: storage.k8s.io/v1
+kind: CSIDriver
+metadata:
+  name: local.csi.openebs.io
+  namespace: openebs-system
+spec:
+  attachRequired: false
+  podInfoOnMount: true
+  storageCapacity: true

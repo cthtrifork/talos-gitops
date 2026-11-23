@@ -1,0 +1,369 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: openebs-lvm-controller
+    chart: lvm-localpv-1.10.1
+    component: openebs-lvm-controller
+    heritage: Helm
+    openebs.io/component-name: openebs-lvm-controller
+    openebs.io/version: 1.10.1
+    release: openebs-lvm
+    role: openebs-lvm
+  name: openebs-lvm-controller-sa
+  namespace: openebs-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    chart: lvm-localpv-1.10.1
+    heritage: Helm
+    name: openebs-lvm-node
+    openebs.io/component-name: openebs-lvm-node
+    openebs.io/version: 1.10.1
+    release: openebs-lvm
+    role: openebs-lvm
+  name: openebs-lvm-node-sa
+  namespace: openebs-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: openebs-lvm-controller
+    chart: lvm-localpv-1.10.1
+    component: openebs-lvm-controller
+    heritage: Helm
+    openebs.io/component-name: openebs-lvm-controller
+    openebs.io/version: 1.10.1
+    release: openebs-lvm
+    role: openebs-lvm
+  name: openebs-lvm-provisioner-role
+  namespace: openebs-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims/status
+  verbs:
+  - update
+  - patch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  - csinodes
+  - volumeattributesclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - csistoragecapacities
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - list
+  - watch
+  - create
+  - update
+  - patch
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - watch
+  - list
+  - delete
+  - update
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - local.openebs.io
+  resources:
+  - lvmvolumes
+  - lvmsnapshots
+  - lvmnodes
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: openebs-lvm-controller
+    chart: lvm-localpv-1.10.1
+    component: openebs-lvm-controller
+    heritage: Helm
+    openebs.io/component-name: openebs-lvm-controller
+    openebs.io/version: 1.10.1
+    release: openebs-lvm
+    role: openebs-lvm
+  name: openebs-lvm-snapshotter-role
+  namespace: openebs-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - list
+  - watch
+  - create
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshotclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshotcontents
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - delete
+  - patch
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshotcontents/status
+  verbs:
+  - update
+  - patch
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots/status
+  verbs:
+  - update
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - create
+  - list
+  - watch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    chart: lvm-localpv-1.10.1
+    heritage: Helm
+    name: openebs-lvm-node
+    openebs.io/component-name: openebs-lvm-node
+    openebs.io/version: 1.10.1
+    release: openebs-lvm
+    role: openebs-lvm
+  name: openebs-lvm-driver-registrar-role
+  namespace: openebs-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  - nodes
+  - services
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - local.openebs.io
+  resources:
+  - lvmvolumes
+  - lvmsnapshots
+  - lvmnodes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: openebs-lvm-controller
+    chart: lvm-localpv-1.10.1
+    component: openebs-lvm-controller
+    heritage: Helm
+    openebs.io/component-name: openebs-lvm-controller
+    openebs.io/version: 1.10.1
+    release: openebs-lvm
+    role: openebs-lvm
+  name: openebs-lvm-provisioner-binding
+  namespace: openebs-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: openebs-lvm-provisioner-role
+subjects:
+- kind: ServiceAccount
+  name: openebs-lvm-controller-sa
+  namespace: openebs-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: openebs-lvm-controller
+    chart: lvm-localpv-1.10.1
+    component: openebs-lvm-controller
+    heritage: Helm
+    openebs.io/component-name: openebs-lvm-controller
+    openebs.io/version: 1.10.1
+    release: openebs-lvm
+    role: openebs-lvm
+  name: openebs-lvm-snapshotter-binding
+  namespace: openebs-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: openebs-lvm-snapshotter-role
+subjects:
+- kind: ServiceAccount
+  name: openebs-lvm-controller-sa
+  namespace: openebs-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    chart: lvm-localpv-1.10.1
+    heritage: Helm
+    name: openebs-lvm-node
+    openebs.io/component-name: openebs-lvm-node
+    openebs.io/version: 1.10.1
+    release: openebs-lvm
+    role: openebs-lvm
+  name: openebs-lvm-driver-registrar-binding
+  namespace: openebs-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: openebs-lvm-driver-registrar-role
+subjects:
+- kind: ServiceAccount
+  name: openebs-lvm-node-sa
+  namespace: openebs-system

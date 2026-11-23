@@ -103,3 +103,46 @@ spec:
                     containers:
                       - name: csi-snapshotter
                         $patch: delete
+          # The chart has no probe values. The node's containers are probed on what they already serve: the registrar's own check that
+          # it registered with the kubelet, and a TCP check on the plugin's metrics port (a scrape runs lvm). The controller's sidecars
+          # serve nothing to probe, so it is exempt in Polaris (policy-system/polaris).
+          - target:
+              kind: DaemonSet
+              name: openebs-lvm-node
+            patch: |
+              apiVersion: apps/v1
+              kind: DaemonSet
+              metadata:
+                name: openebs-lvm-node
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: csi-node-driver-registrar
+                        livenessProbe:
+                          exec:
+                            command:
+                              - /csi-node-driver-registrar
+                              - --kubelet-registration-path=/var/lib/kubelet/plugins/lvm-localpv/csi.sock
+                              - --mode=kubelet-registration-probe
+                          initialDelaySeconds: 30
+                          periodSeconds: 30
+                          timeoutSeconds: 15
+                        readinessProbe:
+                          exec:
+                            command:
+                              - /csi-node-driver-registrar
+                              - --kubelet-registration-path=/var/lib/kubelet/plugins/lvm-localpv/csi.sock
+                              - --mode=kubelet-registration-probe
+                          periodSeconds: 30
+                          timeoutSeconds: 15
+                      - name: openebs-lvm-plugin
+                        livenessProbe:
+                          tcpSocket:
+                            port: 9500
+                          initialDelaySeconds: 10
+                          periodSeconds: 20
+                        readinessProbe:
+                          tcpSocket:
+                            port: 9500
+                          periodSeconds: 10

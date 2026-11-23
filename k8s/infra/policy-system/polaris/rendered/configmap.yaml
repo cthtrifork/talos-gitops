@@ -26,6 +26,12 @@ data:
         - notReadOnlyRootFilesystem
         - hostPathSet
       - controllerNames:
+        - openebs-lvm-controller
+        namespace: openebs-system
+        rules:
+        - livenessProbeMissing
+        - readinessProbeMissing
+      - controllerNames:
         - cilium
         namespace: kube-system
         rules: []
