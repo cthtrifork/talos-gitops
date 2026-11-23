@@ -19,5 +19,13 @@ configMapGenerator:
     namespace: dependency-track-system
     files:
       - config.json=frontend-config.json
+  - name: dependency-track-vex-export
+    namespace: dependency-track-system
+    files:
+      - vex-export.sh
+      - vex-export.jq
+    options:
+      annotations:
+        kustomize.toolkit.fluxcd.io/substitute: disabled # shell and jq use $ freely
 generatorOptions:
   disableNameSuffixHash: true # the helm values refer to the ConfigMap by name; Reloader restarts the pod on a change

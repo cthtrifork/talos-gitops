@@ -12,7 +12,7 @@ vex/
 └── pkg/<type>/<namespace>/<name>/<anything>.openvex.json
 ```
 
-Statements marked in Dependency-Track are exported here by `k8s/infra/dependency-track-system/dependency-track/vex-export-cronjob.yaml` (documents with author `Dependency-Track`; do not edit those by hand).
+Everything under `pkg/oci/` is generated from the statements marked in Dependency-Track by `k8s/infra/dependency-track-system/dependency-track/vex-export-cronjob.yaml` and rebuilt on every run; do not edit it by hand.
 
 ## Adding a statement
 
