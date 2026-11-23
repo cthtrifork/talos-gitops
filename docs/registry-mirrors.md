@@ -1,4 +1,4 @@
-# Registry mirrors on the nodes
+# Registry mirrors (nodes and Flux charts)
 
 Image pulls on a node go containerd, then Spegel, then zot, then the upstream registry:
 
@@ -84,57 +84,51 @@ Patch 11 is applied per node. The init log of a new Spegel pod shows what its no
 
 `k8s/infra/registry-system/zot/zot.json`:
 
-- one sync entry per registry, each `onDemand` with `tlsVerify`, `maxRetries: 1` and `retryDelay: 5s`, so an unreachable upstream
-  fails in seconds and zot serves the copy it has. Repository names are the cache name plus the image path, for example
-  `ghcr-cache/cthtrifork/talos-gitops/vex-cache`. `docker-hub-cache` serves both `docker.io` and `mirror.gcr.io`, and `ghcr-cache`
-  reaches private `cthtrifork` packages with the credentials in `creds.json`.
-- there is no polled sync and no `ghcr-private` mirror: the nodes and the CI reach `cthtrifork` images through `ghcr-cache`. The
-  retention policy for `ghcr-private/**` matches no tag, so anything under that prefix expires; delete the policy when no such
-  repository is left. A polled sync would copy every tag of a repository again after retention removed it, so retention could not
-  keep its size down.
-- retention keeps the newest tag of every cache repository and, with `keepUntagged`, the newest and the most recently pulled untagged
-  manifest, so digest-pinned images stay available without internet. Tagged and untagged manifests of the caches and the catch-all policy are also kept 720 hours after their last pull or push. `pr/**` and `buildcache/**` keep 72 hours.
-- the zot volume is 150Gi on `lvm-fast`, a real volume of that size (expandable online); a PVC's storage class cannot change in place, so moving it means recreating the StatefulSet and the PVC (the cache refills on demand).
+- One sync entry per registry, each `onDemand` with `tlsVerify`, `maxRetries: 1` and `retryDelay: 5s`, so an unreachable upstream fails in
+  seconds and zot serves its copy. Repositories are the cache name plus the image path (`ghcr-cache/cthtrifork/talos-gitops/vex-cache`).
+  `docker-hub-cache` serves both `docker.io` and `mirror.gcr.io`; `ghcr-cache` reaches private `cthtrifork` packages with the credentials in
+  `creds.json`.
+- No polled sync and no `ghcr-private` mirror: nodes and CI use `ghcr-cache`. A polled sync would copy every tag again after retention removed
+  it. The `ghcr-private/**` retention policy matches no tag, so that prefix expires; delete the policy when no such repository is left.
+- Retention keeps the newest tag of every cache repository and, with `keepUntagged`, the newest and most recently pulled untagged manifest,
+  so digest-pinned images stay available without internet. The caches and the catch-all policy also keep anything pulled or pushed within
+  720 hours; `pr/**` and `buildcache/**` keep 72.
+- The volume is 150Gi on `lvm-fast` (expandable online). A PVC's storage class cannot change in place: moving it means recreating the
+  StatefulSet and the PVC, and the cache refills on demand.
 
 ## OCIRepositories (Flux charts)
 
-source-controller has no containerd, so its OCIRepositories cannot fall back to the upstream registry: in the cluster their `spec.url` names zot itself,
-`oci://zot.registry-system.svc.cluster.local:5000/<cache>/<upstream path>` (`ghcr-cache` for ghcr.io, `quay-cache` for quay.io; the same
-cache names as `patches/11-zot-mirrors.yaml`). A zot outage therefore stalls chart reconciliation, and the digest pin in `spec.ref` stays valid
-because zot keeps the upstream manifests unchanged.
+source-controller has no containerd, so it cannot fall back to the upstream registry the way the nodes do. Every OCIRepository therefore
+reads its chart through zot's caches (`ghcr-cache`, `quay-cache`, `k8s-cache`, the names of `patches/11-zot-mirrors.yaml`):
 
-The file holds the upstream address behind a Flux variable with the registry as its default:
-`url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/traefik/helm/traefik` (`ZOT_MIRROR_QUAY` for quay.io, `ZOT_MIRROR_K8S` for registry.k8s.io). The
-cluster sets the variables, so Flux pulls through zot; everything that reads the file without them (CI, Renovate, `render-manifests.sh`)
-sees the upstream registry. Every OCIRepository has such a variable, including the charts zot itself depends on (Cilium, flux-operator,
-cert-manager, trust-manager, openebs-lvm, Spegel, zot, prometheus-operator-crds).
+```yaml
+url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/traefik/helm/traefik   # ZOT_MIRROR_QUAY for quay.io, ZOT_MIRROR_K8S for registry.k8s.io
+```
 
-- Where the variables are set: `k8s/clusters/homelab/cluster-vars.env` (`ZOT_MIRROR_GHCR`, `ZOT_MIRROR_QUAY`, `ZOT_MIRROR_K8S`). The cluster
-  kustomization turns it into the ConfigMap `cluster-vars` and one patch makes every Flux Kustomization substitute from it (`substituteFrom`,
-  optional), so a new OCIRepository needs nothing else. A new upstream registry needs a variable of its own there, plus an alias in
-  `renovate.json5`.
-- Bootstrapping a cluster without zot: zot and its dependencies come from OCIRepositories too, so a cluster rebuilt from empty cannot pull
-  them from a zot that does not exist yet. Comment the variables out in `cluster-vars.env` for the first sync, wait until
-  `gitops-infra-registry-system` is Ready, then restore them: the OCIRepositories switch to zot on their next reconcile.
-- Zot outage on a running cluster: source-controller keeps the artifacts it already fetched, so releases keep running and only new chart
-  versions wait. To get past a zot that cannot start, comment the variables out the same way.
-- Charts without an upstream OCI chart (polaris, metrics-server, Redpanda `connect`) are mirrored to
-  `ghcr.io/cthtrifork/talos-gitops/charts` by `.github/workflows/helm-chart-sync.yaml` (configs in `scripts/ci/helm/`) and read from there
-  through `ghcr-cache`. A new chart version appears in Git only after the sync has pushed it.
-- TLS: the FluxInstance patch in `k8s/clusters/homelab/flux-instance.yaml` mounts the trust-manager ConfigMap `portableinfo-ca-bundle` into
-  source-controller (`SSL_CERT_DIR`). The volume is optional so source-controller still starts before trust-manager exists.
-- Network policy: `flux-system-egress-zot` (`k8s/infra/flux-system/`) and the `zot` policy in `k8s/infra/registry-system/networkpolicy.yaml`.
-- Renovate: `registryAliases` in `renovate.json5` maps each literal default (`${ZOT_MIRROR_GHCR:=ghcr.io}`) to its registry, so the flux
-  manager looks versions up upstream. A new variable needs an alias there.
-- Rendering: `scripts/ci/render-manifests.sh` runs `flux envsubst` over `helm-repository.yaml`, so it renders from the default (upstream)
-  registry, and through zot wherever `ZOT_MIRROR_*` is set in its environment (a runner in the cluster). A `localhost` registry is
-  pulled over plain HTTP. To try that on a workstation, `make render-manifests-zot` starts `scripts/zot/compose.yaml` (a local zot
-  with the cluster's caches: same cache names, on-demand sync from the upstream registries, no TLS, credentials or retention) and renders
-  through it with `ZOT_MIRROR_GHCR`, `ZOT_MIRROR_QUAY` and `ZOT_MIRROR_K8S` pointing at `localhost:5000`; `RENDER_DIRS="dir1 dir2"`
-  limits it. It leaves zot running (`make zot-down` stops it; `docker compose -f scripts/zot/compose.yaml down -v` also empties the
-  cache). The first render fills the cache from upstream, later ones read it.
-- e2e: kind's CoreDNS gets a `hosts` entry for the zot service name and `portableinfo-ca-bundle` is created from the runner's CA
-  (steps "Resolve the cluster zot inside kind" and "Trust the private CA in flux-system" in `.github/workflows/e2e.yaml`).
+The variable defaults to the upstream registry, so everything that reads the file without it (CI, Renovate, `render-manifests.sh`) uses
+upstream. The cluster sets it, so Flux pulls through zot. The digest pin in `spec.ref` stays valid because zot keeps upstream manifests
+unchanged.
+
+- **Variables:** `k8s/clusters/homelab/cluster-vars.env`, turned into the ConfigMap `cluster-vars` by the cluster kustomization. One patch
+  there makes every Flux Kustomization substitute from it (optional), so a new OCIRepository needs no wiring. A new upstream registry needs a
+  variable of its own in that file and an alias in `renovate.json5`.
+- **Without zot:** zot, Cilium and cert-manager come from OCIRepositories too, so a cluster rebuilt from empty cannot pull them from a zot that
+  does not exist yet. Comment the variables out in `cluster-vars.env` for the first sync, wait until `gitops-infra-registry-system` is Ready,
+  then restore them (the same gets you past a zot that cannot start). The controllers' world-egress policy keeps ghcr.io and quay.io for that
+  case. On a running cluster a zot outage only holds back new chart versions, because source-controller keeps the artifacts it fetched.
+- **Mirrored charts:** polaris, metrics-server and Redpanda `connect` have no upstream OCI chart.
+  `.github/workflows/helm-chart-sync.yaml` (configs in `scripts/ci/helm/`) copies them to `ghcr.io/cthtrifork/talos-gitops/charts`, and they are
+  read from there through `ghcr-cache`. A new version appears in Git only after the sync has pushed it.
+- **TLS:** the FluxInstance patch in `k8s/clusters/homelab/flux-instance.yaml` mounts the trust-manager ConfigMap `portableinfo-ca-bundle` into
+  source-controller (`SSL_CERT_DIR`). The volume is optional, so source-controller starts before trust-manager exists.
+- **Network policy:** `flux-system-egress-zot` (`k8s/infra/flux-system/`) and the `zot` policy in `k8s/infra/registry-system/networkpolicy.yaml`.
+- **Renovate:** `registryAliases` maps each literal default (`${ZOT_MIRROR_GHCR:=ghcr.io}`) to its registry, so versions are looked up upstream.
+- **Rendering:** `scripts/ci/render-manifests.sh` runs `flux envsubst` over `helm-repository.yaml`: upstream by default, through zot where
+  `ZOT_MIRROR_*` is set (a localhost registry over plain HTTP). `make render-manifests-zot` does that on a workstation with the local zot of
+  `scripts/zot/compose.yaml` (same cache names, on-demand sync, no TLS, credentials or retention) and leaves it running; `make zot-down`
+  stops it, `docker compose -f scripts/zot/compose.yaml down -v` also empties the cache. `RENDER_DIRS="dir1 dir2"` limits the render.
+- **e2e:** kind's CoreDNS gets a `hosts` entry for the zot service name and `portableinfo-ca-bundle` is created from the runner's CA (steps
+  "Resolve the cluster zot inside kind" and "Trust the private CA in flux-system" in `.github/workflows/e2e.yaml`).
 
 ## Using Spegel alone
 
