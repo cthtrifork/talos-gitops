@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: [ '*' ]
-    tags-ignore: [ '*' ]
+    branches: ["*"]
+    tags-ignore: ["*"]
 
 permissions:
-    contents: read
+  contents: read
 
 jobs:
   renovate:
@@ -22,6 +22,7 @@ jobs:
           persist-credentials: false
       - name: Validate renovate config
         run: npx --yes --package "renovate@${RENOVATE_VERSION}" -- renovate-config-validator --strict renovate.json5
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -47,6 +48,7 @@ jobs:
         run: actionlint -color -ignore 'SC2086' -ignore 'SC2129' -ignore 'constant expression "false"'
       - name: Secrets are SOPS-encrypted
         run: ./scripts/ci/check-secrets-encrypted.sh k8s
+
   manifests:
     runs-on: ubuntu-latest
     steps:
@@ -60,6 +62,7 @@ jobs:
           install_args: "github:fluxcd/flux-schema"
       - name: Validate manifests
         run: ./scripts/validate.sh
+
   kustomize:
     runs-on: ubuntu-latest
     steps:
@@ -73,6 +76,7 @@ jobs:
           install_args: "yq github:fluxcd/flux-schema"
       - name: Build Flux Kustomization paths
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
+
   polaris:
     # audits the PR's manifests with the dashboard's version and config; the in-cluster one only sees them after merge
     runs-on: ubuntu-latest
