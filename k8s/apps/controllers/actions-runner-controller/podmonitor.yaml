@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/monitoring.coreos.com/podmonitor_v1.json
+# The listeners' exporter (the controller's metrics.listenerAddr). The scale sets' listenerTemplate labels the pods
+# prometheus-scrape, which opens the port to Prometheus (cluster-wide policy prometheus-scrape).
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: gha-runner-scale-set-listener
+  namespace: arc-controller-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: runner-scale-set-listener
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
