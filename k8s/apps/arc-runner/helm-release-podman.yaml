@@ -268,6 +268,9 @@ spec:
                     requests:
                       storage: 5Gi
     listenerTemplate:
+      metadata:
+        labels:
+          prometheus-scrape: "true"
       spec:
         securityContext:
           runAsNonRoot: true
@@ -279,9 +282,22 @@ spec:
               runAsUser: 1000
               runAsNonRoot: true
               allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
               capabilities:
                 drop:
                   - ALL
+            # the exporter enabled by the controller's metrics.listenerAddr is the listener's only HTTP server
+            livenessProbe:
+              httpGet:
+                path: /metrics
+                port: 8080
+              initialDelaySeconds: 15
+              periodSeconds: 20
+            readinessProbe:
+              httpGet:
+                path: /metrics
+                port: 8080
+              periodSeconds: 10
             resources:
               limits:
                 memory: 256Mi

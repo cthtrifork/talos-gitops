@@ -29,6 +29,12 @@ spec:
       updateStrategy: "eventual"
       # adds /healthz liveness and readiness probes to the controller
       healthProbeBindAddress: ":8081"
+    # The listener pods' only HTTP server is their metrics exporter, so it is on for their probes (the scale sets' listenerTemplate).
+    # "0" keeps the controller's own metrics off.
+    metrics:
+      controllerManagerAddr: "0"
+      listenerAddr: ":8080"
+      listenerEndpoint: "/metrics"
     resources:
       limits:
         cpu: 100m
