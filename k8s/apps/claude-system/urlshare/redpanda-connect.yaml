@@ -1,5 +1,7 @@
 ---
-# State is in memory (24h TTLs). Reachable destinations are enforced by the CiliumNetworkPolicy: Connect cannot check the address.
+# State is on the claude-urlshare-cache PVC (/data), so it survives a restart. The file cache has no expiry: the 24h TTL is the `expires_at`
+# of each request, and load_entry deletes the stored page of every expired one. "Clear cache" deletes them all.
+# Reachable destinations are enforced by the CiliumNetworkPolicy: Connect cannot check the address.
 # The 2 MiB limit is checked after the download; the memory limit and 10s timeout bound larger pages.
 http:
   enabled: true
@@ -21,9 +23,8 @@ pipeline:
 
 cache_resources:
   - label: state
-    memory:
-      default_ttl: 24h
-      compaction_interval: 1m
+    file:
+      directory: /data
 
 input:
   broker:
@@ -70,7 +71,7 @@ output:
 processor_resources:
   # State helpers: the whole request list is one cache key.
 
-  # Loads live requests into `entries`, and the one named by `id` into `entry`.
+  # Loads live requests into `entries`, and the one named by `id` into `entry`. Expired requests lose their stored page and leave the index.
   - label: load_entry
     processors:
       - branch:
@@ -84,8 +85,41 @@ processor_resources:
                 - mapping: 'root = []'
           result_map: 'meta entries = this'
       - mapping: |
-          meta entries = @entries.filter(e -> e.expires_at > now().ts_unix())
+          let now = now().ts_unix()
+          meta drop = @entries.filter(e -> e.expires_at <= $now).map_each(e -> e.id)
+          meta purge = @entries.filter(e -> e.expires_at <= $now).length() > 0
+          meta entries = @entries.filter(e -> e.expires_at > $now)
+      - resource: drop_bodies
+      - switch:
+          - check: '@purge == true'
+            processors:
+              - resource: write_index
+      - mapping: |
           meta entry = @entries.filter(e -> e.id == @id.or("")).index(0).catch(null)
+
+  # Writes `entries` as the index.
+  - label: write_index
+    branch:
+      request_map: 'root = @entries'
+      processors:
+        - cache:
+            resource: state
+            operator: set
+            key: index
+            value: '${! content() }'
+
+  # Deletes the stored page of every id in `drop`. A page that is already gone is not an error.
+  - label: drop_bodies
+    while:
+      check: '@drop.length() > 0'
+      processors:
+        - cache:
+            resource: state
+            operator: delete
+            key: 'body:${! @drop.index(0) }'
+        - catch:
+            - noop: {}
+        - mapping: 'meta drop = @drop.slice(1)'
 
   # Upserts `entry` into `entries` and writes them back.
   - label: save_entry
@@ -93,15 +127,7 @@ processor_resources:
       - mapping: |
           meta entry = @entry.without("expires_at").merge({"expires_at": now().ts_unix() + 86400})
           meta entries = @entries.filter(e -> e.id != @entry.id).concat([@entry])
-      - branch:
-          request_map: 'root = @entries'
-          processors:
-            - cache:
-                resource: state
-                operator: set
-                key: index
-                value: '${! content() }'
-                ttl: 30h
+      - resource: write_index
 
   # Turns the field `raw` into the canonical URL `url` and the id, or sets `url_error`.
   - label: normalize_url
@@ -284,6 +310,21 @@ processor_resources:
               - processors:
                   - resource: approve
 
+      - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/cache/clear"'
+        processors:
+          - resource: load_entry
+          - mapping: |
+              meta drop = @entries.map_each(e -> e.id)
+              meta cleared = @entries.length()
+          - resource: drop_bodies
+          - cache:
+              resource: state
+              operator: delete
+              key: index
+          - catch:
+              - noop: {}
+          - mapping: 'root = {"cleared": @cleared}'
+
       - processors:
           - resource: not_found
 
@@ -324,7 +365,6 @@ processor_resources:
                     operator: set
                     key: 'body:${! @id }'
                     value: '${! content() }'
-                    ttl: 24h
           result_map: |
             meta content_type = metadata("content-type").or("")
             meta size = content().length()

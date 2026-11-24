@@ -388,6 +388,53 @@ processor_resources:
                     root.top = $failing.filter(x -> x.severity == "danger" || x.severity == "warning").sort_by(x -> (if x.severity == "danger" { "0" } else { "1" }) + x.workload + x.check).slice(0, 5)
               result_map: 'root.polaris = this'
 
+            # trivy-operator exposes one series per container, so images shared by several containers (and pods) are counted once by digest
+            trivy_severity:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "sum by (severity) (max by (image_digest, severity) (trivy_image_vulnerabilities))".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.trivy_severity = this.data.result.map_each(r -> {"severity": r.metric.severity.lowercase(), "count": r.value.index(1).number().round()})
+
+            trivy_images:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "count(count by (image_digest) (trivy_image_vulnerabilities))".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: 'root.trivy_images = this.data.result.index(0).value.index(1).number().round().catch(0)'
+
+            trivy_worst:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "topk(5, sum by (image_registry, image_repository, image_tag) (max by (image_registry, image_repository, image_tag, image_digest) (trivy_image_vulnerabilities{severity=~\"Critical|High\"})))".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.trivy_worst = this.data.result.map_each(r -> {
+                  "image": r.metric.image_repository.or("unknown") + ":" + r.metric.image_tag.or(""),
+                  "count": r.value.index(1).number().round()
+                })
+
+            # one row per CVE and image (the package labels are dropped), worst score first
+            trivy_critical:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "count by (vuln_id, image_repository, image_tag, vuln_score, fixed_version, vuln_title) (trivy_vulnerability_id{severity=\"Critical\"})".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                let found = this.data.result.map_each(r -> {
+                  "id": r.metric.vuln_id.or("unknown"),
+                  "image": r.metric.image_repository.or("unknown") + ":" + r.metric.image_tag.or(""),
+                  "score": r.metric.vuln_score.number().catch(0),
+                  "fixed": r.metric.fixed_version.or(""),
+                  "title": r.metric.vuln_title.or("").slice(0, 120)
+                })
+                root.trivy_critical = {"total": $found.length(), "items": $found.sort_by(f -> 0 - f.score).slice(0, 5)}
+
             flux_ks:
               request_map: |
                 meta path = "/apis/kustomize.toolkit.fluxcd.io/v1/kustomizations"

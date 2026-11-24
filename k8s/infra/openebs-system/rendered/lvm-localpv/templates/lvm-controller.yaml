@@ -40,7 +40,7 @@ spec:
         env:
         - name: ADDRESS
           value: /var/lib/csi/sockets/pluginproxy/csi.sock
-        image: registry.k8s.io/sig-storage/csi-resizer:v2.3.0@sha256:48fb3deb93cd848e3c8998b6368f4322c93bb5ce4a90d1307b6dda0dbefb9a0e
+        image: registry.k8s.io/sig-storage/csi-resizer:v2.3.1@sha256:d5b040c2f6ffb25127169feeb845aaf1fa3279e510d71fbebe386b5becc625cc
         imagePullPolicy: IfNotPresent
         name: csi-resizer
         resources:
@@ -71,7 +71,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        image: registry.k8s.io/sig-storage/csi-provisioner:v6.4.0@sha256:6ebe60fd8ed67a7f8a90d34402e9e706b274e53612d6fa5fbb8285728db622e2
+        image: registry.k8s.io/sig-storage/csi-provisioner:v6.4.1@sha256:9e76a2c599ffd7a66f08feeb62ddec61e3545eaa442f8f8f6a495569c0b06829
         imagePullPolicy: IfNotPresent
         name: csi-provisioner
         resources:

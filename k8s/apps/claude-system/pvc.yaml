@@ -1,5 +1,6 @@
 # claude-home-lvm holds the Claude login (~/.claude) for the claude-rc Deployment. Delete it to sign out.
 # claude-workspace-lvm is /workspace (clones, scratch). The -lvm suffix stays because a PVC cannot be renamed.
+# claude-urlshare-cache holds the claude-urlshare request index and stored pages (the "Clear cache" button empties it).
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -26,3 +27,16 @@ spec:
   resources:
     requests:
       storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claude-urlshare-cache
+  namespace: claude-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: lvm-bulk
+  resources:
+    requests:
+      storage: 1Gi

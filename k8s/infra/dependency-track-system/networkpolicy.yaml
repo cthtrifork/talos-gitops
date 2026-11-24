@@ -116,6 +116,7 @@ spec:
         - matchName: repository.jboss.org
         - matchName: repo.clojars.org
         - matchName: maven.google.com
+        - matchName: dl.google.com
       toPorts:
         - ports:
             - port: "443"

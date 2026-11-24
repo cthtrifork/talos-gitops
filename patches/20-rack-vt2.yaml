@@ -1,0 +1,5 @@
+---
+# Physical rack of talos-vt2-qp8 ("hackyourfuture"); topologyKey for rack-aware pod (anti-)affinity and topologySpreadConstraints.
+machine:
+  nodeLabels:
+    topology.homelab/rack: rack-1

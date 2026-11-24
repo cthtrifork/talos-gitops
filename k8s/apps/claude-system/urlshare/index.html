@@ -19,7 +19,7 @@
   :root {
     color-scheme: light dark;
     --page: #f4f4f1; --card: #ffffff; --ink: #141413; --ink-2: #4a4843; --line: #e3e2da;
-    --accent: #1f63b5; --on-accent: #ffffff; --ok: #1a7f4b; --warn: #8a5a00; --bad: #b3261e;
+    --accent: #1f63b5; --on-accent: #ffffff; --ok: #1a7f4b; --warn: #8a5a00; --bad: #b3261e; --on-bad: #ffffff;
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
     /* Shared with the cockpit: the type scale is small (labels, metadata), medium (body), large (titles), extra large (page title, headline numbers). */
@@ -28,7 +28,7 @@
   @media (prefers-color-scheme: dark) {
     :root {
       --page: #0d0d0d; --card: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --line: #2c2c2a;
-      --accent: #3987e5; --ok: #3cc58a; --warn: #f2d98a; --bad: #ff8a80;
+      --accent: #3987e5; --ok: #3cc58a; --warn: #f2d98a; --bad: #ff8a80; --on-bad: #0d0d0d;
     }
   }
   * { box-sizing: border-box; }
@@ -60,6 +60,15 @@
   button:disabled { opacity: .55; cursor: default; }
   .hint { margin: 10px 0 0; font-size: var(--fs-md); color: var(--warn); min-height: 1.5em; }
   .empty { color: var(--ink-2); }
+  /* Destructive actions: outlined red at rest; the confirm step is solid red so it cannot be mistaken for the harmless Cancel next to it. */
+  button.danger { background: transparent; color: var(--bad); border: 1px solid var(--bad); }
+  button.danger.solid { background: var(--bad); color: var(--on-bad); }
+  .cache { margin-top: 24px; }
+  .cache h2 { margin-top: 0; }
+  .cache .stat { margin: 0; font-size: var(--fs-md); color: var(--ink-2); }
+  .cache .stat strong { color: var(--ink); }
+  .cache .ask { margin: 12px 0 0; font-size: var(--fs-md); color: var(--ink-2); }
+  .note { margin: 10px 0 0; font-size: var(--fs-md); color: var(--ok); min-height: 1.5em; }
 </style>
 </head>
 <body>
@@ -71,6 +80,13 @@
   <div id="pending"></div>
   <h2>Answered</h2>
   <div id="done"></div>
+  <section class="card cache" aria-labelledby="cache-h">
+    <h2 id="cache-h">Cache</h2>
+    <p class="stat" id="cache-stat">Loading...</p>
+    <p class="ask" id="cache-ask" hidden>Deletes every stored page and the list of requests. Claude has to ask again.</p>
+    <div class="row" id="cache-row"></div>
+    <p id="cache-note" class="note" role="status"></p>
+  </section>
   <p id="error" class="hint" role="status"></p>
 </main>
 
@@ -128,13 +144,87 @@
     list.forEach(function (r) { box.appendChild(card(r, now)); });
   }
 
+  var cache = { requests: 0, pages: 0, bytes: 0 };   // what the last refresh saw
+  var stage = 'idle';                                // idle -> confirm -> clearing -> idle
+  var confirmTimer = null, noteTimer = null;
+
+  function kib(bytes) { return bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + ' MiB' : Math.max(1, Math.round(bytes / 1024)) + ' KiB'; }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  function button(label, cls, onclick) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = label; if (cls) b.className = cls;
+    b.addEventListener('click', onclick);
+    return b;
+  }
+
+  // The cache card. The row is only rebuilt when the stage or the emptiness changes, so a poll never swaps a button under a finger.
+  var rowKey = '';
+  function renderCache() {
+    var empty = cache.requests === 0;
+    document.getElementById('cache-stat').textContent = empty ? 'Empty. No pages are stored.' :
+      plural(cache.pages, 'page', 'pages') + ' stored (' + kib(cache.bytes) + '), ' + plural(cache.requests, 'request', 'requests') + ' on the list.';
+    document.getElementById('cache-ask').hidden = stage !== 'confirm';
+    var key = stage + (empty ? ':empty' : '');
+    if (key === rowKey) return;
+    rowKey = key;
+    var row = document.getElementById('cache-row');
+    row.textContent = '';
+    if (stage === 'confirm') {
+      row.appendChild(button('Cancel', 'no', cancelClear));
+      row.appendChild(button('Yes, delete ' + plural(cache.requests, 'request', 'requests'), 'danger solid', clearCache));
+    } else {
+      var b = button(stage === 'clearing' ? 'Clearing...' : 'Clear cache', 'danger', askClear);
+      b.disabled = stage === 'clearing' || empty;
+      row.appendChild(b);
+    }
+  }
+
+  function setNote(text) {
+    var n = document.getElementById('cache-note');
+    n.textContent = text;
+    clearTimeout(noteTimer);
+    if (text) noteTimer = setTimeout(function () { n.textContent = ''; }, 6000);
+  }
+
+  // Two steps on the page instead of a browser dialog (which a Home Screen app shows poorly): the second step goes back by itself.
+  function askClear() {
+    stage = 'confirm'; busy.clear = true; setNote('');
+    clearTimeout(confirmTimer);
+    confirmTimer = setTimeout(cancelClear, 8000);
+    renderCache();
+  }
+  function cancelClear() {
+    clearTimeout(confirmTimer);
+    stage = 'idle'; delete busy.clear;
+    renderCache();
+  }
+
   function refresh() {
     fetch('api/v1/requests', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       var waiting = d.requests.filter(function (r) { return r.status === 'pending'; });
       var rest = d.requests.filter(function (r) { return r.status !== 'pending'; });
+      var stored = d.requests.filter(function (r) { return r.status === 'approved'; });
+      cache = { requests: d.requests.length, pages: stored.length, bytes: stored.reduce(function (n, r) { return n + (r.size || 0); }, 0) };
       fill('pending', waiting, d.now, 'Nothing is waiting.');
       fill('done', rest, d.now, 'Nothing yet.');
+      renderCache();
     }).catch(function () { document.getElementById('error').textContent = 'The list is unavailable.'; });
+  }
+
+  function clearCache() {
+    var msg = document.getElementById('error');
+    clearTimeout(confirmTimer);
+    stage = 'clearing'; busy.clear = true; msg.textContent = ''; setNote('');
+    renderCache();
+    fetch('api/v1/cache/clear', { method: 'POST', headers: { 'X-Requested-With': 'urlshare-approval' } })
+      .then(function (res) { return res.json().then(function (x) { return { ok: res.ok, body: x }; }); })
+      .then(function (x) {
+        if (x.ok) setNote('Cache cleared: ' + plural(x.body.cleared, 'request', 'requests') + ' removed.');
+        else msg.textContent = x.body.error || 'Could not clear the cache.';
+      })
+      .catch(function () { msg.textContent = 'Could not reach the page.'; })
+      .then(function () { stage = 'idle'; delete busy.clear; refresh(); });
   }
 
   refresh();
