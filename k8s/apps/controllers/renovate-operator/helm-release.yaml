@@ -10,6 +10,8 @@ spec:
   chartRef:
     kind: OCIRepository
     name: renovate-operator
+  dependsOn:
+    - name: valkey-resources
   install:
     remediation:
       retries: 3
@@ -27,6 +29,8 @@ spec:
     crd:
       mode: template
     deployment:
+      annotations:
+        secret.reloader.stakater.com/reload: renovate-valkey-credentials
       podLabels:
         prometheus-scrape: "true"
       podAnnotations:
@@ -38,25 +42,14 @@ spec:
         memory: 64Mi
       limits:
         memory: 256Mi
-    # A lost cache only costs a cold run, so no volume and no password (the namespace policy limits access).
-    valkey:
-      enabled: true
-      image:
-        registry: mirror.gcr.io
-        # renovate: datasource=docker depName=mirror.gcr.io/valkey/valkey versioning=docker
-        tag: 9.2.0@sha256:1c2b25b09f354c66fe994733acdf12fcfd4bdf6f3bd92b88a93a70378d884056
-      auth:
-        enabled: false
-      dataStorage:
-        enabled: false
-      resources:
-        requests:
-          cpu: 50m
-          memory: 64Mi
-        limits:
-          memory: 512Mi
-      readinessProbe:
-        enabled: true
+    externalKeyValueStore:
+      host: valkey-renovate.renovate-system.svc.cluster.local
+      cluster: true
+      useTls: true
+      username: renovate
+      existingSecret:
+        name: renovate-valkey-credentials
+        passwordKey: password
     # Repository cache in Garage
     s3:
       bucket: renovate
@@ -70,9 +63,10 @@ spec:
       globalParallelismLimit: 2
       deleteSuccessfulJobs: true
       jobTTLSecondsAfterFinished: 3600
-      forwardCacheToJobs: true
+      # Renovate's cluster cache client currently applies TLS only to discovery.
+      forwardCacheToJobs: false
       forwardS3CacheToJobs: true
-      # Last run's log per project for the UI; lost when Valkey restarts
+      # Last run's log per project for the UI.
       logStorage:
         mode: valkey
       podLabelTemplates:

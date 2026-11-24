@@ -1,0 +1,166 @@
+# Override the app.kubernetes.io/name label (defaults to the chart name)
+nameOverride: ""
+# ValkeyCluster metadata.name, also used for the other rendered objects.
+# Defaults to the release name.
+fullnameOverride: ""
+# Labels added to all rendered resources
+commonLabels: {}
+# Free-form values for use inside templated strings (see cluster.spec tpl).
+# Not rendered as a Kubernetes object by itself.
+# Example:
+#   extraValues:
+#     tlsSecret: my-tls
+#   cluster:
+#     spec:
+#       networking:
+#         tls:
+#           certificates:
+#             server:
+#               secretName: "{{ .Values.extraValues.tlsSecret }}"
+extraValues: {}
+# Scrape ValkeyNode metrics-exporter sidecars (port name "metrics", default 9121).
+# Requires Prometheus Operator CRDs. Operator enables the exporter by default
+# (cluster.spec.exporter.enabled); disable the exporter there if you do not want metrics.
+metrics:
+  podMonitor:
+    enabled: false
+    # Container port name on the metrics-exporter sidecar
+    port: metrics
+    # Namespace for the PodMonitor (defaults to release namespace)
+    namespace: ""
+    # Extra labels on the PodMonitor object (e.g. prometheus release selector)
+    labels: {}
+    annotations: {}
+    interval: ""
+    scrapeTimeout: ""
+    honorLabels: false
+    scheme: ""
+    tlsConfig: {}
+    relabelings: []
+    metricRelabelings: []
+    podTargetLabels: []
+    sampleLimit: null
+    targetLimit: null
+    # Additional matchLabels merged into the pod selector (default selects
+    # valkey.io/cluster=<ValkeyCluster name> in the release namespace)
+    selector: {}
+# ValkeyCluster resource. Nested so future CR kinds (e.g. standalone, sentinel)
+# can sit beside this as valkey / sentinel without a generic top-level "spec".
+# v0.1: one ValkeyCluster per release. Later kinds stay one logical workload
+# per release (enable at most one primary CR kind, or document if that changes).
+cluster:
+  # Annotations on the ValkeyCluster object
+  annotations: {}
+  # Labels on the ValkeyCluster object (in addition to chart labels)
+  labels: {}
+  # ValkeyCluster.spec drop-in (any CRD field allowed). Tested against operator
+  # appVersion (v0.9.0): scheduling under spec.scheduling, PDB as {mode: ...},
+  # node.spread.shard|primaries|pods. See CHANGELOG.md.
+  # Rendered via tpl so string values may use Helm templates, e.g.
+  #   image: "valkey/valkey:{{ .Chart.AppVersion }}"
+  #   networking.tls.certificates.server.secretName: "{{ .Release.Name }}-tls"
+  # API: https://github.com/valkey-io/valkey-operator/blob/main/docs/valkeycluster.md
+  # replicasPerShard defaults to 1 when neither it nor the deprecated replicas
+  # is set here.
+  spec:
+    shards: 3
+# NetworkPolicy for the Valkey pods (selected by valkey.io/cluster=<ValkeyCluster name>).
+# Off by default. When enabled, ingress is limited to what the cluster needs to
+# run, plus extraIngress:
+#   - the cluster's own pods on the client (6379) and cluster-bus (16379) ports
+#   - the operator on the client port
+# Clients, metrics scrapers and anything else go in extraIngress, or set
+# allowExternal to admit clients from any source. Egress is open unless
+# allowExternalEgress is false.
+# More info: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+networkPolicy:
+  enabled: false
+  # Peer allowed to reach the client port for reconciliation (a NetworkPolicyPeer).
+  # Set it to null to drop the rule; {} does not, because Helm merges it into
+  # this default. To replace the peer, set the default's namespaceSelector or
+  # podSelector key to null alongside your own.
+  operator:
+    namespaceSelector: {}
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: valkey-operator
+  # With metrics.podMonitor.enabled, the exporter port is also admitted from any
+  # source so Prometheus can scrape it.
+  # Admit clients on the client port from any source. When false, only the
+  # cluster's own pods, the operator and extraIngress are admitted.
+  allowExternal: false
+  # Allow all egress. When false, egress is limited to the cluster's own pods
+  # (client, cluster-bus) and DNS in dnsNamespace, plus extraEgress.
+  allowExternalEgress: true
+  # Namespace running kube-dns / CoreDNS, used when allowExternalEgress is false.
+  # With NodeLocal DNSCache, also admit the node-local address (commonly
+  # 169.254.20.10) through extraEgress; see README.
+  dnsNamespace: kube-system
+  # Additional ingress rules appended verbatim to the policy (templated with tpl)
+  extraIngress: []
+  # Example (allow an application namespace on the client port):
+  #   extraIngress:
+  #     - from:
+  #         - namespaceSelector:
+  #             matchLabels:
+  #               kubernetes.io/metadata.name: my-app
+  #       ports:
+  #         - protocol: TCP
+  #           port: client
+  # Additional egress rules appended verbatim to the policy (templated with tpl)
+  extraEgress: []
+  # Extra labels to add to the NetworkPolicy
+  labels: {}
+  # Extra annotations to add to the NetworkPolicy
+  annotations: {}
+# ServiceAccount for the Valkey pods (operator v0.8.0+ spec.serviceAccountName).
+# When create is true or name is set, and cluster.spec has no serviceAccountName,
+# the chart sets spec.serviceAccountName. An explicit cluster.spec value always wins;
+# with create: true it must match the chart's ServiceAccount name or the render fails.
+# A named ServiceAccount that this chart does not create must already exist.
+serviceAccount:
+  create: false
+  # Defaults to the chart fullname. May use templates.
+  name: ""
+  # Annotations to add to the service account
+  annotations: {}
+  # Labels to add to the service account
+  labels: {}
+  # Whether to automount the service account token
+  automount: false
+# Secret holding ACL user passwords, in the form the operator reads by default.
+# The operator looks for Secret "<ValkeyCluster name>-users" unless
+# a user names another Secret; the data key defaults to the
+# username. To use a Secret you manage yourself, leave create: false and set
+# cluster.spec.acl.users[].password.secret.name (see examples/users-acl.yaml).
+usersSecret:
+  create: false
+  # Defaults to "<fullname>-users" and may use templates. When set, users in
+  # cluster.spec.users without passwordSecret.name are pointed at this Secret.
+  name: ""
+  annotations: {}
+  # username -> password. Each key becomes a Secret data key. Values must be
+  # strings: quote anything YAML would read as a number or boolean. Every user
+  # in cluster.spec.users that reads this Secret must have an entry (or one per
+  # passwordSecret.keys entry); the render fails otherwise. Keep real passwords
+  # out of committed values files.
+  passwords: {}
+# Extra Kubernetes objects rendered with the release (for example a ConfigMap
+# or Secret the ValkeyCluster references). A map, so each key can be overridden
+# per environment; set a key to null to drop an inherited entry. Each value is
+# either an object or a multi-line string, and is rendered through tpl, so it
+# may use Helm templates. No namespace is injected: set metadata.namespace if
+# the object must not use the release namespace. Entries render in key order.
+# Object entries are converted to YAML before tpl runs, so a value substituted
+# inside quotes must not contain that quote character; for such values use the
+# string form and `| quote` (see README).
+# Example:
+#   extraObjects:
+#     settings:
+#       apiVersion: v1
+#       kind: ConfigMap
+#       metadata:
+#         name: '{{ include "valkey-resources.fullname" . }}-settings'
+#       data:
+#         release: '{{ .Release.Name }}'
+extraObjects: {}

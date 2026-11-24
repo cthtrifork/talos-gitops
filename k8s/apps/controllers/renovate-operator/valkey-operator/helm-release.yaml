@@ -1,0 +1,29 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: valkey-operator
+  namespace: renovate-system
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: valkey-operator
+  install:
+    crds: Create
+  upgrade:
+    crds: CreateReplace
+  values:
+    fullnameOverride: valkey-operator
+    manager:
+      watchNamespaces:
+        - renovate-system
+    podLabels:
+      prometheus-scrape: "true"
+    metrics:
+      enabled: true
+      port: 8080
+      serviceMonitor:
+        enabled: true
+        labels:
+          release: kube-prometheus-stack
