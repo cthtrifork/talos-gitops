@@ -206,7 +206,9 @@ spec:
         imagePullSecrets:
           - name: github-auth
         securityContext:
-          #fsGroup: 1001 # corrupts image
+          #fsGroup: 1001
+          # Do not set fsGroup. Recursive volume permission changes can
+          # corrupt POSIX metadata in Podman/Buildah image storage.
           seccompProfile:
             type: RuntimeDefault
         volumes:
