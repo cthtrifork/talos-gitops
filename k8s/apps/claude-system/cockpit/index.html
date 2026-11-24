@@ -108,12 +108,28 @@
   /* The right-hand value (time, count, version) keeps its natural width and drops below the text as a whole when the row is tight.
      It only wraps when it is wider than the row itself. */
   ul.rows li > :not(.l) { flex: none; width: max-content; max-width: 100%; margin-left: auto; text-align: right; overflow-wrap: anywhere; }
+  .hardware-band { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
+  .hardware-band .panel { margin-bottom: 0; }
+  .hardware-band .panel-head { flex-wrap: wrap; }
+  @media (min-width: 900px) {
+    .hardware-band { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr); }
+  }
   .hardware-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
-  .hardware-table caption { text-align: left; font-weight: 650; overflow-wrap: anywhere; }
-  .hardware-table th, .hardware-table td { text-align: right; padding: 3px 2px; white-space: nowrap; }
+  .hardware-table th, .hardware-table td { text-align: right; padding: 4px; white-space: nowrap; }
   .hardware-table th:first-child { text-align: left; }
-  .compute th:first-child { white-space: normal; overflow-wrap: anywhere; }
   .hardware-table thead { color: var(--ink-2); border-bottom: 1px solid var(--grid); }
+  .hardware-table .hardware-now { font-weight: 700; color: var(--ink); }
+  .hardware-table .hardware-history { color: var(--ink-2); }
+  .hardware-table .hardware-node { padding: 8px 4px 3px; overflow-wrap: anywhere; white-space: normal; }
+  .hardware-table tbody + tbody, .compute tr + tr { border-top: 1px solid var(--grid); }
+  .hardware-table .reading { display: inline-block; padding: 1px 4px; border-radius: 4px; }
+  .hardware-table .reading.warn { background: var(--warn-bg); font-weight: 700; }
+  .hardware-table .reading.bad { background: var(--bad-bg); font-weight: 700; }
+  .hardware-note { color: var(--ink-2); font-size: var(--fs-sm); }
+  .compute th:first-child { white-space: normal; overflow-wrap: anywhere; }
+  .compute td { width: 28%; }
+  .compute strong.ok { color: var(--ink); }
+  .compute td .bar { height: 4px; margin: 3px 0 2px; }
   .bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; display: flex; }
   .bar i { display: block; height: 100%; }
   .spark { width: 100%; height: 44px; display: block; }
@@ -433,22 +449,22 @@ const HardwarePanel = (d, nodes, warning, setWindow) => {
   const title = "Hardware temperatures";
   const toggle = html`<div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((d.hardware_window || hardwareWindow()) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>`;
   const partial = nodes.some(({ rows }) => rows.some((row) => row.partial));
-  return Panel({ title, state: warning?.state ?? "ok", text: warning ? "threshold exceeded" : undefined, d }, html`
+  return Panel({ title, state: warning?.state ?? "ok", text: warning?.text, d }, html`
     ${toggle}
-    ${nodes.length ? nodes.map(({ node, rows }) => html`
-      <table class="hardware-table">
-        <caption class="mono">${node}</caption>
-        <thead><tr><th scope="col">Sensor</th><th scope="col">Current</th><th scope="col">Min</th><th scope="col">Max</th></tr></thead>
-        <tbody>${rows.map(({ name, cells, partial }) => html`
-          <tr><th scope="row">${name}${partial ? html`<sup aria-label="Partial history">*</sup>` : nothing}</th>
-          ${cells.map(({ value, violation }) => Number.isFinite(value)
-            ? html`<td class=${violation?.state ?? nothing} title=${violation ? `${value}°C, ${violation.text}` : nothing} aria-label=${violation ? `${value}°C, ${violation.text}` : nothing}>${violation ? html`<strong aria-hidden="true">!</strong> ` : nothing}${Number(value.toFixed(1))}°C</td>`
-            : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`)}
-          </tr>`)}
-        </tbody>
-      </table>`) : Muted(d.hardware_temperatures ? "No nodes reported by Prometheus." : "Temperature data unavailable.")}
-    ${nodes.some(({ rows }) => rows.some((row) => row.cells.some((cell) => !Number.isFinite(cell.value)))) ? Muted("— Unavailable") : nothing}
-    ${partial ? Muted("* Partial history. Min and max use available samples.") : nothing}
+    ${nodes.length ? html`
+      <table class="hardware-table" aria-label="Temperatures by node and sensor">
+        <thead><tr><th scope="col">Sensor</th><th scope="col" class="hardware-now">Current</th><th scope="col">Min</th><th scope="col">Max</th></tr></thead>
+        ${nodes.map(({ node, rows }) => html`<tbody>
+          <tr><th scope="rowgroup" colspan="4" class="mono hardware-node">${node}</th></tr>
+          ${rows.map(({ name, cells, partial }) => html`
+            <tr><th scope="row">${name}${partial ? html`<sup aria-label="Partial history">*</sup>` : nothing}</th>
+            ${cells.map(({ stat, value, violation }) => Number.isFinite(value)
+              ? html`<td class=${stat === "current" ? "hardware-now" : "hardware-history"}><span class=${"reading " + (violation?.state ?? "")} title=${violation?.text ?? nothing} aria-label=${violation ? `${value}°C, ${violation.text}` : nothing}>${violation ? html`<span aria-hidden="true">${violation.text.startsWith("Low") ? "↓" : "↑"}</span> ` : nothing}${Number(value.toFixed(1))}°C</span></td>`
+              : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`)}
+            </tr>`)}
+        </tbody>`)}
+      </table>` : Muted(d.hardware_temperatures ? "No nodes reported by Prometheus." : "Temperature data unavailable.")}
+    ${partial ? html`<span class="hardware-note">* Partial history. Min and max use available samples.</span>` : nothing}
   `);
 };
 
@@ -557,14 +573,14 @@ function nodeRows(d) {
   for (const x of d.var_size) if (avail.has(x.node)) row(x.node, "Ephemeral /var", avail.get(x.node), x.bytes);
   const free = new Map(d.vg_free.map((x) => [x.node + "/" + x.name, x.bytes]));
   for (const x of d.vg_total) if (free.has(x.node + "/" + x.name)) row(x.node, x.name, free.get(x.node + "/" + x.name), x.bytes);
-  return [...by].map(([node, rows]) => ({ node, rows, max: Math.max(...rows.map((r) => r.pct)) })).sort((a, b) => b.max - a.max || compare(a.node, b.node));
+  return [...by].map(([node, rows]) => ({ node, rows, max: Math.max(...rows.map((r) => r.pct)) })).sort((a, b) => compare(a.node, b.node));
 }
 
 const NodesPanel = (d) => {
   const title = "Nodes";
   const nodes = nodeRows(d);
   if (!nodes) return Unavailable({ title, source: "Prometheus · node_filesystem_*, lvm_vg_*", d });
-  const max = nodes.length ? nodes[0].max : 0;
+  const max = Math.max(0, ...nodes.map((n) => n.max));
   return Panel({ title, state: usedState(max, 85), text: max >= 85 ? "disk over 85% full" : "disk over 75% full", d }, html`
     ${nodes.map((n) => html`<div class="vm">
       <div class="vm-head"><strong class="row-st" data-st=${usedState(n.max, 85)}>${n.node}</strong></div>
@@ -576,14 +592,14 @@ const NodesPanel = (d) => {
 const ComputePanel = (d) => {
   const title = "Compute";
   if (!d.compute) return Unavailable({ title, source: "Prometheus · node CPU and memory metrics", d });
-  const percent = (value) => Number.isFinite(value)
-    ? html`<td>${Math.round(value)}%</td>`
+  const percent = (label, value) => Number.isFinite(value)
+    ? html`<td><strong class=${usedState(value, 90)}>${Math.round(value)}%</strong>${Bar({ label: `${label}, ${Math.round(value)} percent`, parts: [{ pct: value, color: usedColor(value, 90) }] })}</td>`
     : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`;
   return Panel({ title, state: "ok", d }, html`
     ${d.compute.length ? html`<table class="hardware-table compute">
       <thead><tr><th scope="col">Node</th><th scope="col">CPU</th><th scope="col">Memory</th></tr></thead>
-      <tbody>${d.compute.map((n) => html`<tr><th scope="row">${n.node}</th>${percent(n.cpu)}${percent(n.memory)}</tr>`)}</tbody>
-    </table>${Muted("CPU over 5 minutes · memory in use")}` : Muted("No nodes reported by Prometheus.")}
+      <tbody>${d.compute.map((n) => html`<tr><th scope="row">${n.node}</th>${percent("CPU", n.cpu)}${percent("Memory", n.memory)}</tr>`)}</tbody>
+    </table><span class="hardware-note">CPU over 5 minutes · memory in use</span>` : Muted("No nodes reported by Prometheus.")}
   `);
 };
 
@@ -750,9 +766,9 @@ const Strip = (d, hardwareWarning) => {
   return html`<nav class="strip" aria-label="Overall status, each item jumps to its panel">${shown.length ? shown.map(Chip) : Chip({ state: "ok", text: "All healthy" })}</nav>`;
 };
 
-const Section = ({ id, title }, children) => html`<section aria-labelledby=${"h-" + id}>
+const Section = ({ id, title, layout = "band" }, children) => html`<section aria-labelledby=${"h-" + id}>
   <h2 id=${"h-" + id}>${title}</h2>
-  <div class="band">${children}</div>
+  <div class=${layout}>${children}</div>
 </section>`;
 
 // ---- The page: an element that renders into itself (no shadow root), so the page's stylesheet applies ----
@@ -841,7 +857,7 @@ class CockpitApp extends LitElement {
       ${d ? html`${Strip(d, hardwareWarning)}
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
         ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}`)}
-        ${Section({ id: "hardware", title: "Cluster hardware" }, html`${NodesPanel(d)}${HardwarePanel(d, hardware, hardwareWarning, (v) => this.setHardwareWindow(v))}${ComputePanel(d)}`)}
+        ${Section({ id: "hardware", title: "Cluster hardware", layout: "hardware-band" }, html`${NodesPanel(d)}${HardwarePanel(d, hardware, hardwareWarning, (v) => this.setHardwareWindow(v))}${ComputePanel(d)}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;
   }
