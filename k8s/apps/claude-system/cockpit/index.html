@@ -108,6 +108,11 @@
   /* The right-hand value (time, count, version) keeps its natural width and drops below the text as a whole when the row is tight.
      It only wraps when it is wider than the row itself. */
   ul.rows li > :not(.l) { flex: none; width: max-content; max-width: 100%; margin-left: auto; text-align: right; overflow-wrap: anywhere; }
+  .temperatures { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+  .temperatures caption { text-align: left; font-weight: 650; overflow-wrap: anywhere; }
+  .temperatures th, .temperatures td { text-align: right; padding: 3px 2px; white-space: nowrap; }
+  .temperatures th:first-child { text-align: left; }
+  .temperatures thead { color: var(--ink-2); border-bottom: 1px solid var(--grid); }
   .bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; display: flex; }
   .bar i { display: block; height: 100%; }
   .spark { width: 100%; height: 44px; display: block; }
@@ -256,13 +261,14 @@ function usageBlock(s, now) {
 }
 
 // The chips of the strip: one per panel that has a verdict, worst first.
-function stripChips(d) {
+function stripChips(d, hardwareWarning) {
   const chips = [];
   const add = (state, text, panel) => chips.push({ state, text, href: panel });
   if (d.alerts) {
     const n = d.alerts.length;
     add(n ? (d.alerts.some(isCritical) ? "bad" : "warn") : "ok", n ? `${n} ${n === 1 ? "alert" : "alerts"} firing` : "No alerts firing", "p-firing-alerts");
   }
+  if (hardwareWarning) add(hardwareWarning.state, hardwareWarning.text, "p-hardware-temperatures");
   if (d.flux_ks || d.flux_hr) {
     const t = fluxTotals(d);
     if (t.failed) add("bad", `Flux: ${t.failed} failed`, "p-flux-reconciliation");
@@ -381,6 +387,68 @@ const DropsPanel = (d) => {
     <div class="big num">${total}<small> packets denied</small></div>
     ${series.length > 1 && total !== 0 ? Sparkline(series) : nothing}
     ${top.length > 0 ? Rows(top.map((t) => ({ title: `${t.source} → ${t.destination}`, right: html`<span class="num muted">${t.count}</span>` }))) : nothing}`);
+};
+
+const HARDWARE_WINDOWS = ["24h", "7d", "30d"];
+const hardwareWindow = () => {
+  const saved = localStorage.getItem("cockpit.hardware");
+  return HARDWARE_WINDOWS.includes(saved) ? saved : "24h";
+};
+const HARDWARE_COMPONENTS = [
+  { driver: "coretemp", name: "CPU", warn: 80, critical: 95 },
+  { driver: "nvme", name: "NVMe", warn: 65, critical: 75 },
+  { driver: "spd5118", name: "RAM", warn: 70, critical: 85 },
+];
+function temperatureViolation(value, stat, component) {
+  if (!Number.isFinite(value)) return null;
+  if (stat !== "max" && value < 5) return { state: "warn", text: "Low temperature" };
+  if (stat !== "min" && value > component.critical) return { state: "bad", text: "Critical high temperature" };
+  if (stat !== "min" && value > component.warn) return { state: "warn", text: "High temperature" };
+  return null;
+}
+function hardwareRows(d) {
+  return (d.hardware_temperatures || []).map(({ node, sensors }) => ({
+    node,
+    rows: HARDWARE_COMPONENTS.map((component) => {
+      const stats = Object.fromEntries(sensors.filter((s) => s.component === component.driver).map((s) => [s.stat, s.value]));
+      const cells = ["current", "min", "max"].map((stat) => ({
+        stat, value: stats[stat], violation: temperatureViolation(stats[stat], stat, component),
+      }));
+      return { name: component.name, cells, partial: Number.isFinite(stats.coverage) && stats.coverage < 0.95 };
+    }),
+  }));
+}
+function hardwareWarnings(nodes) {
+  const cells = nodes.flatMap(({ rows }) => rows.flatMap((row) => row.cells));
+  const violations = cells.filter((cell) => cell.violation);
+  if (!violations.length) return null;
+  const critical = violations.some((cell) => cell.violation.state === "bad");
+  const worst = violations.filter((cell) => cell.violation.state === (critical ? "bad" : "warn"));
+  const text = critical ? "Critical temperature" : "Temperature warning";
+  return { state: critical ? "bad" : "warn", text: worst.some((cell) => cell.stat === "current") ? text : text + " in history" };
+}
+
+const HardwarePanel = (d, nodes, warning, setWindow) => {
+  const title = "Hardware temperatures";
+  const toggle = html`<div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((d.hardware_window || hardwareWindow()) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>`;
+  const partial = nodes.some(({ rows }) => rows.some((row) => row.partial));
+  return Panel({ title, state: warning?.state ?? "ok", text: warning ? "threshold exceeded" : undefined, d }, html`
+    ${toggle}
+    ${nodes.length ? nodes.map(({ node, rows }) => html`
+      <table class="temperatures">
+        <caption class="mono">${node}</caption>
+        <thead><tr><th scope="col">Sensor</th><th scope="col">Current</th><th scope="col">Min</th><th scope="col">Max</th></tr></thead>
+        <tbody>${rows.map(({ name, cells, partial }) => html`
+          <tr><th scope="row">${name}${partial ? html`<sup aria-label="Partial history">*</sup>` : nothing}</th>
+          ${cells.map(({ value, violation }) => Number.isFinite(value)
+            ? html`<td class=${violation?.state ?? nothing} title=${violation ? `${value}°C, ${violation.text}` : nothing} aria-label=${violation ? `${value}°C, ${violation.text}` : nothing}>${violation ? html`<strong aria-hidden="true">!</strong> ` : nothing}${Number(value.toFixed(1))}°C</td>`
+            : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`)}
+          </tr>`)}
+        </tbody>
+      </table>`) : Muted(d.hardware_temperatures ? "No nodes reported by Prometheus." : "Temperature data unavailable.")}
+    ${nodes.some(({ rows }) => rows.some((row) => row.cells.some((cell) => !Number.isFinite(cell.value)))) ? Muted("— Unavailable") : nothing}
+    ${partial ? Muted("* Partial history. Min and max use available samples.") : nothing}
+  `);
 };
 
 const AlertsPanel = (d) => {
@@ -661,8 +729,8 @@ const ElevatePanel = (d) => {
 const Chip = ({ state, text, href }) =>
   href ? html`<a class=${"pill " + state} href=${"#" + href}>${text}</a>` : html`<span class=${"pill " + state}>${text}</span>`;
 
-const Strip = (d) => {
-  const shown = stripChips(d).filter((c) => c.state !== "ok");
+const Strip = (d, hardwareWarning) => {
+  const shown = stripChips(d, hardwareWarning).filter((c) => c.state !== "ok");
   // Healthy chips stay hidden; "All healthy" only keeps the strip from being empty when nothing needs a look.
   return html`<nav class="strip" aria-label="Overall status, each item jumps to its panel">${shown.length ? shown.map(Chip) : Chip({ state: "ok", text: "All healthy" })}</nav>`;
 };
@@ -691,7 +759,7 @@ class CockpitApp extends LitElement {
       const ctl = (this._inflight = new AbortController());
       const timer = setTimeout(() => ctl.abort(), 20000);
       try {
-        const r = await fetch("api/v1/status?drops=" + dropsWindow(), { signal: ctl.signal });
+        const r = await fetch("api/v1/status?drops=" + dropsWindow() + "&hardware=" + hardwareWindow(), { signal: ctl.signal });
         if (!r.ok) throw new Error("HTTP " + r.status);
         const d = await r.json();
         this.d = d;
@@ -715,6 +783,7 @@ class CockpitApp extends LitElement {
   }
   createRenderRoot() { return this; }
   setDrops(v) { localStorage.setItem("cockpit.drops", v); this.load(); }
+  setHardwareWindow(v) { localStorage.setItem("cockpit.hardware", v); this.load(); }
   connectedCallback() {
     super.connectedCallback();
     this._poll = setInterval(() => { if (!document.hidden) this.load(); }, REFRESH_MS);
@@ -736,6 +805,8 @@ class CockpitApp extends LitElement {
   }
   render() {
     const { d, loadedAt, error } = this;
+    const hardware = d ? hardwareRows(d) : [];
+    const hardwareWarning = hardwareWarnings(hardware);
     const failedSources = Object.keys(d?.meta?.workflow?.failed || {});
     const banner = error
       ? `The cockpit could not be reached (${error}). Showing the last data, if any.`
@@ -752,9 +823,10 @@ class CockpitApp extends LitElement {
         <div class="hdr-r">${updated}<button type="button" id="refresh" @click=${this.load}>Refresh</button></div>
       </header>
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
-      ${d ? html`${Strip(d)}
+      ${d ? html`${Strip(d, hardwareWarning)}
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
-        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}${NodesPanel(d)}`)}
+        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}`)}
+        ${Section({ id: "hardware", title: "Homelab hardware" }, html`${NodesPanel(d)}${HardwarePanel(d, hardware, hardwareWarning, (v) => this.setHardwareWindow(v))}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;
   }
