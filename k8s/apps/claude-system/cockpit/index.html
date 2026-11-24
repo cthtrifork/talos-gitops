@@ -496,6 +496,7 @@ function Trend({ title, data, labels, end, duration, step, unit, window }) {
 
 const HardwarePanel = (d, nodes, warning, pendingWindow, setWindow) => {
   const title = "Temperatures";
+  if (!d.hardware_temperatures) return Unavailable({ title, source: "Prometheus · node hardware temperature metrics", d });
   const win = d.hardware_window || hardwareWindow();
   const [duration, step] = TEMPERATURE_RANGES[win] || TEMPERATURE_RANGES["24h"];
   const toggle = html`<div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((pendingWindow || win) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>`;
