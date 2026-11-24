@@ -28,6 +28,8 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      annotations:
+        trust.portableinfo.cloud/inject: "false"
       labels:
         app.kubernetes.io/component: api-server
         app.kubernetes.io/instance: dependency-track

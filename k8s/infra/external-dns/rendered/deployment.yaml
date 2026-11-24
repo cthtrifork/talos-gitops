@@ -26,6 +26,8 @@ spec:
       labels:
         app.kubernetes.io/name: external-dns
         app.kubernetes.io/instance: external-dns
+      annotations:
+        trust.portableinfo.cloud/public: "true"
     spec:
       automountServiceAccountToken: true
       serviceAccountName: external-dns

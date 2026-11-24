@@ -54,3 +54,5 @@ spec:
       enabled: false
     deploymentAnnotations:
       reloader.stakater.com/auto: "true"
+    podAnnotations:
+      trust.portableinfo.cloud/public: "true" # api.cloudflare.com

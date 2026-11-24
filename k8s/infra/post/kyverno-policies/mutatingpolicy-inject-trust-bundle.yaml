@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/mutatingpolicy_v1.json
 # Mounts the trust-manager CA bundle into every container of a new Pod (docs/security.md, "Trust bundle injection").
 #
-# Pod annotations:
+# Pod annotations (a label of the same name works too, for pods whose owner cannot set annotations, e.g. RenovateJob):
 #   trust.portableinfo.cloud/inject: "false"  opts the pod out
 #   trust.portableinfo.cloud/public: "true"   mounts portableinfo-ca-bundle (public + internal CAs) instead of
 #                                             portableinfo-internal-ca-bundle (internal root CA only)
@@ -53,17 +53,14 @@ spec:
     - name: rollout-stage
       expression: >-
         ${TRUST_INJECT_ENFORCE:=false} ||
-        (has(object.metadata.annotations) && "trust.portableinfo.cloud/inject" in object.metadata.annotations &&
-          object.metadata.annotations["trust.portableinfo.cloud/inject"] == "true")
+        object.metadata.?annotations["trust.portableinfo.cloud/inject"].orValue(object.metadata.?labels["trust.portableinfo.cloud/inject"].orValue("")) == "true"
     - name: not-opted-out
       expression: >-
-        !(has(object.metadata.annotations) && "trust.portableinfo.cloud/inject" in object.metadata.annotations &&
-          object.metadata.annotations["trust.portableinfo.cloud/inject"] == "false")
+        object.metadata.?annotations["trust.portableinfo.cloud/inject"].orValue(object.metadata.?labels["trust.portableinfo.cloud/inject"].orValue("")) != "false"
   variables:
     - name: bundle
       expression: >-
-        has(object.metadata.annotations) && "trust.portableinfo.cloud/public" in object.metadata.annotations &&
-          object.metadata.annotations["trust.portableinfo.cloud/public"] == "true"
+        object.metadata.?annotations["trust.portableinfo.cloud/public"].orValue(object.metadata.?labels["trust.portableinfo.cloud/public"].orValue("")) == "true"
         ? "portableinfo-ca-bundle" : "portableinfo-internal-ca-bundle"
   mutations:
     # Merge keys: volumes and env by name, volumeMounts by mountPath. An env var or mount the pod already sets for the same

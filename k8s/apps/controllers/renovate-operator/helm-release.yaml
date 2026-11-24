@@ -29,6 +29,8 @@ spec:
     deployment:
       podLabels:
         prometheus-scrape: "true"
+      podAnnotations:
+        trust.portableinfo.cloud/public: "true" # api.github.com
     resources:
       requests:
         cpu: 50m
@@ -74,6 +76,9 @@ spec:
         mode: valkey
       podLabelTemplates:
         renovate-job: "true"
+        # RenovateJob has no pod annotations; the Kyverno policy reads this as a label too. The jobs reach GitHub and
+        # the package registries, so they need the public CAs.
+        trust.portableinfo.cloud/public: "true"
     metrics:
       enabled: true
       serviceMonitor:

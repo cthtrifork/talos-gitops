@@ -49,6 +49,8 @@ spec:
 
     podLabels:
       prometheus-scrape: "true"
+    podAnnotations:
+      trust.portableinfo.cloud/public: "true" # token.actions.githubusercontent.com
 
     serviceAccount:
       automount: false

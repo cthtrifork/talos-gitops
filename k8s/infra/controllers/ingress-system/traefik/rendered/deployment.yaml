@@ -31,6 +31,7 @@ spec:
         prometheus.io/path: /metrics
         prometheus.io/port: "9100"
         prometheus.io/scrape: "true"
+        trust.portableinfo.cloud/public: "true"
       labels:
         app.kubernetes.io/instance: traefik-traefik-system
         app.kubernetes.io/managed-by: Helm

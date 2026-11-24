@@ -23,6 +23,7 @@ spec:
       annotations:
         # one-time roll so the pod reads dependency-track-claude-api-key, which the config CronJob created after the pod started
         dt-key-rev: "1"
+        trust.portableinfo.cloud/public: "true" # api.anthropic.com, github.com, the package registries
     spec:
       serviceAccountName: claude
       terminationGracePeriodSeconds: 30

@@ -136,8 +136,12 @@ one of them read-only into every container and init container of a new Pod, at `
   (cert-manager and trust-manager), `openebs-system`, `metallb-system`, so cluster startup cannot wait on the policy or on a ConfigMap.
   `failurePolicy` is `Ignore`: while Kyverno is down pods are admitted unchanged.
 - Rollout: a MutatingPolicy has no audit action, so the first stage is opt-in. While `TRUST_INJECT_ENFORCE=false` (`k8s/clusters/homelab/cluster-vars.env`)
-  only pods with `inject: "true"` are mutated (zot, trivy-operator). Annotate the workloads that call the internet with `public: "true"`
-  (Renovate, cloudflare and other SaaS clients, ARC controller, external-secrets, ...), then set it to `true`.
+  only pods with `inject: "true"` are mutated (zot, trivy-operator). The workloads that call the internet already carry
+  `public: "true"`, which does nothing until the switch: the ARC controller, Renovate operator and job pods, external-secrets controller, Traefik (its
+  cloudflared sidecar), external-dns, the Dependency-Track VEX export, gha-cache, AdGuard and `claude-rc`. Check Hubble for others
+  (`world` egress in a namespace's network policy) before setting `TRUST_INJECT_ENFORCE` to `true`.
+- Labels of the same name work like annotations, for pods whose owner cannot annotate them: the Renovate job pods get theirs from
+  `podLabelTemplates`. The Dependency-Track api-server (Java, own truststore) is opted out.
 - A subPath mount does not follow the ConfigMap: a bundle change reaches a pod only when it restarts. Put
   `configmap.reloader.stakater.com/reload: portableinfo-internal-ca-bundle` (or `portableinfo-ca-bundle` with `public: "true"`) on the workload
   or its pod template; `reloader.stakater.com/auto` cannot see the injected volume. Reloader only restarts Deployments, StatefulSets and DaemonSets,
