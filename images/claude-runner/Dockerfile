@@ -1,6 +1,6 @@
 # Claude Code self-hosted environment runner (https://code.claude.com/docs/en/self-hosted-environments-deploy).
 # Anthropic publishes no runner image, so this wraps the claude binary. Runs as non-root.
-ARG DEBIAN_IMAGE=debian:bookworm-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
+ARG DEBIAN_IMAGE=debian:bookworm-slim@sha256:e67eeead736ff7bbe258ef088bff683635c561b1fcfefad0806c1df4ab49ce0e
 FROM ${DEBIAN_IMAGE}
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
