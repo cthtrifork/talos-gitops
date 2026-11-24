@@ -85,12 +85,12 @@
         "HelmChart"
       ],
       "matchDepNames": [
-        "/^[$][{]ZOT_MIRROR_[^}]+[}]/(?:[a-zA-Z0-9._-]+/)*/"
+        "${ZOT_MIRROR_*}/**"
       ],
-      "commitMessageTopic": "{{{replace '^.*/' '' depName}}} Helm chart{{#if (or isDigest isPinDigest)}} digest{{/if}}",
+      "commitMessageTopic": "{{#each (split depName '/')}}{{#if @last}}{{{this}}}{{/if}}{{/each}} Helm chart{{#if (or isDigest isPinDigest)}} digest{{/if}}",
       "commitMessageExtra": "to {{#if (or isDigest isPinDigest)}}{{{newDigestShort}}}{{else}}{{{newValue}}}{{/if}}",
       "prBodyDefinitions": {
-        "Package": "{{{replace '[$][{]ZOT_MIRROR_[^}]+[}]/(?:[a-zA-Z0-9._-]+/)*' '' depNameLinked}}}{{#if newName}}{{#unless (equals depName newName)}} → {{{newNameLinked}}}{{/unless}}{{/if}}"
+        "Package": "{{#each (split depName '/')}}{{#if @last}}{{{this}}}{{/if}}{{/each}}{{#if references}} ({{{references}}}){{else}}{{#if dependencyUrl}} ([package]({{{dependencyUrl}}})){{/if}}{{/if}}{{#if newName}}{{#unless (equals depName newName)}} → {{{newNameLinked}}}{{/unless}}{{/if}}"
       }
     },
     {
