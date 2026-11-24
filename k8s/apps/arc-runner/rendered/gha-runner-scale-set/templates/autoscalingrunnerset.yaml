@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 0cd41db27270b3b88f48778ba3d56a2255d43898e8f90db6b85f2bd37620ecb
+    actions.github.com/values-hash: 0f75fc90cb5c2c34baf2128cda46b02c2056c0b73ca33b1a9e11aa44c68d8e3
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -33,6 +33,8 @@ spec:
     metadata:
       labels:
         prometheus-scrape: "true"
+      annotations:
+        trust.portableinfo.cloud/public: "true"
     spec:
       containers:
         - livenessProbe:
@@ -74,6 +76,9 @@ spec:
       kubernetes.io/egress-bandwidth: 300M
       kubernetes.io/ingress-bandwidth: 300M
   template:
+    metadata:
+      annotations:
+        trust.portableinfo.cloud/public: "true"
     spec:
       affinity:
         podAffinity:
@@ -239,8 +244,6 @@ spec:
               value: "true"
             - name: ACTIONS_RESULTS_URL
               value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
-            - name: RUNNER_UPDATE_CA_CERTS
-              value: "1"
             - name: FILESERVER_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -250,9 +253,6 @@ spec:
             - name: FILESERVER_URL
               value: http://fileserver-upload.fileserver-system.svc:8082
           volumeMounts:
-            - mountPath: /usr/local/share/ca-certificates/private-ca.crt
-              name: ca-certs
-              subPath: ca.crt
             - mountPath: /var/lib/containers/storage
               name: container-storage-rootful
             - mountPath: /home/runner/_work
@@ -281,12 +281,6 @@ spec:
             - mountPath: /host-dev
               name: host-dev
       volumes:
-        - configMap:
-            items:
-              - key: ca-bundle.crt
-                path: ca.crt
-            name: portableinfo-ca-bundle
-          name: ca-certs
         - hostPath:
             path: /run/udev
             type: Directory

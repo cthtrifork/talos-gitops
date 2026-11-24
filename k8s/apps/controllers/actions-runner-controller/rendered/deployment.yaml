@@ -26,6 +26,8 @@ spec:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: "manager"
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
+        trust.portableinfo.cloud/public: "true"
       labels:
         app.kubernetes.io/part-of: gha-rs-controller
         app.kubernetes.io/component: controller-manager

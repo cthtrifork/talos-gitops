@@ -34,6 +34,9 @@ spec:
       replicas: 2
       annotations:
         reloader.stakater.com/auto: "true" # restart when the tunnel token Secret changes
+      podAnnotations:
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle # the bundle is injected by Kyverno, invisible to auto
+        trust.portableinfo.cloud/public: "true" # the cloudflared sidecar reaches the Cloudflare edge and api.cloudflare.com
       additionalContainers:
         # not a native sidecar: a missing token restarts only the tunnel, Traefik stays up
         - name: cloudflared

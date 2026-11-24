@@ -28,6 +28,10 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      annotations:
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
+        trust.portableinfo.cloud/java: "true"
+        trust.portableinfo.cloud/public: "true"
       labels:
         app.kubernetes.io/component: api-server
         app.kubernetes.io/instance: dependency-track

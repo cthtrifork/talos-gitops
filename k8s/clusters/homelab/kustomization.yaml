@@ -22,6 +22,7 @@ resources:
   #- gitops-infra-external-dns.yaml
   - gitops-infra-kubevirt.yaml
   - gitops-infra-post.yaml
+  - gitops-infra-kyverno-policies.yaml
   - gitops-infra-post-workloads.yaml
   - app-controllers.yaml
   - app-adguard.yaml

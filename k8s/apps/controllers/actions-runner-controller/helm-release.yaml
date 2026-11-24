@@ -22,6 +22,11 @@ spec:
     image:
       # renovate: datasource=docker depName=ghcr.io/actions/gha-runner-scale-set-controller versioning=docker
       tag: 0.15.1@sha256:4b51a20db717b194e2f3fa96cfe2ddcb21602811f79053c75fd1a383517b9f90
+    # talks to github.com; see "Trust bundle injection" in docs/security.md
+    podAnnotations:
+      # auto only sees volumes in the pod spec, not the bundle that Kyverno injects
+      configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
+      trust.portableinfo.cloud/public: "true"
     serviceAccount:
       create: true
     watchSingleNamespace: arc-runners-system

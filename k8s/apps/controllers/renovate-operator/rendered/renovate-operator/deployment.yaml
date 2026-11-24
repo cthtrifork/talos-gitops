@@ -16,6 +16,9 @@ spec:
       labels:
         app: renovate-operator
         prometheus-scrape: "true"
+      annotations:
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
+        trust.portableinfo.cloud/public: "true"
     spec:
       serviceAccountName: renovate-operator
       securityContext:
@@ -104,7 +107,7 @@ spec:
             - name: GLOBAL_PARALLELISM_LIMIT
               value: "2"
             - name: POD_LABEL_TEMPLATES
-              value: "{\"renovate-job\":\"true\"}"
+              value: "{\"renovate-job\":\"true\",\"trust.portableinfo.cloud/public\":\"true\"}"
             - name: LOG_STORE_MODE
               value: "valkey"
             - name: S3_BUCKET

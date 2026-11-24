@@ -53,7 +53,8 @@ spec:
                         memory: 128Mi
       # OCIRepositories pull through zot, whose certificate is issued by the private CA. trust-manager keeps the ConfigMap in step
       # with that CA. Go reads SSL_CERT_DIR next to its system roots, and the volume is optional so source-controller still
-      # starts before trust-manager (installed from an OCIRepository itself) has created the ConfigMap.
+      # starts before trust-manager (installed from an OCIRepository itself) has created the ConfigMap. This is the one workload that
+      # keeps its own mount instead of the Kyverno injection (flux-system is excluded from the policy, docs/security.md).
       - target:
           kind: Deployment
           name: source-controller

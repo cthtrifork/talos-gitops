@@ -103,6 +103,9 @@ spec:
   dataVolumeTemplates:
     - metadata:
         name: homeserver-vm-rootdisk
+        labels:
+          # DataVolume label -> PVC -> importer pod: gives the importer the public CA bundle for ghcr.io (policy inject-trust-bundle).
+          trust.portableinfo.cloud/public: "true"
       spec:
         source:
           registry:

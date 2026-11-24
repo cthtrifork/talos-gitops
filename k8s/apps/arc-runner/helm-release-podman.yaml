@@ -44,6 +44,10 @@ spec:
     githubConfigSecret: github-auth
     containerMode: {} # no dind, no kubernetes mode
     template:
+      metadata:
+        annotations:
+          # Internal + public CAs (jobs reach the allowlisted internet).
+          trust.portableinfo.cloud/public: "true"
       spec:
         # Same node as the cache server (node-local volume); cross-node transfer is too slow.
         affinity:
@@ -156,8 +160,6 @@ spec:
               # Caches saved by GitHub-hosted jobs are not visible here. The trailing slash is required.
               - name: ACTIONS_RESULTS_URL
                 value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
-              - name: RUNNER_UPDATE_CA_CERTS
-                value: "1"
               # optional: the runner starts before the first sync.
               - name: FILESERVER_TOKEN
                 valueFrom:
@@ -169,9 +171,6 @@ spec:
                 value: http://fileserver-upload.fileserver-system.svc:8082
 
             volumeMounts:
-              - name: ca-certs
-                mountPath: /usr/local/share/ca-certificates/private-ca.crt
-                subPath: ca.crt
               - name: container-storage-rootful
                 mountPath: /var/lib/containers/storage
               - name: work
@@ -212,12 +211,6 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         volumes:
-          - name: ca-certs
-            configMap:
-              name: portableinfo-ca-bundle
-              items:
-                - key: ca-bundle.crt
-                  path: ca.crt
           - name: registries
             configMap:
               name: podman-registries
@@ -307,6 +300,9 @@ spec:
       metadata:
         labels:
           prometheus-scrape: "true"
+        annotations:
+          # talks to github.com
+          trust.portableinfo.cloud/public: "true"
       spec:
         securityContext:
           runAsNonRoot: true

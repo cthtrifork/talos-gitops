@@ -22,6 +22,8 @@ spec:
         metadata:
           labels:
             app.kubernetes.io/name: dependency-track-vex-export # selected by the network policy
+          annotations:
+            trust.portableinfo.cloud/public: "true" # github.com
         spec:
           restartPolicy: Never
           automountServiceAccountToken: false
