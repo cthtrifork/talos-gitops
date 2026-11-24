@@ -1,0 +1,111 @@
+cat > k8s/infra/kube-prometheus-stack/prometheusrule-hardware.yaml <<'EOF'
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: hardware-alerts
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: hardware
+      rules:
+        - alert: NodeCPUTemperatureHigh
+          expr: |
+            max by (instance) (
+              node_hwmon_temp_celsius
+              * on(instance, chip) group_left(chip_name)
+              node_hwmon_chip_names{chip_name="coretemp"}
+            ) > 80
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High CPU temperature on {{ $labels.instance }}
+            description: CPU temperature is {{ $value | printf "%.1f" }}°C.
+
+        - alert: NodeCPUTemperatureCritical
+          expr: |
+            max by (instance) (
+              node_hwmon_temp_celsius
+              * on(instance, chip) group_left(chip_name)
+              node_hwmon_chip_names{chip_name="coretemp"}
+            ) > 95
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: Critical CPU temperature on {{ $labels.instance }}
+            description: CPU temperature is {{ $value | printf "%.1f" }}°C.
+
+        - alert: NodeNVMeTemperatureHigh
+          expr: |
+            max by (instance, chip) (
+              node_hwmon_temp_celsius
+              * on(instance, chip) group_left(chip_name)
+              node_hwmon_chip_names{chip_name="nvme"}
+            ) > 65
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High NVMe temperature on {{ $labels.instance }}
+            description: NVMe temperature is {{ $value | printf "%.1f" }}°C.
+
+        - alert: NodeNVMeTemperatureCritical
+          expr: |
+            max by (instance, chip) (
+              node_hwmon_temp_celsius
+              * on(instance, chip) group_left(chip_name)
+              node_hwmon_chip_names{chip_name="nvme"}
+            ) > 75
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: Critical NVMe temperature on {{ $labels.instance }}
+            description: NVMe temperature is {{ $value | printf "%.1f" }}°C.
+
+        - alert: NodeRAMTemperatureHigh
+          expr: |
+            max by (instance, chip) (
+              node_hwmon_temp_celsius
+              * on(instance, chip) group_left(chip_name)
+              node_hwmon_chip_names{chip_name="spd5118"}
+            ) > 70
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High RAM temperature on {{ $labels.instance }}
+            description: RAM temperature is {{ $value | printf "%.1f" }}°C.
+
+        - alert: NodeRAMTemperatureCritical
+          expr: |
+            max by (instance, chip) (
+              node_hwmon_temp_celsius
+              * on(instance, chip) group_left(chip_name)
+              node_hwmon_chip_names{chip_name="spd5118"}
+            ) > 85
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: Critical RAM temperature on {{ $labels.instance }}
+            description: RAM temperature is {{ $value | printf "%.1f" }}°C.
+
+        - alert: NodeHardwareTemperatureLow
+          expr: |
+            min by (instance, chip, chip_name) (
+              node_hwmon_temp_celsius
+              * on(instance, chip) group_left(chip_name)
+              node_hwmon_chip_names{chip_name=~"coretemp|nvme|spd5118"}
+            ) < 5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Low hardware temperature on {{ $labels.instance }}
+            description: "{{ $labels.chip_name }} temperature is {{ $value | printf \"%.1f\" }}°C."
+EOF
