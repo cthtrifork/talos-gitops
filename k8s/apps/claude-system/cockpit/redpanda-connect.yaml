@@ -381,6 +381,46 @@ processor_resources:
                   "memory": $rows.filter(r -> r.metric.node == n.metric.node && r.metric.resource.or("") == "memory").index(0).value.index(1).number().catch(null)
                 }).sort_by(n -> n.node)
 
+            temperature_trend:
+              request_map: |
+                let end = this.generated_at
+                let window = @hardware_window
+                let duration = if $window == "30d" { 2592000 } else if $window == "7d" { 604800 } else { 86400 }
+                let step = if $window == "30d" { 28800 } else if $window == "7d" { 7200 } else { 900 }
+                let query = """
+                  max by (chip_name) (
+                    node_hwmon_temp_celsius * on (instance, chip) group_left (chip_name)
+                    max by (instance, chip, chip_name) (node_hwmon_chip_names{chip_name=~"coretemp|nvme|spd5118"})
+                  )
+                """
+                meta path = "/api/v1/query_range?query=" + $query.escape_url_query() + "&start=" + ($end - $duration).string() + "&end=" + $end.string() + "&step=" + $step.string()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.temperature_trend = this.data.result.map_each(r -> {
+                  "key": r.metric.chip_name,
+                  "points": r.values.map_each(v -> [v.index(0), v.index(1).number().catch(null)])
+                })
+
+            compute_trend:
+              request_map: |
+                let end = this.generated_at
+                let query = """
+                  label_replace(clamp(max(100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])))), 0, 100), "resource", "cpu", "instance", ".*")
+                  or
+                  label_replace(clamp(max(100 * (1 - node_memory_MemAvailable_bytes / (node_memory_MemTotal_bytes > 0))), 0, 100), "resource", "memory", "instance", ".*")
+                """
+                meta path = "/api/v1/query_range?query=" + $query.escape_url_query() + "&start=" + ($end - 3600).string() + "&end=" + $end.string() + "&step=60"
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.compute_trend = this.data.result.map_each(r -> {
+                  "key": r.metric.resource,
+                  "points": r.values.map_each(v -> [v.index(0), v.index(1).number().catch(null)])
+                })
+
             var_avail:
               request_map: |
                 meta path = "/api/v1/query?query=" + "node_filesystem_avail_bytes{mountpoint=\"/var\"} * on (instance) group_left (node) label_replace(kube_node_info, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\")".escape_url_query()
