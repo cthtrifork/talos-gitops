@@ -185,8 +185,8 @@ spec:
             - spegel
           rules:
             - hostPathSet
-        # ARC runner scale sets (own namespace): the runner and the dind sidecar are privileged by design; the e2e runner calls
-        # sudo (setuid) for update-ca-certificates, so it keeps privilege escalation and default capabilities
+        # ARC runner scale sets (own namespace): the runner and the dind sidecar are privileged by design; the e2e runner keeps
+        # privilege escalation and default capabilities so workflows can use sudo
         - namespace: arc-runners-system
           controllerNames:
             - arc-ubuntu

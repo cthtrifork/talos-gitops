@@ -149,8 +149,12 @@ one of them read-only into every container and init container of a new Pod, at `
   would lose its remote-control session on a restart and picks up a bundle change at its next deliberate restart.
 - An env var or mount the pod already sets for the same name or path is replaced. `NODE_EXTRA_CA_CERTS` adds to Node's built-in public CAs, so Node
   keeps trusting public sites even with the internal bundle. Java and some Go/Python images ignore these paths and need their own handling.
-- The ARC runner and listener pods are injected with `public: "true"`: workflows read `/etc/ssl/certs/ca-certificates.crt`, which now holds the
-  public and internal CAs. The runner manifests no longer mount the CA at `/usr/local/share/ca-certificates` or set `RUNNER_UPDATE_CA_CERTS`.
+- The ARC runner and listener pods (all five scale sets) are injected with `public: "true"`: workflows read `/etc/ssl/certs/ca-certificates.crt`, which now
+  holds the public and internal CAs. The runner manifests no longer mount the CA at `/usr/local/share/ca-certificates` or set `RUNNER_UPDATE_CA_CERTS`.
+  The runner image (`images/github-actions-runner`) needs no change: `run.sh` of actions/runner only calls `sudo update-ca-certificates` when
+  `RUNNER_UPDATE_CA_CERTS` is set (which would fail on the mounted file), the .NET runner and Go tools read `SSL_CERT_FILE`, Node actions read
+  `NODE_EXTRA_CA_CERTS`, and git, curl and podman use `/etc/ssl/certs/ca-certificates.crt`. Not covered: Python (certifi, set `REQUESTS_CA_BUNDLE`),
+  a JDK's own `cacerts` and `/etc/ssl/certs/*.pem` hash links (the old `update-ca-certificates` run added the CA to those).
 - Flux is the deliberate exception. `flux-system` is excluded, and the FluxInstance patch (`k8s/clusters/homelab/flux-instance.yaml`) mounts
   `portableinfo-ca-bundle` into source-controller as an optional directory volume read through `SSL_CERT_DIR`. Trust-manager is itself installed
   from an OCIRepository that source-controller fetches through zot, so a pod that waits for the ConfigMap (a subPath mount of a missing ConfigMap

@@ -38,6 +38,11 @@ spec:
     githubConfigSecret: github-auth-bootc-files
     containerMode: {}
     template:
+      metadata:
+        annotations:
+          # Public + internal CAs: the runner talks to github.com, and the injected default would be the internal-only bundle.
+          trust.portableinfo.cloud/inject: "true"
+          trust.portableinfo.cloud/public: "true"
       spec:
         containers:
           - name: runner
@@ -95,6 +100,10 @@ spec:
       metadata:
         labels:
           prometheus-scrape: "true"
+        annotations:
+          # talks to github.com
+          trust.portableinfo.cloud/inject: "true"
+          trust.portableinfo.cloud/public: "true"
       spec:
         securityContext:
           runAsNonRoot: true
