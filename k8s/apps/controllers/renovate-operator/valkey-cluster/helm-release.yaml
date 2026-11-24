@@ -27,6 +27,11 @@ spec:
         has(c.observedGeneration) && c.observedGeneration == metadata.generation)
   values:
     fullnameOverride: renovate
+    metrics:
+      podMonitor:
+        enabled: true
+        labels:
+          release: kube-prometheus-stack
     cluster:
       spec:
         shards: 3
@@ -52,5 +57,31 @@ spec:
             memory: 64Mi
           limits:
             memory: 512Mi
+        podMetadata:
+          labels:
+            prometheus-scrape: "true"
+        podSecurityContext:
+          fsGroup: 56849
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+          - name: server
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - ALL
+              readOnlyRootFilesystem: true
+              runAsUser: 56849
+              runAsGroup: 56849
         exporter:
-          enabled: false
+          enabled: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsUser: 56850
+            runAsGroup: 56850

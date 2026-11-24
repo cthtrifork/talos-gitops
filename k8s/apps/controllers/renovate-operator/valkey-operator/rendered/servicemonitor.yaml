@@ -1,0 +1,25 @@
+---
+# Source: valkey-operator/templates/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: valkey-operator-metrics
+  namespace: renovate-system
+  labels:
+    helm.sh/chart: valkey-operator-0.9.0
+    app.kubernetes.io/name: valkey-operator
+    app.kubernetes.io/instance: valkey-operator
+    app.kubernetes.io/version: "v0.9.0"
+    app.kubernetes.io/managed-by: Helm
+    release: kube-prometheus-stack
+spec:
+  endpoints:
+    - port: http
+      honorLabels: false
+  namespaceSelector:
+    matchNames:
+      - renovate-system
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: valkey-operator
+      app.kubernetes.io/instance: valkey-operator

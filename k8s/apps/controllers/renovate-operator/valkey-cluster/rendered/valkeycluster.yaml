@@ -18,9 +18,35 @@ spec:
         password:
           type: Any
         permissions: ~* &* +@all
+  containers:
+    - name: server
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+        runAsGroup: 56849
+        runAsUser: 56849
   exporter:
-    enabled: false
+    enabled: true
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      readOnlyRootFilesystem: true
+      runAsGroup: 56850
+      runAsUser: 56850
   image: mirror.gcr.io/valkey/valkey:9.2.0@sha256:1c2b25b09f354c66fe994733acdf12fcfd4bdf6f3bd92b88a93a70378d884056
+  podMetadata:
+    labels:
+      prometheus-scrape: "true"
+  podSecurityContext:
+    fsGroup: 56849
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   replicasPerShard: 1
   resources:
     limits:

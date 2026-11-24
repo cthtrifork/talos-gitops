@@ -18,5 +18,12 @@ spec:
     manager:
       watchNamespaces:
         - renovate-system
+    podLabels:
+      prometheus-scrape: "true"
     metrics:
-      enabled: false
+      enabled: true
+      port: 8080
+      serviceMonitor:
+        enabled: true
+        labels:
+          release: kube-prometheus-stack

@@ -27,6 +27,7 @@ spec:
         app.kubernetes.io/name: valkey-operator
         app.kubernetes.io/instance: valkey-operator
         control-plane: controller-manager
+        prometheus-scrape: "true"
     spec:
       serviceAccountName: valkey-operator
       terminationGracePeriodSeconds: 30
@@ -43,11 +44,15 @@ spec:
           args:
             - --leader-elect
             - --health-probe-bind-address=:8081
-            - --metrics-bind-address=0
+            - --metrics-bind-address=:8080
+            - --metrics-secure=false
             - --watch-namespace=renovate-system
             - --default-valkey-image=valkey/valkey:9.0.0
             - --default-exporter-image=oliver006/redis_exporter:v1.88.0
           ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
             - name: health
               containerPort: 8081
               protocol: TCP
