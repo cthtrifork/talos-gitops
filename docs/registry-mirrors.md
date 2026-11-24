@@ -113,9 +113,9 @@ unchanged.
   there makes every Flux Kustomization substitute from it (optional), so a new OCIRepository needs no wiring. A new upstream registry needs a
   variable of its own in that file and an alias in `renovate.json5`.
 - **Without zot:** zot, Cilium and cert-manager come from OCIRepositories too, so a cluster rebuilt from empty cannot pull them from a zot that
-  does not exist yet. Comment the variables out in `cluster-vars.env` for the first sync (including `TRUST_INJECT`, the switch of the Kyverno
-  trust bundle injection), wait until `gitops-infra-registry-system` is Ready, then restore them (the same gets you past a zot that cannot start). The controllers' world-egress policy keeps ghcr.io and quay.io for that
-  case. On a running cluster a zot outage only holds back new chart versions, because source-controller keeps the artifacts it fetched.
+  does not exist yet. Comment the variables out in `cluster-vars.env` for the first sync (including `TRUST_INJECT`, the Kyverno trust bundle
+  switch), wait until `gitops-infra-registry-system` is Ready, then restore them (this also gets you past a zot that cannot start). The
+  controllers' world-egress policy keeps ghcr.io and quay.io for that case. On a running cluster a zot outage only holds back new chart versions, because source-controller keeps the artifacts it fetched.
 - **Mirrored charts:** polaris, metrics-server and Redpanda `connect` have no upstream OCI chart.
   `.github/workflows/helm-chart-sync.yaml` (configs in `scripts/ci/helm/`) copies them to `ghcr.io/cthtrifork/talos-gitops/charts`, and they are
   read from there through `ghcr-cache`. A new version appears in Git only after the sync has pushed it.
