@@ -33,7 +33,7 @@ ARG ACTIONLINT_VERSION=1.7.12
 # renovate: datasource=pypi depName=yamllint
 ARG YAMLLINT_VERSION=1.38.0
 # renovate: datasource=github-releases depName=siderolabs/talos
-ARG TALOSCTL_VERSION=1.14.6
+ARG TALOSCTL_VERSION=1.14.7
 # renovate: datasource=github-releases depName=siderolabs/omni
 ARG OMNICTL_VERSION=1.14.0
 
