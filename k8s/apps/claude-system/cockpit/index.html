@@ -108,9 +108,37 @@
   /* The right-hand value (time, count, version) keeps its natural width and drops below the text as a whole when the row is tight.
      It only wraps when it is wider than the row itself. */
   ul.rows li > :not(.l) { flex: none; width: max-content; max-width: 100%; margin-left: auto; text-align: right; overflow-wrap: anywhere; }
+  .hardware-band { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
+  .hardware-band .panel { margin-bottom: 0; }
+  .hardware-band .panel-head { flex-wrap: wrap; }
+  .hardware-band .panel-head .pill { white-space: normal; }
+  @media (min-width: 900px) {
+    .hardware-band { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); }
+  }
+  .hardware-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+  .hardware-table th, .hardware-table td { text-align: right; padding: 4px; white-space: nowrap; }
+  .hardware-table th:first-child { text-align: left; }
+  .hardware-table thead { color: var(--ink-2); border-bottom: 1px solid var(--grid); }
+  .hardware-table .hardware-now { font-weight: 700; color: var(--ink); }
+  .hardware-table .hardware-history { color: var(--ink-2); }
+  .hardware-table .hardware-node { padding: 8px 4px 3px; overflow-wrap: anywhere; white-space: normal; }
+  .hardware-table tbody + tbody, .compute tr + tr { border-top: 1px solid var(--grid); }
+  .hardware-table .reading { display: inline-block; padding: 1px 4px; border-radius: 4px; }
+  .hardware-table .reading.warn { background: var(--warn-bg); font-weight: 700; }
+  .hardware-table .reading.bad { background: var(--bad-bg); font-weight: 700; }
+  .hardware-note { color: var(--ink-2); font-size: var(--fs-sm); }
+  .compute th:first-child { white-space: normal; overflow-wrap: anywhere; }
+  .compute td { width: 28%; }
+  .compute strong.ok { color: var(--ink); }
+  .compute td .bar { height: 4px; margin: 3px 0 2px; }
   .bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; display: flex; }
   .bar i { display: block; height: 100%; }
   .spark { width: 100%; height: 44px; display: block; }
+  .trend { margin: 0; display: grid; gap: 4px; }
+  .trend-plot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; align-items: stretch; }
+  .trend-plot .spark { height: 52px; }
+  .trend-time { grid-column: 2; display: flex; justify-content: space-between; color: var(--ink-2); font-size: var(--fs-sm); }
+  .trend-scale { display: flex; flex-direction: column; justify-content: space-between; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1; text-align: right; }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-sm); color: var(--ink-2); }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
   .limit { display: flex; flex-direction: column; gap: 6px; }
@@ -154,7 +182,7 @@
 }
 </script>
 <script type="module">
-import { LitElement, html, nothing } from "lit";
+import { LitElement, html, nothing, svg } from "lit";
 import { Cron } from "croner";
 
 const REFRESH_MS = 60000;
@@ -256,13 +284,14 @@ function usageBlock(s, now) {
 }
 
 // The chips of the strip: one per panel that has a verdict, worst first.
-function stripChips(d) {
+function stripChips(d, hardwareWarning) {
   const chips = [];
   const add = (state, text, panel) => chips.push({ state, text, href: panel });
   if (d.alerts) {
     const n = d.alerts.length;
     add(n ? (d.alerts.some(isCritical) ? "bad" : "warn") : "ok", n ? `${n} ${n === 1 ? "alert" : "alerts"} firing` : "No alerts firing", "p-firing-alerts");
   }
+  if (hardwareWarning) add(hardwareWarning.state, hardwareWarning.text, "p-temperatures");
   if (d.flux_ks || d.flux_hr) {
     const t = fluxTotals(d);
     if (t.failed) add("bad", `Flux: ${t.failed} failed`, "p-flux-reconciliation");
@@ -383,6 +412,116 @@ const DropsPanel = (d) => {
     ${top.length > 0 ? Rows(top.map((t) => ({ title: `${t.source} → ${t.destination}`, right: html`<span class="num muted">${t.count}</span>` }))) : nothing}`);
 };
 
+const HARDWARE_WINDOWS = ["24h", "7d", "30d"];
+const hardwareWindow = () => {
+  const saved = localStorage.getItem("cockpit.hardware");
+  return HARDWARE_WINDOWS.includes(saved) ? saved : "24h";
+};
+const HARDWARE_COMPONENTS = [
+  { driver: "coretemp", name: "CPU", warn: 80, critical: 95 },
+  { driver: "nvme", name: "NVMe", warn: 65, critical: 75 },
+  { driver: "spd5118", name: "RAM", warn: 70, critical: 85 },
+];
+const temperatureText = (value) => `${Number(value.toFixed(1))}°C`;
+function temperatureViolation(value, stat, component) {
+  if (!Number.isFinite(value)) return null;
+  if (stat !== "max" && value < 5) return { state: "warn", text: "Low temperature", margin: 5 - value };
+  if (stat !== "min" && value > component.critical) return { state: "bad", text: "Critical high temperature", margin: value - component.critical };
+  if (stat !== "min" && value > component.warn) return { state: "warn", text: "High temperature", margin: value - component.warn };
+  return null;
+}
+function hardwareRows(d) {
+  return (d.hardware_temperatures || []).map(({ node, sensors }) => ({
+    node,
+    rows: HARDWARE_COMPONENTS.map((component) => {
+      const stats = Object.fromEntries(sensors.filter((s) => s.component === component.driver).map((s) => [s.stat, s.value]));
+      const cells = ["current", "min", "max"].map((stat) => ({
+        stat, value: stats[stat], violation: temperatureViolation(stats[stat], stat, component),
+      }));
+      return { name: component.name, cells, partial: Number.isFinite(stats.coverage) && stats.coverage < 0.95 };
+    }),
+  }));
+}
+function hardwareWarnings(nodes, window) {
+  const violations = nodes.flatMap(({ node, rows }) => rows.flatMap(({ name, cells }) =>
+    cells.filter((cell) => cell.violation).map((cell) => ({ node, name, ...cell }))));
+  const worst = violations.sort((a, b) =>
+    Number(b.violation.state === "bad") - Number(a.violation.state === "bad")
+    || Number(b.stat === "current") - Number(a.stat === "current")
+    || b.violation.margin - a.violation.margin)[0];
+  if (!worst) return null;
+  const value = temperatureText(worst.value);
+  const text = worst.stat === "current"
+    ? `${worst.name} at ${value} now`
+    : `${worst.name} reached ${value} in ${window}`;
+  return { state: worst.violation.state, text: `${text} · ${worst.node}` };
+}
+
+const TEMPERATURE_RANGES = { "24h": [86400, 900], "7d": [604800, 7200], "30d": [2592000, 28800] };
+const TREND_COLORS = ["var(--accent)", "var(--suspend)", "var(--ok)"];
+const TREND_DASHES = ["none", "5 3", "2 3"];
+
+function Trend({ title, data, labels, end, duration, step, unit, window }) {
+  if (!data) return Muted("Trend unavailable");
+  const start = end - duration;
+  const series = labels.map(([key, name], i) => ({
+    name, color: TREND_COLORS[i], dash: TREND_DASHES[i],
+    points: (data.find((s) => s.key === key)?.points || []).filter(([t, v]) => t >= start && t <= end && Number.isFinite(v)),
+  })).filter((s) => s.points.length);
+  const values = series.flatMap((s) => s.points.map(([, value]) => value));
+  if (!values.length) return Muted("No trend samples in this range");
+  const low = unit === "%" ? 0 : Math.floor((Math.min(...values) - 1) / 5) * 5;
+  const high = unit === "%" ? 100 : Math.ceil((Math.max(...values) + 1) / 5) * 5;
+  const x = (time) => 1 + 238 * (time - start) / duration;
+  const y = (value) => 51 - 50 * (value - low) / (high - low);
+  return html`<figure class="trend">
+    <figcaption class="hardware-note">${title}</figcaption>
+    <div class="trend-plot">
+      <div class="trend-scale" aria-hidden="true"><span>${high}${unit}</span><span>${low}${unit}</span></div>
+      <svg class="spark" viewBox="0 0 240 52" preserveAspectRatio="none" role="img"
+        aria-label=${series.map(({ name, points }) => `${name} ${Math.min(...points.map(([, v]) => v)).toFixed(1)} to ${Math.max(...points.map(([, v]) => v)).toFixed(1)}${unit}`).join(", ")}>
+        <path d="M0 1H240 M0 26H240 M0 51H240" stroke="var(--grid)" fill="none" />
+        ${series.map(({ color, dash, points }) => {
+          const path = points.map(([t, v], i) => `${i && t - points[i - 1][0] <= step * 1.5 ? "L" : "M"}${x(t).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
+          return svg`<path d=${path} stroke=${color} stroke-dasharray=${dash} stroke-width="2" fill="none" vector-effect="non-scaling-stroke" />
+            ${points.filter(([t], i) => t - (points[i - 1]?.[0] ?? -Infinity) > step * 1.5 && (points[i + 1]?.[0] ?? Infinity) - t > step * 1.5)
+              .map(([t, v]) => svg`<circle cx=${x(t)} cy=${y(v)} r="1.5" fill=${color} />`)}`;
+        })}
+      </svg>
+      <div class="trend-time"><span>${window} ago</span><span>Now</span></div>
+    </div>
+    <div class="legend">${series.map(({ name, color, dash }) => html`<span><svg width="16" height="8" aria-hidden="true"><path d="M0 4H16" stroke=${color} stroke-dasharray=${dash} stroke-width="2" /></svg> ${name}</span>`)}</div>
+  </figure>`;
+}
+
+const HardwarePanel = (d, nodes, warning, pendingWindow, setWindow) => {
+  const title = "Temperatures";
+  if (!d.hardware_temperatures) return Unavailable({ title, source: "Prometheus · node hardware temperature metrics", d });
+  const win = d.hardware_window || hardwareWindow();
+  const [duration, step] = TEMPERATURE_RANGES[win] || TEMPERATURE_RANGES["24h"];
+  const toggle = html`<div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((pendingWindow || win) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>`;
+  const partial = nodes.some(({ rows }) => rows.some((row) => row.partial));
+  return Panel({ title, state: warning?.state ?? "ok", text: warning?.text, d }, html`
+    ${toggle}
+    <span class="hardware-note" role="status" ?hidden=${!pendingWindow}>${pendingWindow ? `Loading ${pendingWindow} · showing ${win}` : ""}</span>
+    ${Trend({ title: "Hottest sensor at each sample, across nodes", data: d.temperature_trend, labels: HARDWARE_COMPONENTS.map(({ driver, name }) => [driver, name]), end: d.generated_at, duration, step, unit: "°C", window: win })}
+    ${nodes.length ? html`
+      <table class="hardware-table" aria-label="Temperatures by node and sensor">
+        <thead><tr><th scope="col">Sensor</th><th scope="col" class="hardware-now">Current</th><th scope="col">Min</th><th scope="col">Max</th></tr></thead>
+        ${nodes.map(({ node, rows }) => html`<tbody>
+          <tr><th scope="rowgroup" colspan="4" class="mono hardware-node">${node}</th></tr>
+          ${rows.map(({ name, cells, partial }) => html`
+            <tr><th scope="row">${name}${partial ? html`<sup aria-label="Partial history">*</sup>` : nothing}</th>
+            ${cells.map(({ stat, value, violation }) => Number.isFinite(value)
+              ? html`<td class=${stat === "current" ? "hardware-now" : "hardware-history"}><span class=${"reading " + (violation?.state ?? "")} title=${violation?.text ?? nothing} aria-label=${violation ? `${value}°C, ${violation.text}` : nothing}>${violation ? html`<span aria-hidden="true">${violation.text.startsWith("Low") ? "↓" : "↑"}</span> ` : nothing}${temperatureText(value)}</span></td>`
+              : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`)}
+            </tr>`)}
+        </tbody>`)}
+      </table>` : Muted(d.hardware_temperatures ? "No nodes reported by Prometheus." : "Temperature data unavailable.")}
+    ${partial ? html`<span class="hardware-note">* Partial history. Min and max use available samples.</span>` : nothing}
+  `);
+};
+
 const AlertsPanel = (d) => {
   const title = "Firing alerts";
   if (!d.alerts) return Unavailable({ title, source: "Prometheus · /api/v1/alerts", d });
@@ -488,20 +627,35 @@ function nodeRows(d) {
   for (const x of d.var_size) if (avail.has(x.node)) row(x.node, "Ephemeral /var", avail.get(x.node), x.bytes);
   const free = new Map(d.vg_free.map((x) => [x.node + "/" + x.name, x.bytes]));
   for (const x of d.vg_total) if (free.has(x.node + "/" + x.name)) row(x.node, x.name, free.get(x.node + "/" + x.name), x.bytes);
-  return [...by].map(([node, rows]) => ({ node, rows, max: Math.max(...rows.map((r) => r.pct)) })).sort((a, b) => b.max - a.max || compare(a.node, b.node));
+  return [...by].map(([node, rows]) => ({ node, rows, max: Math.max(...rows.map((r) => r.pct)) })).sort((a, b) => compare(a.node, b.node));
 }
 
 const NodesPanel = (d) => {
   const title = "Nodes";
   const nodes = nodeRows(d);
   if (!nodes) return Unavailable({ title, source: "Prometheus · node_filesystem_*, lvm_vg_*", d });
-  const max = nodes.length ? nodes[0].max : 0;
+  const max = Math.max(0, ...nodes.map((n) => n.max));
   return Panel({ title, state: usedState(max, 85), text: max >= 85 ? "disk over 85% full" : "disk over 75% full", d }, html`
     ${nodes.map((n) => html`<div class="vm">
       <div class="vm-head"><strong class="row-st" data-st=${usedState(n.max, 85)}>${n.node}</strong></div>
       <div class="limit" style="margin-top: 8px">${n.rows.map((r) => UsedRow(r.label, r.pct, html`<span class="muted">· ${sizeText(r.free)} free${r.label === "Ephemeral /var" ? "" : " of " + sizeText(r.total)}</span>`))}</div>
     </div>`)}
     ${Muted("Volume groups show allocated space (the sum of the PVC sizes), not data written.")}`);
+};
+
+const ComputePanel = (d) => {
+  const title = "Compute";
+  if (!d.compute) return Unavailable({ title, source: "Prometheus · node CPU and memory metrics", d });
+  const percent = (label, value) => Number.isFinite(value)
+    ? html`<td><strong class=${usedState(value, 90)}>${Math.round(value)}%</strong>${Bar({ label: `${label}, ${Math.round(value)} percent`, parts: [{ pct: value, color: usedColor(value, 90) }] })}</td>`
+    : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`;
+  return Panel({ title, state: "ok", d }, html`
+    ${Trend({ title: "Highest utilization at each sample, across nodes", data: d.compute_trend, labels: [["cpu", "CPU"], ["memory", "Memory"]], end: d.generated_at, duration: 3600, step: 60, unit: "%", window: "1h" })}
+    ${d.compute.length ? html`<table class="hardware-table compute">
+      <thead><tr><th scope="col">Node</th><th scope="col">CPU</th><th scope="col">Memory</th></tr></thead>
+      <tbody>${d.compute.map((n) => html`<tr><th scope="row">${n.node}</th>${percent("CPU", n.cpu)}${percent("Memory", n.memory)}</tr>`)}</tbody>
+    </table><span class="hardware-note">CPU over 5 minutes · memory in use</span>` : Muted("No nodes reported by Prometheus.")}
+  `);
 };
 
 const PrRows = (items) =>
@@ -661,22 +815,22 @@ const ElevatePanel = (d) => {
 const Chip = ({ state, text, href }) =>
   href ? html`<a class=${"pill " + state} href=${"#" + href}>${text}</a>` : html`<span class=${"pill " + state}>${text}</span>`;
 
-const Strip = (d) => {
-  const shown = stripChips(d).filter((c) => c.state !== "ok");
+const Strip = (d, hardwareWarning) => {
+  const shown = stripChips(d, hardwareWarning).filter((c) => c.state !== "ok");
   // Healthy chips stay hidden; "All healthy" only keeps the strip from being empty when nothing needs a look.
   return html`<nav class="strip" aria-label="Overall status, each item jumps to its panel">${shown.length ? shown.map(Chip) : Chip({ state: "ok", text: "All healthy" })}</nav>`;
 };
 
-const Section = ({ id, title }, children) => html`<section aria-labelledby=${"h-" + id}>
+const Section = ({ id, title, layout = "band" }, children) => html`<section aria-labelledby=${"h-" + id}>
   <h2 id=${"h-" + id}>${title}</h2>
-  <div class="band">${children}</div>
+  <div class=${layout}>${children}</div>
 </section>`;
 
 // ---- The page: an element that renders into itself (no shadow root), so the page's stylesheet applies ----
 // Assigning to d, loadedAt or error re-renders it; nothing calls a render by hand.
 
 class CockpitApp extends LitElement {
-  static properties = { d: { state: true }, loadedAt: { state: true }, error: { state: true } };
+  static properties = { d: { state: true }, loadedAt: { state: true }, error: { state: true }, pendingHardwareWindow: { state: true } };
   constructor() {
     super();
     this.d = null;
@@ -689,11 +843,14 @@ class CockpitApp extends LitElement {
     this.load = async () => {
       this._inflight?.abort();
       const ctl = (this._inflight = new AbortController());
+      const requestedWindow = hardwareWindow();
+      this.pendingHardwareWindow = this.d && this.d.hardware_window !== requestedWindow ? requestedWindow : null;
       const timer = setTimeout(() => ctl.abort(), 20000);
       try {
-        const r = await fetch("api/v1/status?drops=" + dropsWindow(), { signal: ctl.signal });
+        const r = await fetch("api/v1/status?drops=" + dropsWindow() + "&hardware=" + requestedWindow, { signal: ctl.signal });
         if (!r.ok) throw new Error("HTTP " + r.status);
         const d = await r.json();
+        if (this._inflight !== ctl) return;
         this.d = d;
         this.loadedAt = Date.now();
         this.error = null;
@@ -701,7 +858,10 @@ class CockpitApp extends LitElement {
         if (this._inflight === ctl) this.error = e.name === "AbortError" ? "timed out" : e.message; // not superseded by a newer request
       } finally {
         clearTimeout(timer);
-        if (this._inflight === ctl) this._inflight = null;
+        if (this._inflight === ctl) {
+          this._inflight = null;
+          this.pendingHardwareWindow = null;
+        }
       }
     };
     // A Home Screen app has no reload button, so a pull down from the top of the page refreshes (the browser's own gesture is not there).
@@ -715,6 +875,7 @@ class CockpitApp extends LitElement {
   }
   createRenderRoot() { return this; }
   setDrops(v) { localStorage.setItem("cockpit.drops", v); this.load(); }
+  setHardwareWindow(v) { localStorage.setItem("cockpit.hardware", v); this.load(); }
   connectedCallback() {
     super.connectedCallback();
     this._poll = setInterval(() => { if (!document.hidden) this.load(); }, REFRESH_MS);
@@ -736,6 +897,8 @@ class CockpitApp extends LitElement {
   }
   render() {
     const { d, loadedAt, error } = this;
+    const hardware = d ? hardwareRows(d) : [];
+    const hardwareWarning = hardwareWarnings(hardware, d?.hardware_window || "24h");
     const failedSources = Object.keys(d?.meta?.workflow?.failed || {});
     const banner = error
       ? `The cockpit could not be reached (${error}). Showing the last data, if any.`
@@ -752,9 +915,10 @@ class CockpitApp extends LitElement {
         <div class="hdr-r">${updated}<button type="button" id="refresh" @click=${this.load}>Refresh</button></div>
       </header>
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
-      ${d ? html`${Strip(d)}
+      ${d ? html`${Strip(d, hardwareWarning)}
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
-        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}${NodesPanel(d)}`)}
+        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}`)}
+        ${Section({ id: "hardware", title: "Cluster hardware", layout: "hardware-band" }, html`${HardwarePanel(d, hardware, hardwareWarning, this.pendingHardwareWindow, (v) => this.setHardwareWindow(v))}${ComputePanel(d)}${NodesPanel(d)}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;
   }

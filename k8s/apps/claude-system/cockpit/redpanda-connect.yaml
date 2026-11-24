@@ -236,7 +236,8 @@ processor_resources:
     processors:
       - mapping: |
           meta drops_window = if @drops == "15m" { "15m" } else { "1h" }
-          root = {"generated_at": now().ts_unix(), "drops_window": @drops_window}
+          meta hardware_window = if ["24h", "7d", "30d"].contains(@hardware) { @hardware } else { "24h" }
+          root = {"generated_at": now().ts_unix(), "drops_window": @drops_window, "hardware_window": @hardware_window}
       - workflow:
           branches:
             drops_total:
@@ -327,6 +328,99 @@ processor_resources:
               result_map: 'root.pvc_total = this.data.result.index(0).value.index(1).number().round().catch(0)'
 
             # node-exporter's instance is the node IP, so it is joined to kube_node_info for the name
+            # Extrema are calculated per sensor before grouping. Coverage uses the configured 1m scrape interval.
+            hardware_temperatures:
+              request_map: |
+                let window = @hardware_window
+                let samples = if $window == "30d" { 43200 } else if $window == "7d" { 10080 } else { 1440 }
+                let sensors = "node_hwmon_temp_celsius"
+                let range = "[" + $window + "]"
+                let drivers = "node_hwmon_chip_names{chip_name=~\"coretemp|nvme|spd5118\"}"
+                let current_chips = "max by (instance, chip, chip_name) (" + $drivers + ")"
+                let historical_chips = "max by (instance, chip, chip_name) (present_over_time(" + $drivers + $range + "))"
+                let classify = " * on (instance, chip) group_left (chip_name) "
+                let nodes = "max by (instance, node) (label_replace(kube_node_info{internal_ip!=\"\"}, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\"))"
+                let node_join = " * on (instance) group_left (node) " + $nodes
+                let stats = [
+                  {"name": "current", "aggregate": "max", "expr": $sensors + $classify + $current_chips},
+                  {"name": "min", "aggregate": "min", "expr": "min_over_time(" + $sensors + $range + ")" + $classify + $historical_chips},
+                  {"name": "max", "aggregate": "max", "expr": "max_over_time(" + $sensors + $range + ")" + $classify + $historical_chips},
+                  {"name": "coverage", "aggregate": "min", "expr": "(count_over_time(" + $sensors + $range + ")" + $classify + $historical_chips + ") / " + $samples.string()}
+                ].map_each(s -> "label_replace(" + s.aggregate + " by (node, chip_name) ((" + s.expr + ")" + $node_join + "), \"stat\", \"" + s.name + "\", \"node\", \".*\")")
+                meta path = "/api/v1/query?query=" + ("group by (node) (kube_node_info) or " + $stats.join(" or ")).escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                let rows = this.data.result
+                root.hardware_temperatures = $rows.filter(r -> !r.metric.exists("stat")).map_each(n -> {
+                  "node": n.metric.node,
+                  "sensors": $rows.filter(r -> r.metric.node == n.metric.node && r.metric.exists("stat")).map_each(r -> {
+                    "component": r.metric.chip_name,
+                    "stat": r.metric.stat,
+                    "value": r.value.index(1).number().catch(null)
+                  })
+                }).sort_by(n -> n.node)
+
+            compute:
+              request_map: |
+                let nodes = "group by (instance, node) (label_replace(kube_node_info{internal_ip!=\"\"}, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\"))"
+                let node_join = " * on (instance) group_left (node) " + $nodes
+                let cpu = "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))"
+                let memory = "100 * (1 - node_memory_MemAvailable_bytes / (node_memory_MemTotal_bytes > 0))"
+                let stats = [{"name": "cpu", "expr": $cpu}, {"name": "memory", "expr": $memory}].map_each(s -> "label_replace(clamp(max by (node) ((" + s.expr + ")" + $node_join + "), 0, 100), \"resource\", \"" + s.name + "\", \"node\", \".*\")")
+                meta path = "/api/v1/query?query=" + ("group by (node) (kube_node_info) or " + $stats.join(" or ")).escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                let rows = this.data.result
+                root.compute = $rows.filter(r -> !r.metric.exists("resource")).map_each(n -> {
+                  "node": n.metric.node,
+                  "cpu": $rows.filter(r -> r.metric.node == n.metric.node && r.metric.resource.or("") == "cpu").index(0).value.index(1).number().catch(null),
+                  "memory": $rows.filter(r -> r.metric.node == n.metric.node && r.metric.resource.or("") == "memory").index(0).value.index(1).number().catch(null)
+                }).sort_by(n -> n.node)
+
+            temperature_trend:
+              request_map: |
+                let end = this.generated_at
+                let window = @hardware_window
+                let duration = if $window == "30d" { 2592000 } else if $window == "7d" { 604800 } else { 86400 }
+                let step = if $window == "30d" { 28800 } else if $window == "7d" { 7200 } else { 900 }
+                let query = """
+                  max by (chip_name) (
+                    node_hwmon_temp_celsius * on (instance, chip) group_left (chip_name)
+                    max by (instance, chip, chip_name) (node_hwmon_chip_names{chip_name=~"coretemp|nvme|spd5118"})
+                  )
+                """
+                meta path = "/api/v1/query_range?query=" + $query.escape_url_query() + "&start=" + ($end - $duration).string() + "&end=" + $end.string() + "&step=" + $step.string()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.temperature_trend = this.data.result.map_each(r -> {
+                  "key": r.metric.chip_name,
+                  "points": r.values.map_each(v -> [v.index(0), v.index(1).number().catch(null)])
+                })
+
+            compute_trend:
+              request_map: |
+                let end = this.generated_at
+                let query = """
+                  label_replace(clamp(max(100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])))), 0, 100), "resource", "cpu", "instance", ".*")
+                  or
+                  label_replace(clamp(max(100 * (1 - node_memory_MemAvailable_bytes / (node_memory_MemTotal_bytes > 0))), 0, 100), "resource", "memory", "instance", ".*")
+                """
+                meta path = "/api/v1/query_range?query=" + $query.escape_url_query() + "&start=" + ($end - 3600).string() + "&end=" + $end.string() + "&step=60"
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.compute_trend = this.data.result.map_each(r -> {
+                  "key": r.metric.resource,
+                  "points": r.values.map_each(v -> [v.index(0), v.index(1).number().catch(null)])
+                })
+
             var_avail:
               request_map: |
                 meta path = "/api/v1/query?query=" + "node_filesystem_avail_bytes{mountpoint=\"/var\"} * on (instance) group_left (node) label_replace(kube_node_info, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\")".escape_url_query()
