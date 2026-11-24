@@ -106,6 +106,7 @@ Specs are in HelmRelease values (`k8s/apps/arc-runner/`), not `rendered/`.
 | `deny-world-egress` | Kyverno | Allows | Cilium policies may not allow `world` or `all`. Not applied in the VM namespaces. CIDR rules and Kubernetes NetworkPolicies not checked |
 | `require-helmrelease-remediation` | Kyverno | Allows | Operational only |
 | `inject-trust-bundle` | Kyverno (mutating) | Allows | Mounts the trust-manager CA bundle into new pods, see below |
+| `require-trust-bundle-reload` | Kyverno | Warns | A workload whose pod template has `public` or `java` must name its bundle for Reloader, see below |
 | `require-namespace-psa-enforce` | Native VAP | Blocks | Every Namespace sets a PSA enforce level. Exempt: system namespaces, `flux-system` |
 | `require-image-digest` | Native VAP | Blocks | Every container, init and ephemeral image has `@sha256:`. Exempt in `kube-system`: Talos and Omni generated pods |
 
@@ -140,8 +141,14 @@ admitted unchanged.
   Renovate, external-secrets, Traefik, external-dns, zot, Dependency-Track, gha-cache, AdGuard, fileserver, `claude-rc`, claude-system
   urlshare, cockpit and vm-upgrade, CDI importers.
 - **Restarts:** a subPath mount does not follow the ConfigMap and `reloader.stakater.com/auto` cannot see the injected volume, so put
-  `configmap.reloader.stakater.com/reload: <bundle name>` on the pod template. Reloader skips bare pods and Jobs. `claude-rc` has none: a restart
-  ends its session.
+  `configmap.reloader.stakater.com/reload: <bundle name>` on the workload or its pod template. Reloader skips bare pods and Jobs. The policy
+  `require-trust-bundle-reload` warns when a Deployment, StatefulSet or DaemonSet with `public` or `java` on its pod template lacks the annotation
+  or names the wrong bundle (workloads on the internal bundle are not checked). `claude-rc` carries `trust.portableinfo.cloud/reload: "false"` on
+  the workload instead: a restart ends its session.
+- **Alerts** (`k8s/infra/kube-prometheus-stack/prometheusrule-trust.yaml`): `TrustBundleConfigMapMissing` (a namespace lacks a bundle ConfigMap),
+  `TrustManagerReconcileErrors`, `TrustInjectionFailed` (the mutating policy failed; the pod was admitted without the bundle),
+  `TrustBundleReloadMissing` (the policy above; the metric only moves when Flux applies, every 30 minutes), `ReloaderReloadFailed` and
+  `PodStuckContainerCreating` (20 minutes, typically a missing ConfigMap).
 - **Runtimes:** Node trusts its built-in public CAs in addition. Java trusts exactly the mounted store (add `public: "true"` if it calls public
   sites; the JVM reads it once; the HTTP client must use JVM defaults); the Dependency-Track api-server is the only user. Go and Python images may
   ignore these paths (Python: `REQUESTS_CA_BUNDLE`).

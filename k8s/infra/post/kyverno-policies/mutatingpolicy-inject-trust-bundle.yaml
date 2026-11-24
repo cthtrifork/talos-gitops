@@ -67,18 +67,7 @@ spec:
                 Object.spec.volumes{
                   name: "portableinfo-trust-bundle",
                   configMap: Object.spec.volumes.configMap{
-                    name: variables.bundle,
-                    items: [
-                      Object.spec.volumes.configMap.items{
-                        key: "ca-bundle.crt",
-                        path: "ca-bundle.crt"
-                      }
-                    ] + (variables.java ? [
-                      Object.spec.volumes.configMap.items{
-                        key: "ca-bundle.p12",
-                        path: "ca-bundle.p12"
-                      }
-                    ] : [])
+                    name: variables.bundle
                   }
                 }
               ],

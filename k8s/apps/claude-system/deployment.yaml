@@ -9,6 +9,8 @@ metadata:
   annotations:
     # only this Secret, not `auto`: the GitHub token Secret refreshes every 30 minutes and a restart ends the session
     secret.reloader.stakater.com/reload: dependency-track-claude-api-key
+    # no configmap reload either: a restart ends the session, so a bundle change waits for a deliberate one (policy require-trust-bundle-reload)
+    trust.portableinfo.cloud/reload: "false"
 spec:
   replicas: 1
   strategy:

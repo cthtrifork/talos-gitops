@@ -7,6 +7,7 @@ resources:
   - prometheusrule-cilium.yaml
   - prometheusrule-credentials.yaml
   - prometheusrule-flux.yaml
+  - prometheusrule-trust.yaml
   - prometheusrule-workloads.yaml
   - cilium-clusterwide-networkpolicy.yaml
   - networkpolicy.yaml

@@ -1,0 +1,68 @@
+# Failure modes of the trust bundle injection (docs/security.md, "Trust bundle injection"). Pods that wait for a missing bundle ConfigMap
+# stay in ContainerCreating, and a pod that calls a public site without the public bundle fails TLS only in its own logs, so every
+# stage has an alert. The ruleSelector requires the release label.
+#
+# Kyverno policy metrics are written for admission requests only (background scans are off), and Flux applies every 30m, so a
+# standing violation keeps the counter moving and a 1h window stays above zero until it is fixed and an hour has passed.
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: trust-bundle-alerts
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: trust-bundle
+      rules:
+        - alert: TrustBundleConfigMapMissing
+          # trust-manager has not (yet) written both bundle ConfigMaps into an active namespace; new pods there stay in ContainerCreating
+          expr: >-
+            (kube_namespace_status_phase{phase="Active"} == 1)
+            unless on (namespace)
+            (count by (namespace)(kube_configmap_info{configmap=~"portableinfo-(internal-)?ca-bundle"}) == 2)
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Namespace {{ $labels.namespace }} is missing a trust bundle ConfigMap"
+            description: "kubectl get bundles.trust.cert-manager.io; kubectl -n cert-manager-system logs deploy/trust-manager. New pods in the namespace wait for the ConfigMap (policy inject-trust-bundle)."
+        - alert: TrustManagerReconcileErrors
+          expr: increase(controller_runtime_reconcile_errors_total{controller="bundles"}[30m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: trust-manager failed to reconcile a Bundle
+            description: "kubectl describe bundles.trust.cert-manager.io shows the failing condition; kubectl -n cert-manager-system logs deploy/trust-manager. Usually the portableinfo-root-ca Secret."
+        - alert: TrustInjectionFailed
+          # a pod created while this fired was admitted without the bundle (failurePolicy Ignore)
+          expr: sum by (resource_namespace)(increase(kyverno_mutating_policy_results_total{policy_name="inject-trust-bundle", result=~"fail|error"}[15m])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "Policy inject-trust-bundle failed on pods in {{ $labels.resource_namespace }}"
+            description: "kubectl -n policy-system logs deploy/kyverno-admission-controller | grep inject-trust-bundle. Pods created meanwhile run without the bundle until they restart."
+        - alert: TrustBundleReloadMissing
+          expr: sum by (resource_namespace, resource_kind)(increase(kyverno_validating_policy_results_total{policy_name="require-trust-bundle-reload", result="fail"}[1h])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "A {{ $labels.resource_kind }} in {{ $labels.resource_namespace }} uses the trust bundle without naming it for Reloader"
+            description: "Its pods keep a stale bundle until they restart. Add configmap.reloader.stakater.com/reload: <bundle> to its pod template, or trust.portableinfo.cloud/reload: \"false\" on the workload. The warning from the failing apply names the bundle."
+        - alert: ReloaderReloadFailed
+          expr: increase(reloader_reload_executed_total{success="false"}[30m]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: Reloader failed to restart a workload after a ConfigMap or Secret change
+            description: "kubectl -n reloader-system logs deploy/reloader-reloader. A workload may be running with a stale trust bundle."
+        - alert: PodStuckContainerCreating
+          expr: kube_pod_container_status_waiting_reason{reason="ContainerCreating"} == 1
+          for: 20m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} has been in ContainerCreating for 20m"
+            description: "kubectl -n {{ $labels.namespace }} describe pod {{ $labels.pod }}; a FailedMount event for portableinfo-*-ca-bundle means trust-manager has not written the ConfigMap."
