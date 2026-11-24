@@ -114,7 +114,7 @@ Kyverno policies run at admission only; running pods are not re-evaluated. Files
 ### Trust bundle injection
 
 trust-manager (`k8s/infra/post/trust-manager`) puts two ConfigMaps in every namespace, each with a PEM bundle (`ca-bundle.crt`) and a PKCS#12
-truststore for Java (`ca-bundle.p12`, password `changeit`): `portableinfo-internal-ca-bundle` (`portableinfo-root-ca` only, the default) and
+truststore for Java (`ca-bundle.p12`, password `not-a-secret`, an integrity check on public data): `portableinfo-internal-ca-bundle` (`portableinfo-root-ca` only, the default) and
 `portableinfo-ca-bundle` (public CAs plus the root CA).
 
 The Kyverno `MutatingPolicy` `inject-trust-bundle` (`k8s/infra/post/kyverno-policies`) mounts one read-only into every container and init container

@@ -1,7 +1,8 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/trust.cert-manager.io/bundle_v1alpha1.json
 # Two ConfigMaps in every namespace, mounted into pods by the Kyverno policy inject-trust-bundle (docs/security.md, "Trust bundle injection").
 # internal: root CA only (the default). public: public CAs plus the root CA. The p12 key is for Java; Modern2023 because the default
-# LegacyRC2 profile is not readable by recent JDKs.
+# LegacyRC2 profile is not readable by recent JDKs. The password only guards the integrity of public data, hence the fixed value
+# (it must match javaOpts in the policy).
 ---
 apiVersion: trust.cert-manager.io/v1alpha1
 kind: Bundle
@@ -18,7 +19,7 @@ spec:
     additionalFormats:
       pkcs12:
         key: ca-bundle.p12
-        password: changeit
+        password: not-a-secret
         profile: Modern2023
 ---
 apiVersion: trust.cert-manager.io/v1alpha1
@@ -37,5 +38,5 @@ spec:
     additionalFormats:
       pkcs12:
         key: ca-bundle.p12
-        password: changeit
+        password: not-a-secret
         profile: Modern2023
