@@ -96,7 +96,7 @@ spec:
         exporter:
           enabled: true
           # renovate: datasource=docker depName=mirror.gcr.io/oliver006/redis_exporter versioning=docker
-          image: mirror.gcr.io/oliver006/redis_exporter:v1.88.0@sha256:2c8c55c63ce4d915389f03d337b8acef56aaaca9fab8728291287e612d4d6398
+          image: mirror.gcr.io/oliver006/redis_exporter:v1.99.0@sha256:2c0cdc2452096b5af460d870e72fa6ee2ebb971780f443a616885685d2c0ebad
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
