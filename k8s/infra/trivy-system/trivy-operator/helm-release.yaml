@@ -52,7 +52,7 @@ spec:
               metadata:
                 name: trivy-server
                 annotations:
-                  configmap.reloader.stakater.com/reload: portableinfo-ca-bundle,trivy-operator-trivy-config
+                  configmap.reloader.stakater.com/reload: portableinfo-internal-ca-bundle,trivy-operator-trivy-config
               spec:
                 template:
                   metadata:
@@ -138,11 +138,6 @@ spec:
             memory: 2Gi
         extraServerVolumes:
           volumeMounts:
-            # Go also reads extra CA files in /etc/ssl/certs
-            - name: zot-ca
-              mountPath: /etc/ssl/certs/zot-ca.crt
-              subPath: ca-bundle.crt
-              readOnly: true
             # trivy image docker.io/library/hello-world --vex repo --show-suppressed --format table --cache-dir=/home/scanner/.cache
             - name: configfile
               mountPath: /etc/trivy/trivy-config.yaml
@@ -169,9 +164,6 @@ spec:
             - name: ignore-policy
               configMap:
                 name: trivy-ignorepolicy
-            - name: zot-ca
-              configMap:
-                name: portableinfo-ca-bundle
       resources:
         requests:
           cpu: 100m
@@ -185,7 +177,11 @@ spec:
     operator:
       # the chart's checksum/config does not cover the scanJob.* keys
       annotations:
-        configmap.reloader.stakater.com/reload: trivy-operator,trivy-operator-config,trivy-operator-trivy-config,portableinfo-ca-bundle
+        configmap.reloader.stakater.com/reload: trivy-operator,trivy-operator-config,trivy-operator-trivy-config,portableinfo-internal-ca-bundle
+      # Kyverno mounts the internal CA bundle (zot) into these pods: trust.portableinfo.cloud/inject is the opt-in of the
+      # rollout stage; the server and the scan jobs only talk to zot and each other, so no public CAs
+      serverAdditionalAnnotations:
+        trust.portableinfo.cloud/inject: "true"
       podLabels:
         prometheus-scrape: "true"
         config-revision: "2" # bump to roll the operator after a scanJob.* change that reloader did not see
@@ -212,14 +208,13 @@ spec:
       requests:
         cpu: 100m
         memory: 512Mi
+    podAnnotations:
+      trust.portableinfo.cloud/inject: "true"
     trivyOperator:
+      scanJobAnnotations: trust.portableinfo.cloud/inject=true
       scanJobCustomVolumesMount:
         - name: trivy-cache
           mountPath: /tmp/trivy/.cache
-        - name: zot-ca
-          mountPath: /etc/ssl/certs/zot-ca.crt
-          subPath: ca-bundle.crt
-          readOnly: true
         - name: repository-config
           mountPath: /.trivy/vex/repository.yaml
           subPath: repository.yaml
@@ -234,9 +229,6 @@ spec:
           mountPath: /etc/trivy/ignore-policy.rego
           subPath: ignorePolicy
       scanJobCustomVolumes:
-        - name: zot-ca
-          configMap:
-            name: portableinfo-ca-bundle
         - name: repository-config
           configMap:
             name: vex-repository-config
@@ -278,17 +270,10 @@ spec:
         type: RuntimeDefault
     # Overriding these lists replaces the chart's defaults, so the /tmp mount is repeated.
     volumeMounts:
-      - name: zot-ca
-        mountPath: /etc/ssl/certs/zot-ca.crt
-        subPath: ca-bundle.crt
-        readOnly: true
       - name: cache-policies
         mountPath: /tmp
         readOnly: false
     volumes:
-      - name: zot-ca
-        configMap:
-          name: portableinfo-ca-bundle
       - name: cache-policies
         emptyDir:
           sizeLimit: 100Mi

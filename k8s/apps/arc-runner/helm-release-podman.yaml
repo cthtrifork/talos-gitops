@@ -44,6 +44,11 @@ spec:
     githubConfigSecret: github-auth
     containerMode: {} # no dind, no kubernetes mode
     template:
+      metadata:
+        annotations:
+          # Not injected: the runner adds the CA from /usr/local/share/ca-certificates/private-ca.crt with
+          # RUNNER_UPDATE_CA_CERTS, which cannot replace a mounted /etc/ssl/certs/ca-certificates.crt, and workflows read that file.
+          trust.portableinfo.cloud/inject: "false"
       spec:
         # Same node as the cache server (node-local volume); cross-node transfer is too slow.
         affinity:
@@ -271,6 +276,9 @@ spec:
       metadata:
         labels:
           prometheus-scrape: "true"
+        annotations:
+          # talks to github.com
+          trust.portableinfo.cloud/inject: "false"
       spec:
         securityContext:
           runAsNonRoot: true

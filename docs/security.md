@@ -105,10 +105,47 @@ Specs are in HelmRelease values (`k8s/apps/arc-runner/`), not `rendered/`.
 | `cthtrifork-images` | Kyverno | Blocks | Our images (`ghcr.io/cthtrifork/talos-gitops/**`, `harper-pad-*`) carry a keyless cosign signature from `main`, verified against Rekor. No namespace exempt |
 | `deny-world-egress` | Kyverno | Allows | Cilium policies may not allow `world` or `all`. Not applied in the VM namespaces. CIDR rules and Kubernetes NetworkPolicies not checked |
 | `require-helmrelease-remediation` | Kyverno | Allows | Operational only |
+| `inject-trust-bundle` | Kyverno (mutating) | Allows | Mounts the trust-manager CA bundle into new pods, see below |
 | `require-namespace-psa-enforce` | Native VAP | Blocks | Every Namespace sets a PSA enforce level. Exempt: system namespaces, `flux-system` |
 | `require-image-digest` | Native VAP | Blocks | Every container, init and ephemeral image has `@sha256:`. Exempt in `kube-system`: Talos and Omni generated pods |
 
-Kyverno policies run at admission only; running pods are not re-evaluated. Files: `k8s/infra/{image-policies,policy-system}/`. The elevate page adds blocking VAPs that bound its grants (`k8s/apps/claude-system/elevate/`).
+Kyverno policies run at admission only; running pods are not re-evaluated. Files: `k8s/infra/{image-policies,policy-system,post/kyverno-policies}/`. The elevate page adds blocking VAPs that bound its grants (`k8s/apps/claude-system/elevate/`).
+
+### Trust bundle injection
+
+trust-manager is the source of truth for CA trust. It distributes two ConfigMaps (key `ca-bundle.crt`) to every namespace
+(`k8s/infra/post/trust-manager`):
+
+| ConfigMap | Contents |
+|---|---|
+| `portableinfo-internal-ca-bundle` | `portableinfo-root-ca` only. The default |
+| `portableinfo-ca-bundle` | Public CAs plus `portableinfo-root-ca` |
+
+The Kyverno `MutatingPolicy` `inject-trust-bundle` (`k8s/infra/post/kyverno-policies`, applied by `gitops-infra-kyverno-policies`) mounts
+one of them read-only into every container and init container of a new Pod, at `/etc/ssl/certs/ca-certificates.crt` (Debian) and
+`/etc/pki/tls/certs/ca-bundle.crt` (RHEL), and sets `SSL_CERT_FILE` and `NODE_EXTRA_CA_CERTS` to the first path. Pod annotations:
+
+| Annotation | Effect |
+|---|---|
+| `trust.portableinfo.cloud/inject: "false"` | The pod is left unchanged |
+| `trust.portableinfo.cloud/public: "true"` | Mount `portableinfo-ca-bundle` instead of the internal-only bundle |
+| `trust.portableinfo.cloud/inject: "true"` | Opt in during the first rollout stage (below); harmless afterwards |
+
+- Set the annotations on the pod template (Helm `podAnnotations`, the CR's pod template), not on the Deployment.
+- Not injected: `kube-system`, `kube-public`, `kube-node-lease`, `flux-system`, `policy-system` (Kyverno), `cert-manager-system`
+  (cert-manager and trust-manager), `openebs-system`, `metallb-system`, so cluster startup cannot wait on the policy or on a ConfigMap.
+  `failurePolicy` is `Ignore`: while Kyverno is down pods are admitted unchanged.
+- Rollout: a MutatingPolicy has no audit action, so the first stage is opt-in. While `TRUST_INJECT_ENFORCE=false` (`k8s/clusters/homelab/cluster-vars.env`)
+  only pods with `inject: "true"` are mutated (zot, trivy-operator). Annotate the workloads that call the internet with `public: "true"`
+  (Renovate, cloudflare and other SaaS clients, ARC controller, external-secrets, ...), then set it to `true`.
+- A subPath mount does not follow the ConfigMap: a bundle change reaches a pod only when it restarts. Put
+  `configmap.reloader.stakater.com/reload: portableinfo-internal-ca-bundle` (or `portableinfo-ca-bundle` with `public: "true"`) on the workload
+  or its pod template; `reloader.stakater.com/auto` cannot see the injected volume. Reloader only restarts Deployments, StatefulSets and DaemonSets,
+  so bare pods and Jobs (scan jobs) pick up a change at their next start.
+- An env var or mount the pod already sets for the same name or path is replaced. `NODE_EXTRA_CA_CERTS` adds to Node's built-in public CAs, so Node
+  keeps trusting public sites even with the internal bundle. Java and some Go/Python images ignore these paths and need their own handling.
+- The ARC runner pods are opted out (`inject: "false"`): the runner image adds the CA from `/usr/local/share/ca-certificates/private-ca.crt`
+  (`RUNNER_UPDATE_CA_CERTS`), which cannot replace a mounted `ca-certificates.crt`, and workflows read that file.
 
 ## Identity and RBAC
 

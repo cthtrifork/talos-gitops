@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 0cd41db27270b3b88f48778ba3d56a2255d43898e8f90db6b85f2bd37620ecb
+    actions.github.com/values-hash: 8d0916547cec76a485d9c4fa1d77ac898d8c6255d9e9bd6ce3872de43e39ed3
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -33,6 +33,8 @@ spec:
     metadata:
       labels:
         prometheus-scrape: "true"
+      annotations:
+        trust.portableinfo.cloud/inject: "false"
     spec:
       containers:
         - livenessProbe:
@@ -74,6 +76,9 @@ spec:
       kubernetes.io/egress-bandwidth: 300M
       kubernetes.io/ingress-bandwidth: 300M
   template:
+    metadata:
+      annotations:
+        trust.portableinfo.cloud/inject: "false"
     spec:
       affinity:
         podAffinity:

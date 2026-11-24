@@ -1,5 +1,23 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/trust.cert-manager.io/bundle_v1alpha1.json
-# Mount `portableinfo-ca-bundle` instead of minting a Certificate per namespace just to get the CA.
+# Two ConfigMaps in every namespace, mounted into pods by the Kyverno policy `inject-trust-bundle`
+# (k8s/infra/post/kyverno-policies). Workloads may also mount them by hand instead of minting a Certificate per namespace.
+#
+# - portableinfo-internal-ca-bundle: the internal root CA only. The default for injected pods: internal services (zot, ...)
+#   are trusted and public sites are not.
+# - portableinfo-ca-bundle: public CAs plus the internal root CA, for pods annotated trust.portableinfo.cloud/public: "true".
+---
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: portableinfo-internal-ca-bundle
+spec:
+  sources:
+    - secret:
+        name: portableinfo-root-ca
+        key: ca.crt
+  target:
+    configMap:
+      key: ca-bundle.crt
 ---
 apiVersion: trust.cert-manager.io/v1alpha1
 kind: Bundle

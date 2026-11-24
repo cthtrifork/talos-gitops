@@ -196,8 +196,8 @@ jobs:
       - name: Suspend workload Kustomizations
         timeout-minutes: 2
         run: |
-          # gitops-infra-image-policies needs the Kyverno CRD
-          for ks in app-controllers renovate gitops-infra-image-policies \
+          # gitops-infra-image-policies and gitops-infra-kyverno-policies need the Kyverno CRDs
+          for ks in app-controllers renovate gitops-infra-image-policies gitops-infra-kyverno-policies \
               $(kubectl get kustomization -n flux-system -l gitops.homelab/tier=apps -o name | cut -d/ -f2); do
             flux suspend kustomization "${ks}"
           done
