@@ -111,8 +111,9 @@
   .hardware-band { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
   .hardware-band .panel { margin-bottom: 0; }
   .hardware-band .panel-head { flex-wrap: wrap; }
+  .hardware-band .panel-head .pill { white-space: normal; }
   @media (min-width: 900px) {
-    .hardware-band { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr); }
+    .hardware-band { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); }
   }
   .hardware-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
   .hardware-table th, .hardware-table td { text-align: right; padding: 4px; white-space: nowrap; }
@@ -136,6 +137,7 @@
   .trend { margin: 0; display: grid; gap: 4px; }
   .trend-plot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; align-items: stretch; }
   .trend-plot .spark { height: 52px; }
+  .trend-time { grid-column: 2; display: flex; justify-content: space-between; color: var(--ink-2); font-size: var(--fs-sm); }
   .trend-scale { display: flex; flex-direction: column; justify-content: space-between; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1; text-align: right; }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-sm); color: var(--ink-2); }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
@@ -420,11 +422,12 @@ const HARDWARE_COMPONENTS = [
   { driver: "nvme", name: "NVMe", warn: 65, critical: 75 },
   { driver: "spd5118", name: "RAM", warn: 70, critical: 85 },
 ];
+const temperatureText = (value) => `${Number(value.toFixed(1))}°C`;
 function temperatureViolation(value, stat, component) {
   if (!Number.isFinite(value)) return null;
-  if (stat !== "max" && value < 5) return { state: "warn", text: "Low temperature" };
-  if (stat !== "min" && value > component.critical) return { state: "bad", text: "Critical high temperature" };
-  if (stat !== "min" && value > component.warn) return { state: "warn", text: "High temperature" };
+  if (stat !== "max" && value < 5) return { state: "warn", text: "Low temperature", margin: 5 - value };
+  if (stat !== "min" && value > component.critical) return { state: "bad", text: "Critical high temperature", margin: value - component.critical };
+  if (stat !== "min" && value > component.warn) return { state: "warn", text: "High temperature", margin: value - component.warn };
   return null;
 }
 function hardwareRows(d) {
@@ -439,29 +442,34 @@ function hardwareRows(d) {
     }),
   }));
 }
-function hardwareWarnings(nodes) {
-  const cells = nodes.flatMap(({ rows }) => rows.flatMap((row) => row.cells));
-  const violations = cells.filter((cell) => cell.violation);
-  if (!violations.length) return null;
-  const critical = violations.some((cell) => cell.violation.state === "bad");
-  const worst = violations.filter((cell) => cell.violation.state === (critical ? "bad" : "warn"));
-  const text = critical ? "Critical temperature" : "Temperature warning";
-  return { state: critical ? "bad" : "warn", text: worst.some((cell) => cell.stat === "current") ? text : text + " in history" };
+function hardwareWarnings(nodes, window) {
+  const violations = nodes.flatMap(({ node, rows }) => rows.flatMap(({ name, cells }) =>
+    cells.filter((cell) => cell.violation).map((cell) => ({ node, name, ...cell }))));
+  const worst = violations.sort((a, b) =>
+    Number(b.violation.state === "bad") - Number(a.violation.state === "bad")
+    || Number(b.stat === "current") - Number(a.stat === "current")
+    || b.violation.margin - a.violation.margin)[0];
+  if (!worst) return null;
+  const value = temperatureText(worst.value);
+  const text = worst.stat === "current"
+    ? `${worst.name} at ${value} now`
+    : `${worst.name} reached ${value} in ${window}`;
+  return { state: worst.violation.state, text: `${text} · ${worst.node}` };
 }
 
 const TEMPERATURE_RANGES = { "24h": [86400, 900], "7d": [604800, 7200], "30d": [2592000, 28800] };
 const TREND_COLORS = ["var(--accent)", "var(--suspend)", "var(--ok)"];
 const TREND_DASHES = ["none", "5 3", "2 3"];
 
-function Trend({ title, data, labels, end, duration, step, unit }) {
-  if (!data?.length) return nothing;
+function Trend({ title, data, labels, end, duration, step, unit, window }) {
+  if (!data) return Muted("Trend unavailable");
   const start = end - duration;
   const series = labels.map(([key, name], i) => ({
     name, color: TREND_COLORS[i], dash: TREND_DASHES[i],
     points: (data.find((s) => s.key === key)?.points || []).filter(([t, v]) => t >= start && t <= end && Number.isFinite(v)),
   })).filter((s) => s.points.length);
   const values = series.flatMap((s) => s.points.map(([, value]) => value));
-  if (!values.length) return nothing;
+  if (!values.length) return Muted("No trend samples in this range");
   const low = unit === "%" ? 0 : Math.floor((Math.min(...values) - 1) / 5) * 5;
   const high = unit === "%" ? 100 : Math.ceil((Math.max(...values) + 1) / 5) * 5;
   const x = (time) => 1 + 238 * (time - start) / duration;
@@ -480,20 +488,22 @@ function Trend({ title, data, labels, end, duration, step, unit }) {
               .map(([t, v]) => svg`<circle cx=${x(t)} cy=${y(v)} r="1.5" fill=${color} />`)}`;
         })}
       </svg>
+      <div class="trend-time"><span>${window} ago</span><span>Now</span></div>
     </div>
     <div class="legend">${series.map(({ name, color, dash }) => html`<span><svg width="16" height="8" aria-hidden="true"><path d="M0 4H16" stroke=${color} stroke-dasharray=${dash} stroke-width="2" /></svg> ${name}</span>`)}</div>
   </figure>`;
 }
 
-const HardwarePanel = (d, nodes, warning, setWindow) => {
+const HardwarePanel = (d, nodes, warning, pendingWindow, setWindow) => {
   const title = "Temperatures";
   const win = d.hardware_window || hardwareWindow();
   const [duration, step] = TEMPERATURE_RANGES[win] || TEMPERATURE_RANGES["24h"];
-  const toggle = html`<div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String(win === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>`;
+  const toggle = html`<div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((pendingWindow || win) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>`;
   const partial = nodes.some(({ rows }) => rows.some((row) => row.partial));
   return Panel({ title, state: warning?.state ?? "ok", text: warning?.text, d }, html`
     ${toggle}
-    ${Trend({ title: `Hottest readings across nodes · ${win}`, data: d.temperature_trend, labels: HARDWARE_COMPONENTS.map(({ driver, name }) => [driver, name]), end: d.generated_at, duration, step, unit: "°C" })}
+    <span class="hardware-note" role="status" ?hidden=${!pendingWindow}>${pendingWindow ? `Loading ${pendingWindow} · showing ${win}` : ""}</span>
+    ${Trend({ title: "Hottest sensor at each sample, across nodes", data: d.temperature_trend, labels: HARDWARE_COMPONENTS.map(({ driver, name }) => [driver, name]), end: d.generated_at, duration, step, unit: "°C", window: win })}
     ${nodes.length ? html`
       <table class="hardware-table" aria-label="Temperatures by node and sensor">
         <thead><tr><th scope="col">Sensor</th><th scope="col" class="hardware-now">Current</th><th scope="col">Min</th><th scope="col">Max</th></tr></thead>
@@ -502,7 +512,7 @@ const HardwarePanel = (d, nodes, warning, setWindow) => {
           ${rows.map(({ name, cells, partial }) => html`
             <tr><th scope="row">${name}${partial ? html`<sup aria-label="Partial history">*</sup>` : nothing}</th>
             ${cells.map(({ stat, value, violation }) => Number.isFinite(value)
-              ? html`<td class=${stat === "current" ? "hardware-now" : "hardware-history"}><span class=${"reading " + (violation?.state ?? "")} title=${violation?.text ?? nothing} aria-label=${violation ? `${value}°C, ${violation.text}` : nothing}>${violation ? html`<span aria-hidden="true">${violation.text.startsWith("Low") ? "↓" : "↑"}</span> ` : nothing}${Number(value.toFixed(1))}°C</span></td>`
+              ? html`<td class=${stat === "current" ? "hardware-now" : "hardware-history"}><span class=${"reading " + (violation?.state ?? "")} title=${violation?.text ?? nothing} aria-label=${violation ? `${value}°C, ${violation.text}` : nothing}>${violation ? html`<span aria-hidden="true">${violation.text.startsWith("Low") ? "↓" : "↑"}</span> ` : nothing}${temperatureText(value)}</span></td>`
               : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`)}
             </tr>`)}
         </tbody>`)}
@@ -639,7 +649,7 @@ const ComputePanel = (d) => {
     ? html`<td><strong class=${usedState(value, 90)}>${Math.round(value)}%</strong>${Bar({ label: `${label}, ${Math.round(value)} percent`, parts: [{ pct: value, color: usedColor(value, 90) }] })}</td>`
     : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`;
   return Panel({ title, state: "ok", d }, html`
-    ${Trend({ title: "Highest utilization across nodes · 1h", data: d.compute_trend, labels: [["cpu", "CPU"], ["memory", "Memory"]], end: d.generated_at, duration: 3600, step: 60, unit: "%" })}
+    ${Trend({ title: "Highest utilization at each sample, across nodes", data: d.compute_trend, labels: [["cpu", "CPU"], ["memory", "Memory"]], end: d.generated_at, duration: 3600, step: 60, unit: "%", window: "1h" })}
     ${d.compute.length ? html`<table class="hardware-table compute">
       <thead><tr><th scope="col">Node</th><th scope="col">CPU</th><th scope="col">Memory</th></tr></thead>
       <tbody>${d.compute.map((n) => html`<tr><th scope="row">${n.node}</th>${percent("CPU", n.cpu)}${percent("Memory", n.memory)}</tr>`)}</tbody>
@@ -819,7 +829,7 @@ const Section = ({ id, title, layout = "band" }, children) => html`<section aria
 // Assigning to d, loadedAt or error re-renders it; nothing calls a render by hand.
 
 class CockpitApp extends LitElement {
-  static properties = { d: { state: true }, loadedAt: { state: true }, error: { state: true } };
+  static properties = { d: { state: true }, loadedAt: { state: true }, error: { state: true }, pendingHardwareWindow: { state: true } };
   constructor() {
     super();
     this.d = null;
@@ -832,11 +842,14 @@ class CockpitApp extends LitElement {
     this.load = async () => {
       this._inflight?.abort();
       const ctl = (this._inflight = new AbortController());
+      const requestedWindow = hardwareWindow();
+      this.pendingHardwareWindow = this.d && this.d.hardware_window !== requestedWindow ? requestedWindow : null;
       const timer = setTimeout(() => ctl.abort(), 20000);
       try {
-        const r = await fetch("api/v1/status?drops=" + dropsWindow() + "&hardware=" + hardwareWindow(), { signal: ctl.signal });
+        const r = await fetch("api/v1/status?drops=" + dropsWindow() + "&hardware=" + requestedWindow, { signal: ctl.signal });
         if (!r.ok) throw new Error("HTTP " + r.status);
         const d = await r.json();
+        if (this._inflight !== ctl) return;
         this.d = d;
         this.loadedAt = Date.now();
         this.error = null;
@@ -844,7 +857,10 @@ class CockpitApp extends LitElement {
         if (this._inflight === ctl) this.error = e.name === "AbortError" ? "timed out" : e.message; // not superseded by a newer request
       } finally {
         clearTimeout(timer);
-        if (this._inflight === ctl) this._inflight = null;
+        if (this._inflight === ctl) {
+          this._inflight = null;
+          this.pendingHardwareWindow = null;
+        }
       }
     };
     // A Home Screen app has no reload button, so a pull down from the top of the page refreshes (the browser's own gesture is not there).
@@ -881,7 +897,7 @@ class CockpitApp extends LitElement {
   render() {
     const { d, loadedAt, error } = this;
     const hardware = d ? hardwareRows(d) : [];
-    const hardwareWarning = hardwareWarnings(hardware);
+    const hardwareWarning = hardwareWarnings(hardware, d?.hardware_window || "24h");
     const failedSources = Object.keys(d?.meta?.workflow?.failed || {});
     const banner = error
       ? `The cockpit could not be reached (${error}). Showing the last data, if any.`
@@ -901,7 +917,7 @@ class CockpitApp extends LitElement {
       ${d ? html`${Strip(d, hardwareWarning)}
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
         ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}`)}
-        ${Section({ id: "hardware", title: "Cluster hardware", layout: "hardware-band" }, html`${NodesPanel(d)}${HardwarePanel(d, hardware, hardwareWarning, (v) => this.setHardwareWindow(v))}${ComputePanel(d)}`)}
+        ${Section({ id: "hardware", title: "Cluster hardware", layout: "hardware-band" }, html`${HardwarePanel(d, hardware, hardwareWarning, this.pendingHardwareWindow, (v) => this.setHardwareWindow(v))}${ComputePanel(d)}${NodesPanel(d)}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;
   }
