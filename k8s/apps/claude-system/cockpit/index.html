@@ -826,7 +826,7 @@ class CockpitApp extends LitElement {
       ${d ? html`${Strip(d, hardwareWarning)}
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
         ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}`)}
-        ${Section({ id: "hardware", title: "Homelab hardware" }, html`${NodesPanel(d)}${HardwarePanel(d, hardware, hardwareWarning, (v) => this.setHardwareWindow(v))}`)}
+        ${Section({ id: "hardware", title: "Cluster hardware" }, html`${NodesPanel(d)}${HardwarePanel(d, hardware, hardwareWarning, (v) => this.setHardwareWindow(v))}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;
   }
