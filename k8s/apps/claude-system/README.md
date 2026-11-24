@@ -337,7 +337,7 @@ flowchart LR
     FETCH -.->|"private, loopback, link-local: dropped"| BLOCK["10/8, 172.16/12, 192.168/16, 127/8, 169.254/16"]
 ```
 
-A request is `pending` until you decide, then `approved`, `failed` (approve again to retry) or `rejected`. Every state is forgotten after 24 h, or at once with the page's **Clear cache** button.
+A request is `pending` until you decide, then `approved`, `failed` (approve again to retry) or `rejected`. Every state is forgotten after 24 h, or at once with the page's **Clear cache** button (a card that shows how many pages and KiB are stored; the button asks a second time on the page, no browser dialog, and goes back after 8 seconds if you do nothing).
 
 | Listener | Reached through | Endpoints |
 |---|---|---|
