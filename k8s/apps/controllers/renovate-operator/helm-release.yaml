@@ -29,6 +29,8 @@ spec:
     crd:
       mode: template
     deployment:
+      annotations:
+        secret.reloader.stakater.com/reload: renovate-valkey-credentials
       podLabels:
         prometheus-scrape: "true"
       podAnnotations:
@@ -43,6 +45,10 @@ spec:
     externalKeyValueStore:
       host: valkey-renovate.renovate-system.svc.cluster.local
       cluster: true
+      username: renovate
+      existingSecret:
+        name: renovate-valkey-credentials
+        passwordKey: password
     # Repository cache in Garage
     s3:
       bucket: renovate

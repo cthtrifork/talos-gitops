@@ -14,10 +14,14 @@ metadata:
 spec:
   acl:
     users:
-      - name: default
+      - name: renovate
         password:
-          type: Any
-        permissions: ~* &* +@all
+          secret:
+            keys:
+              - password
+            name: renovate-valkey-credentials
+          type: Secret
+        permissions: ~* +@connection +get +set +del +cluster|slots +cluster|shards
   containers:
     - name: server
       securityContext:
