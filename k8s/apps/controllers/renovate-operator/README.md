@@ -2,7 +2,7 @@
 
 [renovate-operator](https://github.com/mogenius/renovate-operator) runs Renovate for the `cthtrifork` repositories from
 the namespace `renovate-system`, with a shared Valkey cache and a Garage S3 bucket for Renovate's repository cache.
-The GitHub Actions workflow (`.github/workflows/renovate.yaml`) remains as a once-a-day fallback.
+The GitHub Actions workflow (`.github/workflows/renovate.yaml`) runs daily as a fallback.
 
 | Part | Where |
 |---|---|
@@ -33,20 +33,15 @@ with a token in the global config of the `RenovateJob`.
 ## Operating notes
 
 - Flux installs the Valkey operator before creating `ValkeyCluster/renovate`. The Renovate HelmRelease waits for the cluster's
-  current generation to report Ready before switching to `valkey-renovate`.
+  current generation to report Ready and connects to `valkey-renovate` in cluster mode.
 - The cluster needs three eligible Talos hosts for the intended placement. Each of its three shards has a replica on a
   different host. Initial primaries are spread across the hosts. Check the placement and live roles again after failover.
-- The cutover removes the bundled Valkey and its network policy. Renovate may briefly lose Valkey access during
-  reconciliation and starts with an empty cache, logs, and sessions. The new cluster uses ephemeral storage and the
-  operator's alpha API.
+- Valkey uses ephemeral storage for cache, logs, and sessions.
 - The UI is exposed through the Omni service exposer (`Service/renovate-operator-ui`, port 50095, Omni login, LAN only).
 - Every repository in `discoveryFilters` loads its `renovate.json5` as repo config here, so a global-only option in one
   (`allowedCommands`, `platform`, `hostRules`, ...) is an error: those live in the inline global config of the `RenovateJob` and,
   for the Actions fallback, in each repository's `.github/workflows/renovate-config.js`. Keep the two in step.
 
-## Roll back
+## GitHub Actions fallback
 
-Revert the Valkey HA change to restore the bundled standalone store.
-
-`spec.suspend: true` on the `RenovateJob` and raise the schedule of the Actions workflow (once a day). There is no data to migrate.
-Garage v2.5.0 cannot be downgraded.
+Set `spec.suspend: true` on the `RenovateJob` and increase the frequency of the GitHub Actions workflow as needed.
