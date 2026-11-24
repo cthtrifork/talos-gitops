@@ -25,9 +25,9 @@ spec:
   healthCheckExprs:
     - apiVersion: valkey.io/v1alpha1
       kind: ValkeyCluster
+      # has() only takes a field selection, so has(status) does not parse
       current: >-
-        has(status) && has(status.conditions) &&
-        status.conditions.exists(c, c.type == 'Ready' && c.status == 'True' &&
+        status.?conditions.orValue([]).exists(c, c.type == 'Ready' && c.status == 'True' &&
         has(c.observedGeneration) && c.observedGeneration == metadata.generation)
   values:
     fullnameOverride: renovate
