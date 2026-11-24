@@ -11,7 +11,12 @@ spec:
     name: valkey-operator
   install:
     crds: Create
+    remediation:
+      retries: 3
+    createNamespace: true
   upgrade:
+    remediation:
+      retries: 3
     crds: CreateReplace
   values:
     fullnameOverride: valkey-operator
