@@ -12,7 +12,7 @@ spec:
   schedule: "7,37 * * * *"
   # The full image (not -slim): harper-pad and kglance need go for gomodTidy
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate versioning=docker
-  image: ghcr.io/renovatebot/renovate:44.258.2-full@sha256:a8537c041d7960128a5d4a33dcc2ebb9d13b270f1b1928bf79f081d92e09a6a8
+  image: ghcr.io/renovatebot/renovate:44.258.3-full@sha256:b1a6ef3dd1206b45db40f89929d3870a3f60b7998611b90fa9399b0543c5c723
   parallelism: 2
   extraEnv:
     # The operator reads PR activity from Renovate's debug log
