@@ -74,6 +74,26 @@
   },
   "packageRules": [
     {
+      "description": "Show chart names and exact versions for Flux Helm charts fetched through Zot mirrors.",
+      "matchManagers": [
+        "flux"
+      ],
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchDepTypes": [
+        "HelmChart"
+      ],
+      "matchDepNames": [
+        "/^[$][{]ZOT_MIRROR_[^}]+[}]/(?:[a-zA-Z0-9._-]+/)*/"
+      ],
+      "commitMessageTopic": "{{{replace '^.*/' '' depName}}} Helm chart{{#if (or isDigest isPinDigest)}} digest{{/if}}",
+      "commitMessageExtra": "to {{#if (or isDigest isPinDigest)}}{{{newDigestShort}}}{{else}}{{{newValue}}}{{/if}}",
+      "prBodyDefinitions": {
+        "Package": "{{{replace '[$][{]ZOT_MIRROR_[^}]+[}]/(?:[a-zA-Z0-9._-]+/)*' '' depNameLinked}}}{{#if newName}}{{#unless (equals depName newName)}} → {{{newNameLinked}}}{{/unless}}{{/if}}"
+      }
+    },
+    {
       "description": "Automerge patch and digest updates everywhere; more specific rules below can override",
       "automerge": true,
       "automergeType": "pr",
