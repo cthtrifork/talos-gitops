@@ -115,6 +115,31 @@
   @media (min-width: 900px) {
     .hardware-band { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); }
   }
+  .machine-rack { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; }
+  .machine {
+    display: grid; grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-areas: "slot name" "slot specs" "slot storage";
+    align-items: start; gap: 2px 12px; padding: 10px 12px; overflow-wrap: anywhere;
+  }
+  .machine + .machine { border-top: 1px solid var(--grid); }
+  .machine-slot { grid-area: slot; display: grid; justify-items: start; gap: 4px; padding-top: 2px; }
+  .machine-name { grid-area: name; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+  .machine-specs { grid-area: specs; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+  .machine-storage { grid-area: storage; }
+  .machine .mono, .machine-specs, .machine-storage { color: var(--ink-2); font-size: var(--fs-sm); }
+  .machine-specs strong { color: var(--ink); }
+  @media (min-width: 760px) {
+    .machine {
+      grid-template-columns: 52px minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.25fr);
+      grid-template-areas: "slot name specs storage";
+      align-items: center; gap: 16px; padding: 10px 16px;
+    }
+    .machine-name, .machine-specs { flex-direction: column; align-items: start; }
+  }
+  .machine-icon { position: relative; display: block; width: 36px; height: 19px; border: 1px solid var(--calm); border-radius: 5px; background: var(--page); }
+  .machine-icon.thin { height: 15px; margin-top: 4px; width: 41px; }
+  .machine-icon::before { content: ""; position: absolute; left: 5px; bottom: 5px; width: 4px; height: 2px; background: var(--calm); box-shadow: 6px 0 var(--calm); }
+  .machine-icon::after { content: ""; position: absolute; right: 5px; bottom: 4px; width: 4px; height: 4px; border: 1px solid var(--calm); border-radius: 50%; }
   .hardware-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
   .hardware-table th, .hardware-table td { text-align: right; padding: 4px; white-space: nowrap; }
   .hardware-table th:first-child { text-align: left; }
@@ -136,7 +161,10 @@
   .spark { width: 100%; height: 44px; display: block; }
   .trend { margin: 0; display: grid; gap: 4px; }
   .trend-plot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; align-items: stretch; }
-  .trend-plot .spark { height: 52px; }
+  .trend-plot .spark { height: 72px; }
+  .trend-percent .spark { height: 88px; }
+  .trend-percent .trend-scale { display: grid; grid-template-rows: repeat(4, 1fr) 0; padding-block: 8.5px; }
+  .trend-percent .trend-scale span { transform: translateY(-50%); align-self: start; }
   .trend-time { grid-column: 2; display: flex; justify-content: space-between; color: var(--ink-2); font-size: var(--fs-sm); }
   .trend-scale { display: flex; flex-direction: column; justify-content: space-between; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1; text-align: right; }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-sm); color: var(--ink-2); }
@@ -470,17 +498,19 @@ function Trend({ title, data, labels, end, duration, step, unit, window }) {
   })).filter((s) => s.points.length);
   const values = series.flatMap((s) => s.points.map(([, value]) => value));
   if (!values.length) return Muted("No trend samples in this range");
-  const low = unit === "%" ? 0 : Math.floor((Math.min(...values) - 1) / 5) * 5;
-  const high = unit === "%" ? 100 : Math.ceil((Math.max(...values) + 1) / 5) * 5;
+  const percent = unit === "%";
+  const low = percent ? 0 : Math.floor((Math.min(...values) - 1) / 5) * 5;
+  const high = percent ? 100 : Math.ceil((Math.max(...values) + 1) / 5) * 5;
+  const ticks = percent ? [100, 75, 50, 25, 0] : [high, (high + low) / 2, low];
   const x = (time) => 1 + 238 * (time - start) / duration;
   const y = (value) => 51 - 50 * (value - low) / (high - low);
   return html`<figure class="trend">
     <figcaption class="hardware-note">${title}</figcaption>
-    <div class="trend-plot">
-      <div class="trend-scale" aria-hidden="true"><span>${high}${unit}</span><span>${low}${unit}</span></div>
-      <svg class="spark" viewBox="0 0 240 52" preserveAspectRatio="none" role="img"
+    <div class=${percent ? "trend-plot trend-percent" : "trend-plot"}>
+      <div class="trend-scale" aria-hidden="true">${(percent ? ticks : [high, low]).map((tick) => html`<span>${tick}${unit}</span>`)}</div>
+      <svg class="spark" viewBox=${percent ? "0 -5 240 62" : "0 0 240 52"} preserveAspectRatio="none" role="img"
         aria-label=${series.map(({ name, points }) => `${name} ${Math.min(...points.map(([, v]) => v)).toFixed(1)} to ${Math.max(...points.map(([, v]) => v)).toFixed(1)}${unit}`).join(", ")}>
-        <path d="M0 1H240 M0 26H240 M0 51H240" stroke="var(--grid)" fill="none" />
+        <path d=${ticks.map((tick) => `M0 ${y(tick)}H240`).join(" ")} stroke="var(--grid)" fill="none" />
         ${series.map(({ color, dash, points }) => {
           const path = points.map(([t, v], i) => `${i && t - points[i - 1][0] <= step * 1.5 ? "L" : "M"}${x(t).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
           return svg`<path d=${path} stroke=${color} stroke-dasharray=${dash} stroke-width="2" fill="none" vector-effect="non-scaling-stroke" />
@@ -826,6 +856,44 @@ const Section = ({ id, title, layout = "band" }, children) => html`<section aria
   <div class=${layout}>${children}</div>
 </section>`;
 
+// Rack positions and hardware are from the Talos patches and docs/hardware.md. RAM is shown as installed capacity.
+const MACHINES = [
+  {
+    rack: "rack-0", node: "talos-11a-esj", nickname: "elaphant", model: "ASUS NUC15CRHC3",
+    cpus: 8, ram: "64 GB", storage: "1 TB + 256 GB NVMe · 4 TB USB",
+  },
+  {
+    rack: "rack-1", node: "talos-vt2-qp8", nickname: "hackyourfuture", model: "Intel NUC NUC11ATKC2",
+    cpus: 2, ram: "32 GB", storage: "512 GB NVMe · 4 TB USB",
+  },
+  {
+    rack: "rack-2", node: "talos-tba-msi", nickname: "nosticker", model: "Lenovo ThinkCentre M900x", thin: true,
+    cpus: 4, ram: "16 GB", storage: "1 TB NVMe · 256 GB SATA",
+  },
+  {
+    rack: "rack-3", node: "talos-2jc-qux", nickname: "chainguard", model: "Lenovo ThinkCentre M900x", thin: true,
+    cpus: 4, ram: "32 GB", storage: "1 TB NVMe · 256 GB SATA",
+  },
+].sort((a, b) => compare(a.rack, b.rack));
+
+const Machines = () => html`<section aria-labelledby="h-machines">
+  <h2 id="h-machines">Machines</h2>
+  <ol class="machine-rack" role="list">
+    ${MACHINES.map(({ rack, node, nickname, model, thin, cpus, ram, storage }) => html`<li class="machine">
+      <div class="machine-slot">
+        <span class=${thin ? "machine-icon thin" : "machine-icon"} aria-hidden="true"></span>
+        <span class="mono">${rack}</span>
+      </div>
+      <div class="machine-name"><strong>${nickname}</strong><span class="mono">${node}</span></div>
+      <div class="machine-specs">
+        <strong>${cpus} CPUs · ${ram} RAM</strong>
+        <span>${model}</span>
+      </div>
+      <span class="machine-storage">${storage}</span>
+    </li>`)}
+  </ol>
+</section>`;
+
 // ---- The page: an element that renders into itself (no shadow root), so the page's stylesheet applies ----
 // Assigning to d, loadedAt or error re-renders it; nothing calls a render by hand.
 
@@ -919,7 +987,8 @@ class CockpitApp extends LitElement {
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
         ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}`)}
         ${Section({ id: "hardware", title: "Cluster hardware", layout: "hardware-band" }, html`${HardwarePanel(d, hardware, hardwareWarning, this.pendingHardwareWindow, (v) => this.setHardwareWindow(v))}${ComputePanel(d)}${NodesPanel(d)}`)}
-        ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
+        ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}
+        ${Machines()}` : nothing}
     </main>`;
   }
 }
