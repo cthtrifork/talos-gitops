@@ -36,9 +36,9 @@ with a token in the global config of the `RenovateJob`.
   current generation to report Ready before switching to `valkey-renovate`.
 - The cluster needs three eligible Talos hosts for the intended placement. Each of its three shards has a replica on a
   different host. Initial primaries are spread across the hosts. Check the placement and live roles again after failover.
-- The switch starts with a cold cache and empty Valkey-backed logs and sessions. The bundled store stays available to
-  jobs already running with its URL. Confirm new jobs use the cluster and the old jobs have finished before retiring
-  the bundled store. Replicas provide failover, and the data remains ephemeral. The operator uses an alpha API.
+- The cutover removes the bundled Valkey and its network policy. Renovate may briefly lose Valkey access during
+  reconciliation and starts with an empty cache, logs, and sessions. The new cluster uses ephemeral storage and the
+  operator's alpha API.
 - The UI is exposed through the Omni service exposer (`Service/renovate-operator-ui`, port 50095, Omni login, LAN only).
 - Every repository in `discoveryFilters` loads its `renovate.json5` as repo config here, so a global-only option in one
   (`allowedCommands`, `platform`, `hostRules`, ...) is an error: those live in the inline global config of the `RenovateJob` and,
@@ -46,7 +46,7 @@ with a token in the global config of the `RenovateJob`.
 
 ## Roll back
 
-Remove the external Valkey settings and the HelmRelease dependency to switch back to the bundled store.
+Revert the Valkey HA change to restore the bundled standalone store.
 
 `spec.suspend: true` on the `RenovateJob` and raise the schedule of the Actions workflow (once a day). There is no data to migrate.
 Garage v2.5.0 cannot be downgraded.

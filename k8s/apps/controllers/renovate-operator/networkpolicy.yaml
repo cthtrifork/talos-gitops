@@ -64,9 +64,6 @@ spec:
               protocol: TCP
     - toEndpoints:
         - matchLabels:
-            app.kubernetes.io/name: valkey
-            app.kubernetes.io/instance: renovate-operator
-        - matchLabels:
             valkey.io/cluster: renovate
       toPorts:
         - ports:
@@ -128,9 +125,6 @@ spec:
     # Valkey (redisUrl) and Garage (repository cache over S3)
     - toEndpoints:
         - matchLabels:
-            app.kubernetes.io/name: valkey
-            app.kubernetes.io/instance: renovate-operator
-        - matchLabels:
             valkey.io/cluster: renovate
       toPorts:
         - ports:
@@ -142,28 +136,6 @@ spec:
       toPorts:
         - ports:
             - port: "3900"
-              protocol: TCP
----
-# Keep the bundled Valkey reachable while Flux waits for the new cluster.
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: valkey
-  namespace: renovate-system
-spec:
-  endpointSelector:
-    matchLabels:
-      app.kubernetes.io/name: valkey
-      app.kubernetes.io/instance: renovate-operator
-  ingress:
-    - fromEndpoints:
-        - matchLabels:
-            app: renovate-operator
-        - matchLabels:
-            renovate-job: "true"
-      toPorts:
-        - ports:
-            - port: "6379"
               protocol: TCP
 ---
 # The Valkey reconciler talks to the Kubernetes API and to individual cluster members.
