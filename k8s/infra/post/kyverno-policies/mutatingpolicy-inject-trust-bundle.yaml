@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/mutatingpolicy_v1.json
 # Mounts the trust-manager CA bundle into every new Pod. Annotations, labels, cluster switch and exclusions: docs/security.md,
 # "Trust bundle injection".
+---
 apiVersion: policies.kyverno.io/v1
 kind: MutatingPolicy
 metadata:
