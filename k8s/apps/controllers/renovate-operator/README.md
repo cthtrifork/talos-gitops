@@ -34,8 +34,9 @@ repository cache in Garage. Private packages on ghcr.io need a token in `hostRul
 
 ## Operating notes
 
-- Flux installs the Valkey operator (`valkey-operator-system`) before creating `ValkeyCluster/renovate`. The Renovate HelmRelease waits for the cluster's
-  current generation to report Ready and connects to `valkey-renovate` in cluster mode.
+- Flux installs the Valkey operator (`valkey-operator-system`) before creating `ValkeyCluster/renovate`. The Renovate HelmRelease starts once the
+  `valkey-resources` release is installed, without waiting for the cluster to report Ready, and connects to `valkey-renovate`
+  in cluster mode.
 - The cluster needs three eligible Talos hosts for the intended placement. Each of its three shards has a replica on a
   different host. Initial primaries are spread across the hosts. Check the placement and live roles again after failover.
 - Valkey uses ephemeral storage for cache, logs, and sessions.
