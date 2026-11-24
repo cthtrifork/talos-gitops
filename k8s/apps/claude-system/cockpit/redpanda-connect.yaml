@@ -342,11 +342,11 @@ processor_resources:
                 let nodes = "max by (instance, node) (label_replace(kube_node_info{internal_ip!=\"\"}, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\"))"
                 let node_join = " * on (instance) group_left (node) " + $nodes
                 let stats = [
-                  {"name": "current", "expr": "max by (instance, chip_name) (" + $sensors + $classify + $current_chips + ")"},
-                  {"name": "min", "expr": "min by (instance, chip_name) (min_over_time(" + $sensors + $range + ")" + $classify + $historical_chips + ")"},
-                  {"name": "max", "expr": "max by (instance, chip_name) (max_over_time(" + $sensors + $range + ")" + $classify + $historical_chips + ")"},
-                  {"name": "coverage", "expr": "min by (instance, chip_name) (count_over_time(" + $sensors + $range + ")" + $classify + $historical_chips + ") / " + $samples.string()}
-                ].map_each(s -> "label_replace((" + s.expr + ")" + $node_join + ", \"stat\", \"" + s.name + "\", \"node\", \".*\")")
+                  {"name": "current", "aggregate": "max", "expr": $sensors + $classify + $current_chips},
+                  {"name": "min", "aggregate": "min", "expr": "min_over_time(" + $sensors + $range + ")" + $classify + $historical_chips},
+                  {"name": "max", "aggregate": "max", "expr": "max_over_time(" + $sensors + $range + ")" + $classify + $historical_chips},
+                  {"name": "coverage", "aggregate": "min", "expr": "(count_over_time(" + $sensors + $range + ")" + $classify + $historical_chips + ") / " + $samples.string()}
+                ].map_each(s -> "label_replace(" + s.aggregate + " by (node, chip_name) ((" + s.expr + ")" + $node_join + "), \"stat\", \"" + s.name + "\", \"node\", \".*\")")
                 meta path = "/api/v1/query?query=" + ("group by (node) (kube_node_info) or " + $stats.join(" or ")).escape_url_query()
                 root = ""
               processors:
