@@ -362,6 +362,25 @@ processor_resources:
                   })
                 }).sort_by(n -> n.node)
 
+            compute:
+              request_map: |
+                let nodes = "group by (instance, node) (label_replace(kube_node_info{internal_ip!=\"\"}, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\"))"
+                let node_join = " * on (instance) group_left (node) " + $nodes
+                let cpu = "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))"
+                let memory = "100 * (1 - node_memory_MemAvailable_bytes / (node_memory_MemTotal_bytes > 0))"
+                let stats = [{"name": "cpu", "expr": $cpu}, {"name": "memory", "expr": $memory}].map_each(s -> "label_replace(clamp(max by (node) ((" + s.expr + ")" + $node_join + "), 0, 100), \"resource\", \"" + s.name + "\", \"node\", \".*\")")
+                meta path = "/api/v1/query?query=" + ("group by (node) (kube_node_info) or " + $stats.join(" or ")).escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                let rows = this.data.result
+                root.compute = $rows.filter(r -> !r.metric.exists("resource")).map_each(n -> {
+                  "node": n.metric.node,
+                  "cpu": $rows.filter(r -> r.metric.node == n.metric.node && r.metric.resource.or("") == "cpu").index(0).value.index(1).number().catch(null),
+                  "memory": $rows.filter(r -> r.metric.node == n.metric.node && r.metric.resource.or("") == "memory").index(0).value.index(1).number().catch(null)
+                }).sort_by(n -> n.node)
+
             var_avail:
               request_map: |
                 meta path = "/api/v1/query?query=" + "node_filesystem_avail_bytes{mountpoint=\"/var\"} * on (instance) group_left (node) label_replace(kube_node_info, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\")".escape_url_query()

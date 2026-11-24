@@ -108,11 +108,12 @@
   /* The right-hand value (time, count, version) keeps its natural width and drops below the text as a whole when the row is tight.
      It only wraps when it is wider than the row itself. */
   ul.rows li > :not(.l) { flex: none; width: max-content; max-width: 100%; margin-left: auto; text-align: right; overflow-wrap: anywhere; }
-  .temperatures { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
-  .temperatures caption { text-align: left; font-weight: 650; overflow-wrap: anywhere; }
-  .temperatures th, .temperatures td { text-align: right; padding: 3px 2px; white-space: nowrap; }
-  .temperatures th:first-child { text-align: left; }
-  .temperatures thead { color: var(--ink-2); border-bottom: 1px solid var(--grid); }
+  .hardware-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+  .hardware-table caption { text-align: left; font-weight: 650; overflow-wrap: anywhere; }
+  .hardware-table th, .hardware-table td { text-align: right; padding: 3px 2px; white-space: nowrap; }
+  .hardware-table th:first-child { text-align: left; }
+  .compute th:first-child { white-space: normal; overflow-wrap: anywhere; }
+  .hardware-table thead { color: var(--ink-2); border-bottom: 1px solid var(--grid); }
   .bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; display: flex; }
   .bar i { display: block; height: 100%; }
   .spark { width: 100%; height: 44px; display: block; }
@@ -435,7 +436,7 @@ const HardwarePanel = (d, nodes, warning, setWindow) => {
   return Panel({ title, state: warning?.state ?? "ok", text: warning ? "threshold exceeded" : undefined, d }, html`
     ${toggle}
     ${nodes.length ? nodes.map(({ node, rows }) => html`
-      <table class="temperatures">
+      <table class="hardware-table">
         <caption class="mono">${node}</caption>
         <thead><tr><th scope="col">Sensor</th><th scope="col">Current</th><th scope="col">Min</th><th scope="col">Max</th></tr></thead>
         <tbody>${rows.map(({ name, cells, partial }) => html`
@@ -570,6 +571,20 @@ const NodesPanel = (d) => {
       <div class="limit" style="margin-top: 8px">${n.rows.map((r) => UsedRow(r.label, r.pct, html`<span class="muted">· ${sizeText(r.free)} free${r.label === "Ephemeral /var" ? "" : " of " + sizeText(r.total)}</span>`))}</div>
     </div>`)}
     ${Muted("Volume groups show allocated space (the sum of the PVC sizes), not data written.")}`);
+};
+
+const ComputePanel = (d) => {
+  const title = "Compute";
+  if (!d.compute) return Unavailable({ title, source: "Prometheus · node CPU and memory metrics", d });
+  const percent = (value) => Number.isFinite(value)
+    ? html`<td>${Math.round(value)}%</td>`
+    : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`;
+  return Panel({ title, state: "ok", d }, html`
+    ${d.compute.length ? html`<table class="hardware-table compute">
+      <thead><tr><th scope="col">Node</th><th scope="col">CPU</th><th scope="col">Memory</th></tr></thead>
+      <tbody>${d.compute.map((n) => html`<tr><th scope="row">${n.node}</th>${percent(n.cpu)}${percent(n.memory)}</tr>`)}</tbody>
+    </table>${Muted("CPU over 5 minutes · memory in use")}` : Muted("No nodes reported by Prometheus.")}
+  `);
 };
 
 const PrRows = (items) =>
@@ -826,7 +841,7 @@ class CockpitApp extends LitElement {
       ${d ? html`${Strip(d, hardwareWarning)}
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
         ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}`)}
-        ${Section({ id: "hardware", title: "Cluster hardware" }, html`${NodesPanel(d)}${HardwarePanel(d, hardware, hardwareWarning, (v) => this.setHardwareWindow(v))}`)}
+        ${Section({ id: "hardware", title: "Cluster hardware" }, html`${NodesPanel(d)}${HardwarePanel(d, hardware, hardwareWarning, (v) => this.setHardwareWindow(v))}${ComputePanel(d)}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;
   }
