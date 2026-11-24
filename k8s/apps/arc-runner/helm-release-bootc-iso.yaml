@@ -45,9 +45,9 @@ spec:
     template:
       metadata:
         annotations:
-          # Not injected: the runner adds the CA from /usr/local/share/ca-certificates/private-ca.crt with
-          # RUNNER_UPDATE_CA_CERTS, which cannot replace a mounted /etc/ssl/certs/ca-certificates.crt, and workflows read that file.
-          trust.portableinfo.cloud/inject: "false"
+          # Internal + public CAs (jobs reach the allowlisted internet), mounted at /etc/ssl/certs/ca-certificates.crt.
+          trust.portableinfo.cloud/inject: "true"
+          trust.portableinfo.cloud/public: "true"
       spec:
         # Same node as the fileserver: cross-node upload ran at 3 to 5 MB/s vs 87 MB/s on one node. Jobs wait if the node is full.
         affinity:
@@ -97,8 +97,6 @@ spec:
               - name: BUILDAH_LAYERS
                 value: "true"
 
-              - name: RUNNER_UPDATE_CA_CERTS
-                value: "1"
               # optional: the runner starts before the first sync.
               - name: FILESERVER_TOKEN
                 valueFrom:
@@ -110,10 +108,6 @@ spec:
                 value: http://fileserver-upload.fileserver-system.svc:8082
 
             volumeMounts:
-              - name: ca-certs
-                mountPath: /usr/local/share/ca-certificates/private-ca.crt
-                subPath: ca.crt
-
               - name: bootc-iso-cache
                 mountPath: /var/lib/containers/storage
                 subPath: containers
@@ -151,12 +145,6 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         volumes:
-          - name: ca-certs
-            configMap:
-              name: portableinfo-ca-bundle
-              items:
-                - key: ca-bundle.crt
-                  path: ca.crt
           - name: registries
             configMap:
               name: podman-registries
@@ -191,7 +179,8 @@ spec:
           prometheus-scrape: "true"
         annotations:
           # talks to github.com
-          trust.portableinfo.cloud/inject: "false"
+          trust.portableinfo.cloud/inject: "true"
+          trust.portableinfo.cloud/public: "true"
       spec:
         securityContext:
           runAsNonRoot: true

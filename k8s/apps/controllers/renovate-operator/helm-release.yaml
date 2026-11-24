@@ -30,6 +30,7 @@ spec:
       podLabels:
         prometheus-scrape: "true"
       podAnnotations:
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle # the bundle is injected by Kyverno, invisible to auto
         trust.portableinfo.cloud/public: "true" # api.github.com
     resources:
       requests:

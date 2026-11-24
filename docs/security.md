@@ -136,7 +136,7 @@ one of them read-only into every container and init container of a new Pod, at `
   (cert-manager and trust-manager), `openebs-system`, `metallb-system`, so cluster startup cannot wait on the policy or on a ConfigMap.
   `failurePolicy` is `Ignore`: while Kyverno is down pods are admitted unchanged.
 - Rollout: a MutatingPolicy has no audit action, so the first stage is opt-in. While `TRUST_INJECT_ENFORCE=false` (`k8s/clusters/homelab/cluster-vars.env`)
-  only pods with `inject: "true"` are mutated (zot, trivy-operator). The workloads that call the internet already carry
+  only pods with `inject: "true"` are mutated (zot, trivy-operator and the ARC runner and listener pods). The workloads that call the internet already carry
   `public: "true"`, which does nothing until the switch: the ARC controller, Renovate operator and job pods, external-secrets controller, Traefik (its
   cloudflared sidecar), external-dns, the Dependency-Track VEX export, gha-cache, AdGuard and `claude-rc`. Check Hubble for others
   (`world` egress in a namespace's network policy) before setting `TRUST_INJECT_ENFORCE` to `true`.
@@ -145,11 +145,16 @@ one of them read-only into every container and init container of a new Pod, at `
 - A subPath mount does not follow the ConfigMap: a bundle change reaches a pod only when it restarts. Put
   `configmap.reloader.stakater.com/reload: portableinfo-internal-ca-bundle` (or `portableinfo-ca-bundle` with `public: "true"`) on the workload
   or its pod template; `reloader.stakater.com/auto` cannot see the injected volume. Reloader only restarts Deployments, StatefulSets and DaemonSets,
-  so bare pods and Jobs (scan jobs) pick up a change at their next start.
+  so bare pods and Jobs (scan jobs) pick up a change at their next start. The `public` workloads carry this annotation except `claude-rc`, which
+  would lose its remote-control session on a restart and picks up a bundle change at its next deliberate restart.
 - An env var or mount the pod already sets for the same name or path is replaced. `NODE_EXTRA_CA_CERTS` adds to Node's built-in public CAs, so Node
   keeps trusting public sites even with the internal bundle. Java and some Go/Python images ignore these paths and need their own handling.
-- The ARC runner pods are opted out (`inject: "false"`): the runner image adds the CA from `/usr/local/share/ca-certificates/private-ca.crt`
-  (`RUNNER_UPDATE_CA_CERTS`), which cannot replace a mounted `ca-certificates.crt`, and workflows read that file.
+- The ARC runner and listener pods are injected with `public: "true"`: workflows read `/etc/ssl/certs/ca-certificates.crt`, which now holds the
+  public and internal CAs. The runner manifests no longer mount the CA at `/usr/local/share/ca-certificates` or set `RUNNER_UPDATE_CA_CERTS`.
+- Flux is the deliberate exception. `flux-system` is excluded, and the FluxInstance patch (`k8s/clusters/homelab/flux-instance.yaml`) mounts
+  `portableinfo-ca-bundle` into source-controller as an optional directory volume read through `SSL_CERT_DIR`. Trust-manager is itself installed
+  from an OCIRepository that source-controller fetches through zot, so a pod that waits for the ConfigMap (a subPath mount of a missing ConfigMap
+  fails the container) or a policy that must be up first would deadlock a cluster rebuild.
 
 ## Identity and RBAC
 

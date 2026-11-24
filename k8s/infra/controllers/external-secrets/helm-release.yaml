@@ -26,6 +26,8 @@ spec:
       prometheus-scrape: "true"
     # the controller calls api.github.com (the webhook and cert controller below stay internal)
     podAnnotations:
+      # Reloader cannot see the volume that Kyverno injects, so name the bundle explicitly
+      configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
       trust.portableinfo.cloud/public: "true"
     serviceMonitor:
       enabled: true

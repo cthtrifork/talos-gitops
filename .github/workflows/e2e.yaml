@@ -107,7 +107,7 @@ jobs:
           kubectl get nodes
       - name: Pull through the cluster zot only
         timeout-minutes: 2
-        run: ./scripts/ci/e2e/zot-mirror.sh homelab-control-plane /usr/local/share/ca-certificates/private-ca.crt
+        run: ./scripts/ci/e2e/zot-mirror.sh homelab-control-plane /etc/ssl/certs/ca-certificates.crt
       - name: Install cilium
         timeout-minutes: 3
         run: |
@@ -161,7 +161,7 @@ jobs:
         run: |
           # on the real cluster trust-manager creates this ConfigMap; the FluxInstance mounts it into source-controller
           kubectl -n flux-system create configmap portableinfo-ca-bundle \
-            --from-file=ca-bundle.crt=/usr/local/share/ca-certificates/private-ca.crt
+            --from-file=ca-bundle.crt=/etc/ssl/certs/ca-certificates.crt
 
       - name: Deploy flux instance
         timeout-minutes: 2

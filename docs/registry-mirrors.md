@@ -120,14 +120,17 @@ unchanged.
   `.github/workflows/helm-chart-sync.yaml` (configs in `scripts/ci/helm/`) copies them to `ghcr.io/cthtrifork/talos-gitops/charts`, and they are
   read from there through `ghcr-cache`. A new version appears in Git only after the sync has pushed it.
 - **TLS:** the FluxInstance patch in `k8s/clusters/homelab/flux-instance.yaml` mounts the trust-manager ConfigMap `portableinfo-ca-bundle` into
-  source-controller (`SSL_CERT_DIR`). The volume is optional, so source-controller starts before trust-manager exists.
+  source-controller (`SSL_CERT_DIR`). The volume is optional, so source-controller starts before trust-manager exists. This is the one place
+  that does not use the Kyverno injection (`docs/security.md`, "Trust bundle injection"): `flux-system` is excluded so Flux does not depend on
+  Kyverno or on a ConfigMap that trust-manager creates from an OCIRepository Flux itself has to pull.
 - **Network policy:** `flux-system-egress-zot` (`k8s/infra/flux-system/`) and the `zot` policy in `k8s/infra/registry-system/networkpolicy.yaml`.
 - **Renovate:** `registryAliases` maps each literal default (`${ZOT_MIRROR_GHCR:=ghcr.io}`) to its registry, so versions are looked up upstream.
 - **Rendering:** `scripts/ci/render-manifests.sh` runs `flux envsubst` over `helm-repository.yaml`: upstream by default, through zot where
   `ZOT_MIRROR_*` is set (a localhost registry over plain HTTP). `make render-manifests-zot` does that on a workstation with the local zot of
   `scripts/zot/compose.yaml` (same cache names, on-demand sync, no TLS, credentials or retention) and leaves it running; `make zot-down`
   stops it, `docker compose -f scripts/zot/compose.yaml down -v` also empties the cache. `RENDER_DIRS="dir1 dir2"` limits the render.
-- **e2e:** kind's CoreDNS gets a `hosts` entry for the zot service name and `portableinfo-ca-bundle` is created from the runner's CA (steps
+- **e2e:** kind's CoreDNS gets a `hosts` entry for the zot service name and `portableinfo-ca-bundle` is created from the runner's CA bundle
+  (`/etc/ssl/certs/ca-certificates.crt`, injected into the ARC runner pod; steps
   "Resolve the cluster zot inside kind" and "Trust the private CA in flux-system" in `.github/workflows/e2e.yaml`).
 
 ## Using Spegel alone

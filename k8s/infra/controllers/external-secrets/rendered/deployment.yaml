@@ -21,6 +21,7 @@ spec:
   template:
     metadata:
       annotations:
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
         trust.portableinfo.cloud/public: "true"
       labels:
         helm.sh/chart: external-secrets-2.15.0

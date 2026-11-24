@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 8d0916547cec76a485d9c4fa1d77ac898d8c6255d9e9bd6ce3872de43e39ed3
+    actions.github.com/values-hash: 063d90875e66e5478ca1d6b28be010e679c0b291e44312ce281dc6bd05916be
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -34,7 +34,8 @@ spec:
       labels:
         prometheus-scrape: "true"
       annotations:
-        trust.portableinfo.cloud/inject: "false"
+        trust.portableinfo.cloud/inject: "true"
+        trust.portableinfo.cloud/public: "true"
     spec:
       containers:
         - livenessProbe:
@@ -78,7 +79,8 @@ spec:
   template:
     metadata:
       annotations:
-        trust.portableinfo.cloud/inject: "false"
+        trust.portableinfo.cloud/inject: "true"
+        trust.portableinfo.cloud/public: "true"
     spec:
       affinity:
         podAffinity:
@@ -244,8 +246,6 @@ spec:
               value: "true"
             - name: ACTIONS_RESULTS_URL
               value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
-            - name: RUNNER_UPDATE_CA_CERTS
-              value: "1"
             - name: FILESERVER_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -255,9 +255,6 @@ spec:
             - name: FILESERVER_URL
               value: http://fileserver-upload.fileserver-system.svc:8082
           volumeMounts:
-            - mountPath: /usr/local/share/ca-certificates/private-ca.crt
-              name: ca-certs
-              subPath: ca.crt
             - mountPath: /var/lib/containers/storage
               name: container-storage-rootful
             - mountPath: /home/runner/_work
@@ -286,12 +283,6 @@ spec:
             - mountPath: /host-dev
               name: host-dev
       volumes:
-        - configMap:
-            items:
-              - key: ca-bundle.crt
-                path: ca.crt
-            name: portableinfo-ca-bundle
-          name: ca-certs
         - hostPath:
             path: /run/udev
             type: Directory

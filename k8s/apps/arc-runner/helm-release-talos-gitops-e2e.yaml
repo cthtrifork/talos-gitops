@@ -36,9 +36,9 @@ spec:
     template:
       metadata:
         annotations:
-          # Not injected: the runner adds the CA from /usr/local/share/ca-certificates/private-ca.crt with
-          # RUNNER_UPDATE_CA_CERTS, which cannot replace a mounted /etc/ssl/certs/ca-certificates.crt, and workflows read that file.
-          trust.portableinfo.cloud/inject: "false"
+          # Internal + public CAs (jobs reach the allowlisted internet), mounted at /etc/ssl/certs/ca-certificates.crt.
+          trust.portableinfo.cloud/inject: "true"
+          trust.portableinfo.cloud/public: "true"
       spec:
         # Same node as the cache server (node-local volume); cross-node transfer is too slow.
         affinity:
@@ -142,13 +142,7 @@ spec:
               # The trailing slash is required.
               - name: ACTIONS_RESULTS_URL
                 value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
-
-              - name: RUNNER_UPDATE_CA_CERTS
-                value: "1"
             volumeMounts:
-              - name: ca-certs
-                mountPath: /usr/local/share/ca-certificates/private-ca.crt
-                subPath: ca.crt
               - name: work
                 mountPath: /home/runner/_work
               - name: dind-sock
@@ -161,13 +155,6 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         volumes:
-          - name: ca-certs
-
-            configMap:
-              name: portableinfo-ca-bundle
-              items:
-                - key: ca-bundle.crt
-                  path: ca.crt
           - name: work
             ephemeral:
               volumeClaimTemplate:
@@ -199,7 +186,8 @@ spec:
           prometheus-scrape: "true"
         annotations:
           # talks to github.com
-          trust.portableinfo.cloud/inject: "false"
+          trust.portableinfo.cloud/inject: "true"
+          trust.portableinfo.cloud/public: "true"
       spec:
         securityContext:
           runAsNonRoot: true

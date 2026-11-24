@@ -54,5 +54,6 @@ spec:
       enabled: false
     deploymentAnnotations:
       reloader.stakater.com/auto: "true"
+      configmap.reloader.stakater.com/reload: portableinfo-ca-bundle # the bundle is injected by Kyverno, invisible to auto
     podAnnotations:
       trust.portableinfo.cloud/public: "true" # api.cloudflare.com

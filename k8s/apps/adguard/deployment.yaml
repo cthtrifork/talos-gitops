@@ -7,6 +7,7 @@ metadata:
   namespace: adguard-system
   annotations:
     reloader.stakater.com/auto: "true"
+    configmap.reloader.stakater.com/reload: portableinfo-ca-bundle # the bundle is injected by Kyverno, invisible to auto
 spec:
   replicas: 1
   selector:

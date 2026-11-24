@@ -17,6 +17,7 @@ spec:
         app: renovate-operator
         prometheus-scrape: "true"
       annotations:
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
         trust.portableinfo.cloud/public: "true"
     spec:
       serviceAccountName: renovate-operator
