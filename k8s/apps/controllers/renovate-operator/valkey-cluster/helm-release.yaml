@@ -48,6 +48,17 @@ spec:
                   keys:
                     - password
               permissions: "~* +@connection +get +set +del +cluster|slots +cluster|shards"
+        networking:
+          discovery:
+            preferredEndpointType: Hostname
+          tls:
+            certificates:
+              server:
+                secretName: renovate-valkey-tls
+            clientAuth:
+              mode: Disabled
+        config:
+          tls-auto-reload-interval: "60"
         scheduling:
           node:
             spread:

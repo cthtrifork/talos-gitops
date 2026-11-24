@@ -45,6 +45,7 @@ spec:
     externalKeyValueStore:
       host: valkey-renovate.renovate-system.svc.cluster.local
       cluster: true
+      useTls: true
       username: renovate
       existingSecret:
         name: renovate-valkey-credentials
@@ -62,7 +63,8 @@ spec:
       globalParallelismLimit: 2
       deleteSuccessfulJobs: true
       jobTTLSecondsAfterFinished: 3600
-      forwardCacheToJobs: true
+      # Renovate's cluster cache client currently applies TLS only to discovery.
+      forwardCacheToJobs: false
       forwardS3CacheToJobs: true
       # Last run's log per project for the UI.
       logStorage:

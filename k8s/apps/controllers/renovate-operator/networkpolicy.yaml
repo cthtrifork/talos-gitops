@@ -122,14 +122,7 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
-    # Valkey (redisUrl) and Garage (repository cache over S3)
-    - toEndpoints:
-        - matchLabels:
-            valkey.io/cluster: renovate
-      toPorts:
-        - ports:
-            - port: "6379"
-              protocol: TCP
+    # Garage repository cache over S3
     - toEndpoints:
         - matchLabels:
             app.kubernetes.io/name: garage
@@ -174,8 +167,6 @@ spec:
     - fromEndpoints:
         - matchLabels:
             app: renovate-operator
-        - matchLabels:
-            renovate-job: "true"
         - matchLabels:
             app.kubernetes.io/name: valkey-operator
             app.kubernetes.io/instance: valkey-operator

@@ -87,6 +87,8 @@ spec:
                 secretKeyRef:
                   name: renovate-valkey-credentials
                   key: password
+            - name: VALKEY_TLS
+              value: "true"
             - name: VALKEY_CLUSTER
               value: "true"
             - name: SESSION_STORE
@@ -94,7 +96,7 @@ spec:
             - name: SESSION_DURATION
               value: "24h"
             - name: VALKEY_FORWARD_CACHE_TO_JOBS
-              value: "true"
+              value: "false"
             - name: POLICY_ENABLED
               value: "false"
             - name: POLICY_ALLOWED_HOSTS

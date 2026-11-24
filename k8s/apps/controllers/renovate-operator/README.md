@@ -27,9 +27,9 @@ Only one Secret is created by hand, in SOPS (`k8s/apps/renovate/github-app-crede
 External Secrets creates the rest once and never overwrites it (generated in the cluster store, `k8s/infra/secret-store/`, copied by
 `external-secrets.yaml`): `garage-s3-key` (`access-key-id`, `secret-access-key`, used by Garage and the operator) and
 `garage-secrets` (`rpcSecret`, `adminToken`).
-External Secrets also generates `renovate-valkey-credentials` for the `renovate` Valkey ACL user. The operator
-forwards the authenticated cluster URL to Renovate jobs. Private packages on ghcr.io need a token in `hostRules` in the
-`RenovateJob` global config.
+External Secrets generates `renovate-valkey-credentials` for the `renovate` Valkey ACL user. The Renovate controller
+validates the Valkey server certificate against the cluster CA. Jobs use a local package lookup cache and the shared
+repository cache in Garage. Private packages on ghcr.io need a token in `hostRules` in the `RenovateJob` global config.
 
 ## Operating notes
 
