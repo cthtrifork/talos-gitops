@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/validatingpolicy_v1.json
 # A pod template with trust.portableinfo.cloud/public or /java gets the bundle through a subPath mount, which never follows the
 # ConfigMap, and Reloader cannot see an injected volume. So the workload must name the bundle itself (docs/security.md, "Trust bundle
-# injection"). Warn only: the alert TrustBundleReloadMissing (kube-prometheus-stack) reports it. Workloads that restart by hand carry
+# injection"). Warn only: the alert AdmissionPolicyFailed (kube-prometheus-stack) reports it. Workloads that restart by hand carry
 # trust.portableinfo.cloud/reload: "false".
 ---
 apiVersion: policies.kyverno.io/v1

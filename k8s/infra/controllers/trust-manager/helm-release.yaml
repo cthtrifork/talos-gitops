@@ -30,7 +30,7 @@ spec:
       trust:
         # cert-manager-system holds the root CA Secret (portableinfo-root-ca) that the Bundle reads
         namespace: cert-manager-system
-      # opens the metrics port 9402 to Prometheus (CiliumClusterwideNetworkPolicy prometheus-scrape); the alert TrustManagerReconcileErrors needs them
+      # opens the metrics port 9402 to Prometheus (CiliumClusterwideNetworkPolicy prometheus-scrape); the alert ControllerReconcileFailing needs them
       podLabels:
         prometheus-scrape: "true"
       metrics:

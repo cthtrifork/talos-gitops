@@ -145,10 +145,11 @@ admitted unchanged.
   `require-trust-bundle-reload` warns when a Deployment, StatefulSet or DaemonSet with `public` or `java` on its pod template lacks the annotation
   or names the wrong bundle (workloads on the internal bundle are not checked). `claude-rc` carries `trust.portableinfo.cloud/reload: "false"` on
   the workload instead: a restart ends its session.
-- **Alerts** (`k8s/infra/kube-prometheus-stack/prometheusrule-trust.yaml`): `TrustBundleConfigMapMissing` (a namespace lacks a bundle ConfigMap),
-  `TrustManagerReconcileErrors`, `TrustInjectionFailed` (the mutating policy failed; the pod was admitted without the bundle),
-  `TrustBundleReloadMissing` (the policy above; the metric only moves when Flux applies, every 30 minutes), `ReloaderReloadFailed` and
-  `PodStuckContainerCreating` (20 minutes, typically a missing ConfigMap).
+- **Alerts** (`k8s/infra/kube-prometheus-stack/prometheusrule-workloads.yaml`): generic rules cover the trust machinery. `AdmissionPolicyDenied`
+  fires when any Kyverno policy in Deny mode rejects a request, and `AdmissionPolicyFailed` when one fails without rejecting (Warn, Audit, or a
+  failed mutation such as a missing trust bundle injection or reload annotation). Both read counters that only move when a request is admitted or
+  refused, so a standing problem shows within the Flux interval of 30 minutes. `ControllerReconcileFailing` covers trust-manager, `ReloaderReloadFailed` covers Reloader and
+  `PodStuckContainerCreating` covers a missing ConfigMap. `TrustBundleConfigMapMissing` is the one trust-specific rule: a namespace lacks a bundle ConfigMap.
 - **Runtimes:** Node trusts its built-in public CAs in addition. Java trusts exactly the mounted store (add `public: "true"` if it calls public
   sites; the JVM reads it once; the HTTP client must use JVM defaults); the Dependency-Track api-server is the only user. Go and Python images may
   ignore these paths (Python: `REQUESTS_CA_BUNDLE`).
