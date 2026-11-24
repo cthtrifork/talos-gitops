@@ -40,8 +40,24 @@ spec:
         memory: 64Mi
       limits:
         memory: 256Mi
+    # Keep the bundled store until the last jobs using its URL finish.
     valkey:
-      enabled: false
+      enabled: true
+      image:
+        registry: mirror.gcr.io
+        tag: 9.2.0@sha256:1c2b25b09f354c66fe994733acdf12fcfd4bdf6f3bd92b88a93a70378d884056
+      auth:
+        enabled: false
+      dataStorage:
+        enabled: false
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          memory: 512Mi
+      readinessProbe:
+        enabled: true
     externalKeyValueStore:
       host: valkey-renovate.renovate-system.svc.cluster.local
       cluster: true
