@@ -1,0 +1,56 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: valkey-resources
+  namespace: renovate-system
+spec:
+  interval: 30m
+  timeout: 10m
+  chartRef:
+    kind: OCIRepository
+    name: valkey-resources
+  dependsOn:
+    - name: valkey-operator
+  install:
+    strategy:
+      name: RetryOnFailure
+      retryInterval: 1m
+  waitStrategy:
+    name: poller
+  healthCheckExprs:
+    - apiVersion: valkey.io/v1alpha1
+      kind: ValkeyCluster
+      current: >-
+        has(status) && has(status.conditions) &&
+        status.conditions.exists(c, c.type == 'Ready' && c.status == 'True' &&
+        has(c.observedGeneration) && c.observedGeneration == metadata.generation)
+  values:
+    fullnameOverride: renovate
+    cluster:
+      spec:
+        shards: 3
+        replicasPerShard: 1
+        # renovate: datasource=docker depName=mirror.gcr.io/valkey/valkey versioning=docker
+        image: mirror.gcr.io/valkey/valkey:9.2.0@sha256:1c2b25b09f354c66fe994733acdf12fcfd4bdf6f3bd92b88a93a70378d884056
+        acl:
+          users:
+            - name: default
+              password:
+                type: Any
+              permissions: "~* &* +@all"
+        scheduling:
+          node:
+            spread:
+              shard:
+                mode: Required
+              primaries:
+                mode: Required
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            memory: 512Mi
+        exporter:
+          enabled: false

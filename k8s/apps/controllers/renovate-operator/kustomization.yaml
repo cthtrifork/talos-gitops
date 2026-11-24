@@ -8,3 +8,7 @@ resources:
   - networkpolicy.yaml
   - external-secrets.yaml
   - ui-service.yaml
+  - valkey-operator/helm-repository.yaml
+  - valkey-operator/helm-release.yaml
+  - valkey-cluster/helm-repository.yaml
+  - valkey-cluster/helm-release.yaml

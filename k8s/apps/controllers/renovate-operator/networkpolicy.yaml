@@ -65,6 +65,9 @@ spec:
     - toEndpoints:
         - matchLabels:
             app.kubernetes.io/name: valkey
+            app.kubernetes.io/instance: renovate-operator
+        - matchLabels:
+            valkey.io/cluster: renovate
       toPorts:
         - ports:
             - port: "6379"
@@ -126,6 +129,9 @@ spec:
     - toEndpoints:
         - matchLabels:
             app.kubernetes.io/name: valkey
+            app.kubernetes.io/instance: renovate-operator
+        - matchLabels:
+            valkey.io/cluster: renovate
       toPorts:
         - ports:
             - port: "6379"
@@ -138,7 +144,7 @@ spec:
             - port: "3900"
               protocol: TCP
 ---
-# Valkey: only the operator and the job pods
+# Keep the bundled Valkey reachable while Flux waits for the new cluster.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -148,6 +154,7 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: valkey
+      app.kubernetes.io/instance: renovate-operator
   ingress:
     - fromEndpoints:
         - matchLabels:
@@ -157,6 +164,71 @@ spec:
       toPorts:
         - ports:
             - port: "6379"
+              protocol: TCP
+---
+# The Valkey reconciler talks to the Kubernetes API and to individual cluster members.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: valkey-operator
+  namespace: renovate-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: valkey-operator
+      app.kubernetes.io/instance: valkey-operator
+  egress:
+    - toEntities:
+        - kube-apiserver
+    - toEndpoints:
+        - matchLabels:
+            valkey.io/cluster: renovate
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+---
+# Cluster clients follow redirects to individual pods. Keep the cluster bus peer-only.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: renovate-valkey-cluster
+  namespace: renovate-system
+spec:
+  endpointSelector:
+    matchLabels:
+      valkey.io/cluster: renovate
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app: renovate-operator
+        - matchLabels:
+            renovate-job: "true"
+        - matchLabels:
+            app.kubernetes.io/name: valkey-operator
+            app.kubernetes.io/instance: valkey-operator
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            valkey.io/cluster: renovate
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+            - port: "16379"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            valkey.io/cluster: renovate
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+            - port: "16379"
               protocol: TCP
 ---
 # Garage: S3 only from job pods; RPC (3901) and admin (3903) only between Garage pods, including the configure Job.

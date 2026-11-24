@@ -1,0 +1,34 @@
+---
+# Source: valkey-operator/templates/valkey-viewer-role.yaml
+# Aggregated ClusterRole granting read-only access to the Valkey CRDs.
+# Rolls up into the built-in "view" ClusterRole so users can inspect
+# valkeyclusters/valkeynodes (including status) without any write permissions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: valkey-operator-valkey-viewer
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+    helm.sh/chart: valkey-operator-0.9.0
+    app.kubernetes.io/name: valkey-operator
+    app.kubernetes.io/instance: valkey-operator
+    app.kubernetes.io/version: "v0.9.0"
+    app.kubernetes.io/managed-by: Helm
+  namespace: renovate-system
+rules:
+  - apiGroups:
+      - valkey.io
+    resources:
+      - valkeyclusters
+      - valkeynodes
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - valkey.io
+    resources:
+      - valkeyclusters/status
+      - valkeynodes/status
+    verbs:
+      - get

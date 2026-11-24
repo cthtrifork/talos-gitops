@@ -75,9 +75,11 @@ spec:
             - name: LEADER_ELECTION_ID
               value: "renovate-operator-leader"
             - name: VALKEY_HOST
-              value: "renovate-operator-valkey"
+              value: "valkey-renovate.renovate-system.svc.cluster.local"
             - name: VALKEY_PORT
               value: "6379"
+            - name: VALKEY_CLUSTER
+              value: "true"
             - name: SESSION_STORE
               value: "cookie"
             - name: SESSION_DURATION
