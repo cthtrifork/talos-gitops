@@ -5,12 +5,14 @@ Match a machine by the model and MAC on its sticker (NUCs: bottom label; Lenovo:
 
 Last captured 2026-11-24:
 
-| Node | IP | CPU | Memory | Machine | NIC (MAC) | Disks | Label on machine |
-|---|---|---|---|---|---|---|---|
-| talos-11a-esj | 192.168.1.184 | 8 | 62 GiB | ASUS `NUC15CRHC3` | enp87s0 (88:ae:dd:68:01:ed) | nvme KINGSTON SNV3S1000G 1 TB (50026B76874D970E); nvme TS256GMTE400S 256 GB (J029620144); USB 4 TB | [ ] |
-| talos-tba-msi | 192.168.1.146 | 4 | 15 GiB | Lenovo ThinkCentre M900x `10LYS00P00` | eno1 (00:23:24:c1:62:01) | nvme KINGSTON SNV2S1000G 1 TB (50026B738311F2C9); SATA SAMSUNG MZ7TY256 256 GB | [ ] |
-| talos-vt2-qp8 | 192.168.1.112 | 2 | 31 GiB | Intel NUC `NUC11ATKC2` | eno1 (88:ae:dd:03:8b:cd) | nvme INTEL SSDPEKNW512G8 512 GB (PHNH21220250512A); USB 4 TB (Expansion HDD) | [ ] |
-| talos-2jc-qux | 192.168.1.173 | 4 | 31 GiB | unknown (down when captured) | unknown | NVMe + SATA SSD | [ ] |
+| Node | Nickname | Rack | IP | CPU | Memory | Machine | NIC (MAC) | Disks | Label on machine |
+|---|---|---|---|---|---|---|---|---|---|
+| talos-11a-esj | elaphant | 0 | 192.168.1.184 | 8 | 62 GiB | ASUS `NUC15CRHC3` | enp87s0 (88:ae:dd:68:01:ed) | nvme KINGSTON SNV3S1000G 1 TB (50026B76874D970E); nvme TS256GMTE400S 256 GB (J029620144); USB 4 TB | [x] |
+| talos-tba-msi | nosticker | 2 | 192.168.1.146 | 4 | 15 GiB | Lenovo ThinkCentre M900x `10LYS00P00` | eno1 (00:23:24:c1:62:01) | nvme KINGSTON SNV2S1000G 1 TB (50026B738311F2C9); SATA SAMSUNG MZ7TY256 256 GB | [x] |
+| talos-vt2-qp8 | hackyourfuture | 1 | 192.168.1.112 | 2 | 31 GiB | Intel NUC `NUC11ATKC2` | eno1 (88:ae:dd:03:8b:cd) | nvme INTEL SSDPEKNW512G8 512 GB (PHNH21220250512A); USB 4 TB (Expansion HDD) | [x] |
+| talos-2jc-qux | chainguard | 3 | 192.168.1.173 | 4 | 31 GiB | unknown (down when captured) | unknown | NVMe + SATA SSD | [x] |
+
+The rack is also a node label, `topology.homelab/rack: rack-N`, set by `patches/19-rack-11a.yaml`, `20-rack-vt2.yaml`, `21-rack-tba.yaml` and `22-rack-2jc.yaml` (one per node, like the LVM patches). Use it as `topologyKey` in pod anti-affinity or `topologySpreadConstraints`. Apply the patches to the matching machines in Omni; nothing is labelled in the cluster until then.
 
 Tick the last column once the label is on the machine. What to write on it: node name, IP and short disk summary, for example `talos-2jc-qux / .173 / NVMe + SATA`.
 
