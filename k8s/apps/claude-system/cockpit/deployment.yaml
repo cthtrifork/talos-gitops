@@ -20,6 +20,7 @@ spec:
         app: claude-cockpit
       annotations:
         trust.portableinfo.cloud/public: "true" # api.github.com, ghcr.io
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
     spec:
       topologySpreadConstraints:
         - maxSkew: 1

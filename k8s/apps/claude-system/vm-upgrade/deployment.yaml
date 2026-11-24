@@ -18,6 +18,7 @@ spec:
         prometheus-scrape: "true"
       annotations:
         trust.portableinfo.cloud/public: "true" # ghcr.io
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
     spec:
       automountServiceAccountToken: false
       securityContext:

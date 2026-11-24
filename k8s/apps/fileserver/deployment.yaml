@@ -23,6 +23,7 @@ spec:
         prometheus-scrape: "true"
       annotations:
         trust.portableinfo.cloud/public: "true" # r2-sync reaches Cloudflare R2
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
     spec:
       serviceAccountName: fileserver
       automountServiceAccountToken: false
