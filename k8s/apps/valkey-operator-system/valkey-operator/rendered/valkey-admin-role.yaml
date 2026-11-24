@@ -1,20 +1,20 @@
 ---
-# Source: valkey-operator/templates/valkey-editor-role.yaml
-# Aggregated ClusterRole granting read/write access to the Valkey CRDs.
-# Rolls up into the built-in "edit" ClusterRole so users can create and modify
-# valkeyclusters/valkeynodes; status subresources stay read-only (controller-owned).
+# Source: valkey-operator/templates/valkey-admin-role.yaml
+# Aggregated ClusterRole granting full management of the Valkey CRDs.
+# Rolls up into the built-in "admin" ClusterRole so namespace admins can
+# manage valkeyclusters/valkeynodes without the operator's controller permissions.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: valkey-operator-valkey-editor
+  name: valkey-operator-valkey-admin
   labels:
-    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
     helm.sh/chart: valkey-operator-0.9.0
     app.kubernetes.io/name: valkey-operator
     app.kubernetes.io/instance: valkey-operator
     app.kubernetes.io/version: "v0.9.0"
     app.kubernetes.io/managed-by: Helm
-  namespace: renovate-system
+  namespace: valkey-operator-system
 rules:
   - apiGroups:
       - valkey.io
@@ -24,6 +24,7 @@ rules:
     verbs:
       - create
       - delete
+      - deletecollection
       - get
       - list
       - patch

@@ -1,21 +1,21 @@
 ---
-# Source: valkey-operator/templates/clusterrolebinding.yaml
+# Source: valkey-operator/templates/leader-election-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
-  name: valkey-operator-manager
+  name: valkey-operator-leader-election
+  namespace: valkey-operator-system
   labels:
     helm.sh/chart: valkey-operator-0.9.0
     app.kubernetes.io/name: valkey-operator
     app.kubernetes.io/instance: valkey-operator
     app.kubernetes.io/version: "v0.9.0"
     app.kubernetes.io/managed-by: Helm
-  namespace: renovate-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: valkey-operator-manager
+  kind: Role
+  name: valkey-operator-leader-election
 subjects:
   - kind: ServiceAccount
     name: valkey-operator
-    namespace: renovate-system
+    namespace: valkey-operator-system

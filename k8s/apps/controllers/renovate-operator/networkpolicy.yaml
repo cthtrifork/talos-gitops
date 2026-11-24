@@ -131,28 +131,6 @@ spec:
             - port: "3900"
               protocol: TCP
 ---
-# The Valkey reconciler talks to the Kubernetes API and to individual cluster members.
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: valkey-operator
-  namespace: renovate-system
-spec:
-  endpointSelector:
-    matchLabels:
-      app.kubernetes.io/name: valkey-operator
-      app.kubernetes.io/instance: valkey-operator
-  egress:
-    - toEntities:
-        - kube-apiserver
-    - toEndpoints:
-        - matchLabels:
-            valkey.io/cluster: renovate
-      toPorts:
-        - ports:
-            - port: "6379"
-              protocol: TCP
----
 # Cluster clients follow redirects to individual pods. Keep the cluster bus peer-only.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -168,6 +146,7 @@ spec:
         - matchLabels:
             app: renovate-operator
         - matchLabels:
+            k8s:io.kubernetes.pod.namespace: valkey-operator-system
             app.kubernetes.io/name: valkey-operator
             app.kubernetes.io/instance: valkey-operator
       toPorts:

@@ -3,7 +3,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: valkey-operator
-  namespace: renovate-system
+  namespace: valkey-operator-system
 spec:
   interval: 30m
   chartRef:
@@ -11,10 +11,18 @@ spec:
     name: valkey-operator
   install:
     crds: Create
+    strategy:
+      name: RetryOnFailure
+      retryInterval: 1m
   upgrade:
     crds: CreateReplace
+    remediation:
+      retries: 3
   values:
     fullnameOverride: valkey-operator
+    image:
+      # renovate: datasource=docker depName=ghcr.io/valkey-io/valkey-operator versioning=docker
+      tag: v0.9.0@sha256:e57008d92684c35ed0001b4e979593f5ab951f9560222e753375bd427750081c
     manager:
       watchNamespaces:
         - renovate-system

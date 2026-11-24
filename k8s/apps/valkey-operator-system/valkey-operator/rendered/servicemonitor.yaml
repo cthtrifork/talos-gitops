@@ -4,7 +4,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: valkey-operator-metrics
-  namespace: renovate-system
+  namespace: valkey-operator-system
   labels:
     helm.sh/chart: valkey-operator-0.9.0
     app.kubernetes.io/name: valkey-operator
@@ -18,7 +18,7 @@ spec:
       honorLabels: false
   namespaceSelector:
     matchNames:
-      - renovate-system
+      - valkey-operator-system
   selector:
     matchLabels:
       app.kubernetes.io/name: valkey-operator
