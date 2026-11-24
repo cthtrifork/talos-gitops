@@ -46,8 +46,7 @@ spec:
     template:
       metadata:
         annotations:
-          # Internal + public CAs (jobs reach the allowlisted internet), mounted at /etc/ssl/certs/ca-certificates.crt.
-          trust.portableinfo.cloud/inject: "true"
+          # Internal + public CAs (jobs reach the allowlisted internet).
           trust.portableinfo.cloud/public: "true"
       spec:
         # Same node as the cache server (node-local volume); cross-node transfer is too slow.
@@ -267,7 +266,6 @@ spec:
           prometheus-scrape: "true"
         annotations:
           # talks to github.com
-          trust.portableinfo.cloud/inject: "true"
           trust.portableinfo.cloud/public: "true"
       spec:
         securityContext:

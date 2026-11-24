@@ -33,7 +33,7 @@ zot's certificate comes from `certificate-cluster-issuer`. trust-manager's `port
 (`k8s/infra/post/trust-manager`) puts the root CA in a ConfigMap of that name in every namespace, and the Kyverno policy
 `inject-trust-bundle` mounts it as `/etc/ssl/certs/ca-certificates.crt` in the trivy server, the scan jobs and the operator, so no
 `dbRepositoryInsecure` is needed (`docs/security.md`, "Trust bundle injection"). They only talk to zot and each other, so
-the internal-only bundle is enough; the `trust.portableinfo.cloud/inject: "true"` annotations on them are the opt-in of the rollout stage.
+the internal-only bundle (the default) is enough, so they carry no annotation.
 Reloader restarts the trivy server and the operator when the bundle changes (they read it at start); a scan job reads it when it starts.
 
 ## Network policies

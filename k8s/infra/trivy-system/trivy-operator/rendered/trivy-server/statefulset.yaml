@@ -20,7 +20,6 @@ spec:
     metadata:
       annotations:
         checksum/config: 7fcc66ace3f98462349856795765021e7bf7a0106f28439a9f6dc74257404370
-        trust.portableinfo.cloud/inject: "true"
       labels:
         app.kubernetes.io/instance: trivy-server
         app.kubernetes.io/name: trivy-server

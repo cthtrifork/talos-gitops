@@ -16,6 +16,8 @@ spec:
       labels:
         app: claude-vm-upgrade
         prometheus-scrape: "true"
+      annotations:
+        trust.portableinfo.cloud/public: "true" # ghcr.io
     spec:
       automountServiceAccountToken: false
       securityContext:

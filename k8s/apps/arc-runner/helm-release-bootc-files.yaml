@@ -40,8 +40,7 @@ spec:
     template:
       metadata:
         annotations:
-          # Public + internal CAs: the runner talks to github.com, and the injected default would be the internal-only bundle.
-          trust.portableinfo.cloud/inject: "true"
+          # Public + internal CAs: the runner talks to github.com, and the default is the internal-only bundle.
           trust.portableinfo.cloud/public: "true"
       spec:
         containers:
@@ -102,7 +101,6 @@ spec:
           prometheus-scrape: "true"
         annotations:
           # talks to github.com
-          trust.portableinfo.cloud/inject: "true"
           trust.portableinfo.cloud/public: "true"
       spec:
         securityContext:

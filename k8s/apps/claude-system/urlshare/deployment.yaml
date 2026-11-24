@@ -17,6 +17,8 @@ spec:
       labels:
         app: claude-urlshare
         prometheus-scrape: "true"
+      annotations:
+        trust.portableinfo.cloud/public: "true" # fetches the shared URLs
     spec:
       automountServiceAccountToken: false
       securityContext:

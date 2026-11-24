@@ -129,26 +129,38 @@ one of them read-only into every container and init container of a new Pod, at `
 |---|---|
 | `trust.portableinfo.cloud/inject: "false"` | The pod is left unchanged |
 | `trust.portableinfo.cloud/public: "true"` | Mount `portableinfo-ca-bundle` instead of the internal-only bundle |
-| `trust.portableinfo.cloud/inject: "true"` | Opt in during the first rollout stage (below); harmless afterwards |
 
 - Set the annotations on the pod template (Helm `podAnnotations`, the CR's pod template), not on the Deployment.
-- Not injected: `kube-system`, `kube-public`, `kube-node-lease`, `flux-system`, `policy-system` (Kyverno), `cert-manager-system`
-  (cert-manager and trust-manager), `openebs-system`, `metallb-system`, so cluster startup cannot wait on the policy or on a ConfigMap.
-  `failurePolicy` is `Ignore`: while Kyverno is down pods are admitted unchanged.
-- Rollout: a MutatingPolicy has no audit action, so the first stage is opt-in. While `TRUST_INJECT_ENFORCE=false` (`k8s/clusters/homelab/cluster-vars.env`)
-  only pods with `inject: "true"` are mutated (zot, trivy-operator and the ARC runner and listener pods). The workloads that call the internet already carry
-  `public: "true"`, which does nothing until the switch: the ARC controller, Renovate operator and job pods, external-secrets controller, Traefik (its
-  cloudflared sidecar), external-dns, the Dependency-Track VEX export, gha-cache, AdGuard and `claude-rc`. Check Hubble for others
-  (`world` egress in a namespace's network policy) before setting `TRUST_INJECT_ENFORCE` to `true`.
+- The policy has a cluster switch, `TRUST_INJECT` in `k8s/clusters/homelab/cluster-vars.env` (default false, set to true on the running cluster). While
+  it is not `true` the policy mutates nothing, so a cluster built from empty runs without the bundle until trust-manager has synced it; set it
+  together with the `ZOT_MIRROR_*` variables once the cluster is up. Pods created in the meantime pick the bundle up when they restart.
+- Not injected even with the switch on: `flux-system` (below), `cert-manager-system` (trust-manager's own pod would wait for a ConfigMap that only
+  trust-manager recreates), and KubeVirt `virt-launcher` pods (label `kubevirt.io: virt-launcher`; they call nothing, and an annotation on the VM
+  template would mark every running VM as needing a restart). `failurePolicy` is `Ignore`: while Kyverno is down pods are admitted unchanged.
+- CDI importer pods are made by CDI, which copies only a fixed list of annotations from the PVC to the pod, but all labels (DataVolume to PVC to pod).
+  So the `dataVolumeTemplates` carry the label `trust.portableinfo.cloud/public: "true"` instead of an annotation; the importers pull disk images
+  from `ghcr.io`. Only a newly created DataVolume gets it: KubeVirt does not update an existing one.
+- With the switch on, every other pod, `kube-system` included, is mutated when it is created, and gets the internal-only bundle unless it carries `public: "true"`. A MutatingPolicy has no audit
+  action, so a pod that calls a public site without it fails TLS verification after its next restart. Existing pods are not touched until then.
+  When adding a workload with `world` egress (`toFQDNs` or `world` in its network policy), add `public: "true"`. Workloads that carry it today: the ARC
+  controller and all runner and listener pods, Renovate operator and job pods, external-secrets controller, Traefik (its cloudflared sidecar),
+  external-dns, zot, the Dependency-Track VEX export, gha-cache, AdGuard, the fileserver (R2), `claude-rc`, and the claude-system urlshare, cockpit
+  and vm-upgrade pods.
 - Labels of the same name work like annotations, for pods whose owner cannot annotate them: the Renovate job pods get theirs from
-  `podLabelTemplates`. The Dependency-Track api-server (Java, own truststore) is opted out.
+  `podLabelTemplates`. The Dependency-Track api-server (Java) also carries `java: "true"`: see the Java bullet below.
 - A subPath mount does not follow the ConfigMap: a bundle change reaches a pod only when it restarts. Put
   `configmap.reloader.stakater.com/reload: portableinfo-internal-ca-bundle` (or `portableinfo-ca-bundle` with `public: "true"`) on the workload
   or its pod template; `reloader.stakater.com/auto` cannot see the injected volume. Reloader only restarts Deployments, StatefulSets and DaemonSets,
   so bare pods and Jobs (scan jobs) pick up a change at their next start. The `public` workloads carry this annotation except `claude-rc`, which
   would lose its remote-control session on a restart and picks up a bundle change at its next deliberate restart.
 - An env var or mount the pod already sets for the same name or path is replaced. `NODE_EXTRA_CA_CERTS` adds to Node's built-in public CAs, so Node
-  keeps trusting public sites even with the internal bundle. Java and some Go/Python images ignore these paths and need their own handling.
+  keeps trusting public sites even with the internal bundle. Go and Python images may ignore these paths and need their own handling.
+- Java ignores the PEM file and the `SSL_CERT_*` variables. Both bundle ConfigMaps therefore also carry a PKCS#12 truststore under the key
+  `ca-bundle.p12` (password `changeit`, an integrity check on public data; PKCS#12 instead of JKS because trust-manager deprecates JKS).
+  A pod annotated `trust.portableinfo.cloud/java: "true"` gets that key mounted at `/etc/trust-bundle/ca-bundle.p12` and
+  `-Djavax.net.ssl.trustStore*` appended to `JAVA_TOOL_OPTIONS` of its regular containers (an existing value is kept). The JVM then trusts exactly
+  that bundle instead of the JDK `cacerts`, so a Java pod that calls public sites needs `public: "true"` as well. The JVM reads the store once, so add the
+  Reloader annotation. The Dependency-Track api-server is the only user. It only works for apps whose HTTP client uses the JVM defaults.
 - The ARC runner and listener pods (all five scale sets) are injected with `public: "true"`: workflows read `/etc/ssl/certs/ca-certificates.crt`, which now
   holds the public and internal CAs. The runner manifests no longer mount the CA at `/usr/local/share/ca-certificates` or set `RUNNER_UPDATE_CA_CERTS`.
   The runner image (`images/github-actions-runner`) needs no change: `run.sh` of actions/runner only calls `sudo update-ca-certificates` when
@@ -158,7 +170,7 @@ one of them read-only into every container and init container of a new Pod, at `
 - Flux is the deliberate exception. `flux-system` is excluded, and the FluxInstance patch (`k8s/clusters/homelab/flux-instance.yaml`) mounts
   `portableinfo-ca-bundle` into source-controller as an optional directory volume read through `SSL_CERT_DIR`. Trust-manager is itself installed
   from an OCIRepository that source-controller fetches through zot, so a pod that waits for the ConfigMap (a subPath mount of a missing ConfigMap
-  fails the container) or a policy that must be up first would deadlock a cluster rebuild.
+  fails the container) would deadlock a recovery in which the ConfigMap is gone, and the switch does not help there.
 
 ## Identity and RBAC
 

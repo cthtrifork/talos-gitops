@@ -21,7 +21,6 @@ spec:
       annotations:
         configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
         reloader.stakater.com/auto: "true"
-        trust.portableinfo.cloud/inject: "true"
         trust.portableinfo.cloud/public: "true"
       labels:
         app.kubernetes.io/instance: zot

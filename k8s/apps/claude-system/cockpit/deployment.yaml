@@ -18,6 +18,8 @@ spec:
     metadata:
       labels:
         app: claude-cockpit
+      annotations:
+        trust.portableinfo.cloud/public: "true" # api.github.com, ghcr.io
     spec:
       topologySpreadConstraints:
         - maxSkew: 1

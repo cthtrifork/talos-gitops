@@ -4,11 +4,19 @@
 # Pod annotations (a label of the same name works too, for pods whose owner cannot set annotations, e.g. RenovateJob):
 #   trust.portableinfo.cloud/inject: "false"  opts the pod out
 #   trust.portableinfo.cloud/public: "true"   mounts portableinfo-ca-bundle (public + internal CAs) instead of
-#                                             portableinfo-internal-ca-bundle (internal root CA only)
+#                                             portableinfo-internal-ca-bundle (internal root CA only, the default)
+#   trust.portableinfo.cloud/java: "true"     for Java apps, which ignore the PEM file: also mounts the PKCS#12 truststore of the same
+#                                             bundle at /etc/trust-bundle/ca-bundle.p12 and appends -Djavax.net.ssl.trustStore*
+#                                             to JAVA_TOOL_OPTIONS (an existing value is kept). Regular containers only. The JVM
+#                                             then trusts exactly that bundle instead of the JDK cacerts; the JVM reads it once, so
+#                                             add the Reloader annotation for the bundle too.
 #
-# Rollout: a MutatingPolicy has no audit action, so the first stage is opt-in. While TRUST_INJECT_ENFORCE (cluster-vars.env)
-# is false only pods annotated trust.portableinfo.cloud/inject: "true" are mutated. Once the workloads that call the internet
-# carry public: "true", set it to true and every pod outside the excluded namespaces is mutated.
+# Every pod outside the excluded namespaces is mutated unless it opts out. A MutatingPolicy has no audit action: a pod that calls
+# a public site without public: "true" fails TLS verification once it restarts, so check a namespace's world egress first.
+#
+# Cluster switch: TRUST_INJECT (k8s/clusters/homelab/cluster-vars.env, default false) turns the whole policy on. A cluster that is
+# being built from empty leaves it off, so no pod waits for a ConfigMap that trust-manager has not created yet and no bootstrap
+# namespace needs excluding. Set it to true once trust-manager has synced the bundles (docs/security.md).
 #
 # Pods only, no autogen: mutating the pod template of a Deployment would fight Flux drift detection.
 apiVersion: policies.kyverno.io/v1
@@ -25,21 +33,16 @@ spec:
   webhookConfiguration:
     timeoutSeconds: 10
   matchConstraints:
-    # Bootstrap namespaces: a pod waiting for a ConfigMap that trust-manager creates (or for Kyverno itself) could deadlock
-    # cluster startup. policy-system is Kyverno, cert-manager-system is cert-manager and trust-manager.
+    # Left out even with the switch on, because waiting for the bundle would be circular:
+    # flux-system: source-controller fetches the charts that deliver trust-manager (the FluxInstance patch mounts the bundle itself).
+    # cert-manager-system: trust-manager's own pod would wait for a ConfigMap that only trust-manager recreates.
     namespaceSelector:
       matchExpressions:
         - key: kubernetes.io/metadata.name
           operator: NotIn
           values:
-            - kube-system
-            - kube-public
-            - kube-node-lease
             - flux-system
-            - policy-system
             - cert-manager-system
-            - openebs-system
-            - metallb-system
     resourceRules:
       - apiGroups:
           - ""
@@ -50,10 +53,16 @@ spec:
         resources:
           - pods
   matchConditions:
-    - name: rollout-stage
+    # Flux replaces the variable before the policy is applied: the expression reads "true" or "false". Compared as a string, so a
+    # mistyped value turns the policy off instead of producing an invalid expression.
+    - name: cluster-switch
       expression: >-
-        ${TRUST_INJECT_ENFORCE:=false} ||
-        object.metadata.?annotations["trust.portableinfo.cloud/inject"].orValue(object.metadata.?labels["trust.portableinfo.cloud/inject"].orValue("")) == "true"
+        "${TRUST_INJECT:=false}" == "true"
+    # virt-launcher runs the VM and calls nothing. Skipping it here keeps the VM templates untouched: an annotation there would
+    # mark every running VM as needing a restart.
+    - name: not-virt-launcher
+      expression: >-
+        object.metadata.?labels["kubevirt.io"].orValue("") != "virt-launcher"
     - name: not-opted-out
       expression: >-
         object.metadata.?annotations["trust.portableinfo.cloud/inject"].orValue(object.metadata.?labels["trust.portableinfo.cloud/inject"].orValue("")) != "false"
@@ -62,6 +71,12 @@ spec:
       expression: >-
         object.metadata.?annotations["trust.portableinfo.cloud/public"].orValue(object.metadata.?labels["trust.portableinfo.cloud/public"].orValue("")) == "true"
         ? "portableinfo-ca-bundle" : "portableinfo-internal-ca-bundle"
+    - name: java
+      expression: >-
+        object.metadata.?annotations["trust.portableinfo.cloud/java"].orValue(object.metadata.?labels["trust.portableinfo.cloud/java"].orValue("")) == "true"
+    - name: javaOpts
+      expression: >-
+        "-Djavax.net.ssl.trustStore=/etc/trust-bundle/ca-bundle.p12 -Djavax.net.ssl.trustStoreType=PKCS12 -Djavax.net.ssl.trustStorePassword=changeit"
   mutations:
     # Merge keys: volumes and env by name, volumeMounts by mountPath. An env var or mount the pod already sets for the same
     # name/path is replaced.
@@ -80,7 +95,12 @@ spec:
                         key: "ca-bundle.crt",
                         path: "ca-bundle.crt"
                       }
-                    ]
+                    ] + (variables.java ? [
+                      Object.spec.volumes.configMap.items{
+                        key: "ca-bundle.p12",
+                        path: "ca-bundle.p12"
+                      }
+                    ] : [])
                   }
                 }
               ],
@@ -99,7 +119,14 @@ spec:
                     subPath: "ca-bundle.crt",
                     readOnly: true
                   }
-                ],
+                ] + (variables.java ? [
+                  Object.spec.containers.volumeMounts{
+                    name: "portableinfo-trust-bundle",
+                    mountPath: "/etc/trust-bundle/ca-bundle.p12",
+                    subPath: "ca-bundle.p12",
+                    readOnly: true
+                  }
+                ] : []),
                 env: [
                   Object.spec.containers.env{
                     name: "SSL_CERT_FILE",
@@ -109,7 +136,12 @@ spec:
                     name: "NODE_EXTRA_CA_CERTS",
                     value: "/etc/ssl/certs/ca-certificates.crt"
                   }
-                ]
+                ] + (variables.java ? [
+                  Object.spec.containers.env{
+                    name: "JAVA_TOOL_OPTIONS",
+                    value: (c.?env.orValue([]).filter(e, e.name == "JAVA_TOOL_OPTIONS").map(e, e.?value.orValue("")).join(" ") + " " + variables.javaOpts).trim()
+                  }
+                ] : [])
               }),
               initContainers: object.spec.?initContainers.orValue([]).map(c, Object.spec.initContainers{
                 name: c.name,

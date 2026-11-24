@@ -178,10 +178,8 @@ spec:
       # the chart's checksum/config does not cover the scanJob.* keys
       annotations:
         configmap.reloader.stakater.com/reload: trivy-operator,trivy-operator-config,trivy-operator-trivy-config,portableinfo-internal-ca-bundle
-      # Kyverno mounts the internal CA bundle (zot) into these pods: trust.portableinfo.cloud/inject is the opt-in of the
-      # rollout stage; the server and the scan jobs only talk to zot and each other, so no public CAs
-      serverAdditionalAnnotations:
-        trust.portableinfo.cloud/inject: "true"
+      # Kyverno mounts the internal CA bundle (zot) into these pods and the scan jobs; they only talk to zot and each other,
+      # so no public CAs
       podLabels:
         prometheus-scrape: "true"
         config-revision: "2" # bump to roll the operator after a scanJob.* change that reloader did not see
@@ -208,10 +206,7 @@ spec:
       requests:
         cpu: 100m
         memory: 512Mi
-    podAnnotations:
-      trust.portableinfo.cloud/inject: "true"
     trivyOperator:
-      scanJobAnnotations: trust.portableinfo.cloud/inject=true
       scanJobCustomVolumesMount:
         - name: trivy-cache
           mountPath: /tmp/trivy/.cache

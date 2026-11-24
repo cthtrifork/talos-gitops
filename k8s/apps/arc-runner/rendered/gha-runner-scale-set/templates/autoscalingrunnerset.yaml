@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 063d90875e66e5478ca1d6b28be010e679c0b291e44312ce281dc6bd05916be
+    actions.github.com/values-hash: 0f75fc90cb5c2c34baf2128cda46b02c2056c0b73ca33b1a9e11aa44c68d8e3
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -34,7 +34,6 @@ spec:
       labels:
         prometheus-scrape: "true"
       annotations:
-        trust.portableinfo.cloud/inject: "true"
         trust.portableinfo.cloud/public: "true"
     spec:
       containers:
@@ -79,7 +78,6 @@ spec:
   template:
     metadata:
       annotations:
-        trust.portableinfo.cloud/inject: "true"
         trust.portableinfo.cloud/public: "true"
     spec:
       affinity:

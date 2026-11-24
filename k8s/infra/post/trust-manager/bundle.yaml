@@ -5,6 +5,11 @@
 # - portableinfo-internal-ca-bundle: the internal root CA only. The default for injected pods: internal services (zot, ...)
 #   are trusted and public sites are not.
 # - portableinfo-ca-bundle: public CAs plus the internal root CA, for pods annotated trust.portableinfo.cloud/public: "true".
+#
+# Both also carry the same CAs as a PKCS#12 truststore (key ca-bundle.p12, password "changeit") for Java apps, which ignore the PEM
+# file. The policy mounts it into pods annotated trust.portableinfo.cloud/java: "true". PKCS#12 rather than JKS: trust-manager marks
+# JKS deprecated, and Modern2023 is needed because the default LegacyRC2 profile is not readable by recent JDKs. The password is an
+# integrity check on public data, not a secret.
 ---
 apiVersion: trust.cert-manager.io/v1alpha1
 kind: Bundle
@@ -18,6 +23,11 @@ spec:
   target:
     configMap:
       key: ca-bundle.crt
+    additionalFormats:
+      pkcs12:
+        key: ca-bundle.p12
+        password: changeit
+        profile: Modern2023
 ---
 apiVersion: trust.cert-manager.io/v1alpha1
 kind: Bundle
@@ -32,3 +42,8 @@ spec:
   target:
     configMap:
       key: ca-bundle.crt
+    additionalFormats:
+      pkcs12:
+        key: ca-bundle.p12
+        password: changeit
+        profile: Modern2023
