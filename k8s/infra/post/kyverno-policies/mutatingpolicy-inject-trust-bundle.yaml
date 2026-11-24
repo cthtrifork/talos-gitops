@@ -1,24 +1,6 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/mutatingpolicy_v1.json
-# Mounts the trust-manager CA bundle into every container of a new Pod (docs/security.md, "Trust bundle injection").
-#
-# Pod annotations (a label of the same name works too, for pods whose owner cannot set annotations, e.g. RenovateJob):
-#   trust.portableinfo.cloud/inject: "false"  opts the pod out
-#   trust.portableinfo.cloud/public: "true"   mounts portableinfo-ca-bundle (public + internal CAs) instead of
-#                                             portableinfo-internal-ca-bundle (internal root CA only, the default)
-#   trust.portableinfo.cloud/java: "true"     for Java apps, which ignore the PEM file: also mounts the PKCS#12 truststore of the same
-#                                             bundle at /etc/trust-bundle/ca-bundle.p12 and appends -Djavax.net.ssl.trustStore*
-#                                             to JAVA_TOOL_OPTIONS (an existing value is kept). Regular containers only. The JVM
-#                                             then trusts exactly that bundle instead of the JDK cacerts; the JVM reads it once, so
-#                                             add the Reloader annotation for the bundle too.
-#
-# Every pod outside the excluded namespaces is mutated unless it opts out. A MutatingPolicy has no audit action: a pod that calls
-# a public site without public: "true" fails TLS verification once it restarts, so check a namespace's world egress first.
-#
-# Cluster switch: TRUST_INJECT (k8s/clusters/homelab/cluster-vars.env, default false) turns the whole policy on. A cluster that is
-# being built from empty leaves it off, so no pod waits for a ConfigMap that trust-manager has not created yet and no bootstrap
-# namespace needs excluding. Set it to true once trust-manager has synced the bundles (docs/security.md).
-#
-# Pods only, no autogen: mutating the pod template of a Deployment would fight Flux drift detection.
+# Mounts the trust-manager CA bundle into every new Pod. Annotations, labels, cluster switch and exclusions: docs/security.md,
+# "Trust bundle injection".
 apiVersion: policies.kyverno.io/v1
 kind: MutatingPolicy
 metadata:
@@ -33,9 +15,7 @@ spec:
   webhookConfiguration:
     timeoutSeconds: 10
   matchConstraints:
-    # Left out even with the switch on, because waiting for the bundle would be circular:
-    # flux-system: source-controller fetches the charts that deliver trust-manager (the FluxInstance patch mounts the bundle itself).
-    # cert-manager-system: trust-manager's own pod would wait for a ConfigMap that only trust-manager recreates.
+    # Circular: these would wait for a ConfigMap that only trust-manager (or a chart fetched by flux-system) delivers.
     namespaceSelector:
       matchExpressions:
         - key: kubernetes.io/metadata.name
@@ -53,13 +33,11 @@ spec:
         resources:
           - pods
   matchConditions:
-    # Flux replaces the variable before the policy is applied: the expression reads "true" or "false". Compared as a string, so a
-    # mistyped value turns the policy off instead of producing an invalid expression.
+    # Flux substitutes the variable; compared as a string so a typo turns the policy off.
     - name: cluster-switch
       expression: >-
         "${TRUST_INJECT:=false}" == "true"
-    # virt-launcher runs the VM and calls nothing. Skipping it here keeps the VM templates untouched: an annotation there would
-    # mark every running VM as needing a restart.
+    # not an annotation on the VM template: that would mark every running VM as needing a restart
     - name: not-virt-launcher
       expression: >-
         object.metadata.?labels["kubevirt.io"].orValue("") != "virt-launcher"
@@ -78,8 +56,7 @@ spec:
       expression: >-
         "-Djavax.net.ssl.trustStore=/etc/trust-bundle/ca-bundle.p12 -Djavax.net.ssl.trustStoreType=PKCS12 -Djavax.net.ssl.trustStorePassword=changeit"
   mutations:
-    # Merge keys: volumes and env by name, volumeMounts by mountPath. An env var or mount the pod already sets for the same
-    # name/path is replaced.
+    # Merge keys: volumes and env by name, volumeMounts by mountPath.
     - patchType: ApplyConfiguration
       applyConfiguration:
         expression: >-

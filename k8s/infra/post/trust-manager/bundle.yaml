@@ -1,15 +1,7 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/trust.cert-manager.io/bundle_v1alpha1.json
-# Two ConfigMaps in every namespace, mounted into pods by the Kyverno policy `inject-trust-bundle`
-# (k8s/infra/post/kyverno-policies). Workloads may also mount them by hand instead of minting a Certificate per namespace.
-#
-# - portableinfo-internal-ca-bundle: the internal root CA only. The default for injected pods: internal services (zot, ...)
-#   are trusted and public sites are not.
-# - portableinfo-ca-bundle: public CAs plus the internal root CA, for pods annotated trust.portableinfo.cloud/public: "true".
-#
-# Both also carry the same CAs as a PKCS#12 truststore (key ca-bundle.p12, password "changeit") for Java apps, which ignore the PEM
-# file. The policy mounts it into pods annotated trust.portableinfo.cloud/java: "true". PKCS#12 rather than JKS: trust-manager marks
-# JKS deprecated, and Modern2023 is needed because the default LegacyRC2 profile is not readable by recent JDKs. The password is an
-# integrity check on public data, not a secret.
+# Two ConfigMaps in every namespace, mounted into pods by the Kyverno policy inject-trust-bundle (docs/security.md, "Trust bundle injection").
+# internal: root CA only (the default). public: public CAs plus the root CA. The p12 key is for Java; Modern2023 because the default
+# LegacyRC2 profile is not readable by recent JDKs.
 ---
 apiVersion: trust.cert-manager.io/v1alpha1
 kind: Bundle
