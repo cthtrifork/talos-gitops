@@ -271,6 +271,8 @@ function stripChips(d) {
     else add("ok", "Flux ready", "p-flux-reconciliation");
   }
   if (d.polaris) add(polarisState(d.polaris.score), `Polaris ${d.polaris.score}/100`, "p-polaris-score");
+  const tv = trivyCounts(d);
+  if (tv) add(trivyState(tv), tv.critical ? `Trivy: ${tv.critical} critical` : tv.high ? `Trivy: ${tv.high} high` : "Trivy clean", "p-trivy-vulnerabilities");
   // The worst of the fullest volume and every node row (/var and the volume groups), linked to the panel it comes from.
   const vol = Math.max(0, ...(d.pvcs || []).map((n) => n.used_pct));
   const nodes = nodeRows(d);
@@ -301,6 +303,17 @@ function stripChips(d) {
 }
 // 100 is green, 90 to 99 amber, below 90 red.
 const polarisState = (score) => (score >= 100 ? "ok" : score >= 90 ? "warn" : "bad");
+// Trivy findings per severity (each image counted once), or null when the source did not answer.
+const TRIVY_SEVERITIES = [["critical", "Critical", "var(--bad)"], ["high", "High", "var(--warn)"], ["medium", "Medium", "var(--accent)"], ["low", "Low", "var(--calm)"], ["unknown", "Unknown", "var(--suspend)"]];
+function trivyCounts(d) {
+  if (!d.trivy_severity) return null;
+  const c = { critical: 0, high: 0, medium: 0, low: 0, unknown: 0 };
+  for (const x of d.trivy_severity) if (x.severity in c) c[x.severity] = x.count;
+  c.total = c.critical + c.high + c.medium + c.low + c.unknown;
+  return c;
+}
+// Critical is red, high is amber; medium and below are counted but never raise the panel.
+const trivyState = (c) => (c.critical ? "bad" : c.high ? "warn" : "ok");
 
 
 // ---- Building blocks. Text goes in as text, never as markup, so nothing in the data can inject HTML. ----
@@ -423,6 +436,25 @@ const PolarisPanel = (d) => {
     ${top.length ? Rows(top.map((i) => ({ title: i.workload, sub: `${i.check} · ${i.message}`, right: Pill(i.severity === "danger" ? "bad" : "warn", i.severity) }))) : nothing}
     ${more > 0 ? Muted(`and ${more} more not listed`) : nothing}
     ${Muted(`Audited ${String(x.audit_time).replace("T", " ").replace("Z", " UTC")}`)}`);
+};
+
+const TrivyPanel = (d) => {
+  const title = "Trivy vulnerabilities";
+  const c = trivyCounts(d);
+  if (!c) return Unavailable({ title, source: "Prometheus · trivy_image_vulnerabilities", d });
+  const state = trivyState(c);
+  const crit = d.trivy_critical?.items || [];
+  const critMore = (d.trivy_critical?.total || 0) - crit.length;
+  const worst = d.trivy_worst || [];
+  const images = d.trivy_images;
+  return Panel({ title, state, text: c.critical ? c.critical + " critical" : c.high + " high", d }, html`
+    <div class=${"big num score " + state}>${c.critical}<small> critical · ${c.high} high</small></div>
+    ${Bar({ label: `${c.critical} critical, ${c.high} high, ${c.medium} medium, ${c.low} low, ${c.unknown} unknown`, parts: TRIVY_SEVERITIES.map(([k, , color]) => ({ pct: c.total ? (c[k] / c.total) * 100 : 0, color })) })}
+    <div class="legend">${TRIVY_SEVERITIES.map(([k, name, color]) => html`<span class=${c[k] ? nothing : "muted"}><span class="dot" style="background: ${color}; opacity: ${c[k] ? 1 : 0.35}"></span>${c[k]} ${name.toLowerCase()}</span>`)}</div>
+    ${crit.length ? Rows(crit.map((f) => ({ title: f.id, sub: `${f.image} · ${f.fixed ? "fixed in " + f.fixed : "no fix yet"}`, right: Pill("bad", f.score ? "CVSS " + f.score : "critical") }))) : nothing}
+    ${critMore > 0 ? Muted(`and ${critMore} more critical not listed`) : nothing}
+    ${worst.length ? html`${Muted("Most critical and high findings per image")}${Rows(worst.map((w) => ({ title: w.image, right: html`<span class="num muted">${w.count}</span>` })))}` : nothing}
+    ${Muted(`${images === undefined ? "Images" : images + " images scanned"}; findings are per package, counted once per image digest`)}`);
 };
 
 const GIB = 2 ** 30;
@@ -722,7 +754,7 @@ class CockpitApp extends LitElement {
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
       ${d ? html`${Strip(d)}
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
-        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${VolumesPanel(d)}${NodesPanel(d)}`)}
+        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}${NodesPanel(d)}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;
   }

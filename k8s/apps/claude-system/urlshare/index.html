@@ -60,6 +60,8 @@
   button:disabled { opacity: .55; cursor: default; }
   .hint { margin: 10px 0 0; font-size: var(--fs-md); color: var(--warn); min-height: 1.5em; }
   .empty { color: var(--ink-2); }
+  .tools { margin-top: 24px; }
+  .tools p { margin: 0 0 4px; font-size: var(--fs-md); color: var(--ink-2); }
 </style>
 </head>
 <body>
@@ -71,6 +73,10 @@
   <div id="pending"></div>
   <h2>Answered</h2>
   <div id="done"></div>
+  <div class="tools">
+    <p>Deletes every stored page and the list of requests. Claude has to ask again.</p>
+    <div class="row"><button type="button" id="clear" class="no">Clear cache</button></div>
+  </div>
   <p id="error" class="hint" role="status"></p>
 </main>
 
@@ -136,6 +142,21 @@
       fill('done', rest, d.now, 'Nothing yet.');
     }).catch(function () { document.getElementById('error').textContent = 'The list is unavailable.'; });
   }
+
+  function clearCache() {
+    var b = document.getElementById('clear'), msg = document.getElementById('error');
+    if (!window.confirm('Delete every stored page and request?')) return;
+    busy.clear = true;
+    b.disabled = true;
+    fetch('api/v1/cache/clear', { method: 'POST', headers: { 'X-Requested-With': 'urlshare-approval' } })
+      .then(function (res) { return res.json().then(function (x) { return { ok: res.ok, body: x }; }); })
+      .then(function (x) {
+        msg.textContent = x.ok ? 'Cache cleared (' + x.body.cleared + (x.body.cleared === 1 ? ' request).' : ' requests).') : (x.body.error || 'Could not clear the cache.');
+      })
+      .catch(function () { msg.textContent = 'Could not reach the page.'; })
+      .then(function () { delete busy.clear; b.disabled = false; refresh(); });
+  }
+  document.getElementById('clear').addEventListener('click', clearCache);
 
   refresh();
   setInterval(function () { if (!document.hidden && !Object.keys(busy).length) refresh(); }, 5000);

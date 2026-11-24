@@ -19,8 +19,8 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | `usage/` | Usage page and JSON API out: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml` for the Redpanda Connect; `redpanda-connect.yaml` (PromQL behind each endpoint), `index.html` (the page) |
 | `vm-upgrade/` | "Update VMs" buttons (claude-vm and homeserver): `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (a flag per VM, two listeners), `index.html` (the page) |
 | `cockpit/` | The cockpit status page (below): `deployment.yaml`, `service.yaml`, `podmonitor.yaml` and `rbac.yaml`; `redpanda-connect.yaml` (one read-only status call, a branch per source), `index.html` (the page) |
-| `urlshare/` | Approval-gated URL sharing: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (requests, fetch, TTL), `index.html` (the approval page) |
-| `pvc.yaml` | `claude-home-lvm` (10Gi) holds the login (`/home/claude`); delete it to sign out. `claude-workspace-lvm` (50Gi) is `/workspace` |
+| `urlshare/` | Approval-gated URL sharing: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (requests, fetch, TTL, clear cache), `index.html` (the approval page) |
+| `pvc.yaml` | `claude-home-lvm` (10Gi) holds the login (`/home/claude`); delete it to sign out. `claude-workspace-lvm` (50Gi) is `/workspace`. `claude-urlshare-cache` (1Gi, `lvm-bulk`) holds the `claude-urlshare` request index and stored pages |
 | `../../../images/claude-runner/` | Image: Anthropic publishes none, so this wraps the `claude` binary (checksum verified) plus `kubectl`, `gh`, `crane`, `talosctl`, `omnictl`, the Flux MCP server and a git credential helper |
 
 ## 1. Build the image
@@ -325,7 +325,7 @@ flowchart LR
     subgraph POD["Pod claude-urlshare (Redpanda Connect)"]
         API[":8081 api<br/>only records a request"]
         UI[":8080 page"]
-        MEM[("memory cache, 24 h TTL<br/>index + body per id")]
+        MEM[("PVC claude-urlshare-cache, 24 h TTL<br/>index + body per id")]
         FETCH["fetch once<br/>10 s, html or text, 2 MiB"]
     end
     API -->|"new URL: pending, not fetched"| MEM
@@ -337,15 +337,17 @@ flowchart LR
     FETCH -.->|"private, loopback, link-local: dropped"| BLOCK["10/8, 172.16/12, 192.168/16, 127/8, 169.254/16"]
 ```
 
-A request is `pending` until you decide, then `approved`, `failed` (approve again to retry) or `rejected`. Every state is forgotten after 24 h.
+A request is `pending` until you decide, then `approved`, `failed` (approve again to retry) or `rejected`. Every state is forgotten after 24 h, or at once with the page's **Clear cache** button.
 
 | Listener | Reached through | Endpoints |
 |---|---|---|
 | `:8081` api | MetalLB `claude-urlshare-lb`, 192.168.1.245, plain HTTP, only from `claude-rc` and 192.168.1.0/24 | `GET /?url=<URL-encoded URL>` (or `/<id>`): `200` the stored page, `202` pending (nothing fetched), `403` rejected, `502` fetch failed (`error` says why), `410` expired, `400` not an acceptable URL, `429` too many waiting |
-| `:8080` page | Omni service exposer, `Service/claude-urlshare` (port 50096, behind Omni login) | `GET /` the page, `GET /api/v1/requests`, `POST /api/v1/requests/<id>/approve\|reject` (needs `X-Requested-With: urlshare-approval`) |
+| `:8080` page | Omni service exposer, `Service/claude-urlshare` (port 50096, behind Omni login) | `GET /` the page, `GET /api/v1/requests`, `POST /api/v1/requests/<id>/approve\|reject`, `POST /api/v1/cache/clear` (deletes every stored page and the request list; both POSTs need `X-Requested-With: urlshare-approval`) |
 
 - **Flow:** an unknown URL becomes `pending` and is not fetched. Approving fetches it (10 s timeout, redirects followed) and stores the HTML or plain
-  text. Requests, decisions and pages live 24 h in memory (at most 100 requests); a restart drops them and the URLs need approving again.
+  text. Requests, decisions and pages live 24 h on the 1Gi `lvm-bulk` `claude-urlshare-cache` PVC (`pvc.yaml`, at most 100 requests), so they survive a restart.
+  The file cache has no expiry of its own: the app deletes the page of each expired request, and a page whose request is no longer in the list
+  (a crash between the two writes) is not cleaned up. Delete the PVC to wipe everything.
 - **Where it can fetch from** is decided by `CiliumNetworkPolicy/claude-urlshare`, not by the app (Redpanda Connect cannot inspect the address it
   connects to): TCP 80 and 443 to addresses outside the private, loopback, link-local and other special ranges, so a name that resolves to
   one, or a redirect to one, is dropped and the fetch fails. The app also refuses non-http(s) URLs, other ports, user names, IP literals and
@@ -370,7 +372,7 @@ flowchart LR
   you([Browser]) -->|HTTPS, Omni login| omni[Omni exposer]
   omni -->|GET only| cockpit["claude-cockpit<br/>Redpanda Connect<br/>index.html, /api/v1/status"]
 
-  cockpit -->|"drops, alerts, disk"| prom[(Prometheus :9090)]
+  cockpit -->|"drops, alerts, disk, Trivy"| prom[(Prometheus :9090)]
   cockpit -->|"GET /results.json"| polaris[polaris-dashboard :8080]
   cockpit -->|"Flux, Renovate projects"| api[kube-apiserver]
   cockpit -->|"search: pulls, issues"| gh[api.github.com :443]
@@ -393,6 +395,7 @@ flowchart LR
 | Dropped traffic, firing alerts, disk | Prometheus (`hubble_drop_total`, `/api/v1/alerts`, `node_filesystem_*`). The Omni key, certificate and ExternalSecret alerts show under alerts |
 | Flux, Renovate runs | Kubernetes API (`claude-cockpit` ClusterRole: get and list on Kustomizations, HelmReleases and RenovateProjects) |
 | Polaris score | `polaris-dashboard` `/results.json` |
+| Trivy vulnerabilities | Prometheus, from the trivy-operator metrics (`trivy_image_vulnerabilities` for the counts per severity and the worst images, `trivy_vulnerability_id` for the critical findings with CVSS score and fixed version). The operator exports one series per container, so the queries take the `max` per `image_digest` first and an image run by several pods is counted once. Findings are per package, so one CVE in three packages counts three times. Critical is red, high amber, the rest only counted |
 | Pull requests, issues | GitHub search over all repositories of the owner the App is installed on (private ones included), with the cockpit's own one-hour read-only App token (`githubaccesstoken.yaml`, `externalsecret.yaml`) |
 | Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io`, read with the runner's `ghcr-pull` read:packages token (`homeserver-bootc` is a private package) |
 | Share URLs | `claude-urlshare` `GET /api/v1/requests` on the approval listener (read-only, never the page content): what waits for approval and what was decided in the last 24 hours. `CiliumNetworkPolicy/claude-urlshare` lets the cockpit pod in on `:8080` |
