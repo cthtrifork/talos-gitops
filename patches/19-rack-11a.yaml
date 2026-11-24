@@ -1,0 +1,5 @@
+---
+# Physical rack of talos-11a-esj ("elaphant"); topologyKey for rack-aware pod (anti-)affinity and topologySpreadConstraints.
+machine:
+  nodeLabels:
+    topology.homelab/rack: rack-0
