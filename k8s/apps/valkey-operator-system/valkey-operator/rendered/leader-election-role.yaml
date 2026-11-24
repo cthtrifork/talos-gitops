@@ -4,7 +4,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: valkey-operator-leader-election
-  namespace: renovate-system
+  namespace: valkey-operator-system
   labels:
     helm.sh/chart: valkey-operator-0.9.0
     app.kubernetes.io/name: valkey-operator

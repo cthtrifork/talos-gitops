@@ -6,7 +6,8 @@ The GitHub Actions workflow (`.github/workflows/renovate.yaml`) runs daily as a 
 
 | Part | Where |
 |---|---|
-| Namespace, Renovate operator and CRDs, Valkey operator and cluster, network policies and ExternalSecrets | here (`app-controllers`, so the CRDs exist first) |
+| Namespace, Renovate operator and CRDs, Valkey cluster, network policies and ExternalSecrets | here (`app-controllers`, so the CRDs exist first) |
+| Valkey operator and CRDs (namespace `valkey-operator-system`, watching `renovate-system`) | `k8s/apps/valkey-operator-system/` (own Flux Kustomization, `app-valkey-operator-system`) |
 | Garage (one node, `lvm-fast` meta and `lvm-bulk` data) | `k8s/apps/renovate/garage/` |
 | The `RenovateJob` | `k8s/apps/renovate/renovatejob.yaml` |
 
@@ -33,7 +34,7 @@ repository cache in Garage. Private packages on ghcr.io need a token in `hostRul
 
 ## Operating notes
 
-- Flux installs the Valkey operator before creating `ValkeyCluster/renovate`. The Renovate HelmRelease waits for the cluster's
+- Flux installs the Valkey operator (`valkey-operator-system`) before creating `ValkeyCluster/renovate`. The Renovate HelmRelease waits for the cluster's
   current generation to report Ready and connects to `valkey-renovate` in cluster mode.
 - The cluster needs three eligible Talos hosts for the intended placement. Each of its three shards has a replica on a
   different host. Initial primaries are spread across the hosts. Check the placement and live roles again after failover.

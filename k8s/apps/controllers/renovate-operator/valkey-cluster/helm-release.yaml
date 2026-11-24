@@ -12,10 +12,14 @@ spec:
     name: valkey-resources
   dependsOn:
     - name: valkey-operator
+      namespace: valkey-operator-system
   install:
     strategy:
       name: RetryOnFailure
       retryInterval: 1m
+  upgrade:
+    remediation:
+      retries: 3
   waitStrategy:
     name: poller
   healthCheckExprs:
@@ -100,6 +104,8 @@ spec:
               runAsGroup: 56849
         exporter:
           enabled: true
+          # renovate: datasource=docker depName=mirror.gcr.io/oliver006/redis_exporter versioning=docker
+          image: mirror.gcr.io/oliver006/redis_exporter:v1.88.0@sha256:2c8c55c63ce4d915389f03d337b8acef56aaaca9fab8728291287e612d4d6398
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

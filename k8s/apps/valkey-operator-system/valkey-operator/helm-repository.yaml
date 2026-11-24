@@ -3,7 +3,7 @@ apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
   name: valkey-operator
-  namespace: renovate-system
+  namespace: valkey-operator-system
 spec:
   interval: 12h
   url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/valkey-io/valkey-helm/valkey-operator
