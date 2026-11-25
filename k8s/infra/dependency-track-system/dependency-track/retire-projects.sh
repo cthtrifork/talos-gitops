@@ -1,21 +1,18 @@
 #!/bin/sh
-# Marks the project of a workload inactive when no SbomReport names it and its last BOM upload is older than STALE_DAYS.
+# Marks a project version inactive when no SbomReport has its image and tag and its last BOM upload is older than STALE_DAYS.
 # Retention (config-configmap.yaml, maintenance/projects.retention.*) deletes inactive projects later; sbom-hook activates one again on its next upload.
-# The workload name is derived exactly as in sbom-hook/redpanda-connect.yaml.
+# The project name (namespace/repository) is derived exactly as in sbom-hook/redpanda-connect.yaml.
 set -eu
 DT_URL=${DT_URL:?}
 STALE_DAYS=${STALE_DAYS:-2}
 MIN_LIVE=${MIN_LIVE:-20} # a short list means the cluster read failed: retire nothing
 cd /work
 
-kubectl get sbomreports -A --show-labels --no-headers | awk '{print $NF}' | jq -R -r '
-  split(",") | map(split("=") | {key: .[0], value: .[1]}) | from_entries
-  | .["trivy-operator.resource.kind"] as $k | .["trivy-operator.resource.name"] as $n
-  | (if $k == "ReplicaSet" then ($n | sub("-[^-]+$"; "")) elif $k == "Job" then ($n | sub("-[0-9a-f]{8,}$"; "")) else $n end) as $w
-  | "\(.["trivy-operator.resource.namespace"])/\($w)/\(.["trivy-operator.container.name"])"' | sort -u > live.txt
+# columns: NAMESPACE NAME REPOSITORY TAG ...; project name namespace/repository and version tag (without a repo: prefix), as in sbom-hook
+kubectl get sbomreports -A --no-headers | awk '{t = $4; sub(/^.*:/, "", t); print $1 "/" $3 "\t" t}' | sort -u > live.txt
 live=$(wc -l < live.txt)
-[ "$live" -ge "$MIN_LIVE" ] || { echo "only $live workloads in the SbomReports (minimum $MIN_LIVE): not retiring anything" >&2; exit 1; }
-echo "$live workloads have a report"
+[ "$live" -ge "$MIN_LIVE" ] || { echo "only $live image tags in the SbomReports (minimum $MIN_LIVE): not retiring anything" >&2; exit 1; }
+echo "$live image tags have a report"
 
 [ -n "${DT_API_KEY:-}" ] || { echo "no API key yet: config-cronjob.yaml creates the Secret dependency-track-retire-api-key within the hour" >&2; exit 1; }
 api() { curl -sS -H "X-Api-Key: $DT_API_KEY" "$@"; }
@@ -36,10 +33,10 @@ cutoff=$(( ($(date +%s) - STALE_DAYS * 86400) * 1000 ))
 jq -r --argjson cutoff "$cutoff" --rawfile live live.txt '
   ($live | split("\n")) as $l
   | select(.tags | index("kubernetes"))
-  | select(.name as $n | $l | any(. == $n) | not)
+  | select((.name + "\t" + .version) as $k | $l | any(. == $k) | not)
   | select(.lastBomImport < $cutoff)
   | [.uuid, .name, .version] | @tsv' projects.jsonl > stale.tsv
-echo "$(wc -l < stale.tsv) projects without a report and not updated for $STALE_DAYS days"
+echo "$(wc -l < stale.tsv) project versions without a report and not updated for $STALE_DAYS days"
 
 failed=0
 while IFS="$(printf '\t')" read -r uuid name version; do
