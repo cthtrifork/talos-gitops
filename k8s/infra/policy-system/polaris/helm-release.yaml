@@ -738,6 +738,23 @@ spec:
           rules:
             - livenessProbeMissing
             - readinessProbeMissing
+        # FUSE mounts into the kubelet directory: the plugin is privileged (the controller adds SYS_ADMIN) and the chart sets no securityContext
+        # or probes on its sidecars, which serve nothing to probe
+        - namespace: juicefs-system
+          controllerNames:
+            - juicefs-csi-node
+            - juicefs-csi-controller
+          rules:
+            - runAsPrivileged
+            - dangerousCapabilities
+            - runAsRootAllowed
+            - privilegeEscalationAllowed
+            - linuxHardening
+            - insecureCapabilities
+            - notReadOnlyRootFilesystem
+            - hostPathSet
+            - livenessProbeMissing
+            - readinessProbeMissing
         - namespace: kube-system
           controllerNames:
             - cilium
@@ -787,6 +804,15 @@ spec:
           rules:
             - clusterrolebindingPodExecAttach
             - clusterrolePodExecAttach
+        # the node plugin execs into the mount pods it manages
+        - controllerNames:
+            - juicefs-csi-external-node-service-role
+          rules:
+            - clusterrolePodExecAttach
+        - controllerNames:
+            - juicefs-csi-node-service-binding
+          rules:
+            - clusterrolebindingPodExecAttach
         # need host network and host paths (certificates, config, audit log)
         - controllerNames:
             - kube-apiserver
