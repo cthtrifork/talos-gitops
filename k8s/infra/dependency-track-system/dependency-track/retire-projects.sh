@@ -1,21 +1,18 @@
 #!/bin/sh
-# Marks the project of a workload inactive when no SbomReport names it and its last BOM upload is older than STALE_DAYS.
+# Marks the project of an image inactive when no SbomReport names it and its last BOM upload is older than STALE_DAYS.
 # Retention (config-configmap.yaml, maintenance/projects.retention.*) deletes inactive projects later; sbom-hook activates one again on its next upload.
-# The workload name is derived exactly as in sbom-hook/redpanda-connect.yaml.
+# The project name (namespace/repository) is derived exactly as in sbom-hook/redpanda-connect.yaml.
 set -eu
 DT_URL=${DT_URL:?}
 STALE_DAYS=${STALE_DAYS:-2}
 MIN_LIVE=${MIN_LIVE:-20} # a short list means the cluster read failed: retire nothing
 cd /work
 
-kubectl get sbomreports -A --show-labels --no-headers | awk '{print $NF}' | jq -R -r '
-  split(",") | map(split("=") | {key: .[0], value: .[1]}) | from_entries
-  | .["trivy-operator.resource.kind"] as $k | .["trivy-operator.resource.name"] as $n
-  | (if $k == "ReplicaSet" then ($n | sub("-[^-]+$"; "")) elif $k == "Job" then ($n | sub("-[0-9a-f]{8,}$"; "")) else $n end) as $w
-  | "\(.["trivy-operator.resource.namespace"])/\($w)/\(.["trivy-operator.container.name"])"' | sort -u > live.txt
+# columns: NAMESPACE NAME REPOSITORY ...; the project name is namespace/repository, as in sbom-hook
+kubectl get sbomreports -A --no-headers | awk '{print $1 "/" $3}' | sort -u > live.txt
 live=$(wc -l < live.txt)
-[ "$live" -ge "$MIN_LIVE" ] || { echo "only $live workloads in the SbomReports (minimum $MIN_LIVE): not retiring anything" >&2; exit 1; }
-echo "$live workloads have a report"
+[ "$live" -ge "$MIN_LIVE" ] || { echo "only $live images in the SbomReports (minimum $MIN_LIVE): not retiring anything" >&2; exit 1; }
+echo "$live images have a report"
 
 [ -n "${DT_API_KEY:-}" ] || { echo "no API key yet: config-cronjob.yaml creates the Secret dependency-track-retire-api-key within the hour" >&2; exit 1; }
 api() { curl -sS -H "X-Api-Key: $DT_API_KEY" "$@"; }

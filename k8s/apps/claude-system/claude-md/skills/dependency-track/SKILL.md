@@ -9,7 +9,7 @@ description: Query and assess vulnerability findings in Dependency-Track with th
 `-H "X-Api-Key: $DT_API_KEY"`. Check with `[ -n "$DT_API_KEY" ] && echo set`. Unset: the config CronJob has not made the key yet or the pod needs a restart; ask.
 
 - Permissions: view portfolio and vulnerabilities, read/create/update analysis. No BOM upload, no admin.
-- Projects are workload containers (name `namespace/workload/container`, version `current`; decisions survive image updates): `curl -s -H "$H" "$DT_URL/api/v1/project?limit=200"`. Only some images are tracked, so a CVE in Trivy can be absent here: say so.
+- Projects are workload containers (name `namespace/repository`, version `current`; decisions survive image updates): `curl -s -H "$H" "$DT_URL/api/v1/project?limit=200"`. Only some images are tracked, so a CVE in Trivy can be absent here: say so.
 - A CVE: `GET /api/v1/vulnerability/source/NVD/vuln/<id>` (severity, CVSS, EPSS) and `.../projects` for the affected projects.
 - Findings of a project: `GET /api/v1/finding/project/<uuid>`. `searchText` on `/api/v1/finding` does not filter by CVE; do not trust it.
 - Record an assessment: `PUT /api/v1/analysis` with `project`, `component`, `vulnerability` uuids, `analysisState`, `analysisJustification`, `analysisDetails`, `suppressed`.

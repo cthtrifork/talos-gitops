@@ -1,4 +1,4 @@
-# Daily: marks the Dependency-Track projects of vanished workloads inactive (script: retire-projects.sh); Dependency-Track retention deletes them later.
+# Daily: marks the Dependency-Track projects of vanished images inactive (script: retire-projects.sh); Dependency-Track retention deletes them later.
 # Fails until config-cronjob.yaml has created the API key Secret.
 ---
 apiVersion: batch/v1
@@ -7,7 +7,7 @@ metadata:
   name: dependency-track-retire
   namespace: dependency-track-system
   annotations:
-    claude-elevate/description: Marks Dependency-Track projects inactive when their workload has no SbomReport and no upload for 2 days. Safe to repeat.
+    claude-elevate/description: Marks Dependency-Track projects inactive when their image has no SbomReport and no upload for 2 days. Safe to repeat.
 spec:
   schedule: "17 3 * * *"
   concurrencyPolicy: Forbid

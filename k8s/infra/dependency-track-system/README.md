@@ -2,7 +2,7 @@
 
 - `dependency-track/`: Dependency-Track 5 with a single-instance CNPG PostgreSQL (`dependency-track-db`, `k8s/infra/post-workloads/dependency-track-system/`).
 - `sbom-hook/`: receives the trivy operator's webhook in `trivy-system` and uploads every SBOM to Dependency-Track, which queries `trivy-service.trivy-system:4954`.
-  One project per workload container, see "Projects" below.
+  One project per image in a namespace, see "Projects" below.
 
 ## Network policies
 
@@ -11,17 +11,20 @@ it needs. Dependency-Track may reach Postgres (5432), `trivy-service` in `trivy-
 `sbom-hook` takes the webhook of the trivy operator (4195) and, like `dependency-track-config` and `dependency-track-vex-export`,
 reaches `dependency-track-api-server` (8080). The VEX exporter also needs HTTPS egress to GitHub.
 
-## Projects: one rolling project per workload container
+## Projects: one rolling project per image in a namespace
 
-`sbom-hook` names a project `namespace/workload/container` (from the labels of the `SbomReport`; a ReplicaSet or Job name loses its hash
-suffix) with the fixed version `current`. Each upload replaces the components in place, and Dependency-Track keeps the audit decisions of
+`sbom-hook` names a project `namespace/repository` (for example `claude-system/cthtrifork/talos-gitops/claude-runner`, from the `SbomReport`)
+with the fixed version `current`. Each upload replaces the components in place, and Dependency-Track keeps the audit decisions of
 components that stay ([Managing project versions](https://dependencytrack.github.io/docs/next/guides/user/managing-project-versions/): "Upload a new BOM with the same name and version").
-There is no history of old images, and a decision survives an image update.
+There is no history of old images, and a decision survives an image update. The registry host is not in the name (the retire job reads it
+from a table without it), so the same repository on two registries in one namespace shares a project.
+Workloads of one namespace that run the same image share the project too: if they run different tags for a while, the project shows the one
+uploaded last (reports refresh every 12 h), so findings can flip until they agree.
 
-A workload that is removed would stay active forever, so `dependency-track/retire-cronjob.yaml` (daily) marks a project inactive when no
-`SbomReport` names it and it has had no upload for 2 days (it only touches projects tagged `kubernetes`, and retires nothing when the report list is short).
+An image that is removed would stay active forever, so `dependency-track/retire-cronjob.yaml` (daily) marks a project inactive when no
+`SbomReport` names it (namespace and repository) and it has had no upload for 2 days (it only touches projects tagged `kubernetes`, and retires nothing when the report list is short).
 Dependency-Track retention (`maintenance/projects.retention.type=AGE`, `projects.retention.days=30`, set in `config-configmap.yaml`) then deletes inactive projects
-after 30 days, with their decisions. A workload that returns is activated again by its next upload (`isActive: true`). The key of the job is the team `project-retirer`.
+after 30 days, with their decisions. An image that returns is activated again by its next upload (`isActive: true`). The key of the job is the team `project-retirer`.
 It fails until the config CronJob has created its key, and there is no dry run.
 
 Projects of the earlier layout (`registry/repo`, version `sha256:...`) are not migrated: they stop receiving uploads and the same job retires them.
