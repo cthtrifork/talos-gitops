@@ -3,16 +3,16 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: arc-ubuntu-gha-rs-manager
+  name: arc-ubuntu-podman-gha-rs-manager
   namespace: arc-runners-system
   labels:
     helm.sh/chart: gha-rs-0.15.1
-    app.kubernetes.io/name: arc-ubuntu
-    app.kubernetes.io/instance: arc-ubuntu
+    app.kubernetes.io/name: arc-ubuntu-podman
+    app.kubernetes.io/instance: arc-ubuntu-podman
     app.kubernetes.io/version: "0.15.1"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: gha-rs
-    actions.github.com/scale-set-name: arc-ubuntu
+    actions.github.com/scale-set-name: arc-ubuntu-podman
     actions.github.com/scale-set-namespace: arc-runners-system
     app.kubernetes.io/component: manager-role-binding
   annotations:
@@ -21,7 +21,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: arc-ubuntu-gha-rs-manager
+  name: arc-ubuntu-podman-gha-rs-manager
 subjects:
   - kind: ServiceAccount
     name: gha-runner-scale-set-controller-gha-rs-controller

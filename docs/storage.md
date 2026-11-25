@@ -54,8 +54,7 @@ Sized from the peaks of the last 3 days; volumes are per runner and `lvm-fast` u
 
 | Scale set | Runners (min to max) | Volumes per runner |
 |---|---|---|
-| `arc-ubuntu` | 1 to 3 | `work` 16, `docker-lib` 8, `tmp-memory` 12, rootful storage 32, rootless storage 28, `var/tmp` 24 Gi |
-| `arc-ubuntu-podman` | 0 to 3 | `work` 16, `tmp` 16, `var-tmp` 24, rootful storage 32, rootless storage 28 Gi |
+| `arc-ubuntu-podman` (the only set behind the label `arc-ubuntu`) | 0 to 4 | `work` 16, `tmp` 16, `var-tmp` 24, rootful storage 32, rootless storage 28 Gi |
 | `arc-e2e-talos-gitops` | 0 to 3 | `work` 2, `docker-lib` 12 Gi |
 | `arc-iso-bootc` | 0 to 1 | `bootc-iso-cache` 80 Gi on `lvm-bulk` (one runner: the cache is ReadWriteOnce) |
 | `arc-files-bootc` | 0 to 1 | a 40 Gi emptyDir |
