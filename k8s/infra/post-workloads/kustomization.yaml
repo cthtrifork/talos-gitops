@@ -6,5 +6,4 @@ resources:
   - cnpg-system/postgresql-clusterimagecatalog.yaml
   - flux-system/ingressroute.yaml
   - flux-system/middleware.yaml
-  - dependency-track-system/dependency-track-postgres-cluster.yaml
   - dependency-track-system/dependency-track-ingressroute.yaml
