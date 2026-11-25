@@ -65,7 +65,7 @@ spec:
           value: "false"
         - name: JAVA_TOOL_OPTIONS
           value: -Djavax.net.ssl.keyStore=/etc/dt/db-client/keystore.p12 -Djavax.net.ssl.keyStoreType=PKCS12
-            -Djavax.net.ssl.keyStorePassword=not-a-secret
+            -Djavax.net.ssl.keyStorePassword=not-a-secret -Djavax.net.debug=ssl:handshake:keymanager
         image: mirror.gcr.io/dependencytrack/apiserver:5.2.2@sha256:cd5bed12ff30fd36980dbee2d6c3b177c37b99c63b60f5a5b15fbca0b31d0f38
         imagePullPolicy: IfNotPresent
         livenessProbe:
