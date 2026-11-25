@@ -18,8 +18,8 @@ flowchart TB
     end
     sf --> meta
     sb --> garage
-    meta --> fs["JuiceFS, RWX<br/>mount pod per node, FUSE<br/>(CSI driver planned)"]
-    garage --> fs
+    meta -->|"mTLS, no password"| fs["JuiceFS, RWX<br/>StorageClass juicefs<br/>mount pod per node, FUSE"]
+    garage -->|"S3 key"| fs
     fs --> runners["Runner caches:<br/>dnf, cross-run, container-shared"]
 ```
 
@@ -32,8 +32,10 @@ flowchart TB
 ## JuiceFS (`k8s/apps/juicefs-system/`)
 
 - It gives the ARC runners caches that every runner shares, whichever node it lands on. Image storage stays on local volumes: overlay on FUSE is a bad idea.
-- Metadata (files, directories) is in PostgreSQL, data blocks are in Garage. Both run three copies on different nodes: one node lost keeps Garage's quorum (2 of 3) and CNPG promotes a replica; two lost stops Garage. No backups, the data is CI caches.
+- Use it with `storageClassName: juicefs` and `ReadWriteMany`: each PVC is a subdirectory of one filesystem. The CSI driver runs in `juicefs-system` (privileged, with FUSE mount pods) and every image is pinned by digest, the mount image too (the driver's default is the moving `ce-nightly`).
+- Metadata (files, directories) is in PostgreSQL, data blocks are in Garage. PostgreSQL takes a client certificate (mTLS), the role has no password. Garage cannot: S3 requests are signed with a key, generated in `secret-store`. Both run three copies on different nodes: one node lost keeps Garage's quorum (2 of 3) and CNPG promotes a replica; two lost stops Garage. No backups, the data is CI caches.
 - Sizes follow the peak use of the shared caches over 3 days (4.0 GiB in about 1.4k files): Garage 10 Gi data and 1 Gi metadata per node, 2 Gi per PostgreSQL instance.
+- Each node caches the blocks it reads in `/var/jfsCache`, capped at 5 Gi (the default is 100 GiB and 90% of the disk), so it shows up in the cockpit's `/var` row. The cache is safe to lose; the write cache stays off.
 - Monitoring: the pods carry `prometheus-scrape: "true"`; `prometheusrule.yaml` alerts on a missing Garage node, lost quorum, a missing PostgreSQL instance and replication lag. `PersistentVolumeAlmostFull` covers the volumes.
 
 ### Growing a JuiceFS volume

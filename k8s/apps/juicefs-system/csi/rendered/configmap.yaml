@@ -1,0 +1,27 @@
+apiVersion: v1
+data:
+  config.yaml: |-
+    enableNodeSelector: false
+    mountPodPatch:
+    - mountOptions:
+      - cache-size=5120
+      - free-space-ratio=0.2
+      resources:
+        limits:
+          memory: 1Gi
+        requests:
+          cpu: 50m
+          memory: 256Mi
+kind: ConfigMap
+metadata:
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    app.kubernetes.io/component: config
+    app.kubernetes.io/instance: juicefs-csi-driver
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: juicefs-csi-driver
+    app.kubernetes.io/version: 0.34.0
+    helm.sh/chart: juicefs-csi-driver-0.34.0
+  name: juicefs-csi-driver-config
+  namespace: juicefs-system

@@ -6,6 +6,5 @@ metadata:
   labels:
     claude-elevate/ops: "true"
     claude-elevate/storage: "true"
-    pod-security.kubernetes.io/enforce: restricted
-    pod-security.kubernetes.io/audit: restricted
-    pod-security.kubernetes.io/warn: restricted
+    # the CSI driver and its FUSE mount pods are privileged
+    pod-security.kubernetes.io/enforce: privileged

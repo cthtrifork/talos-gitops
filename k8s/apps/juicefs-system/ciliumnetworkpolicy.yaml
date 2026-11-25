@@ -1,5 +1,5 @@
 # Cilium rather than NetworkPolicy: Garage and the CNPG instance manager need the Kubernetes API, which plain
-# NetworkPolicy cannot allow under Cilium's kube-proxy replacement. Clients (the JuiceFS mount pods) are added with the CSI driver.
+# NetworkPolicy cannot allow under Cilium's kube-proxy replacement.
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -21,6 +21,16 @@ spec:
             - port: "3901"
               protocol: TCP
             - port: "3903"
+              protocol: TCP
+    # the mount pods, and the controller that creates the volume directories
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: juicefs-mount
+        - matchLabels:
+            app.kubernetes.io/name: juicefs-csi-driver
+      toPorts:
+        - ports:
+            - port: "3900"
               protocol: TCP
   egress:
     - toEndpoints:
@@ -68,6 +78,15 @@ spec:
             - port: "5432"
               protocol: TCP
             - port: "8000"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: juicefs-mount
+        - matchLabels:
+            app.kubernetes.io/name: juicefs-csi-driver
+      toPorts:
+        - ports:
+            - port: "5432"
               protocol: TCP
   egress:
     - toEndpoints:
