@@ -6,4 +6,3 @@ resources:
   - validatingadmissionpolicy-require-image-digest.yaml
   - validatingadmissionpolicybinding-require-image-digest.yaml
   - validatingpolicy-deny-world-egress.yaml
-  - validatingpolicy-helmrelease-remediation.yaml
