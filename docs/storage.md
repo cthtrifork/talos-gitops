@@ -20,7 +20,7 @@ flowchart TB
     sb --> garage
     meta -->|"mTLS, no password"| fs["JuiceFS, RWX<br/>StorageClass juicefs<br/>mount pod per node, FUSE"]
     garage -->|"S3 key"| fs
-    fs --> runners["Runner caches:<br/>dnf, cross-run, container-shared"]
+    fs --> runners["Runner caches:<br/>dnf, cross-run"]
 ```
 
 ## OpenEBS LVM (`k8s/infra/openebs-system/`)
@@ -32,6 +32,7 @@ flowchart TB
 ## JuiceFS (`k8s/apps/juicefs-system/`)
 
 - It gives the ARC runners caches that every runner shares, whichever node it lands on. Image storage stays on local volumes: overlay on FUSE is a bad idea.
+- The ARC runners (`arc-ubuntu` and `arc-ubuntu-podman`) share two caches on it, `dnf-cache-jfs` and `cross-run-cache-jfs` (`k8s/apps/arc-runner/pvc.yaml`); a root init container owns the volume roots. Image storage stays on local volumes, and so does `container-shared-storage` (the additional image store of rootless podman).
 - Use it with `storageClassName: juicefs` and `ReadWriteMany`: each PVC is a subdirectory of one filesystem. The CSI driver runs in `juicefs-system` (privileged, with FUSE mount pods) and every image is pinned by digest, the mount image too (the driver's default is the moving `ce-nightly`).
 - Metadata (files, directories) is in PostgreSQL, data blocks are in Garage. PostgreSQL takes a client certificate (mTLS), the role has no password. Garage cannot: S3 requests are signed with a key, generated in `secret-store`. Both run three copies on different nodes: one node lost keeps Garage's quorum (2 of 3) and CNPG promotes a replica; two lost stops Garage. No backups, the data is CI caches.
 - Sizes follow the peak use of the shared caches over 3 days (4.0 GiB in about 1.4k files): Garage 10 Gi data and 1 Gi metadata per node, 2 Gi per PostgreSQL instance.

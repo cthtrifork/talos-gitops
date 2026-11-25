@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 411a3a359ee97a33e2aa5101b4c7c1048466b62c966ea93559387e2f1c7318b
+    actions.github.com/values-hash: f6183ca9e0376dd93284392ce75085009d2d9fffc3ee097e0bfffbd52514446
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -99,6 +99,38 @@ spec:
       restartPolicy: Never
       serviceAccountName: arc-ubuntu-gha-rs-no-permission
       initContainers:
+        - command:
+            - /bin/sh
+            - -ec
+            - |
+              chown 1001:1001 /volumes/dnf-cache /volumes/cross-run-cache
+              chmod 0755 /volumes/dnf-cache /volumes/cross-run-cache
+          image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+          imagePullPolicy: IfNotPresent
+          name: volume-perms
+          resources:
+            limits:
+              memory: 32Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - CHOWN
+                - FOWNER
+                - DAC_OVERRIDE
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 0
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /volumes/dnf-cache
+              name: dnf-cache
+            - mountPath: /volumes/cross-run-cache
+              name: cross-run-cache
         - command:
             - sh
             - -c
@@ -336,10 +368,10 @@ spec:
             claimName: podman-tmp
         - name: dnf-cache
           persistentVolumeClaim:
-            claimName: dnf-cache
+            claimName: dnf-cache-jfs
         - name: container-shared-storage
           persistentVolumeClaim:
             claimName: container-shared-storage
         - name: cross-run-cache
           persistentVolumeClaim:
-            claimName: cross-run-cache
+            claimName: cross-run-cache-jfs

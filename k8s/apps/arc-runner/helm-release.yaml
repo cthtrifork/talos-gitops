@@ -59,6 +59,39 @@ spec:
                   matchLabels:
                     app.kubernetes.io/name: github-actions-cache-server
         initContainers:
+          # The shared caches are JuiceFS volumes: own their roots (not recursively), as the podman runner does
+          - name: volume-perms
+            image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+            imagePullPolicy: IfNotPresent
+            command:
+              - /bin/sh
+              - -ec
+              - |
+                chown 1001:1001 /volumes/dnf-cache /volumes/cross-run-cache
+                chmod 0755 /volumes/dnf-cache /volumes/cross-run-cache
+            securityContext:
+              runAsUser: 0
+              runAsGroup: 0
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                  - ALL
+                add:
+                  - CHOWN
+                  - FOWNER
+                  - DAC_OVERRIDE
+            resources:
+              limits:
+                memory: 32Mi
+              requests:
+                cpu: 10m
+                memory: 32Mi
+            volumeMounts:
+              - name: dnf-cache
+                mountPath: /volumes/dnf-cache
+              - name: cross-run-cache
+                mountPath: /volumes/cross-run-cache
           - name: data-retention
             image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
             imagePullPolicy: IfNotPresent
@@ -333,13 +366,13 @@ spec:
               claimName: podman-tmp
           - name: dnf-cache
             persistentVolumeClaim:
-              claimName: dnf-cache
+              claimName: dnf-cache-jfs
           - name: container-shared-storage
             persistentVolumeClaim:
               claimName: container-shared-storage
           - name: cross-run-cache
             persistentVolumeClaim:
-              claimName: cross-run-cache
+              claimName: cross-run-cache-jfs
     listenerTemplate:
       metadata:
         labels:

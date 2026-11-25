@@ -277,25 +277,11 @@ spec:
                     requests:
                       storage: 32Gi
           - name: dnf-cache
-            ephemeral:
-              volumeClaimTemplate:
-                spec:
-                  accessModes:
-                    - ReadWriteOnce
-                  storageClassName: lvm-bulk
-                  resources:
-                    requests:
-                      storage: 25Gi
+            persistentVolumeClaim:
+              claimName: dnf-cache-jfs
           - name: cross-run-cache
-            ephemeral:
-              volumeClaimTemplate:
-                spec:
-                  accessModes:
-                    - ReadWriteOnce
-                  storageClassName: lvm-bulk
-                  resources:
-                    requests:
-                      storage: 5Gi
+            persistentVolumeClaim:
+              claimName: cross-run-cache-jfs
     listenerTemplate:
       metadata:
         labels:
