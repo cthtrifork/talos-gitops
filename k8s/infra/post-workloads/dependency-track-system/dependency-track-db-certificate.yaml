@@ -1,0 +1,83 @@
+# Database PKI: no passwords. PostgreSQL requires TLS and a client certificate whose CN equals the role name; one CA
+# signs server, replication and client certificates, and cert-manager (not CNPG) owns its key. Same as harper-pad.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dependency-track-db-ca
+  namespace: dependency-track-system
+spec:
+  isCA: true
+  commonName: dependency-track-db-ca
+  secretName: dependency-track-db-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: portableinfo-pmx01-root-ca-bootstrap
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dependency-track-db-server
+  namespace: dependency-track-system
+spec:
+  secretName: dependency-track-db-server
+  usages:
+    - server auth
+  dnsNames:
+    - dependency-track-db-rw
+    - dependency-track-db-rw.dependency-track-system
+    - dependency-track-db-rw.dependency-track-system.svc
+    - dependency-track-db-rw.dependency-track-system.svc.cluster.local
+    - dependency-track-db-r
+    - dependency-track-db-r.dependency-track-system
+    - dependency-track-db-r.dependency-track-system.svc
+    - dependency-track-db-ro
+    - dependency-track-db-ro.dependency-track-system
+    - dependency-track-db-ro.dependency-track-system.svc
+  issuerRef:
+    name: dependency-track-db-ca
+    kind: Issuer
+    group: cert-manager.io
+---
+# Required by CNPG once a custom client CA is used.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dependency-track-db-replication
+  namespace: dependency-track-system
+spec:
+  secretName: dependency-track-db-replication
+  commonName: streaming_replica
+  usages:
+    - client auth
+  issuerRef:
+    name: dependency-track-db-ca
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dependency-track-db-client
+  namespace: dependency-track-system
+spec:
+  secretName: dependency-track-db-client
+  commonName: dtrack
+  usages:
+    - client auth
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  # The JVM reads a keystore, not PEM. It only guards a key the Secret already holds in clear.
+  keystores:
+    pkcs12:
+      create: true
+      password: not-a-secret
+  issuerRef:
+    name: dependency-track-db-ca
+    kind: Issuer
+    group: cert-manager.io
