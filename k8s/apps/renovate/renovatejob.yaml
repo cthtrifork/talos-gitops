@@ -12,7 +12,7 @@ spec:
   schedule: "7,37 * * * *"
   # The default image is 427 MiB, -full 2.6 GB: tools (go for gomodTidy) are installed at run time into /opt/containerbase
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate versioning=docker
-  image: ghcr.io/renovatebot/renovate:44.261.3@sha256:a94fbfa1977a07f98a6291b20ad630d076325526a64e730ebc1c61e4f648cff5
+  image: ghcr.io/renovatebot/renovate:44.262.2@sha256:2d5cd4c778b9a2c36623302ceec231a813d8eed77cea19da13b73dd4e8e92e54
   parallelism: 2
   extraEnv:
     # The operator reads PR activity from Renovate's debug log
