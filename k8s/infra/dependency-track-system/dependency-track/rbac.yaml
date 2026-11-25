@@ -25,6 +25,7 @@ rules:
       - "dependency-track-admin"
       - "dependency-track-api-key"
       - "dependency-track-vex-api-key"
+      - "dependency-track-retire-api-key"
     verbs:
       - "get"
       - "update" # replace a key the API no longer accepts

@@ -10,6 +10,7 @@ resources:
   - rbac.yaml
   - config-cronjob.yaml
   - vex-export-cronjob.yaml
+  - retire-cronjob.yaml
   - vex-github-app.enc.yaml
   - service-lb.yaml
   - helm-release.yaml
@@ -19,6 +20,13 @@ configMapGenerator:
     namespace: dependency-track-system
     files:
       - config.json=frontend-config.json
+  - name: dependency-track-retire
+    namespace: dependency-track-system
+    files:
+      - retire-projects.sh
+    options:
+      annotations:
+        kustomize.toolkit.fluxcd.io/substitute: disabled # shell and jq use $ freely
   - name: dependency-track-vex-export
     namespace: dependency-track-system
     files:

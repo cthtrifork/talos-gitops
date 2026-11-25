@@ -18,6 +18,11 @@ data:
         "permissions": ["VIEW_PORTFOLIO", "VULNERABILITY_ANALYSIS_READ"]
       },
       {
+        "name": "project-retirer",
+        "secret": "dependency-track-retire-api-key",
+        "permissions": ["VIEW_PORTFOLIO", "PORTFOLIO_MANAGEMENT_UPDATE"]
+      },
+      {
         "name": "claude-triage",
         "secret": "dependency-track-claude-api-key",
         "namespace": "claude-system",
@@ -30,6 +35,16 @@ data:
         "groupName": "general",
         "propertyName": "base.url",
         "propertyValue": "https://dtrack.portableinfo.cloud"
+      },
+      {
+        "groupName": "maintenance",
+        "propertyName": "projects.retention.type",
+        "propertyValue": "AGE"
+      },
+      {
+        "groupName": "maintenance",
+        "propertyName": "projects.retention.days",
+        "propertyValue": "30"
       }
     ]
   extensions.json: |
