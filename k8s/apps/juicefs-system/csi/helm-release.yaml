@@ -9,6 +9,8 @@ metadata:
 spec:
   interval: 30m
   releaseName: juicefs-csi-driver
+  # a spec change also starts a release that ran out of retries again
+  timeout: 10m
   chartRef:
     kind: OCIRepository
     name: juicefs-csi-driver
