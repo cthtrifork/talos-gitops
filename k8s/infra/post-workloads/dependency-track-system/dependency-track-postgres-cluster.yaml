@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/postgresql.cnpg.io/cluster_v1.json
-# One instance, no backups. The release logs in with a client certificate (dependency-track-db-certificate.yaml); the
-# dtrack role has no usable password. The Secret dependency-track-db-app still carries one, which the chart insists on mounting.
+# One instance, no backups. The release logs in with the password in the Secret dependency-track-db-app (created by CNPG).
+# The TLS certificates come from cert-manager (dependency-track-db-certificate.yaml); a client-certificate login is not in use.
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -39,15 +39,13 @@ spec:
       - name: dtrack
         ensure: present
         login: true
-        disablePassword: true
+        # Sets the password back from the Secret after the client-certificate attempt cleared it.
+        passwordSecret:
+          name: dependency-track-db-app
   certificates:
     serverTLSSecret: dependency-track-db-server
     serverCASecret: dependency-track-db-ca
     clientCASecret: dependency-track-db-ca
     replicationTLSSecret: dependency-track-db-replication
-  postgresql:
-    pg_hba:
-      # Before CNPG's default "host all all all scram-sha-256" rule; cert auth matches CN against the role name.
-      - hostssl dtrack dtrack all cert
   monitoring:
     enablePodMonitor: true
