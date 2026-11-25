@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/postgresql.cnpg.io/cluster_v1.json
 # One instance, no backups. The release logs in with a client certificate (dependency-track-db-certificate.yaml); the
-# dtrack role has no usable password. The Secret dependency-track-db-app still carries one, which the chart insists on mounting.
+# dtrack role has no usable password. The CNPG Secret dependency-track-db-app still holds the old one, unused: the release
+# gets a placeholder from its own values.
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster

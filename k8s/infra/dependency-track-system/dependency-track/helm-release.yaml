@@ -43,8 +43,9 @@ spec:
     database:
 
       jdbcUrl: "jdbc:postgresql://dependency-track-db-rw.dependency-track-system.svc.cluster.local:5432/dtrack?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
-      existingSecret:
-        name: dependency-track-db-app # created by CNPG
+      # The login is a client certificate and the dtrack role has no password; the chart insists on both values.
+      username: dtrack
+      password: unused
     secretManagement:
       database:
         kek:
@@ -63,9 +64,8 @@ spec:
         - name: DT_TELEMETRY_SUBMISSION_DEFAULT_ENABLED
           value: "false"
         # The database login is a client certificate; the JDBC driver takes it from the JVM keystore. Kyverno appends the truststore to this variable.
-        # TEMPORARY: javax.net.debug logs the handshake to find out why no client certificate is sent. Remove after the diagnosis.
         - name: JAVA_TOOL_OPTIONS
-          value: "-Djavax.net.ssl.keyStore=/etc/dt/db-client/keystore.p12 -Djavax.net.ssl.keyStoreType=PKCS12 -Djavax.net.ssl.keyStorePassword=not-a-secret -Djavax.net.debug=ssl:handshake:keymanager"
+          value: "-Djavax.net.ssl.keyStore=/etc/dt/db-client/keystore.p12 -Djavax.net.ssl.keyStoreType=PKCS12 -Djavax.net.ssl.keyStorePassword=not-a-secret"
       additionalVolumes:
         - name: db-client
           secret:
