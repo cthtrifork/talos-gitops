@@ -18,16 +18,6 @@ spec:
     name: portableinfo-pmx01-root-ca-bootstrap
     kind: ClusterIssuer
 ---
-# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/issuer_v1.json
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: dependency-track-db-ca
-  namespace: dependency-track-system
-spec:
-  ca:
-    secretName: dependency-track-db-ca
----
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
