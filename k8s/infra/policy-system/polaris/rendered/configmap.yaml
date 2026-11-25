@@ -86,8 +86,6 @@ data:
             image:
               pattern: '@sha256:[a-f0-9]{64}'
               type: string
-          required:
-          - image
           type: object
         successMessage: Image is pinned by digest
         target: Container
@@ -639,6 +637,10 @@ data:
       - namespace: homeserver-vm
         rules:
         - worldEgressNetworkPolicy
+      - controllerNames:
+        - cdi
+        rules:
+        - namespacePsaLabel
       - controllerNames:
         - default
         - kube-system

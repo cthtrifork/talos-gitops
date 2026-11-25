@@ -81,9 +81,9 @@ spec:
 
         # efficiency
         cpuLimitsMissing: ignore
-      # Mirror the admission policies (Kyverno and ValidatingAdmissionPolicy), which cannot see what is already in the cluster
+      # Same rules as the admission policies (docs/security.md), which cannot see what is already in the cluster; HelmRelease remediation has no admission policy
       customChecks:
-        # require-helmrelease-remediation (docs/helmrelease-conventions.md)
+        # docs/helmrelease-conventions.md
         helmReleaseRemediation:
           successMessage: HelmRelease retries a failed install and upgrade
           failureMessage: HelmRelease must set non-zero spec.upgrade.remediation.retries and spec.install.remediation.retries (or install.strategy RetryOnFailure)
@@ -141,7 +141,7 @@ spec:
                             properties:
                               name:
                                 const: RetryOnFailure
-        # require-image-digest
+        # require-image-digest; a container without an image is set by an operator
         imageDigest:
           successMessage: Image is pinned by digest
           failureMessage: Image must be pinned by digest (name@sha256:...)
@@ -150,8 +150,6 @@ spec:
           schema:
             $schema: https://json-schema.org/draft/2019-09/schema
             type: object
-            required:
-              - image
             properties:
               image:
                 type: string
@@ -345,8 +343,7 @@ spec:
                                           properties:
                                             trust.portableinfo.cloud/public:
                                               const: 'true'
-                    - &id002
-                      not:
+                    - not:
                         anyOf:
                           - type: object
                             required:
@@ -400,8 +397,7 @@ spec:
                                             properties:
                                               trust.portableinfo.cloud/inject:
                                                 const: 'false'
-                    - &id003
-                      not:
+                    - not:
                         type: object
                         required:
                           - metadata
@@ -434,7 +430,7 @@ spec:
                               required:
                                 - configmap.reloader.stakater.com/reload
                               properties:
-                                configmap.reloader.stakater.com/reload: &id001
+                                configmap.reloader.stakater.com/reload:
                                   type: string
                                   pattern: (^|,)\s*portableinfo-ca-bundle\s*(,|$)
                     - type: object
@@ -461,7 +457,9 @@ spec:
                                       required:
                                         - configmap.reloader.stakater.com/reload
                                       properties:
-                                        configmap.reloader.stakater.com/reload: *id001
+                                        configmap.reloader.stakater.com/reload:
+                                          type: string
+                                          pattern: (^|,)\s*portableinfo-ca-bundle\s*(,|$)
               - if:
                   allOf:
                     - anyOf:
@@ -571,8 +569,77 @@ spec:
                                             properties:
                                               trust.portableinfo.cloud/public:
                                                 const: 'true'
-                    - *id002
-                    - *id003
+                    - not:
+                        anyOf:
+                          - type: object
+                            required:
+                              - spec
+                            properties:
+                              spec:
+                                type: object
+                                required:
+                                  - template
+                                properties:
+                                  template:
+                                    type: object
+                                    required:
+                                      - metadata
+                                    properties:
+                                      metadata:
+                                        type: object
+                                        required:
+                                          - annotations
+                                        properties:
+                                          annotations:
+                                            type: object
+                                            required:
+                                              - trust.portableinfo.cloud/inject
+                                            properties:
+                                              trust.portableinfo.cloud/inject:
+                                                const: 'false'
+                          - type: object
+                            required:
+                              - spec
+                            properties:
+                              spec:
+                                type: object
+                                required:
+                                  - template
+                                properties:
+                                  template:
+                                    type: object
+                                    required:
+                                      - metadata
+                                    properties:
+                                      metadata:
+                                        type: object
+                                        required:
+                                          - labels
+                                        properties:
+                                          labels:
+                                            type: object
+                                            required:
+                                              - trust.portableinfo.cloud/inject
+                                            properties:
+                                              trust.portableinfo.cloud/inject:
+                                                const: 'false'
+                    - not:
+                        type: object
+                        required:
+                          - metadata
+                        properties:
+                          metadata:
+                            type: object
+                            required:
+                              - annotations
+                            properties:
+                              annotations:
+                                type: object
+                                required:
+                                  - trust.portableinfo.cloud/reload
+                                properties:
+                                  trust.portableinfo.cloud/reload:
+                                    const: 'false'
                 then:
                   anyOf:
                     - type: object
@@ -589,7 +656,7 @@ spec:
                               required:
                                 - configmap.reloader.stakater.com/reload
                               properties:
-                                configmap.reloader.stakater.com/reload: &id004
+                                configmap.reloader.stakater.com/reload:
                                   type: string
                                   pattern: (^|,)\s*portableinfo-internal-ca-bundle\s*(,|$)
                     - type: object
@@ -616,7 +683,9 @@ spec:
                                       required:
                                         - configmap.reloader.stakater.com/reload
                                       properties:
-                                        configmap.reloader.stakater.com/reload: *id004
+                                        configmap.reloader.stakater.com/reload:
+                                          type: string
+                                          pattern: (^|,)\s*portableinfo-internal-ca-bundle\s*(,|$)
       exemptions:
         # Images the Talos and Omni machine config sets, without a digest (same list as require-image-digest)
         - controllerNames:
@@ -634,6 +703,11 @@ spec:
         - namespace: homeserver-vm
           rules:
             - worldEgressNetworkPolicy
+        # The cdi namespace label comes from a kustomize patch in k8s/infra/kubevirt, which the audit does not apply
+        - controllerNames:
+            - cdi
+          rules:
+            - namespacePsaLabel
         # Namespaces Kubernetes and Flux create themselves
         - controllerNames:
             - default

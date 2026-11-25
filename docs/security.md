@@ -104,7 +104,6 @@ Specs are in HelmRelease values (`k8s/apps/arc-runner/`), not `rendered/`.
 |---|---|---|---|
 | `cthtrifork-images` | Kyverno | Blocks | Our images (`ghcr.io/cthtrifork/talos-gitops/**`, `harper-pad-*`) carry a keyless cosign signature from `main`, verified against Rekor. No namespace exempt |
 | `deny-world-egress` | Kyverno | Allows | Cilium policies may not allow `world` or `all`. Not applied in the VM namespaces. CIDR rules and Kubernetes NetworkPolicies not checked |
-| `require-helmrelease-remediation` | Kyverno | Allows | Operational only |
 | `inject-trust-bundle` | Kyverno (mutating) | Allows | Mounts the trust-manager CA bundle into new pods, see below |
 | `require-trust-bundle-reload` | Kyverno | Warns | A workload whose pod template has `public` or `java` must name its bundle for Reloader, see below |
 | `require-namespace-psa-enforce` | Native VAP | Blocks | Every Namespace sets a PSA enforce level. Exempt: system namespaces, `flux-system` |
