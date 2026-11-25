@@ -143,6 +143,8 @@ spec:
         - matchName: gcr.io
         - matchName: mirror.gcr.io
         - matchName: registry.k8s.io
+        # registry.k8s.io redirects blobs to Artifact Registry (europe-west4-docker.pkg.dev, region may change)
+        - matchPattern: "*.pkg.dev"
 
         # Bandwidth tests with curl (download __down, upload __up)
         - matchName: speed.cloudflare.com
