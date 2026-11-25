@@ -80,7 +80,8 @@ spec:
       type: Recreate
     extraVolumes:
       - name: tmp
-        emptyDir: {}
+        emptyDir:
+          sizeLimit: 1Gi
       - name: zot-certs
         secret:
           secretName: zot-tls-cert
