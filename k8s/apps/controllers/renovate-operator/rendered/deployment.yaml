@@ -32,7 +32,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: renovate-operator
-          image: ghcr.io/mogenius/renovate-operator:6.10.0@sha256:a7f7e7448a5f5c8ea91f56566b940754fe1fe46447c75d375eacf4ced12e6655
+          image: ghcr.io/mogenius/renovate-operator:7.0.0@sha256:27e71ee7f6891d00893859df8898e1e97dec7b804f55a4c1800a153b453cee9d
           imagePullPolicy: IfNotPresent
           args:
             - "--zap-log-level=info"
