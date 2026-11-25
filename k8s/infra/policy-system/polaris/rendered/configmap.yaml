@@ -5,6 +5,7 @@ data:
       automountServiceAccountToken: ignore
       cpuLimitsMissing: ignore
       deploymentMissingReplicas: ignore
+      helmReleaseRemediation: danger
       linuxHardening: danger
       metadataAndInstanceMismatched: ignore
       missingNetworkPolicy: ignore
@@ -12,6 +13,64 @@ data:
       priorityClassNotSet: ignore
       pullPolicyNotAlways: ignore
       topologySpreadConstraint: ignore
+    customChecks:
+      helmReleaseRemediation:
+        category: Reliability
+        failureMessage: HelmRelease must set non-zero spec.upgrade.remediation.retries and
+          spec.install.remediation.retries (or install.strategy RetryOnFailure)
+        schema:
+          $schema: https://json-schema.org/draft/2019-09/schema
+          properties:
+            spec:
+              properties:
+                install:
+                  anyOf:
+                  - properties:
+                      remediation:
+                        properties:
+                          retries:
+                            not:
+                              const: 0
+                            type: integer
+                        required:
+                        - retries
+                        type: object
+                    required:
+                    - remediation
+                  - properties:
+                      strategy:
+                        properties:
+                          name:
+                            const: RetryOnFailure
+                        required:
+                        - name
+                        type: object
+                    required:
+                    - strategy
+                  type: object
+                upgrade:
+                  properties:
+                    remediation:
+                      properties:
+                        retries:
+                          not:
+                            const: 0
+                          type: integer
+                      required:
+                      - retries
+                      type: object
+                  required:
+                  - remediation
+                  type: object
+              required:
+              - upgrade
+              - install
+              type: object
+          required:
+          - spec
+          type: object
+        successMessage: HelmRelease retries a failed install and upgrade
+        target: helm.toolkit.fluxcd.io/HelmRelease
     exemptions:
       - controllerNames:
         - openebs-lvm-node

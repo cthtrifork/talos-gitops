@@ -59,6 +59,7 @@ spec:
       checks:
         # reliability
         priorityClassNotSet: ignore
+        helmReleaseRemediation: danger
         # PDBs do not help at one replica per workload
         missingPodDisruptionBudget: ignore
         pullPolicyNotAlways: ignore
@@ -75,6 +76,55 @@ spec:
 
         # efficiency
         cpuLimitsMissing: ignore
+      # Mirrors the Kyverno policy require-helmrelease-remediation (docs/helmrelease-conventions.md): it checks admission only, this also audits
+      customChecks:
+        helmReleaseRemediation:
+          successMessage: HelmRelease retries a failed install and upgrade
+          failureMessage: HelmRelease must set non-zero spec.upgrade.remediation.retries and spec.install.remediation.retries (or install.strategy RetryOnFailure)
+          category: Reliability
+          target: helm.toolkit.fluxcd.io/HelmRelease
+          schema:
+            '$schema': https://json-schema.org/draft/2019-09/schema
+            type: object
+            required: [spec]
+            properties:
+              spec:
+                type: object
+                required: [upgrade, install]
+                properties:
+                  upgrade:
+                    type: object
+                    required: [remediation]
+                    properties:
+                      remediation:
+                        type: object
+                        required: [retries]
+                        properties:
+                          retries:
+                            type: integer
+                            not:
+                              const: 0
+                  install:
+                    type: object
+                    anyOf:
+                      - required: [remediation]
+                        properties:
+                          remediation:
+                            type: object
+                            required: [retries]
+                            properties:
+                              retries:
+                                type: integer
+                                not:
+                                  const: 0
+                      - required: [strategy]
+                        properties:
+                          strategy:
+                            type: object
+                            required: [name]
+                            properties:
+                              name:
+                                const: RetryOnFailure
       exemptions:
         # the node plugin runs lvm against the host's /dev and mounts into the kubelet directory; the controller's sidecars run as root
         - namespace: openebs-system
