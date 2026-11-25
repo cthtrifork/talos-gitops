@@ -129,6 +129,10 @@ spec:
         - matchName: developers.cloudflare.com
         - matchName: kubevirt.io
         - matchName: docs.siderolabs.com
+        - matchName: polaris.docs.fairwinds.com
+        - matchName: cloudnative-pg.io
+        - matchName: garagehq.deuxfleurs.fr
+        - matchName: juicefs.com
         # Flux Operator JSON schemas (yaml-language-server $schema)
         - matchName: schemas.fluxoperator.dev
 
