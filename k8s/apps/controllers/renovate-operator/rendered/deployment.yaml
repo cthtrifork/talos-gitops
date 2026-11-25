@@ -5,6 +5,8 @@ kind: Deployment
 metadata:
   name: renovate-operator
   namespace: renovate-system
+  annotations:
+    secret.reloader.stakater.com/reload: renovate-valkey-credentials
 spec:
   replicas: 1
   revisionHistoryLimit: 10
@@ -16,6 +18,9 @@ spec:
       labels:
         app: renovate-operator
         prometheus-scrape: "true"
+      annotations:
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
+        trust.portableinfo.cloud/public: "true"
     spec:
       serviceAccountName: renovate-operator
       securityContext:
@@ -72,15 +77,26 @@ spec:
             - name: LEADER_ELECTION_ID
               value: "renovate-operator-leader"
             - name: VALKEY_HOST
-              value: "renovate-operator-valkey"
+              value: "valkey-renovate.renovate-system.svc.cluster.local"
             - name: VALKEY_PORT
               value: "6379"
+            - name: VALKEY_USERNAME
+              value: "renovate"
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: renovate-valkey-credentials
+                  key: password
+            - name: VALKEY_TLS
+              value: "true"
+            - name: VALKEY_CLUSTER
+              value: "true"
             - name: SESSION_STORE
               value: "cookie"
             - name: SESSION_DURATION
               value: "24h"
             - name: VALKEY_FORWARD_CACHE_TO_JOBS
-              value: "true"
+              value: "false"
             - name: POLICY_ENABLED
               value: "false"
             - name: POLICY_ALLOWED_HOSTS
@@ -104,7 +120,7 @@ spec:
             - name: GLOBAL_PARALLELISM_LIMIT
               value: "2"
             - name: POD_LABEL_TEMPLATES
-              value: "{\"renovate-job\":\"true\"}"
+              value: "{\"renovate-job\":\"true\",\"trust.portableinfo.cloud/public\":\"true\"}"
             - name: LOG_STORE_MODE
               value: "valkey"
             - name: S3_BUCKET

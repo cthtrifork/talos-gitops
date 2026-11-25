@@ -1,0 +1,107 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: valkey-resources
+  namespace: renovate-system
+spec:
+  interval: 30m
+  timeout: 10m
+  chartRef:
+    kind: OCIRepository
+    name: valkey-resources
+  dependsOn:
+    - name: valkey-operator
+      namespace: valkey-operator-system
+  install:
+    strategy:
+      name: RetryOnFailure
+      retryInterval: 1m
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    fullnameOverride: renovate
+    metrics:
+      podMonitor:
+        enabled: true
+        labels:
+          release: kube-prometheus-stack
+    cluster:
+      # The server patch sets its security context. The operator adds the image, resources, and probes to the pod.
+      annotations:
+        polaris.fairwinds.com/cpuRequestsMissing-exempt: "true"
+        polaris.fairwinds.com/livenessProbeMissing-exempt: "true"
+        polaris.fairwinds.com/memoryLimitsMissing-exempt: "true"
+        polaris.fairwinds.com/memoryRequestsMissing-exempt: "true"
+        polaris.fairwinds.com/readinessProbeMissing-exempt: "true"
+        polaris.fairwinds.com/tagNotSpecified-exempt: "true"
+      spec:
+        shards: 3
+        replicasPerShard: 1
+        # renovate: datasource=docker depName=mirror.gcr.io/valkey/valkey versioning=docker
+        image: mirror.gcr.io/valkey/valkey:9.2.0@sha256:1c2b25b09f354c66fe994733acdf12fcfd4bdf6f3bd92b88a93a70378d884056
+        acl:
+          users:
+            - name: renovate
+              password:
+                type: Secret
+                secret:
+                  name: renovate-valkey-credentials
+                  keys:
+                    - password
+              permissions: "~* +@connection +get +set +del +cluster|slots +cluster|shards"
+        networking:
+          discovery:
+            preferredEndpointType: Hostname
+          tls:
+            certificates:
+              server:
+                secretName: renovate-valkey-tls
+            clientAuth:
+              mode: Disabled
+        config:
+          tls-auto-reload-interval: "60"
+        scheduling:
+          node:
+            spread:
+              shard:
+                mode: Required
+              primaries:
+                mode: Required
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            memory: 512Mi
+        podMetadata:
+          labels:
+            prometheus-scrape: "true"
+        podSecurityContext:
+          fsGroup: 56849
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+          - name: server
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - ALL
+              readOnlyRootFilesystem: true
+              runAsUser: 56849
+              runAsGroup: 56849
+        exporter:
+          enabled: true
+          # renovate: datasource=docker depName=mirror.gcr.io/oliver006/redis_exporter versioning=docker
+          image: mirror.gcr.io/oliver006/redis_exporter:v1.99.0@sha256:2c0cdc2452096b5af460d870e72fa6ee2ebb971780f443a616885685d2c0ebad
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsUser: 56850
+            runAsGroup: 56850

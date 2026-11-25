@@ -59,6 +59,8 @@ spec:
       checks:
         # reliability
         priorityClassNotSet: ignore
+        helmReleaseRemediation: danger
+        trustBundleReload: warning
         # PDBs do not help at one replica per workload
         missingPodDisruptionBudget: ignore
         pullPolicyNotAlways: ignore
@@ -69,13 +71,652 @@ spec:
 
         # security
         linuxHardening: danger
+        imageDigest: danger
+        worldEgressNetworkPolicy: danger
+        worldEgressClusterwidePolicy: danger
+        namespacePsaLabel: danger
         # most pods need the token; the ones that do not are not worth a per-pod exemption
         automountServiceAccountToken: ignore
         missingNetworkPolicy: ignore
 
         # efficiency
         cpuLimitsMissing: ignore
+      # Same rules as the admission policies (docs/security.md), which cannot see what is already in the cluster; HelmRelease remediation has no admission policy
+      customChecks:
+        # docs/helmrelease-conventions.md
+        helmReleaseRemediation:
+          successMessage: HelmRelease retries a failed install and upgrade
+          failureMessage: HelmRelease must set non-zero spec.upgrade.remediation.retries and spec.install.remediation.retries (or install.strategy RetryOnFailure)
+          category: Reliability
+          target: helm.toolkit.fluxcd.io/HelmRelease
+          schema:
+            $schema: https://json-schema.org/draft/2019-09/schema
+            type: object
+            required:
+              - spec
+            properties:
+              spec:
+                type: object
+                required:
+                  - upgrade
+                  - install
+                properties:
+                  upgrade:
+                    type: object
+                    required:
+                      - remediation
+                    properties:
+                      remediation:
+                        type: object
+                        required:
+                          - retries
+                        properties:
+                          retries:
+                            type: integer
+                            not:
+                              const: 0
+                  install:
+                    type: object
+                    anyOf:
+                      - type: object
+                        required:
+                          - remediation
+                        properties:
+                          remediation:
+                            type: object
+                            required:
+                              - retries
+                            properties:
+                              retries:
+                                type: integer
+                                not:
+                                  const: 0
+                      - required:
+                          - strategy
+                        properties:
+                          strategy:
+                            type: object
+                            required:
+                              - name
+                            properties:
+                              name:
+                                const: RetryOnFailure
+        # require-image-digest; a container without an image is set by an operator
+        imageDigest:
+          successMessage: Image is pinned by digest
+          failureMessage: Image must be pinned by digest (name@sha256:...)
+          category: Security
+          target: Container
+          schema:
+            $schema: https://json-schema.org/draft/2019-09/schema
+            type: object
+            properties:
+              image:
+                type: string
+                pattern: '@sha256:[a-f0-9]{64}'
+        # deny-world-egress; claude-vm and homeserver-vm are exempt
+        worldEgressNetworkPolicy:
+          successMessage: CiliumNetworkPolicy does not allow world egress
+          failureMessage: egress must not allow toEntities world or all; allow named hosts (toFQDNs) or addresses (toCIDRSet) instead
+          category: Security
+          target: cilium.io/CiliumNetworkPolicy
+          schema:
+            $schema: https://json-schema.org/draft/2019-09/schema
+            type: object
+            properties:
+              spec:
+                type: object
+                properties:
+                  egress:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        toEntities:
+                          type: array
+                          items:
+                            not:
+                              enum:
+                                - world
+                                - world-ipv4
+                                - world-ipv6
+                                - all
+              specs:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    egress:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          toEntities:
+                            type: array
+                            items:
+                              not:
+                                enum:
+                                  - world
+                                  - world-ipv4
+                                  - world-ipv6
+                                  - all
+        # deny-world-egress
+        worldEgressClusterwidePolicy:
+          successMessage: CiliumClusterwideNetworkPolicy does not allow world egress
+          failureMessage: egress must not allow toEntities world or all; allow named hosts (toFQDNs) or addresses (toCIDRSet) instead
+          category: Security
+          target: cilium.io/CiliumClusterwideNetworkPolicy
+          schema:
+            $schema: https://json-schema.org/draft/2019-09/schema
+            type: object
+            properties:
+              spec:
+                type: object
+                properties:
+                  egress:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        toEntities:
+                          type: array
+                          items:
+                            not:
+                              enum:
+                                - world
+                                - world-ipv4
+                                - world-ipv6
+                                - all
+              specs:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    egress:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          toEntities:
+                            type: array
+                            items:
+                              not:
+                                enum:
+                                  - world
+                                  - world-ipv4
+                                  - world-ipv6
+                                  - all
+        # require-namespace-psa-enforce
+        namespacePsaLabel:
+          successMessage: Namespace sets pod-security.kubernetes.io/enforce
+          failureMessage: the label pod-security.kubernetes.io/enforce must be privileged, baseline or restricted
+          category: Security
+          target: Namespace
+          schema:
+            $schema: https://json-schema.org/draft/2019-09/schema
+            type: object
+            required:
+              - metadata
+            properties:
+              metadata:
+                type: object
+                required:
+                  - labels
+                properties:
+                  labels:
+                    type: object
+                    required:
+                      - pod-security.kubernetes.io/enforce
+                    properties:
+                      pod-security.kubernetes.io/enforce:
+                        enum:
+                          - privileged
+                          - baseline
+                          - restricted
+        # require-trust-bundle-reload
+        trustBundleReload:
+          successMessage: Workload reloads when the injected trust bundle changes
+          failureMessage: 'pod template is injected with a trust bundle but the workload does not name it in configmap.reloader.stakater.com/reload; add it, or trust.portableinfo.cloud/reload: "false" if it restarts by hand'
+          category: Reliability
+          target: Controller
+          controllers:
+            include:
+              - Deployment
+              - StatefulSet
+              - DaemonSet
+          schema:
+            $schema: https://json-schema.org/draft/2019-09/schema
+            type: object
+            allOf:
+              - if:
+                  allOf:
+                    - anyOf:
+                        - type: object
+                          required:
+                            - spec
+                          properties:
+                            spec:
+                              type: object
+                              required:
+                                - template
+                              properties:
+                                template:
+                                  type: object
+                                  required:
+                                    - metadata
+                                  properties:
+                                    metadata:
+                                      type: object
+                                      required:
+                                        - annotations
+                                      properties:
+                                        annotations:
+                                          type: object
+                                          required:
+                                            - trust.portableinfo.cloud/public
+                                          properties:
+                                            trust.portableinfo.cloud/public:
+                                              const: 'true'
+                        - type: object
+                          required:
+                            - spec
+                          properties:
+                            spec:
+                              type: object
+                              required:
+                                - template
+                              properties:
+                                template:
+                                  type: object
+                                  required:
+                                    - metadata
+                                  properties:
+                                    metadata:
+                                      type: object
+                                      required:
+                                        - labels
+                                      properties:
+                                        labels:
+                                          type: object
+                                          required:
+                                            - trust.portableinfo.cloud/public
+                                          properties:
+                                            trust.portableinfo.cloud/public:
+                                              const: 'true'
+                    - not:
+                        anyOf:
+                          - type: object
+                            required:
+                              - spec
+                            properties:
+                              spec:
+                                type: object
+                                required:
+                                  - template
+                                properties:
+                                  template:
+                                    type: object
+                                    required:
+                                      - metadata
+                                    properties:
+                                      metadata:
+                                        type: object
+                                        required:
+                                          - annotations
+                                        properties:
+                                          annotations:
+                                            type: object
+                                            required:
+                                              - trust.portableinfo.cloud/inject
+                                            properties:
+                                              trust.portableinfo.cloud/inject:
+                                                const: 'false'
+                          - type: object
+                            required:
+                              - spec
+                            properties:
+                              spec:
+                                type: object
+                                required:
+                                  - template
+                                properties:
+                                  template:
+                                    type: object
+                                    required:
+                                      - metadata
+                                    properties:
+                                      metadata:
+                                        type: object
+                                        required:
+                                          - labels
+                                        properties:
+                                          labels:
+                                            type: object
+                                            required:
+                                              - trust.portableinfo.cloud/inject
+                                            properties:
+                                              trust.portableinfo.cloud/inject:
+                                                const: 'false'
+                    - not:
+                        type: object
+                        required:
+                          - metadata
+                        properties:
+                          metadata:
+                            type: object
+                            required:
+                              - annotations
+                            properties:
+                              annotations:
+                                type: object
+                                required:
+                                  - trust.portableinfo.cloud/reload
+                                properties:
+                                  trust.portableinfo.cloud/reload:
+                                    const: 'false'
+                then:
+                  anyOf:
+                    - type: object
+                      required:
+                        - metadata
+                      properties:
+                        metadata:
+                          type: object
+                          required:
+                            - annotations
+                          properties:
+                            annotations:
+                              type: object
+                              required:
+                                - configmap.reloader.stakater.com/reload
+                              properties:
+                                configmap.reloader.stakater.com/reload:
+                                  type: string
+                                  pattern: (^|,)\s*portableinfo-ca-bundle\s*(,|$)
+                    - type: object
+                      required:
+                        - spec
+                      properties:
+                        spec:
+                          type: object
+                          required:
+                            - template
+                          properties:
+                            template:
+                              type: object
+                              required:
+                                - metadata
+                              properties:
+                                metadata:
+                                  type: object
+                                  required:
+                                    - annotations
+                                  properties:
+                                    annotations:
+                                      type: object
+                                      required:
+                                        - configmap.reloader.stakater.com/reload
+                                      properties:
+                                        configmap.reloader.stakater.com/reload:
+                                          type: string
+                                          pattern: (^|,)\s*portableinfo-ca-bundle\s*(,|$)
+              - if:
+                  allOf:
+                    - anyOf:
+                        - type: object
+                          required:
+                            - spec
+                          properties:
+                            spec:
+                              type: object
+                              required:
+                                - template
+                              properties:
+                                template:
+                                  type: object
+                                  required:
+                                    - metadata
+                                  properties:
+                                    metadata:
+                                      type: object
+                                      required:
+                                        - annotations
+                                      properties:
+                                        annotations:
+                                          type: object
+                                          required:
+                                            - trust.portableinfo.cloud/java
+                                          properties:
+                                            trust.portableinfo.cloud/java:
+                                              const: 'true'
+                        - type: object
+                          required:
+                            - spec
+                          properties:
+                            spec:
+                              type: object
+                              required:
+                                - template
+                              properties:
+                                template:
+                                  type: object
+                                  required:
+                                    - metadata
+                                  properties:
+                                    metadata:
+                                      type: object
+                                      required:
+                                        - labels
+                                      properties:
+                                        labels:
+                                          type: object
+                                          required:
+                                            - trust.portableinfo.cloud/java
+                                          properties:
+                                            trust.portableinfo.cloud/java:
+                                              const: 'true'
+                    - not:
+                        anyOf:
+                          - type: object
+                            required:
+                              - spec
+                            properties:
+                              spec:
+                                type: object
+                                required:
+                                  - template
+                                properties:
+                                  template:
+                                    type: object
+                                    required:
+                                      - metadata
+                                    properties:
+                                      metadata:
+                                        type: object
+                                        required:
+                                          - annotations
+                                        properties:
+                                          annotations:
+                                            type: object
+                                            required:
+                                              - trust.portableinfo.cloud/public
+                                            properties:
+                                              trust.portableinfo.cloud/public:
+                                                const: 'true'
+                          - type: object
+                            required:
+                              - spec
+                            properties:
+                              spec:
+                                type: object
+                                required:
+                                  - template
+                                properties:
+                                  template:
+                                    type: object
+                                    required:
+                                      - metadata
+                                    properties:
+                                      metadata:
+                                        type: object
+                                        required:
+                                          - labels
+                                        properties:
+                                          labels:
+                                            type: object
+                                            required:
+                                              - trust.portableinfo.cloud/public
+                                            properties:
+                                              trust.portableinfo.cloud/public:
+                                                const: 'true'
+                    - not:
+                        anyOf:
+                          - type: object
+                            required:
+                              - spec
+                            properties:
+                              spec:
+                                type: object
+                                required:
+                                  - template
+                                properties:
+                                  template:
+                                    type: object
+                                    required:
+                                      - metadata
+                                    properties:
+                                      metadata:
+                                        type: object
+                                        required:
+                                          - annotations
+                                        properties:
+                                          annotations:
+                                            type: object
+                                            required:
+                                              - trust.portableinfo.cloud/inject
+                                            properties:
+                                              trust.portableinfo.cloud/inject:
+                                                const: 'false'
+                          - type: object
+                            required:
+                              - spec
+                            properties:
+                              spec:
+                                type: object
+                                required:
+                                  - template
+                                properties:
+                                  template:
+                                    type: object
+                                    required:
+                                      - metadata
+                                    properties:
+                                      metadata:
+                                        type: object
+                                        required:
+                                          - labels
+                                        properties:
+                                          labels:
+                                            type: object
+                                            required:
+                                              - trust.portableinfo.cloud/inject
+                                            properties:
+                                              trust.portableinfo.cloud/inject:
+                                                const: 'false'
+                    - not:
+                        type: object
+                        required:
+                          - metadata
+                        properties:
+                          metadata:
+                            type: object
+                            required:
+                              - annotations
+                            properties:
+                              annotations:
+                                type: object
+                                required:
+                                  - trust.portableinfo.cloud/reload
+                                properties:
+                                  trust.portableinfo.cloud/reload:
+                                    const: 'false'
+                then:
+                  anyOf:
+                    - type: object
+                      required:
+                        - metadata
+                      properties:
+                        metadata:
+                          type: object
+                          required:
+                            - annotations
+                          properties:
+                            annotations:
+                              type: object
+                              required:
+                                - configmap.reloader.stakater.com/reload
+                              properties:
+                                configmap.reloader.stakater.com/reload:
+                                  type: string
+                                  pattern: (^|,)\s*portableinfo-internal-ca-bundle\s*(,|$)
+                    - type: object
+                      required:
+                        - spec
+                      properties:
+                        spec:
+                          type: object
+                          required:
+                            - template
+                          properties:
+                            template:
+                              type: object
+                              required:
+                                - metadata
+                              properties:
+                                metadata:
+                                  type: object
+                                  required:
+                                    - annotations
+                                  properties:
+                                    annotations:
+                                      type: object
+                                      required:
+                                        - configmap.reloader.stakater.com/reload
+                                      properties:
+                                        configmap.reloader.stakater.com/reload:
+                                          type: string
+                                          pattern: (^|,)\s*portableinfo-internal-ca-bundle\s*(,|$)
       exemptions:
+        # Images the Talos and Omni machine config sets, without a digest (same list as require-image-digest)
+        - controllerNames:
+            - kube-apiserver
+            - kube-controller-manager
+            - kube-scheduler
+            - coredns
+            - omni-kube-service-exposer
+          rules:
+            - imageDigest
+        # Cilium policies in these namespaces may allow world egress: claude-vm has its own egress gateway, homeserver-vm has no fixed host list
+        - namespace: claude-vm
+          rules:
+            - worldEgressNetworkPolicy
+        - namespace: homeserver-vm
+          rules:
+            - worldEgressNetworkPolicy
+        # The cdi namespace label comes from a kustomize patch in k8s/infra/kubevirt, which the audit does not apply
+        - controllerNames:
+            - cdi
+          rules:
+            - namespacePsaLabel
+        # Namespaces Kubernetes and Flux create themselves
+        - controllerNames:
+            - default
+            - kube-system
+            - kube-public
+            - kube-node-lease
+            - flux-system
+          rules:
+            - namespacePsaLabel
         # the node plugin runs lvm against the host's /dev and mounts into the kubelet directory; the controller's sidecars run as root
         - namespace: openebs-system
           controllerNames:
@@ -185,8 +826,8 @@ spec:
             - spegel
           rules:
             - hostPathSet
-        # ARC runner scale sets (own namespace): the runner and the dind sidecar are privileged by design; the e2e runner calls
-        # sudo (setuid) for update-ca-certificates, so it keeps privilege escalation and default capabilities
+        # ARC runner scale sets (own namespace): the runner and the dind sidecar are privileged by design; the e2e runner keeps
+        # privilege escalation and default capabilities so workflows can use sudo
         - namespace: arc-runners-system
           controllerNames:
             - arc-ubuntu

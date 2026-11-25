@@ -28,7 +28,13 @@ spec:
       reloadOnCreate: true # the optional API key Secrets are created by a CronJob after the pods start
       # not env vars: STAKATER_<NAME>_SECRET trips Polaris' sensitiveContainerEnvVar
       reloadStrategy: annotations
+      # the alert ReloaderReloadFailed needs the metrics; prometheus-scrape opens port 9090 to Prometheus (CiliumClusterwideNetworkPolicy)
+      podMonitor:
+        enabled: true
+        interval: 30s
       deployment:
+        labels:
+          prometheus-scrape: "true"
         resources:
           limits:
             memory: 512Mi

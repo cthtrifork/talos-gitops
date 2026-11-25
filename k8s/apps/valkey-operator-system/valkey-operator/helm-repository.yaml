@@ -1,0 +1,12 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: valkey-operator
+  namespace: valkey-operator-system
+spec:
+  interval: 12h
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/valkey-io/valkey-helm/valkey-operator
+  ref:
+    tag: "0.9.0"
+    digest: sha256:31dd742746d87835ad11be4022e7fe79e479b4a2e45bbee3ea11479a28237aa0

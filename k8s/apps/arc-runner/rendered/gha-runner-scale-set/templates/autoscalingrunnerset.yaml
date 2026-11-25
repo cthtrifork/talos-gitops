@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 0cd41db27270b3b88f48778ba3d56a2255d43898e8f90db6b85f2bd37620ecb
+    actions.github.com/values-hash: 411a3a359ee97a33e2aa5101b4c7c1048466b62c966ea93559387e2f1c7318b
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -33,6 +33,8 @@ spec:
     metadata:
       labels:
         prometheus-scrape: "true"
+      annotations:
+        trust.portableinfo.cloud/public: "true"
     spec:
       containers:
         - livenessProbe:
@@ -74,6 +76,9 @@ spec:
       kubernetes.io/egress-bandwidth: 300M
       kubernetes.io/ingress-bandwidth: 300M
   template:
+    metadata:
+      annotations:
+        trust.portableinfo.cloud/public: "true"
     spec:
       affinity:
         podAffinity:
@@ -88,6 +93,7 @@ spec:
         - name: github-auth
       securityContext:
         fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       restartPolicy: Never
@@ -178,7 +184,7 @@ spec:
           env:
             - name: DOCKER_GROUP_GID
               value: "123"
-          image: mirror.gcr.io/library/docker:29.10.0-dind@sha256:4bbc7223f81db790097c6dea42fb93e05b8fead4f0431fbe6ccaba6e8473201c
+          image: mirror.gcr.io/library/docker:29.10.1-dind@sha256:fbbc96e0af32cdc190aff92ba97a1281a115351a723afe21af78879cc55126b0
           imagePullPolicy: IfNotPresent
           name: dind
           resources:
@@ -239,8 +245,6 @@ spec:
               value: "true"
             - name: ACTIONS_RESULTS_URL
               value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
-            - name: RUNNER_UPDATE_CA_CERTS
-              value: "1"
             - name: FILESERVER_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -250,9 +254,6 @@ spec:
             - name: FILESERVER_URL
               value: http://fileserver-upload.fileserver-system.svc:8082
           volumeMounts:
-            - mountPath: /usr/local/share/ca-certificates/private-ca.crt
-              name: ca-certs
-              subPath: ca.crt
             - mountPath: /var/lib/containers/storage
               name: container-storage-rootful
             - mountPath: /home/runner/_work
@@ -281,12 +282,6 @@ spec:
             - mountPath: /host-dev
               name: host-dev
       volumes:
-        - configMap:
-            items:
-              - key: ca-bundle.crt
-                path: ca.crt
-            name: portableinfo-ca-bundle
-          name: ca-certs
         - hostPath:
             path: /run/udev
             type: Directory

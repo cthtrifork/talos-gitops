@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    configmap.reloader.stakater.com/reload: trivy-operator,trivy-operator-config,trivy-operator-trivy-config,portableinfo-ca-bundle
+    configmap.reloader.stakater.com/reload: trivy-operator,trivy-operator-config,trivy-operator-trivy-config,portableinfo-internal-ca-bundle
   labels:
     app.kubernetes.io/instance: trivy-operator
     app.kubernetes.io/managed-by: Helm
@@ -84,10 +84,6 @@ spec:
           privileged: false
           readOnlyRootFilesystem: true
         volumeMounts:
-        - mountPath: /etc/ssl/certs/zot-ca.crt
-          name: zot-ca
-          readOnly: true
-          subPath: ca-bundle.crt
         - mountPath: /tmp
           name: cache-policies
           readOnly: false
@@ -97,9 +93,6 @@ spec:
           type: RuntimeDefault
       serviceAccountName: trivy-operator
       volumes:
-      - configMap:
-          name: portableinfo-ca-bundle
-        name: zot-ca
       - emptyDir:
           sizeLimit: 100Mi
         name: cache-policies

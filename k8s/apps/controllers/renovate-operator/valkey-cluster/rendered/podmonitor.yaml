@@ -1,0 +1,25 @@
+---
+# Source: valkey-resources/templates/podmonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: renovate
+  namespace: renovate-system
+  labels:
+    helm.sh/chart: valkey-resources-0.6.0
+    app.kubernetes.io/name: valkey-resources
+    app.kubernetes.io/instance: valkey-resources
+    app.kubernetes.io/version: "v0.9.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: podmonitor
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - renovate-system
+  selector:
+    matchLabels:
+      # Operator labels ValkeyNode pods with valkey.io/cluster=<ValkeyCluster name>
+      valkey.io/cluster: "renovate"
+  podMetricsEndpoints:
+    - port: metrics

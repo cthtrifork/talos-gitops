@@ -1,0 +1,21 @@
+---
+# Source: valkey-operator/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: valkey-operator-manager
+  labels:
+    helm.sh/chart: valkey-operator-0.9.0
+    app.kubernetes.io/name: valkey-operator
+    app.kubernetes.io/instance: valkey-operator
+    app.kubernetes.io/version: "v0.9.0"
+    app.kubernetes.io/managed-by: Helm
+  namespace: valkey-operator-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: valkey-operator-manager
+subjects:
+  - kind: ServiceAccount
+    name: valkey-operator
+    namespace: valkey-operator-system

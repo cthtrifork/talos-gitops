@@ -34,6 +34,10 @@ spec:
     githubConfigSecret: github-auth
     containerMode: {}
     template:
+      metadata:
+        annotations:
+          # Internal + public CAs (jobs reach the allowlisted internet).
+          trust.portableinfo.cloud/public: "true"
       spec:
         # Same node as the cache server (node-local volume); cross-node transfer is too slow.
         affinity:
@@ -75,7 +79,7 @@ spec:
                   - ALL
           - name: dind
             # renovate: datasource=docker depName=mirror.gcr.io/library/docker versioning=docker
-            image: mirror.gcr.io/library/docker:29.10.0-dind@sha256:4bbc7223f81db790097c6dea42fb93e05b8fead4f0431fbe6ccaba6e8473201c
+            image: mirror.gcr.io/library/docker:29.10.1-dind@sha256:fbbc96e0af32cdc190aff92ba97a1281a115351a723afe21af78879cc55126b0
             imagePullPolicy: IfNotPresent
             args:
               - dockerd
@@ -137,13 +141,7 @@ spec:
               # The trailing slash is required.
               - name: ACTIONS_RESULTS_URL
                 value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
-
-              - name: RUNNER_UPDATE_CA_CERTS
-                value: "1"
             volumeMounts:
-              - name: ca-certs
-                mountPath: /usr/local/share/ca-certificates/private-ca.crt
-                subPath: ca.crt
               - name: work
                 mountPath: /home/runner/_work
               - name: dind-sock
@@ -156,13 +154,6 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         volumes:
-          - name: ca-certs
-
-            configMap:
-              name: portableinfo-ca-bundle
-              items:
-                - key: ca-bundle.crt
-                  path: ca.crt
           - name: work
             ephemeral:
               volumeClaimTemplate:
@@ -192,6 +183,9 @@ spec:
       metadata:
         labels:
           prometheus-scrape: "true"
+        annotations:
+          # talks to github.com
+          trust.portableinfo.cloud/public: "true"
       spec:
         securityContext:
           runAsNonRoot: true

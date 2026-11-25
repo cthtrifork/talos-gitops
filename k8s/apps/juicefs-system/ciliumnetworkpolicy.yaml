@@ -1,0 +1,91 @@
+# Cilium rather than NetworkPolicy: Garage and the CNPG instance manager need the Kubernetes API, which plain
+# NetworkPolicy cannot allow under Cilium's kube-proxy replacement. Clients (the JuiceFS mount pods) are added with the CSI driver.
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: garage
+  namespace: juicefs-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: garage
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+            - port: "3901"
+              protocol: TCP
+            - port: "3903"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - kube-apiserver
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+            - port: "3901"
+              protocol: TCP
+            - port: "3903"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: juicefs-meta
+  namespace: juicefs-system
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: juicefs-meta
+  ingress:
+    # replication and the instance manager between the instances
+    - fromEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: juicefs-meta
+    # CNPG operator: status 8000, 5432
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+            - port: "8000"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - kube-apiserver
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: juicefs-meta
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+            - port: "8000"
+              protocol: TCP

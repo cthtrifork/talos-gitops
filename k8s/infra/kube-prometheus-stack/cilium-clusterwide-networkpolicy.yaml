@@ -36,6 +36,9 @@ spec:
               protocol: TCP
             - port: "9104"
               protocol: TCP
+            # Valkey node exporter
+            - port: "9121"
+              protocol: TCP
             - port: "9187"
               protocol: TCP
             - port: "9618"

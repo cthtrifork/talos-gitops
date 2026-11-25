@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/source.toolkit.fluxcd.io/ocirepository_v1beta2.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: garage
+  namespace: juicefs-system
+spec:
+  interval: 12h
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/datahub-local/garage/garage
+  ref:
+    tag: "1.0.0"
+    digest: sha256:b306499f6b9562843ecb85a07781ba7d1e5099a0c683ba138b4a7fba3ae04c67

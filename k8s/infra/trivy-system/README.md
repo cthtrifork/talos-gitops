@@ -29,11 +29,12 @@ A change takes effect for the next scan job; reports are regenerated after `scan
 
 ## Zot CA trust
 
-zot's certificate comes from `certificate-cluster-issuer`. trust-manager's `portableinfo-ca-bundle` Bundle
-(`k8s/infra/post/trust-manager`) puts the root CA in a ConfigMap of that name (key `ca-bundle.crt`) in every namespace; the
-trivy server, the scan jobs and the operator mount it as `/etc/ssl/certs/zot-ca.crt` (Go reads extra files there), so no
-`dbRepositoryInsecure` is needed. Reloader restarts the trivy server and the operator when the bundle changes (they read
-it at start); a scan job reads it when it starts.
+zot's certificate comes from `certificate-cluster-issuer`. trust-manager's `portableinfo-internal-ca-bundle` Bundle
+(`k8s/infra/post/trust-manager`) puts the root CA in a ConfigMap of that name in every namespace, and the Kyverno policy
+`inject-trust-bundle` mounts it as `/etc/ssl/certs/ca-certificates.crt` in the trivy server, the scan jobs and the operator, so no
+`dbRepositoryInsecure` is needed (`docs/security.md`, "Trust bundle injection"). They only talk to zot and each other, so
+the internal-only bundle (the default) is enough, so they carry no annotation.
+Reloader restarts the trivy server and the operator when the bundle changes (they read it at start); a scan job reads it when it starts.
 
 ## Network policies
 
