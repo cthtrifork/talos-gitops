@@ -42,6 +42,15 @@ spec:
     dashboard:
       enabled: false
     controller:
+      # The driver itself reads the metadata engine (format, provisioning), so it needs the client certificate too, not only the mount pods
+      extraVolumes:
+        - name: meta-client
+          secret:
+            secretName: juicefs-meta-client
+      extraVolumeMounts:
+        - name: meta-client
+          mountPath: /etc/juicefs-pg
+          readOnly: true
       resources:
         requests:
           cpu: 50m
@@ -49,6 +58,14 @@ spec:
         limits:
           memory: 1Gi
     node:
+      extraVolumes:
+        - name: meta-client
+          secret:
+            secretName: juicefs-meta-client
+      extraVolumeMounts:
+        - name: meta-client
+          mountPath: /etc/juicefs-pg
+          readOnly: true
       resources:
         requests:
           cpu: 50m
