@@ -29,6 +29,10 @@ spec:
   values:
     podAnnotations:
       reloader.stakater.com/auto: "true"
+      # auto only sees volumes in the pod spec, not the bundle that Kyverno injects
+      configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
+      # syncs from the public registries, so it needs the public CAs next to the internal root CA
+      trust.portableinfo.cloud/public: "true"
     podLabels:
       prometheus-scrape: "true"
     mountConfig: true
@@ -105,7 +109,8 @@ spec:
         mountPath: /etc/zot/sync
     extraVolumes:
       - name: tmp
-        emptyDir: {}
+        emptyDir:
+          sizeLimit: 1Gi
       - name: zot-certs
         secret:
           secretName: zot-tls-cert

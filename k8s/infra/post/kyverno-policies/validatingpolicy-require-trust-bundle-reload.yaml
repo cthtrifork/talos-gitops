@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/policies.kyverno.io/validatingpolicy_v1.json
+# A pod template with trust.portableinfo.cloud/public or /java gets the bundle through a subPath mount, which never follows the
+# ConfigMap, and Reloader cannot see an injected volume. So the workload must name the bundle itself (docs/security.md, "Trust bundle
+# injection"). Warn only: the alert AdmissionPolicyFailed (kube-prometheus-stack) reports it. Workloads that restart by hand carry
+# trust.portableinfo.cloud/reload: "false".
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-trust-bundle-reload
+spec:
+  validationActions:
+    - Audit
+    - Warn
+  failurePolicy: Ignore
+  evaluation:
+    background:
+      enabled: false
+  webhookConfiguration:
+    timeoutSeconds: 10
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - apps
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - deployments
+          - statefulsets
+          - daemonsets
+  matchConditions:
+    # same switch as inject-trust-bundle
+    - name: cluster-switch
+      expression: >-
+        "${TRUST_INJECT:=false}" == "true"
+  variables:
+    - name: public
+      expression: >-
+        object.spec.?template.?metadata.?annotations["trust.portableinfo.cloud/public"].orValue(object.spec.?template.?metadata.?labels["trust.portableinfo.cloud/public"].orValue("")) == "true"
+    - name: java
+      expression: >-
+        object.spec.?template.?metadata.?annotations["trust.portableinfo.cloud/java"].orValue(object.spec.?template.?metadata.?labels["trust.portableinfo.cloud/java"].orValue("")) == "true"
+    - name: optedOut
+      expression: >-
+        object.spec.?template.?metadata.?annotations["trust.portableinfo.cloud/inject"].orValue(object.spec.?template.?metadata.?labels["trust.portableinfo.cloud/inject"].orValue("")) == "false"
+    - name: restartsByHand
+      expression: >-
+        object.metadata.?annotations["trust.portableinfo.cloud/reload"].orValue("") == "false"
+    - name: bundle
+      expression: >-
+        variables.public ? "portableinfo-ca-bundle" : "portableinfo-internal-ca-bundle"
+    # the annotation takes a comma-separated list, on the workload or on its pod template
+    - name: reloadNames
+      expression: >-
+        (object.metadata.?annotations["configmap.reloader.stakater.com/reload"].orValue("") + "," +
+        object.spec.?template.?metadata.?annotations["configmap.reloader.stakater.com/reload"].orValue("")).split(",").map(n, n.trim())
+  validations:
+    - expression: >-
+        !(variables.public || variables.java) || variables.optedOut || variables.restartsByHand ||
+        variables.reloadNames.exists(n, n == variables.bundle)
+      messageExpression: >-
+        "pod template is injected with " + variables.bundle + " but the workload does not name it in configmap.reloader.stakater.com/reload, so a bundle change reaches its pods only when they restart; add the annotation, or trust.portableinfo.cloud/reload: \"false\" if it must be restarted by hand"

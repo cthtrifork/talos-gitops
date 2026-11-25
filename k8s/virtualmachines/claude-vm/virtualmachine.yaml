@@ -81,6 +81,10 @@ spec:
   dataVolumeTemplates:
     - metadata:
         name: claude-vm-rootdisk
+        labels:
+          # CDI copies DataVolume labels to the PVC and the PVC's labels to the importer pod (it copies only a fixed list of annotations),
+          # so this is how the importer gets the public CA bundle for ghcr.io (policy inject-trust-bundle).
+          trust.portableinfo.cloud/public: "true"
       spec:
         source:
           registry:

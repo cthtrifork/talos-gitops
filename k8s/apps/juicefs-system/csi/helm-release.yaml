@@ -1,0 +1,150 @@
+---
+# The JuiceFS CSI driver in mount pod mode: one privileged FUSE mount pod per node and volume, in this namespace. Every image
+# is pinned by digest (the require-image-digest policy also applies to the mount pods the driver creates).
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: juicefs-csi-driver
+  namespace: juicefs-system
+spec:
+  interval: 30m
+  releaseName: juicefs-csi-driver
+  # a spec change also starts a release that ran out of retries again
+  timeout: 10m
+  chartRef:
+    kind: OCIRepository
+    name: juicefs-csi-driver
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    image:
+      repository: mirror.gcr.io/juicedata/juicefs-csi-driver
+      # renovate: datasource=docker depName=mirror.gcr.io/juicedata/juicefs-csi-driver versioning=docker
+      tag: v0.34.0@sha256:1b5e366728a081448b6d03f73ae88e4ee2fde0f343c6f46c1fe98470f6ae9976
+    sidecars:
+      livenessProbeImage:
+        repository: registry.k8s.io/sig-storage/livenessprobe
+        # renovate: datasource=docker depName=registry.k8s.io/sig-storage/livenessprobe versioning=docker
+        tag: v2.20.1@sha256:d06ac4f9242654f278d9c8a4e343b0516542bfc614218d469959c6428765e97f
+      nodeDriverRegistrarImage:
+        repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
+        # renovate: datasource=docker depName=registry.k8s.io/sig-storage/csi-node-driver-registrar versioning=docker
+        tag: v2.18.1@sha256:f847fb218cdf1d0f0fa79772ca6f46e11d25635eb49c06efb5dccd00b5245ef5
+      csiResizerImage:
+        repository: registry.k8s.io/sig-storage/csi-resizer
+        # renovate: datasource=docker depName=registry.k8s.io/sig-storage/csi-resizer versioning=docker
+        tag: v2.3.1@sha256:d5b040c2f6ffb25127169feeb845aaf1fa3279e510d71fbebe386b5becc625cc
+    # Talos has a read-only /etc: without this every mount pod asks for a host path volume on /etc/updatedb.conf and fails to start
+    immutable: true
+    # The web UI can read secret values and is granted write access to secrets cluster-wide; Prometheus covers monitoring
+    dashboard:
+      enabled: false
+    controller:
+      # The driver itself reads the metadata engine (format, provisioning), so it needs the client certificate too, not only the mount pods
+      extraVolumes:
+        - name: meta-client
+          secret:
+            secretName: juicefs-meta-client
+      extraVolumeMounts:
+        - name: meta-client
+          mountPath: /etc/juicefs-pg
+          readOnly: true
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          memory: 1Gi
+    node:
+      extraVolumes:
+        - name: meta-client
+          secret:
+            secretName: juicefs-meta-client
+      extraVolumeMounts:
+        - name: meta-client
+          mountPath: /etc/juicefs-pg
+          readOnly: true
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          memory: 1Gi
+    # The driver's default is the moving ce-nightly tag
+    defaultMountImage:
+      ce: mirror.gcr.io/juicedata/mount:ce-v1.4.2@sha256:4177c77bc873898127debf45786515b78c79bee18fed378d276fb221baa85640
+    globalConfig:
+      enabled: true
+      manageByHelm: true
+      mountPodPatch:
+        # The client cache lives in /var/jfsCache on the node (shared with the kubelet and images): the default is 100 GiB
+        # and 90% of the disk. The shared caches peak at 4 GiB.
+        - mountOptions:
+            - cache-size=5120
+            - free-space-ratio=0.2
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+  # The chart sets no resources on the sidecars
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: DaemonSet
+              name: juicefs-csi-node
+            patch: |
+              apiVersion: apps/v1
+              kind: DaemonSet
+              metadata:
+                name: juicefs-csi-node
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: node-driver-registrar
+                        resources:
+                          requests:
+                            cpu: 10m
+                            memory: 32Mi
+                          limits:
+                            memory: 64Mi
+                      - name: liveness-probe
+                        resources:
+                          requests:
+                            cpu: 10m
+                            memory: 32Mi
+                          limits:
+                            memory: 64Mi
+          - target:
+              kind: StatefulSet
+              name: juicefs-csi-controller
+            patch: |
+              apiVersion: apps/v1
+              kind: StatefulSet
+              metadata:
+                name: juicefs-csi-controller
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: csi-resizer
+                        resources:
+                          requests:
+                            cpu: 10m
+                            memory: 32Mi
+                          limits:
+                            memory: 64Mi
+                      - name: liveness-probe
+                        resources:
+                          requests:
+                            cpu: 10m
+                            memory: 32Mi
+                          limits:
+                            memory: 64Mi

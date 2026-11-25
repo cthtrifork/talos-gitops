@@ -44,6 +44,10 @@ spec:
     githubConfigSecret: github-auth
     containerMode: {} # no dind, no kubernetes mode
     template:
+      metadata:
+        annotations:
+          # Internal + public CAs (jobs reach the allowlisted internet).
+          trust.portableinfo.cloud/public: "true"
       spec:
         # Same node as the cache server (node-local volume); cross-node transfer is too slow.
         affinity:
@@ -56,14 +60,30 @@ spec:
                   matchLabels:
                     app.kubernetes.io/name: github-actions-cache-server
         initContainers:
-          # fsGroup makes /tmp root:1001 2775; apt (user _apt) needs it world-writable
-          - name: tmp-perms
+          # Initialize volume permissions without recursively modifying
+          # Podman/Buildah image-layer ownership or permissions.
+          - name: volume-perms
             image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
             imagePullPolicy: IfNotPresent
             command:
-              - chmod
-              - "1777"
-              - /tmp
+              - /bin/sh
+              - -ec
+              - |
+                chown 0:0 /tmp /var/tmp /volumes/rootful
+                chmod 1777 /tmp /var/tmp
+                chmod 0700 /volumes/rootful
+
+                chown 1001:1001 \
+                  /volumes/rootless \
+                  /volumes/work \
+                  /volumes/dnf-cache \
+                  /volumes/cross-run-cache \
+                  /volumes/xdg-runtime
+
+                chmod 0700 /volumes/rootless /volumes/xdg-runtime
+                chmod 0755 /volumes/work \
+                  /volumes/dnf-cache \
+                  /volumes/cross-run-cache
             securityContext:
               runAsUser: 0
               runAsGroup: 0
@@ -72,6 +92,10 @@ spec:
               capabilities:
                 drop:
                   - ALL
+                add:
+                  - CHOWN
+                  - FOWNER
+                  - DAC_OVERRIDE
             resources:
               limits:
                 memory: 32Mi
@@ -81,6 +105,20 @@ spec:
             volumeMounts:
               - name: tmp
                 mountPath: /tmp
+              - name: var-tmp
+                mountPath: /var/tmp
+              - name: container-storage-rootful
+                mountPath: /volumes/rootful
+              - name: container-rootless-storage
+                mountPath: /volumes/rootless
+              - name: work
+                mountPath: /volumes/work
+              - name: dnf-cache
+                mountPath: /volumes/dnf-cache
+              - name: cross-run-cache
+                mountPath: /volumes/cross-run-cache
+              - name: xdg-runtime
+                mountPath: /volumes/xdg-runtime
         containers:
           - name: runner
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
@@ -122,8 +160,6 @@ spec:
               # Caches saved by GitHub-hosted jobs are not visible here. The trailing slash is required.
               - name: ACTIONS_RESULTS_URL
                 value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
-              - name: RUNNER_UPDATE_CA_CERTS
-                value: "1"
               # optional: the runner starts before the first sync.
               - name: FILESERVER_TOKEN
                 valueFrom:
@@ -135,9 +171,6 @@ spec:
                 value: http://fileserver-upload.fileserver-system.svc:8082
 
             volumeMounts:
-              - name: ca-certs
-                mountPath: /usr/local/share/ca-certificates/private-ca.crt
-                subPath: ca.crt
               - name: container-storage-rootful
                 mountPath: /var/lib/containers/storage
               - name: work
@@ -172,16 +205,12 @@ spec:
         imagePullSecrets:
           - name: github-auth
         securityContext:
-          fsGroup: 1001
+          #fsGroup: 1001
+          # Do not set fsGroup. Recursive volume permission changes can
+          # corrupt POSIX metadata in Podman/Buildah image storage.
           seccompProfile:
             type: RuntimeDefault
         volumes:
-          - name: ca-certs
-            configMap:
-              name: portableinfo-ca-bundle
-              items:
-                - key: ca-bundle.crt
-                  path: ca.crt
           - name: registries
             configMap:
               name: podman-registries
@@ -271,6 +300,9 @@ spec:
       metadata:
         labels:
           prometheus-scrape: "true"
+        annotations:
+          # talks to github.com
+          trust.portableinfo.cloud/public: "true"
       spec:
         securityContext:
           runAsNonRoot: true

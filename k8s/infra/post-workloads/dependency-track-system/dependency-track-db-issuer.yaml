@@ -1,0 +1,10 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/issuer_v1.json
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: dependency-track-db-ca
+  namespace: dependency-track-system
+spec:
+  ca:
+    secretName: dependency-track-db-ca

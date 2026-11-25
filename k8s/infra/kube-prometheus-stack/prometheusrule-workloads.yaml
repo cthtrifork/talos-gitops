@@ -43,11 +43,61 @@ spec:
           annotations:
             summary: "{{ $labels.namespace }}/{{ $labels.pod }} container {{ $labels.container }} is waiting with {{ $labels.reason }}"
             description: "kubectl -n {{ $labels.namespace }} describe pod {{ $labels.pod }}"
-        - alert: AdmissionPolicyFailed
-          # an ImageValidatingPolicy result of fail: refused under Deny, admitted with a warning under Warn
-          expr: sum by (policy_name, resource_namespace, resource_kind)(increase(kyverno_image_validating_policy_results_total{result="fail"}[10m])) > 0
+        - alert: AdmissionPolicyDenied
+          # a Kyverno policy in Deny mode rejected a request, by a violation or by failing to evaluate (ImageValidatingPolicy, ValidatingPolicy). A rejected Pod is retried by its ReplicaSet, Job or
+          # StatefulSet, and anything else by Flux every 30m, so a standing rejection keeps the counter moving; the 1h window clears an hour after the fix.
+          expr: sum by (policy_name, resource_namespace, resource_kind)(increase({__name__=~"kyverno_(image_validating|validating)_policy_results_total", policy_validation_mode="Deny", result=~"fail|error"}[1h])) > 0
           labels:
             severity: warning
           annotations:
-            summary: "Policy {{ $labels.policy_name }} failed a {{ $labels.resource_kind }} in {{ $labels.resource_namespace }}"
-            description: "Unsigned or wrongly signed image: kubectl -n {{ $labels.resource_namespace }} get events, and crane manifest on the image's sha256-<digest> referrers tag"
+            summary: "Policy {{ $labels.policy_name }} rejected a {{ $labels.resource_kind }} in {{ $labels.resource_namespace }}"
+            description: "kubectl -n {{ $labels.resource_namespace }} get events --field-selector reason=FailedCreate (a Pod), or the Flux event of the failing apply, names the rule. Image policies: crane manifest on the image's sha256-<digest> referrers tag"
+        - alert: AdmissionPolicyFailed
+          # a Kyverno policy result of fail or error that did not reject anything: Warn or Audit (admitted with a warning) or a MutatingPolicy (admitted
+          # unmutated, failurePolicy Ignore). Same timing as AdmissionPolicyDenied.
+          expr: sum by (policy_name, resource_namespace, resource_kind)(increase({__name__=~"kyverno_(image_validating|validating|mutating)_policy_results_total", policy_validation_mode!="Deny", result=~"fail|error"}[1h])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.resource_namespace }}/{{ $labels.resource_kind }}: policy {{ $labels.policy_name }} failed without rejecting the request"
+            description: "kubectl -n policy-system logs deploy/kyverno-admission-controller; the warning of the failing apply (Flux event, kubectl) names the rule"
+        - alert: PodStuckContainerCreating
+          expr: kube_pod_container_status_waiting_reason{reason="ContainerCreating"} == 1
+          for: 20m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} has been in ContainerCreating for 20m"
+            description: "kubectl -n {{ $labels.namespace }} describe pod {{ $labels.pod }}; a FailedMount event for a ConfigMap or Secret means it does not exist"
+        - alert: ControllerReconcileFailing
+          # nearly every reconcile of a controller-runtime controller fails; a single error is routine (trivy-operator, flux-operator and CDI log them daily)
+          expr: >-
+            sum by (job, controller)(rate(controller_runtime_reconcile_errors_total[15m]))
+            / sum by (job, controller)(rate(controller_runtime_reconcile_total[15m])) > 0.9
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Controller {{ $labels.controller }} ({{ $labels.job }}) fails nearly every reconcile"
+            description: "Check the controller's logs and the status conditions of the resources it manages."
+        - alert: ReloaderReloadFailed
+          expr: increase(reloader_reload_executed_total{success="false"}[30m]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: Reloader failed to restart a workload after a ConfigMap or Secret change
+            description: "kubectl -n reloader-system logs deploy/reloader-reloader. A workload may be running with a stale ConfigMap or Secret."
+    - name: trust-bundle
+      rules:
+        - alert: TrustBundleConfigMapMissing
+          # trust-manager has not (yet) written both bundle ConfigMaps into an active namespace; new pods there wait for them (policy inject-trust-bundle)
+          expr: >-
+            (kube_namespace_status_phase{phase="Active"} == 1)
+            unless on (namespace)
+            (count by (namespace)(kube_configmap_info{configmap=~"portableinfo-(internal-)?ca-bundle"}) == 2)
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Namespace {{ $labels.namespace }} is missing a trust bundle ConfigMap"
+            description: "kubectl get bundles.trust.cert-manager.io; kubectl -n cert-manager-system logs deploy/trust-manager"

@@ -1,0 +1,186 @@
+# Cilium rather than NetworkPolicy: Garage and the CNPG instance manager need the Kubernetes API, which plain
+# NetworkPolicy cannot allow under Cilium's kube-proxy replacement.
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: garage
+  namespace: juicefs-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: garage
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+            - port: "3901"
+              protocol: TCP
+            - port: "3903"
+              protocol: TCP
+    # the mount pods, and the controller that creates the volume directories
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: juicefs-mount
+        - matchLabels:
+            app.kubernetes.io/name: juicefs-csi-driver
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - kube-apiserver
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+            - port: "3901"
+              protocol: TCP
+            - port: "3903"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: juicefs-meta
+  namespace: juicefs-system
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: juicefs-meta
+  ingress:
+    # replication and the instance manager between the instances
+    - fromEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: juicefs-meta
+    # CNPG operator: status 8000, 5432
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+            - port: "8000"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: juicefs-mount
+        - matchLabels:
+            app.kubernetes.io/name: juicefs-csi-driver
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - kube-apiserver
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: juicefs-meta
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+            - port: "8000"
+              protocol: TCP
+---
+# Default deny for the namespace; the policies below and above allow what each pod needs.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: juicefs-system-default-deny
+  namespace: juicefs-system
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+# DNS and the Kubernetes API for every pod: the CSI driver and the mount pods create and watch pods, Garage and PostgreSQL discover peers.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: juicefs-system-allow-dns-apiserver
+  namespace: juicefs-system
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - kube-apiserver
+---
+# The CSI driver (controller and node plugin) and the mount pods. The server side is in the garage and juicefs-meta policies.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: juicefs-csi
+  namespace: juicefs-system
+spec:
+  endpointSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - juicefs-csi-driver
+          - juicefs-mount
+  ingress:
+    # health probes of the kubelet
+    - fromEntities:
+        - host
+        - remote-node
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: juicefs-meta
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    # the node plugin polls the kubelet for pods (ifPollingKubelet)
+    - toEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "10250"
+              protocol: TCP

@@ -1,0 +1,87 @@
+---
+# Source: valkey-resources/templates/valkeycluster.yaml
+apiVersion: valkey.io/v1alpha1
+kind: ValkeyCluster
+metadata:
+  name: renovate
+  namespace: renovate-system
+  labels:
+    helm.sh/chart: valkey-resources-0.6.0
+    app.kubernetes.io/name: valkey-resources
+    app.kubernetes.io/instance: valkey-resources
+    app.kubernetes.io/version: "v0.9.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    polaris.fairwinds.com/cpuRequestsMissing-exempt: "true"
+    polaris.fairwinds.com/livenessProbeMissing-exempt: "true"
+    polaris.fairwinds.com/memoryLimitsMissing-exempt: "true"
+    polaris.fairwinds.com/memoryRequestsMissing-exempt: "true"
+    polaris.fairwinds.com/readinessProbeMissing-exempt: "true"
+    polaris.fairwinds.com/tagNotSpecified-exempt: "true"
+spec:
+  acl:
+    users:
+      - name: renovate
+        password:
+          secret:
+            keys:
+              - password
+            name: renovate-valkey-credentials
+          type: Secret
+        permissions: ~* +@connection +get +set +del +cluster|slots +cluster|shards
+  config:
+    tls-auto-reload-interval: "60"
+  containers:
+    - name: server
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+        runAsGroup: 56849
+        runAsUser: 56849
+  exporter:
+    enabled: true
+    image: mirror.gcr.io/oliver006/redis_exporter:v1.99.0@sha256:2c0cdc2452096b5af460d870e72fa6ee2ebb971780f443a616885685d2c0ebad
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      readOnlyRootFilesystem: true
+      runAsGroup: 56850
+      runAsUser: 56850
+  image: mirror.gcr.io/valkey/valkey:9.2.0@sha256:1c2b25b09f354c66fe994733acdf12fcfd4bdf6f3bd92b88a93a70378d884056
+  networking:
+    discovery:
+      preferredEndpointType: Hostname
+    tls:
+      certificates:
+        server:
+          secretName: renovate-valkey-tls
+      clientAuth:
+        mode: Disabled
+  podMetadata:
+    labels:
+      prometheus-scrape: "true"
+  podSecurityContext:
+    fsGroup: 56849
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  replicasPerShard: 1
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  scheduling:
+    node:
+      spread:
+        primaries:
+          mode: Required
+        shard:
+          mode: Required
+  shards: 3

@@ -64,7 +64,7 @@ spec:
               protocol: TCP
     - toEndpoints:
         - matchLabels:
-            app.kubernetes.io/name: valkey
+            valkey.io/cluster: renovate
       toPorts:
         - ports:
             - port: "6379"
@@ -122,14 +122,7 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
-    # Valkey (redisUrl) and Garage (repository cache over S3)
-    - toEndpoints:
-        - matchLabels:
-            app.kubernetes.io/name: valkey
-      toPorts:
-        - ports:
-            - port: "6379"
-              protocol: TCP
+    # Garage repository cache over S3
     - toEndpoints:
         - matchLabels:
             app.kubernetes.io/name: garage
@@ -138,25 +131,46 @@ spec:
             - port: "3900"
               protocol: TCP
 ---
-# Valkey: only the operator and the job pods
+# Cluster clients follow redirects to individual pods. Keep the cluster bus peer-only.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: valkey
+  name: renovate-valkey-cluster
   namespace: renovate-system
 spec:
   endpointSelector:
     matchLabels:
-      app.kubernetes.io/name: valkey
+      valkey.io/cluster: renovate
   ingress:
     - fromEndpoints:
         - matchLabels:
             app: renovate-operator
         - matchLabels:
-            renovate-job: "true"
+            k8s:io.kubernetes.pod.namespace: valkey-operator-system
+            app.kubernetes.io/name: valkey-operator
+            app.kubernetes.io/instance: valkey-operator
       toPorts:
         - ports:
             - port: "6379"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            valkey.io/cluster: renovate
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+            - port: "16379"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            valkey.io/cluster: renovate
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+            - port: "16379"
               protocol: TCP
 ---
 # Garage: S3 only from job pods; RPC (3901) and admin (3903) only between Garage pods, including the configure Job.

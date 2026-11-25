@@ -1,0 +1,12 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: valkey-resources
+  namespace: renovate-system
+spec:
+  interval: 12h
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/valkey-io/valkey-helm/valkey-resources
+  ref:
+    tag: "0.6.0"
+    digest: sha256:321249fbfcad83aafee1cea0039dbf8790f961a6a372d386c608b063e76aa15b

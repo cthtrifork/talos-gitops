@@ -12,6 +12,7 @@ metadata:
     app.kubernetes.io/version: "0.24.0"
     app.kubernetes.io/managed-by: Helm
   annotations:
+    configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
     reloader.stakater.com/auto: "true"
 spec:
   replicas: 0
@@ -26,6 +27,8 @@ spec:
       labels:
         app.kubernetes.io/name: external-dns
         app.kubernetes.io/instance: external-dns
+      annotations:
+        trust.portableinfo.cloud/public: "true"
     spec:
       automountServiceAccountToken: true
       serviceAccountName: external-dns

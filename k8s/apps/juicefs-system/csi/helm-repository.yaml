@@ -1,0 +1,15 @@
+---
+# JuiceFS publishes the chart only to a Helm repository: it is mirrored to ghcr.io/cthtrifork/talos-gitops/charts by
+# .github/workflows/helm-chart-sync.yaml and pulled through zot.
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/source.toolkit.fluxcd.io/ocirepository_v1.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: juicefs-csi-driver
+  namespace: juicefs-system
+spec:
+  interval: 12h
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/cthtrifork/talos-gitops/charts/juicefs-csi-driver
+  ref:
+    tag: 0.34.0
+    digest: sha256:6cfb89cfb4e76863270372e09c62763d5e8d4f9e557fb9146bed36edffdecfc1

@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/postgresql.cnpg.io/cluster_v1.json
+# JuiceFS metadata: three instances and one synchronous standby, so a failover loses no committed transaction.
+# No backups: the filesystem only holds CI caches, losing it costs a cold run.
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: juicefs-meta
+  namespace: juicefs-system
+spec:
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: postgresql-minimal-trixie
+    major: 18
+  instances: 3
+  enableSuperuserAccess: false
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+  # The shared caches hold about 1.4k files, roughly 1 MiB of metadata; the rest is headroom for WAL
+  storage:
+    size: 2Gi
+    storageClass: lvm-fast
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  managed:
+    roles:
+      # the database owner: certificate only, the password is removed
+      - name: juicefs
+        ensure: present
+        login: true
+        disablePassword: true
+  certificates:
+    serverTLSSecret: juicefs-meta-server
+    serverCASecret: juicefs-meta-ca
+    clientCASecret: juicefs-meta-ca
+    replicationTLSSecret: juicefs-meta-replication
+  postgresql:
+    pg_hba:
+      # Before CNPG's default "host all all all scram-sha-256" rule; cert auth matches CN against the role name.
+      - hostssl juicefs juicefs all cert
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: preferred
+  bootstrap:
+    initdb:
+      database: juicefs
+      owner: juicefs
+      encoding: UTF8
+  inheritedMetadata:
+    labels:
+      prometheus-scrape: "true"
+  monitoring:
+    enablePodMonitor: true

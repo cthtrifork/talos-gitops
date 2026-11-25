@@ -29,6 +29,7 @@ jobs:
           - load-fairwinds-charts.yaml
           - load-redpanda-charts.yaml
           - load-kubernetes-metrics-server.yaml
+          - load-juicefs-charts.yaml
 
     steps:
       - name: Checkout

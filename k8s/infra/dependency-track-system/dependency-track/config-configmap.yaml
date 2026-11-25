@@ -10,12 +10,17 @@ data:
       {
         "name": "sbom-uploader",
         "secret": "dependency-track-api-key",
-        "permissions": ["BOM_UPLOAD", "PROJECT_CREATION_UPLOAD"]
+        "permissions": ["BOM_UPLOAD", "PROJECT_CREATION_UPLOAD", "VIEW_PORTFOLIO", "PORTFOLIO_MANAGEMENT_CREATE"]
       },
       {
         "name": "vex-exporter",
         "secret": "dependency-track-vex-api-key",
         "permissions": ["VIEW_PORTFOLIO", "VULNERABILITY_ANALYSIS_READ"]
+      },
+      {
+        "name": "project-retirer",
+        "secret": "dependency-track-retire-api-key",
+        "permissions": ["VIEW_PORTFOLIO", "PORTFOLIO_MANAGEMENT_UPDATE"]
       },
       {
         "name": "claude-triage",
@@ -30,6 +35,16 @@ data:
         "groupName": "general",
         "propertyName": "base.url",
         "propertyValue": "https://dtrack.portableinfo.cloud"
+      },
+      {
+        "groupName": "maintenance",
+        "propertyName": "projects.retention.type",
+        "propertyValue": "AGE"
+      },
+      {
+        "groupName": "maintenance",
+        "propertyName": "projects.retention.days",
+        "propertyValue": "30"
       }
     ]
   extensions.json: |

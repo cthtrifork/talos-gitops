@@ -19,6 +19,9 @@ spec:
     type: Recreate
   template:
     metadata:
+      annotations:
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
+        trust.portableinfo.cloud/public: "true"
       labels:
         app.kubernetes.io/instance: gha-cache
         app.kubernetes.io/managed-by: Helm

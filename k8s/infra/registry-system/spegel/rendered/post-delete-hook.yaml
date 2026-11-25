@@ -7,10 +7,10 @@ metadata:
   namespace: registry-system
   labels:
     app.kubernetes.io/component: cleanup
-    helm.sh/chart: spegel-0.8.1
+    helm.sh/chart: spegel-0.8.2
     app.kubernetes.io/name: spegel
     app.kubernetes.io/instance: spegel
-    app.kubernetes.io/version: "v0.8.1"
+    app.kubernetes.io/version: "v0.8.2"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: "post-delete"
@@ -36,10 +36,10 @@ metadata:
   namespace: registry-system
   labels:
     app.kubernetes.io/component: cleanup
-    helm.sh/chart: spegel-0.8.1
+    helm.sh/chart: spegel-0.8.2
     app.kubernetes.io/name: spegel
     app.kubernetes.io/instance: spegel
-    app.kubernetes.io/version: "v0.8.1"
+    app.kubernetes.io/version: "v0.8.2"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: "post-delete"
@@ -62,7 +62,7 @@ spec:
       priorityClassName: system-node-critical
       containers:
         - name: cleanup
-          image: "ghcr.io/spegel-org/spegel@sha256:bdc1d14e4ab76e9a74520d331f485d09a596110118bd1a7706fa0411f17b3703"
+          image: "ghcr.io/spegel-org/spegel@sha256:b9897d9fca912fb667a794be7cb458b6002999c87e6c08db11c869fd685975f6"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -108,10 +108,10 @@ metadata:
   namespace: registry-system
   labels:
     app.kubernetes.io/component: cleanup-wait
-    helm.sh/chart: spegel-0.8.1
+    helm.sh/chart: spegel-0.8.2
     app.kubernetes.io/name: spegel
     app.kubernetes.io/instance: spegel
-    app.kubernetes.io/version: "v0.8.1"
+    app.kubernetes.io/version: "v0.8.2"
     app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/hook: "post-delete"
@@ -128,7 +128,7 @@ spec:
       operator: Exists
   containers:
     - name: cleanup-wait
-      image: "ghcr.io/spegel-org/spegel@sha256:bdc1d14e4ab76e9a74520d331f485d09a596110118bd1a7706fa0411f17b3703"
+      image: "ghcr.io/spegel-org/spegel@sha256:b9897d9fca912fb667a794be7cb458b6002999c87e6c08db11c869fd685975f6"
       imagePullPolicy: IfNotPresent
       securityContext:
         allowPrivilegeEscalation: false

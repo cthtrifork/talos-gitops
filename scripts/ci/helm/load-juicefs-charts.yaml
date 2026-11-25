@@ -1,0 +1,15 @@
+---
+# JuiceFS publishes the CSI driver chart only to a Helm repository (https://juicedata.github.io/charts/)
+source:
+  repo:
+    kind: HELM
+    url: "https://juicedata.github.io/charts/"
+target:
+  repo:
+    kind: OCI
+    url: "https://ghcr.io/cthtrifork/talos-gitops/charts"
+
+charts:
+  - juicefs-csi-driver
+
+skipImages: true

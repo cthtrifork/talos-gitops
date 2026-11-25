@@ -1,0 +1,99 @@
+# Database PKI: no passwords. PostgreSQL requires TLS and a client certificate whose CN equals the role name; one CA
+# signs server, replication and client certificates, and cert-manager (not CNPG) owns its key. Unlike harper-pad the CA
+# is issued by the root CA: the JVM verifies the server through its truststore, which only holds that root.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dependency-track-db-ca
+  namespace: dependency-track-system
+spec:
+  isCA: true
+  commonName: dependency-track-db-ca
+  secretName: dependency-track-db-ca
+  # Leaf certificates carry a copy of this CA: a long life keeps a stale copy from expiring before the leaf.
+  duration: 43800h
+  renewBefore: 8760h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: certificate-cluster-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dependency-track-db-server
+  namespace: dependency-track-system
+spec:
+  duration: 4320h
+  renewBefore: 720h
+  secretName: dependency-track-db-server
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+  dnsNames:
+    - dependency-track-db-rw
+    - dependency-track-db-rw.dependency-track-system
+    - dependency-track-db-rw.dependency-track-system.svc
+    - dependency-track-db-rw.dependency-track-system.svc.cluster.local
+    - dependency-track-db-r
+    - dependency-track-db-r.dependency-track-system
+    - dependency-track-db-r.dependency-track-system.svc
+    - dependency-track-db-ro
+    - dependency-track-db-ro.dependency-track-system
+    - dependency-track-db-ro.dependency-track-system.svc
+  issuerRef:
+    name: dependency-track-db-ca
+    kind: Issuer
+    group: cert-manager.io
+---
+# Required by CNPG once a custom client CA is used.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dependency-track-db-replication
+  namespace: dependency-track-system
+spec:
+  duration: 4320h
+  renewBefore: 720h
+  secretName: dependency-track-db-replication
+  commonName: streaming_replica
+  usages:
+    - digital signature
+    - client auth
+  issuerRef:
+    name: dependency-track-db-ca
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dependency-track-db-client
+  namespace: dependency-track-system
+spec:
+  duration: 4320h
+  renewBefore: 720h
+  secretName: dependency-track-db-client
+  commonName: dtrack
+  usages:
+    - digital signature
+    - client auth
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  # The JVM reads a keystore, not PEM. It only guards a key the Secret already holds in clear. Modern2023 because the
+  # default LegacyRC2 profile is not readable by recent JDKs (the JVM then sends no client certificate, silently).
+  keystores:
+    pkcs12:
+      create: true
+      password: not-a-secret
+      profile: Modern2023
+  issuerRef:
+    name: dependency-track-db-ca
+    kind: Issuer
+    group: cert-manager.io

@@ -28,6 +28,11 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      annotations:
+        configmap.reloader.stakater.com/reload: portableinfo-ca-bundle
+        secret.reloader.stakater.com/reload: dependency-track-db-client
+        trust.portableinfo.cloud/java: "true"
+        trust.portableinfo.cloud/public: "true"
       labels:
         app.kubernetes.io/component: api-server
         app.kubernetes.io/instance: dependency-track
@@ -43,7 +48,7 @@ spec:
         - name: DT_MANAGEMENT_PORT
           value: "9000"
         - name: DT_DATASOURCE_URL
-          value: jdbc:postgresql://dependency-track-db-rw.dependency-track-system.svc.cluster.local:5432/dtrack
+          value: jdbc:postgresql://dependency-track-db-rw.dependency-track-system.svc.cluster.local:5432/dtrack?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory
         - name: DT_DATASOURCE_USERNAME
           value: ${file::/etc/dt/secrets/db/username}
         - name: DT_DATASOURCE_PASSWORD
@@ -58,6 +63,9 @@ spec:
           value: /data
         - name: DT_TELEMETRY_SUBMISSION_DEFAULT_ENABLED
           value: "false"
+        - name: JAVA_TOOL_OPTIONS
+          value: -Djavax.net.ssl.keyStore=/etc/dt/db-client/keystore.p12 -Djavax.net.ssl.keyStoreType=PKCS12
+            -Djavax.net.ssl.keyStorePassword=not-a-secret
         image: mirror.gcr.io/dependencytrack/apiserver:5.2.2@sha256:cd5bed12ff30fd36980dbee2d6c3b177c37b99c63b60f5a5b15fbca0b31d0f38
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -124,6 +132,9 @@ spec:
           readOnly: true
         - mountPath: /data
           name: file-storage
+        - mountPath: /etc/dt/db-client
+          name: db-client
+          readOnly: true
       enableServiceLinks: false
       securityContext:
         fsGroup: 1000
@@ -140,7 +151,7 @@ spec:
             path: username
           - key: password
             path: password
-          secretName: dependency-track-db-app
+          secretName: dependency-track-db
       - name: sm-database-kek
         secret:
           defaultMode: 292
@@ -151,3 +162,10 @@ spec:
       - name: file-storage
         persistentVolumeClaim:
           claimName: dependency-track-storage
+      - name: db-client
+        secret:
+          defaultMode: 288
+          items:
+          - key: keystore.p12
+            path: keystore.p12
+          secretName: dependency-track-db-client

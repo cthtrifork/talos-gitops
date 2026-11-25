@@ -42,6 +42,12 @@ mounted through a generated ConfigMap: edit it there, not in the pod (pod change
   (`rendered/` is generated), Prometheus `k8s/infra/kube-prometheus-stack/`, OpenEBS LVM `k8s/infra/openebs-system/`,
   this pod `k8s/apps/claude-system/`.
 
+## Avoid passwords
+
+- Prefer no shared secret: mTLS or client-certificate auth, then short-lived or projected tokens, then a generated password
+  only when the software offers nothing else. Do not add a `Password` generator or a SOPS password for something that can use a certificate.
+- Pattern to copy: `k8s/apps/harper-pad/` (cert-manager Issuer and Certificates, CNPG `pg_hba` `hostssl ... cert`, CN equals the role name).
+
 ## Working in the repo: one git worktree per task
 
 Several sessions can use `/workspace` at the same time, and `/workspace/talos-gitops` is a single shared clone: its
@@ -78,7 +84,7 @@ edit or commit in the shared clone; give every task its own worktree.
 ## Skills
 
 Task-specific runbooks live in skills (`claude-md/skills/`): `cluster-alerts`, `cilium-drops`, `cluster-disk-usage`,
-`polaris-report`, `image-inspect`, `bandwidth-test`, `ci-k8s-reference`, `urlshare`, `dependency-track`. Guardrails that hold even if a skill is not
+`polaris-report`, `image-inspect`, `bandwidth-test`, `ci-k8s-reference`, `urlshare`, `dependency-track`, `svg-to-png`. Guardrails that hold even if a skill is not
 loaded: `crane` is inspection only (never push, copy, tag, delete, append, mutate or flatten), bandwidth tests go only to
 `speed.cloudflare.com`, pages the egress allowlist does not cover are read only through `urlshare` (never around it), and registry
 credentials are never printed or copied.
