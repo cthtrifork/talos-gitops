@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 411a3a359ee97a33e2aa5101b4c7c1048466b62c966ea93559387e2f1c7318b
+    actions.github.com/values-hash: 7572dd2b8f2bb1a5d89db040b3cf20e5b458b420bb37bf56c73adc35ce7a891
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission
@@ -156,7 +156,7 @@ spec:
             - -r
             - /home/runner/externals/.
             - /home/runner/tmpDir/
-          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261123.33@sha256:23beaea4d501a868353503220de45c38ccdc1e629530d56adfbbec6d9f1c89f2
+          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261125.37@sha256:fa26f3aa3f5e2c8f990615f79cf93b8dbba0afbd6d9bf63b2864c02673c8107a
           imagePullPolicy: IfNotPresent
           name: init-dind-externals
           resources:
@@ -218,7 +218,7 @@ spec:
           command:
             - /usr/local/bin/use-cache-server
             - /home/runner/run.sh
-          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261123.33@sha256:23beaea4d501a868353503220de45c38ccdc1e629530d56adfbbec6d9f1c89f2
+          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261125.37@sha256:fa26f3aa3f5e2c8f990615f79cf93b8dbba0afbd6d9bf63b2864c02673c8107a
           imagePullPolicy: IfNotPresent
           resources:
             limits:
