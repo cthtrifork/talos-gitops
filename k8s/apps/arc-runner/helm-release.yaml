@@ -270,6 +270,11 @@ spec:
           - name: github-auth
         securityContext:
           fsGroup: 1001
+          # Default (Always) recursively chgrps and ORs g+rw onto every file of every volume at each pod start, which
+          # rewrote the layers cached in container-storage-rootful: images built on top (homeserver-gui) shipped with
+          # gid 1001, group-writable modes (sudoers 0660) and no file capabilities (newuidmap). Only the volume root is
+          # checked now. Layers corrupted before this change must be purged once (buildah rm --all, podman system reset).
+          fsGroupChangePolicy: OnRootMismatch
           seccompProfile:
             type: RuntimeDefault
         volumes:
