@@ -114,6 +114,15 @@
       "automergeType": "pr"
     },
     {
+      "description": "The Renovate image is 2.6 GB and released almost daily, so it is updated weekly: every version stays on a node until image GC.",
+      "matchPackageNames": [
+        "ghcr.io/renovatebot/renovate"
+      ],
+      "schedule": [
+        "* 0-5 * * 1"
+      ]
+    },
+    {
       "automerge": false,
       "matchUpdateTypes": [
         "major",
