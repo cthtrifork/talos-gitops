@@ -38,13 +38,12 @@ flowchart TB
 
 ### Growing a JuiceFS volume
 
-CNPG grows when `storage.size` changes: the operator resizes every PVC, online on OpenEBS LVM.
+Everything is a change in Git, nothing is run by hand.
 
-Garage is a StatefulSet. A new `persistence.*.size` changes its `volumeClaimTemplates`, which Kubernetes still forbids (v1.37, immutable) and a Helm retry does not fix (`docs/helmrelease-conventions.md`). Garage also only uses the `clusterConfig.layout.capacity` it was given, set to the data size. In this order:
-
-1. Expand all three data PVCs (`kubectl patch pvc`, storage elevation). Each node holds a full copy, so the usable space is that of the smallest one.
-2. `kubectl delete sts garage --cascade=orphan`: the pods keep running.
-3. Merge the change that raises `persistence.data.size` and `layout.capacity` together. Flux recreates the StatefulSet and the configure hook assigns the new capacity. Merging first makes the upgrade fail. Do not run `garage layout apply` by hand at the same time: two applies of the same `--version` leave the cluster inconsistent.
+- **PostgreSQL:** raise `storage.size` in `postgres-cluster.yaml`. The operator resizes every PVC, online on OpenEBS LVM.
+- **Garage:** raise the three `data-garage-<n>` sizes in `garage/pvc.yaml` and `clusterConfig.layout.capacity` in `garage/helm-release.yaml`, in one PR. Flux expands the PVCs online and the configure hook assigns the new capacity. Each node holds a full copy, so the usable space is that of the smallest one.
+- Never change `persistence.*.size` in the HelmRelease. Garage is a StatefulSet and its `volumeClaimTemplates` are immutable (Kubernetes v1.37), which a Helm retry does not fix (`docs/helmrelease-conventions.md`). That is why the claims are in `pvc.yaml`: the StatefulSet creates a claim only if it is missing and never resizes it, so a claim from Git with the template's name is used as is.
+- Do not run `garage layout apply` by hand at the same time: two applies of the same `--version` leave the cluster inconsistent.
 
 ## Which to use
 

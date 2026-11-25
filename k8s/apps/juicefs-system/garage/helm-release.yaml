@@ -87,7 +87,7 @@ spec:
       secret:
         create: false
         name: juicefs-garage-secrets
-    # Peak use of the shared caches is 4 GiB; volumes expand online
+    # Initial sizes only: volumeClaimTemplates are immutable, so never change these. The real sizes are in pvc.yaml.
     persistence:
       enabled: true
       meta:
