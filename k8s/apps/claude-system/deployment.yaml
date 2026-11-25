@@ -266,6 +266,8 @@ spec:
                 path: ci-k8s-reference/SKILL.md
               - key: urlshare.md
                 path: urlshare/SKILL.md
+              - key: svg-to-png.md
+                path: svg-to-png/SKILL.md
         # 50Gi lvm-fast, expandable online: clean up old clones
         - name: workspace
           persistentVolumeClaim:
