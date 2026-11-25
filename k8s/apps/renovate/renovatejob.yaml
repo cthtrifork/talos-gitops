@@ -10,9 +10,9 @@ metadata:
 spec:
   suspend: false
   schedule: "7,37 * * * *"
-  # The full image (not -slim): harper-pad and kglance need go for gomodTidy
+  # The default image is 427 MiB, -full 2.6 GB: tools (go for gomodTidy) are installed at run time into /opt/containerbase
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate versioning=docker
-  image: ghcr.io/renovatebot/renovate:44.261.3-full@sha256:e9cfda3034e2a392c73ae6e1404835310f8d224b5b583f3228e049611b367485
+  image: ghcr.io/renovatebot/renovate:44.261.3@sha256:a94fbfa1977a07f98a6291b20ad630d076325526a64e730ebc1c61e4f648cff5
   parallelism: 2
   extraEnv:
     # The operator reads PR activity from Renovate's debug log
@@ -61,6 +61,14 @@ spec:
       memory: 2Gi
   scratchVolume:
     sizeLimit: 2Gi
+  # Writable /opt/containerbase on the read-only root filesystem: the image entrypoint sets it up, tools install on first use
+  extraVolumes:
+    - name: containerbase
+      emptyDir:
+        sizeLimit: 3Gi
+  extraVolumeMounts:
+    - name: containerbase
+      mountPath: /opt/containerbase
   # Read-only root filesystem (only /tmp, the scratch volume, is writable). The container context is spelled out in full:
   # it may replace the operator's defaults, and the namespace enforces PodSecurity restricted.
   securityContext:
