@@ -235,7 +235,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 32Gi
+                      storage: 16Gi
           - name: tmp
             ephemeral:
               volumeClaimTemplate:
@@ -245,7 +245,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 20Gi
+                      storage: 16Gi
           - name: var-tmp
             ephemeral:
               volumeClaimTemplate:
@@ -255,7 +255,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 30Gi
+                      storage: 24Gi
           - name: container-storage-rootful
             ephemeral:
               volumeClaimTemplate:
@@ -275,7 +275,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 32Gi
+                      storage: 28Gi
           - name: dnf-cache
             persistentVolumeClaim:
               claimName: dnf-cache-jfs
