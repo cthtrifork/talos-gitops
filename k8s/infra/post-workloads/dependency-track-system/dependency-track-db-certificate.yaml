@@ -80,11 +80,13 @@ spec:
   privateKey:
     algorithm: ECDSA
     size: 256
-  # The JVM reads a keystore, not PEM. It only guards a key the Secret already holds in clear.
+  # The JVM reads a keystore, not PEM. It only guards a key the Secret already holds in clear. Modern2023 because the
+  # default LegacyRC2 profile is not readable by recent JDKs (the JVM then sends no client certificate, silently).
   keystores:
     pkcs12:
       create: true
       password: not-a-secret
+      profile: Modern2023
   issuerRef:
     name: dependency-track-db-ca
     kind: Issuer
