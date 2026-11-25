@@ -37,7 +37,7 @@ spec:
       - arc-ubuntu
       - arc-ubuntu-docker
 
-    maxRunners: 1 # only 1 runner due to pvc design
+    maxRunners: 3
     minRunners: 1
 
     githubConfigSecret: github-auth
@@ -277,8 +277,6 @@ spec:
                 mountPath: /var/run
               - name: container-rootless-storage
                 mountPath: /home/runner/.local/share/containers/storage
-              - name: container-shared-storage
-                mountPath: /var/lib/shared
               - name: docker-lib
                 mountPath: /var/lib/docker
               - name: dnf-cache
@@ -329,7 +327,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 32Gi
+                      storage: 16Gi
           - name: dind-sock
             emptyDir: {}
           - name: dind-externals
@@ -344,7 +342,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 32Gi
+                      storage: 8Gi
           - name: tmp-memory
             ephemeral:
               volumeClaimTemplate:
@@ -354,22 +352,40 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 20Gi
+                      storage: 12Gi
           - name: container-storage-rootful
-            persistentVolumeClaim:
-              claimName: container-storage-rootful
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 32Gi
           - name: container-rootless-storage
-            persistentVolumeClaim:
-              claimName: container-rootless-storage
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 28Gi
           - name: podman-tmp
-            persistentVolumeClaim:
-              claimName: podman-tmp
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 24Gi
           - name: dnf-cache
             persistentVolumeClaim:
               claimName: dnf-cache-jfs
-          - name: container-shared-storage
-            persistentVolumeClaim:
-              claimName: container-shared-storage
           - name: cross-run-cache
             persistentVolumeClaim:
               claimName: cross-run-cache-jfs
