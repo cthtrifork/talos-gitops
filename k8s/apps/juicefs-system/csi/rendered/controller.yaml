@@ -145,6 +145,9 @@ spec:
           name: jfs-root-dir
         - mountPath: /etc/config
           name: juicefs-config
+        - mountPath: /etc/juicefs-pg
+          name: meta-client
+          readOnly: true
       priorityClassName: system-cluster-critical
       serviceAccount: juicefs-csi-controller-sa
       tolerations:
@@ -164,3 +167,6 @@ spec:
       - configMap:
           name: juicefs-csi-driver-config
         name: juicefs-config
+      - name: meta-client
+        secret:
+          secretName: juicefs-meta-client

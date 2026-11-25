@@ -160,6 +160,9 @@ spec:
           name: jfs-fuse-fd
         - mountPath: /etc/config
           name: juicefs-config
+        - mountPath: /etc/juicefs-pg
+          name: meta-client
+          readOnly: true
       dnsPolicy: ClusterFirstWithHostNet
       priorityClassName: system-node-critical
       serviceAccount: juicefs-csi-node-sa
@@ -198,6 +201,9 @@ spec:
       - configMap:
           name: juicefs-csi-driver-config
         name: juicefs-config
+      - name: meta-client
+        secret:
+          secretName: juicefs-meta-client
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 50%
