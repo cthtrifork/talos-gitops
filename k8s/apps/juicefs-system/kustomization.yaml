@@ -7,3 +7,4 @@ resources:
   - garage/
   - postgres-cluster.yaml
   - ciliumnetworkpolicy.yaml
+  - prometheusrule.yaml

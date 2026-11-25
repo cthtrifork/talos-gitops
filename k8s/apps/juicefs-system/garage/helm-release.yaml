@@ -1,3 +1,4 @@
+---
 # Three Garage nodes (replication_factor 3) holding the JuiceFS data blocks: one node can be lost without losing data or writes.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -7,6 +8,8 @@ metadata:
 spec:
   interval: 30m
   releaseName: garage
+  # three ordered pods with their volumes, then the configure hook (which sleeps 120s)
+  timeout: 10m
   chartRef:
     kind: OCIRepository
     name: garage
@@ -104,6 +107,12 @@ spec:
           type: RuntimeDefault
       securityContext:
         allowPrivilegeEscalation: false
+      resources:
+        requests:
+          cpu: 20m
+          memory: 64Mi
+        limits:
+          memory: 128Mi
       buckets:
         - name: juicefs
       keys:

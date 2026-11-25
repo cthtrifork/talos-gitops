@@ -22,14 +22,6 @@ spec:
               protocol: TCP
             - port: "3903"
               protocol: TCP
-    - fromEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
-            app.kubernetes.io/name: prometheus
-      toPorts:
-        - ports:
-            - port: "3903"
-              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:
@@ -76,14 +68,6 @@ spec:
             - port: "5432"
               protocol: TCP
             - port: "8000"
-              protocol: TCP
-    - fromEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
-            app.kubernetes.io/name: prometheus
-      toPorts:
-        - ports:
-            - port: "9187"
               protocol: TCP
   egress:
     - toEndpoints:

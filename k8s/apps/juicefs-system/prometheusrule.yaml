@@ -1,0 +1,45 @@
+# There is no Alertmanager: alerts are read from Prometheus. Volume fullness is covered by PersistentVolumeAlmostFull/CriticallyFull.
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: juicefs-alerts
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: juicefs
+      rules:
+        - alert: JuiceFSGarageDegraded
+          expr: count(cluster_healthy{namespace="juicefs-system"}) < 3 or min(cluster_healthy{namespace="juicefs-system"}) == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: A Garage node of JuiceFS is missing or disconnected
+            description: "Fewer than 3 Garage pods report, or one reports a disconnected node. Data stays available with 2 of 3 nodes; a second loss stops writes. kubectl -n juicefs-system get pods -l app.kubernetes.io/name=garage."
+        - alert: JuiceFSGarageUnavailable
+          expr: min(cluster_available{namespace="juicefs-system"}) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Garage in juicefs-system has lost its quorum
+            description: JuiceFS cannot read or write data blocks until two of the three Garage nodes are back.
+        - alert: JuiceFSMetaInstanceMissing
+          expr: count(cnpg_collector_up{namespace="juicefs-system"} == 1) < 3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: A juicefs-meta PostgreSQL instance is down
+            description: "Fewer than 3 instances of the CNPG cluster juicefs-meta are up. kubectl -n juicefs-system get cluster,pods -l cnpg.io/cluster=juicefs-meta."
+        - alert: JuiceFSMetaReplicationLag
+          expr: max(cnpg_pg_replication_lag{namespace="juicefs-system"}) > 30
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: A juicefs-meta replica is {{ $value | humanizeDuration }} behind
+            description: A lagging replica delays a failover and, with the synchronous standby, can slow metadata writes.
