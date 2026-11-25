@@ -1,38 +1,6 @@
 # Daily: marks the Dependency-Track projects of vanished workloads inactive (script: retire-projects.sh); Dependency-Track retention deletes them later.
 # Without the API key Secret (created by config-cronjob.yaml) the Job is a dry run.
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: dependency-track-retire
-  namespace: dependency-track-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: dependency-track-retire
-rules:
-  - apiGroups:
-      - aquasecurity.github.io
-    resources:
-      - sbomreports
-    verbs:
-      - get
-      - list
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: dependency-track-retire
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: dependency-track-retire
-subjects:
-  - kind: ServiceAccount
-    name: dependency-track-retire
-    namespace: dependency-track-system
----
 apiVersion: batch/v1
 kind: CronJob
 metadata:
