@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/postgresql.cnpg.io/cluster_v1.json
-# One instance, no backups. CNPG generates the credentials in the Secret dependency-track-db-app, which the release reads.
+# One instance, no backups. The release logs in with a client certificate (dependency-track-db-certificate.yaml); the
+# dtrack role has no usable password. The Secret dependency-track-db-app still carries one, which the chart insists on mounting.
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -33,5 +34,20 @@ spec:
   inheritedMetadata:
     labels:
       prometheus-scrape: "true"
+  managed:
+    roles:
+      - name: dtrack
+        ensure: present
+        login: true
+        disablePassword: true
+  certificates:
+    serverTLSSecret: dependency-track-db-server
+    serverCASecret: dependency-track-db-ca
+    clientCASecret: dependency-track-db-ca
+    replicationTLSSecret: dependency-track-db-replication
+  postgresql:
+    pg_hba:
+      # Before CNPG's default "host all all all scram-sha-256" rule; cert auth matches CN against the role name.
+      - hostssl dtrack dtrack all cert
   monitoring:
     enablePodMonitor: true
