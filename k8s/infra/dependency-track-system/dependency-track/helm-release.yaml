@@ -44,7 +44,7 @@ spec:
 
       jdbcUrl: "jdbc:postgresql://dependency-track-db-rw.dependency-track-system.svc.cluster.local:5432/dtrack?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
       existingSecret:
-        name: dependency-track-db-app # created by CNPG
+        name: dependency-track-db-login # username only; the CNPG Secret dependency-track-db-app holds a password the role no longer has
     secretManagement:
       database:
         kek:
