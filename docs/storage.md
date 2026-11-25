@@ -63,6 +63,8 @@ Sized from the peaks of the last 3 days; volumes are per runner and `lvm-fast` u
 
 The rootful storage stays at 32 Gi: the `homeserver-gui` build fails unless 20 GB are free at its start.
 
+The `homeserver-gui` build keeps a layer cache in zot (`buildcache/homeserver-gui`, `homeserver-bootc`'s build workflow): every self-hosted runner reads it, only `main` writes it, and a weekly `CACHE_BUST` build argument expires the package layers so updates are never frozen. zot keeps a cache tag for 72 hours after its last push or pull (`buildcache/**` retention in `zot.json`). That cache, not a runner's local volume, is what makes a new runner start warm.
+
 ## Which to use
 
 Default to `lvm-fast`; `lvm-bulk` for large, cold data. Use JuiceFS only where several pods on different nodes must write the same files, and not for databases or container image storage.
