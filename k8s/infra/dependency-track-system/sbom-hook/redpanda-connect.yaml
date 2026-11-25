@@ -22,22 +22,27 @@ pipeline:
         if this.kind != "SbomReport" {
           root = deleted()
         } else {
-          # project per image, version = digest: VEX statements only match by digest
-          let server = this.report.registry.server.or("")
-          let repo = this.report.artifact.repository
-          let name = if $server != "" { $server + "/" + $repo } else { $repo }
-          let version = this.report.artifact.digest.not_empty().or(this.report.artifact.tag)
-          let digest = this.report.artifact.digest.or("")
-          meta dedupe_key = $name + ":" + $version + ":" + $digest
+          # one rolling project per workload container: each upload replaces the components and keeps the audit decisions
+          let l = this.metadata.labels
+          let res = $l."trivy-operator.resource.name".not_empty()
+          # the workload behind a ReplicaSet or Job name; retire-projects.sh (retire-cronjob.yaml) derives the same name
+          let workload = match $l."trivy-operator.resource.kind".not_empty() {
+            "ReplicaSet" => $res.re_replace_all("-[^-]+$", "")
+            "Job" => $res.re_replace_all("-[0-9a-f]{8,}$", "")
+            _ => $res
+          }
+          let name = $l."trivy-operator.resource.namespace".not_empty() + "/" + $workload + "/" + $l."trivy-operator.container.name".not_empty()
+          meta dedupe_key = $name + ":" + this.report.artifact.digest.or(this.report.artifact.tag)
           root = {
             "projectName": $name,
-            "projectVersion": $version,
+            "projectVersion": "current",
             "autoCreate": true,
+            "isActive": true, # a workload that comes back after retirement is active again
             "projectTags": [{"name": "kubernetes"}],
             "bom": this.report.components.format_json().encode("base64")
           }
         }
-    # rescans of unchanged images and workloads sharing one image
+    # rescans of an unchanged image
     - dedupe:
         cache: sbom_seen
         key: '$${!metadata("dedupe_key")}'

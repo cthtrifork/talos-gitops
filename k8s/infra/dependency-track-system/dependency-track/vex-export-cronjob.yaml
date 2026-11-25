@@ -10,6 +10,7 @@ metadata:
   annotations:
     claude-elevate/description: Exports the VEX decisions made in Dependency-Track and opens a pull request with the changed documents.
 spec:
+  suspend: true # projects are rolling ("current"), not versioned by digest, so there is nothing to export; see README.md
   schedule: "43 5 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1

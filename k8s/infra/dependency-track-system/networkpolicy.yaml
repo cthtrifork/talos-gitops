@@ -61,6 +61,8 @@ spec:
         - matchLabels:
             app.kubernetes.io/name: dependency-track-vex-export
         - matchLabels:
+            app.kubernetes.io/name: dependency-track-retire
+        - matchLabels:
             k8s:io.kubernetes.pod.namespace: traefik-system
             k8s:app.kubernetes.io/name: traefik
         - matchLabels:
@@ -281,4 +283,31 @@ spec:
       toPorts:
         - ports:
             - port: "443"
+              protocol: TCP
+---
+# Retire CronJob (the Kubernetes API comes from the default allow)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: dependency-track-retire
+  namespace: dependency-track-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: dependency-track-retire
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: dependency-track-api-server
+      toPorts:
+        - ports:
+            - port: "8080"
               protocol: TCP

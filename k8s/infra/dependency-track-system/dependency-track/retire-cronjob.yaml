@@ -1,0 +1,74 @@
+# Daily: marks the Dependency-Track projects of vanished workloads inactive (script: retire-projects.sh); Dependency-Track retention deletes them later.
+# Without the API key Secret (created by config-cronjob.yaml) the Job is a dry run.
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dependency-track-retire
+  namespace: dependency-track-system
+  annotations:
+    claude-elevate/description: Marks Dependency-Track projects inactive when their workload has no SbomReport and no upload for 2 days. Safe to repeat.
+spec:
+  schedule: "17 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: dependency-track-retire # selected by the network policy
+        spec:
+          restartPolicy: Never
+          serviceAccountName: dependency-track-retire
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: retire
+              image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
+              command:
+                - sh
+                - /scripts/retire-projects.sh
+              env:
+                - name: HOME
+                  value: /work
+                - name: DT_URL
+                  value: http://dependency-track-api-server.dependency-track-system.svc.cluster.local:8080
+                - name: DT_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: dependency-track-retire-api-key
+                      key: api-key
+                      optional: true
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: work
+                  mountPath: /work
+              resources:
+                requests:
+                  cpu: 20m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: scripts
+              configMap:
+                name: dependency-track-retire
+            - name: work
+              emptyDir:
+                sizeLimit: 64Mi
