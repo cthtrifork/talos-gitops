@@ -28,6 +28,8 @@ metadata:
   name: dependency-track-db-server
   namespace: dependency-track-system
 spec:
+  duration: 4320h
+  renewBefore: 720h
   secretName: dependency-track-db-server
   usages:
     - digital signature
@@ -56,6 +58,8 @@ metadata:
   name: dependency-track-db-replication
   namespace: dependency-track-system
 spec:
+  duration: 4320h
+  renewBefore: 720h
   secretName: dependency-track-db-replication
   commonName: streaming_replica
   usages:
@@ -72,6 +76,8 @@ metadata:
   name: dependency-track-db-client
   namespace: dependency-track-system
 spec:
+  duration: 4320h
+  renewBefore: 720h
   secretName: dependency-track-db-client
   commonName: dtrack
   usages:
