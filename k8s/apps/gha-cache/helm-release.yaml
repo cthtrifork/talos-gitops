@@ -1,6 +1,6 @@
 ---
 # https://gha-cache-server.falcondev.io/getting-started
-# Filesystem storage and SQLite on one lvm-fast volume, one replica: losing it only costs a cold cache.
+# Filesystem storage and SQLite on one JuiceFS volume, one replica: the pod starts on any node, and losing the data only costs a cold cache.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -38,14 +38,12 @@ spec:
       tag: 10.0.2@sha256:177adabc4586adab0ab65cbb889bd87483bd3c6b4cb5209e4c52990405a865fd
     config:
       # 80 GiB of the 100Gi volume, LRU eviction
-      cacheMaxSizeBytes: 85899345920
+      cacheMaxSizeBytes: 17179869184 # 16 GiB: peak use was 5.7 GiB, and the JuiceFS backend holds 30 Gi
       cacheCleanupOlderThanDays: 30
     # Own claim (pvc.yaml); an LVM volume cannot move between nodes
     persistentVolumeClaim:
       enabled: false
     # Same node as the runners (their podAffinity follows this pod): cross-node cache uploads stalled
-    nodeSelector:
-      kubernetes.io/hostname: talos-11a-esj
 
     podLabels:
       prometheus-scrape: "true"
@@ -71,7 +69,7 @@ spec:
     extraVolumes:
       - name: data
         persistentVolumeClaim:
-          claimName: gha-cache-data-v2
+          claimName: gha-cache-data-jfs
       - name: tmp
         emptyDir:
           sizeLimit: 1Gi

@@ -49,7 +49,7 @@ spec:
         - name: CACHE_CLEANUP_OLDER_THAN_DAYS
           value: "30"
         - name: CACHE_MAX_SIZE_BYTES
-          value: "8.589934592e+10"
+          value: "1.7179869184e+10"
         - name: CACHE_FILESYSTEM_MAX_USAGE_PERCENT
           value: "90"
         - name: ORPHANED_STORAGE_GRACE_PERIOD_HOURS
@@ -96,8 +96,6 @@ spec:
           name: data
         - mountPath: /tmp
           name: tmp
-      nodeSelector:
-        kubernetes.io/hostname: talos-11a-esj
       securityContext:
         fsGroup: 1000
         seccompProfile:
@@ -106,7 +104,7 @@ spec:
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: gha-cache-data-v2
+          claimName: gha-cache-data-jfs
       - emptyDir:
           sizeLimit: 1Gi
         name: tmp

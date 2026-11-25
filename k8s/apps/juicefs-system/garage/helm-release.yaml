@@ -101,7 +101,7 @@ spec:
       layout:
         enabled: true
         zone: dc1
-        capacity: 10Gi
+        capacity: 30Gi
       podSecurityContext:
         seccompProfile:
           type: RuntimeDefault

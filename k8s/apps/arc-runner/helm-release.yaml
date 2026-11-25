@@ -50,16 +50,14 @@ spec:
           # Internal + public CAs (jobs reach the allowlisted internet).
           trust.portableinfo.cloud/public: "true"
       spec:
-        # Same node as the cache server (node-local volume); cross-node transfer is too slow.
-        affinity:
-          podAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              - topologyKey: kubernetes.io/hostname
-                namespaces:
-                  - gha-cache-system
-                labelSelector:
-                  matchLabels:
-                    app.kubernetes.io/name: github-actions-cache-server
+        # No runner is tied to a node (the cache server is not either): spread over the nodes when there is room
+        topologySpreadConstraints:
+          - maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                actions.github.com/scale-set-name: arc-ubuntu-podman
         initContainers:
           # Initialize volume permissions without recursively modifying
           # Podman/Buildah image-layer ownership or permissions.

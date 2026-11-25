@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu-podman
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 0bcfd475846c9d08a540cc9ecfcc8c8d19d10db75dafd7ac0440c416a4d8239
+    actions.github.com/values-hash: aedd5453bfd899464f04e7aa8e0079b000f793a8ba8310717fcf1995b5f3b29
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-podman-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-podman-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-podman-gha-rs-no-permission
@@ -80,20 +80,18 @@ spec:
       annotations:
         trust.portableinfo.cloud/public: "true"
     spec:
-      affinity:
-        podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  app.kubernetes.io/name: github-actions-cache-server
-              namespaces:
-                - gha-cache-system
-              topologyKey: kubernetes.io/hostname
       imagePullSecrets:
         - name: github-auth
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              actions.github.com/scale-set-name: arc-ubuntu-podman
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
       restartPolicy: Never
       serviceAccountName: arc-ubuntu-podman-gha-rs-no-permission
       initContainers:
