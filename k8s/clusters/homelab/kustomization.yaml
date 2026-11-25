@@ -32,6 +32,7 @@ resources:
   - app-fileserver.yaml
   - app-gha-cache.yaml
   - app-harper-pad.yaml
+  - app-juicefs-system.yaml
   - renovate.yaml
   - virtualmachines.yaml
 configMapGenerator:
