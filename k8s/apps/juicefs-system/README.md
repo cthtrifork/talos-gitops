@@ -9,6 +9,6 @@ Backends for a JuiceFS filesystem that gives the ARC runners ReadWriteMany cache
 
 - A separate Garage from Renovate's: `replication_factor` is fixed when a cluster is created.
 - Garage stays off `talos-tba-msi`, which has no `vg-bulk`.
-- The sizes come from the peak use of the shared caches over 3 days (4.0 GiB, about 1.4k files). Volumes expand online.
+- The sizes come from the peak use of the shared caches over 3 days (4.0 GiB, about 1.4k files). Overview, failure behaviour and how to grow a volume: `docs/juicefs.md`.
 - No backups: the filesystem only holds CI caches.
 - The S3 key, RPC secret and admin token are generated in `k8s/infra/secret-store/`.
