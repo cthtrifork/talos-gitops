@@ -47,9 +47,10 @@ spec:
           annotations:
             summary: Critical CPU temperature on {{ or $labels.node $labels.instance }}
             description: 'CPU temperature is {{ $value | printf "%.1f" }}°C.'
+        # temp1 is the composite sensor; talos-tba-msi temp3 reads a flat 81.9 °C for days
         - alert: NodeNVMeTemperatureHigh
           expr: |
-            max by (instance, node) (node_hwmon:temperature_celsius{chip_name="nvme"}) > 65
+            max by (instance, node) (node_hwmon:temperature_celsius{chip_name="nvme", sensor="temp1"}) > 65
           for: 5m
           labels:
             severity: warning
@@ -58,7 +59,7 @@ spec:
             description: 'NVMe temperature is {{ $value | printf "%.1f" }}°C.'
         - alert: NodeNVMeTemperatureCritical
           expr: |
-            max by (instance, node) (node_hwmon:temperature_celsius{chip_name="nvme"}) > 75
+            max by (instance, node) (node_hwmon:temperature_celsius{chip_name="nvme", sensor="temp1"}) > 75
           for: 2m
           labels:
             severity: critical
