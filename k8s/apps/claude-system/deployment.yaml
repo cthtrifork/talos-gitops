@@ -46,7 +46,7 @@ spec:
       initContainers:
         - name: private-tmp
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.330-20261124.75@sha256:7b318497e3c76ab2955fcac9916a662bb2b6442e229eca06ca108447ed55b012
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.330-20261125.79@sha256:0b59fa85aa5a81cc99d9fb9ba3190478265ea6ecc106e858502fb75cc176edee
           command:
             - "/bin/bash"
             - "-c"
@@ -69,7 +69,7 @@ spec:
       containers:
         - name: claude
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.330-20261124.75@sha256:7b318497e3c76ab2955fcac9916a662bb2b6442e229eca06ca108447ed55b012
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.330-20261125.79@sha256:0b59fa85aa5a81cc99d9fb9ba3190478265ea6ecc106e858502fb75cc176edee
           command:
             - "/bin/bash"
             - "-c"
@@ -195,7 +195,7 @@ spec:
         # Feeds the cockpit's usage panel: `claude remote-control` never runs a statusLine, so this polls the undocumented usage endpoint
         - name: usage-poller
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/claude-runner versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.330-20261124.75@sha256:7b318497e3c76ab2955fcac9916a662bb2b6442e229eca06ca108447ed55b012
+          image: ghcr.io/cthtrifork/talos-gitops/claude-runner:2.1.330-20261125.79@sha256:0b59fa85aa5a81cc99d9fb9ba3190478265ea6ecc106e858502fb75cc176edee
           command:
             - "/etc/claude-usage-poller/poll-usage"
           resources:
