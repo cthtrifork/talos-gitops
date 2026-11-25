@@ -112,6 +112,7 @@ spec:
         - matchName: osv-vulnerabilities.storage.googleapis.com
         - matchName: proxy.golang.org
         - matchName: pypi.org
+        - matchName: registry.npmjs.org
         - matchName: repo1.maven.org
         - matchName: packages.atlassian.com
         - matchName: maven.artifacts.atlassian.com
