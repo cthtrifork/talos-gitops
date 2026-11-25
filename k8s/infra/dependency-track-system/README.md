@@ -22,7 +22,7 @@ A workload that is removed would stay active forever, so `dependency-track/retir
 `SbomReport` names it and it has had no upload for 2 days (it only touches projects tagged `kubernetes`, and retires nothing when the report list is short).
 Dependency-Track retention (`maintenance/projects.retention.type=AGE`, `projects.retention.days=30`, set in `config-configmap.yaml`) then deletes inactive projects
 after 30 days, with their decisions. A workload that returns is activated again by its next upload (`isActive: true`). The key of the job is the team `project-retirer`.
-To see what it would do, set `DRY_RUN=1` in a Job made from the CronJob (`kubectl create job --from=cronjob/dependency-track-retire`).
+It fails until the config CronJob has created its key, and there is no dry run.
 
 Projects of the earlier layout (`registry/repo`, version `sha256:...`) are not migrated: they stop receiving uploads and the same job retires them.
 
