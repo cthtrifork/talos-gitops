@@ -42,6 +42,13 @@ mounted through a generated ConfigMap: edit it there, not in the pod (pod change
   (`rendered/` is generated), Prometheus `k8s/infra/kube-prometheus-stack/`, OpenEBS LVM `k8s/infra/openebs-system/`,
   this pod `k8s/apps/claude-system/`.
 
+## Avoid passwords
+
+- Prefer no shared secret: mTLS or client-certificate auth, then short-lived or projected tokens, then a generated password
+  only when the software offers nothing else. Do not add a `Password` generator or a SOPS password for something that can use a certificate.
+- Pattern to copy: `k8s/apps/harper-pad/` (cert-manager Issuer and Certificates, CNPG `pg_hba` `hostssl ... cert`, CN equals the role name).
+- Candidates and blockers: `docs/passwordless.md`.
+
 ## Working in the repo: one git worktree per task
 
 Several sessions can use `/workspace` at the same time, and `/workspace/talos-gitops` is a single shared clone: its
