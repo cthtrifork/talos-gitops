@@ -17,16 +17,13 @@ live=$(wc -l < live.txt)
 [ "$live" -ge "$MIN_LIVE" ] || { echo "only $live workloads in the SbomReports (minimum $MIN_LIVE): not retiring anything" >&2; exit 1; }
 echo "$live workloads have a report"
 
-dry=0
-if [ -z "${DT_API_KEY:-}" ]; then dry=1; echo "DRY RUN: no API key yet"; DT_API_KEY=none; fi
-if [ -n "${DRY_RUN:-}" ]; then dry=1; echo "DRY RUN: DRY_RUN is set"; fi
+[ -n "${DT_API_KEY:-}" ] || { echo "no API key yet: config-cronjob.yaml creates the Secret dependency-track-retire-api-key within the hour" >&2; exit 1; }
 api() { curl -sS -H "X-Api-Key: $DT_API_KEY" "$@"; }
 
 : > projects.jsonl
 page=1
 while :; do
   code=$(api -o page.json -w '%{http_code}' "$DT_URL/api/v1/project?excludeInactive=true&pageSize=100&pageNumber=$page") || code=000
-  if [ "$dry" = 1 ] && [ "$code" != 200 ]; then echo "DRY RUN: cannot list projects ($code)"; exit 0; fi
   [ "$code" = 200 ] || { echo "listing projects failed ($code)" >&2; exit 1; }
   jq -c '.[] | {uuid, name, version, lastBomImport: (.lastBomImport // 0), tags: [(.tags // [])[].name]}' page.json >> projects.jsonl
   [ "$(jq length page.json)" -eq 100 ] || break
@@ -46,7 +43,6 @@ echo "$(wc -l < stale.tsv) projects without a report and not updated for $STALE_
 
 failed=0
 while IFS="$(printf '\t')" read -r uuid name version; do
-  if [ "$dry" = 1 ]; then echo "DRY RUN: would mark $name $version inactive"; continue; fi
   code=$(api -o /dev/null -w '%{http_code}' -X PATCH "$DT_URL/api/v1/project/$uuid" -H 'Content-Type: application/json' -d '{"active":false}') || code=000
   if [ "$code" = 200 ]; then echo "inactive: $name $version"; else echo "failed ($code): $name $version" >&2; failed=$((failed + 1)); fi
 done < stale.tsv

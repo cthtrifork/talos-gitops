@@ -1,5 +1,5 @@
 # Daily: marks the Dependency-Track projects of vanished workloads inactive (script: retire-projects.sh); Dependency-Track retention deletes them later.
-# Without the API key Secret (created by config-cronjob.yaml) the Job is a dry run.
+# Fails until config-cronjob.yaml has created the API key Secret.
 ---
 apiVersion: batch/v1
 kind: CronJob
