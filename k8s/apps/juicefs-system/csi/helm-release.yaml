@@ -9,8 +9,9 @@ metadata:
 spec:
   interval: 30m
   releaseName: juicefs-csi-driver
-  # a spec change also starts a release that ran out of retries again
   timeout: 10m
+  # Helm's default, explicit: a changed spec restarts the release that its failed first upgrade left stalled
+  maxHistory: 5
   chartRef:
     kind: OCIRepository
     name: juicefs-csi-driver
