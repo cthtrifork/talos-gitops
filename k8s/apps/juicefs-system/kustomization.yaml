@@ -5,6 +5,10 @@ resources:
   - namespace.yaml
   - external-secrets.yaml
   - garage/
+  - csi/
+  - storageclass.yaml
+  - issuer.yaml
+  - certificate.yaml
   - postgres-cluster.yaml
   - ciliumnetworkpolicy.yaml
   - prometheusrule.yaml

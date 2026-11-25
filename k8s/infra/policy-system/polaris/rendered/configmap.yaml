@@ -668,6 +668,21 @@ data:
         - livenessProbeMissing
         - readinessProbeMissing
       - controllerNames:
+        - juicefs-csi-node
+        - juicefs-csi-controller
+        namespace: juicefs-system
+        rules:
+        - runAsPrivileged
+        - dangerousCapabilities
+        - runAsRootAllowed
+        - privilegeEscalationAllowed
+        - linuxHardening
+        - insecureCapabilities
+        - notReadOnlyRootFilesystem
+        - hostPathSet
+        - livenessProbeMissing
+        - readinessProbeMissing
+      - controllerNames:
         - cilium
         namespace: kube-system
         rules: []
@@ -711,6 +726,14 @@ data:
         rules:
         - clusterrolebindingPodExecAttach
         - clusterrolePodExecAttach
+      - controllerNames:
+        - juicefs-csi-external-node-service-role
+        rules:
+        - clusterrolePodExecAttach
+      - controllerNames:
+        - juicefs-csi-node-service-binding
+        rules:
+        - clusterrolebindingPodExecAttach
       - controllerNames:
         - kube-apiserver
         - kube-controller-manager
