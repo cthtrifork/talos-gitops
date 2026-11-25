@@ -1,0 +1,81 @@
+# Two pods on different nodes write to one ReadWriteMany volume and read each other's file. Both succeed only if the volume
+# is shared across nodes; the log shows the user, the directory mode and the two node names.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: juicefs-selftest
+  namespace: juicefs-system
+spec:
+  completions: 2
+  parallelism: 2
+  completionMode: Indexed
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app: juicefs-selftest
+    spec:
+      restartPolicy: Never
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: juicefs-selftest
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: test
+          image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              echo "user: $(id -u):$(id -g), volume: $(ls -ld /data)"
+              d=/data/selftest
+              mkdir -p "$d"
+              me=$JOB_COMPLETION_INDEX
+              other=$((1 - me))
+              echo "$NODE_NAME" > "$d/from-$me"
+              i=0
+              until [ -s "$d/from-$other" ]; do
+                i=$((i + 1))
+                [ "$i" -le 120 ] || { echo "no file from pod $other after 4 minutes"; exit 1; }
+                sleep 2
+              done
+              o=$(cat "$d/from-$other")
+              echo "this pod: $NODE_NAME, the other pod: $o"
+              [ "$o" != "$NODE_NAME" ] || { echo "both pods ran on the same node"; exit 1; }
+              echo "OK: the volume is shared across nodes"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 32Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: juicefs-selftest

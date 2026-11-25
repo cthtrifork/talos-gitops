@@ -7,6 +7,7 @@ resources:
   - garage/
   - csi/
   - storageclass.yaml
+  - selftest/
   - issuer.yaml
   - certificate.yaml
   - postgres-cluster.yaml
