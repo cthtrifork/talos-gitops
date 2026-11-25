@@ -42,9 +42,9 @@ CNPG grows when `storage.size` changes: the operator resizes every PVC, online o
 
 Garage is a StatefulSet. A new `persistence.*.size` changes its `volumeClaimTemplates`, which Kubernetes still forbids (v1.37, immutable) and a Helm retry does not fix (`docs/helmrelease-conventions.md`). Garage also only uses the `clusterConfig.layout.capacity` it was given, set to the data size. In this order:
 
-1. Expand the three data PVCs (`kubectl patch pvc`, storage elevation).
+1. Expand all three data PVCs (`kubectl patch pvc`, storage elevation). Each node holds a full copy, so the usable space is that of the smallest one.
 2. `kubectl delete sts garage --cascade=orphan`: the pods keep running.
-3. Merge the change that raises `persistence.data.size` and `layout.capacity` together. Flux recreates the StatefulSet and the configure hook assigns the new capacity. Merging first makes the upgrade fail.
+3. Merge the change that raises `persistence.data.size` and `layout.capacity` together. Flux recreates the StatefulSet and the configure hook assigns the new capacity. Merging first makes the upgrade fail. Do not run `garage layout apply` by hand at the same time: two applies of the same `--version` leave the cluster inconsistent.
 
 ## Which to use
 
