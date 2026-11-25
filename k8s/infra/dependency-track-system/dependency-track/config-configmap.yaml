@@ -10,7 +10,7 @@ data:
       {
         "name": "sbom-uploader",
         "secret": "dependency-track-api-key",
-        "permissions": ["BOM_UPLOAD", "PROJECT_CREATION_UPLOAD"]
+        "permissions": ["BOM_UPLOAD", "PROJECT_CREATION_UPLOAD", "VIEW_PORTFOLIO", "PORTFOLIO_MANAGEMENT_CREATE"]
       },
       {
         "name": "vex-exporter",

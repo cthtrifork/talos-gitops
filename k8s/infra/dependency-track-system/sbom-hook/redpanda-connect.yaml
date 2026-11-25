@@ -22,15 +22,19 @@ pipeline:
         if this.kind != "SbomReport" {
           root = deleted()
         } else {
-          # one rolling project per image in a namespace: each upload replaces the components and keeps the audit decisions.
-          # retire-projects.sh (retire-cronjob.yaml) derives the same name.
+          # one project per image in a namespace, one version per image tag; a tag that moves to a new digest updates its version in place.
+          # retire-projects.sh (retire-cronjob.yaml) derives the same name and version.
           let name = this.metadata.labels."trivy-operator.resource.namespace".not_empty() + "/" + this.report.artifact.repository.not_empty()
-          meta dedupe_key = $name + ":" + this.report.artifact.digest.or(this.report.artifact.tag)
+          let tag = this.report.artifact.tag.or("").re_replace_all("^.*:", "")
+          let version = if $tag != "" { $tag } else { this.report.artifact.digest.not_empty() }
+          meta project_name = $name
+          meta project_version = $version
+          meta dedupe_key = $name + ":" + $version + ":" + this.report.artifact.digest.or("")
           root = {
             "projectName": $name,
-            "projectVersion": "current",
+            "projectVersion": $version,
             "autoCreate": true,
-            "isActive": true, # an image that comes back after retirement is active again
+            "isActive": true, # a version that comes back after retirement is active again
             "projectTags": [{"name": "kubernetes"}],
             "bom": this.report.components.format_json().encode("base64")
           }
@@ -39,6 +43,48 @@ pipeline:
     - dedupe:
         cache: sbom_seen
         key: '$${!metadata("dedupe_key")}'
+    # A tag seen for the first time starts as a clone of the newest version of its project, so the audit decisions carry over.
+    # Errors do not stop the upload: it then creates an empty version.
+    - switch:
+        - check: env("DT_API_KEY").or("") != ""
+          processors:
+            - branch:
+                request_map: 'root = ""'
+                processors:
+                  - http:
+                      url: http://dependency-track-api-server.dependency-track-system.svc.cluster.local:8080/api/v1/project/lookup?name=$${! @project_name.escape_url_query() }&version=$${! @project_version.escape_url_query() }
+                      verb: GET
+                      headers:
+                        X-Api-Key: $${DT_API_KEY}
+                      successful_on:
+                        - 404
+                  - switch:
+                      - check: '@http_status_code == 404'
+                        processors:
+                          - http:
+                              url: http://dependency-track-api-server.dependency-track-system.svc.cluster.local:8080/api/v1/project?excludeInactive=false&pageSize=100&name=$${! @project_name.escape_url_query() }
+                              verb: GET
+                              headers:
+                                X-Api-Key: $${DT_API_KEY}
+                          - mapping: |
+                              let versions = this.filter(p -> p.name == @project_name).sort_by(p -> p.lastBomImport.or(0)).reverse()
+                              meta source_uuid = if $versions.length() > 0 { $versions.index(0).uuid } else { "" }
+                              root = {
+                                "version": @project_version,
+                                "version_is_latest": true,
+                                "includes": ["COMPONENTS", "FINDINGS", "FINDINGS_AUDIT_HISTORY", "POLICY_VIOLATIONS", "POLICY_VIOLATIONS_AUDIT_HISTORY", "PROPERTIES", "TAGS"]
+                              }
+                          - switch:
+                              - check: '@source_uuid != ""'
+                                processors:
+                                  - http:
+                                      url: http://dependency-track-api-server.dependency-track-system.svc.cluster.local:8080/api/v2/projects/$${! @source_uuid }/clone
+                                      verb: POST
+                                      headers:
+                                        Content-Type: application/json
+                                        X-Api-Key: $${DT_API_KEY}
+                                      successful_on:
+                                        - 409 # another report of the same tag cloned it first
 
 cache_resources:
   - label: sbom_seen
