@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: 411a3a359ee97a33e2aa5101b4c7c1048466b62c966ea93559387e2f1c7318b
+    actions.github.com/values-hash: f8c97155f7c62d52b33d251e7d1662706d0677d7ca9684fd7968da0999e388e
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-gha-rs-no-permission

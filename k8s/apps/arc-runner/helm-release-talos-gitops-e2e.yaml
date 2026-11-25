@@ -28,7 +28,7 @@ spec:
     githubConfigUrl: https://github.com/cthtrifork/talos-gitops
     runnerScaleSetName: arc-e2e-talos-gitops
 
-    maxRunners: 2 # a Talos-in-Docker cluster with Cilium and Flux takes about 4 GiB
+    maxRunners: 3 # a Talos-in-Docker cluster with Cilium and Flux takes about 4 GiB
     minRunners: 0
 
     githubConfigSecret: github-auth
@@ -163,7 +163,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 10Gi
+                      storage: 2Gi
           - name: dind-sock
             emptyDir: {}
           - name: dind-externals
@@ -178,7 +178,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 20Gi
+                      storage: 12Gi
     listenerTemplate:
       metadata:
         labels:
