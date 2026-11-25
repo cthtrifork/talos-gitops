@@ -1,0 +1,88 @@
+# Database PKI: no passwords. PostgreSQL requires TLS and a client certificate whose CN equals the role name; one CA
+# signs server, replication and client certificates, and cert-manager (not CNPG) owns its key. The JuiceFS mount pods
+# get the client certificate through the volume secret (configs).
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/issuer_v1.json
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: juicefs-meta-ca
+  namespace: juicefs-system
+spec:
+  ca:
+    secretName: juicefs-meta-ca
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: juicefs-meta-ca
+  namespace: juicefs-system
+spec:
+  isCA: true
+  commonName: juicefs-meta-ca
+  secretName: juicefs-meta-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: portableinfo-pmx01-root-ca-bootstrap
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: juicefs-meta-server
+  namespace: juicefs-system
+spec:
+  secretName: juicefs-meta-server
+  usages:
+    - server auth
+  dnsNames:
+    - juicefs-meta-rw
+    - juicefs-meta-rw.juicefs-system
+    - juicefs-meta-rw.juicefs-system.svc
+    - juicefs-meta-r
+    - juicefs-meta-r.juicefs-system
+    - juicefs-meta-r.juicefs-system.svc
+    - juicefs-meta-ro
+    - juicefs-meta-ro.juicefs-system
+    - juicefs-meta-ro.juicefs-system.svc
+  issuerRef:
+    name: juicefs-meta-ca
+    kind: Issuer
+    group: cert-manager.io
+---
+# Required by CNPG once a custom client CA is used.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: juicefs-meta-replication
+  namespace: juicefs-system
+spec:
+  secretName: juicefs-meta-replication
+  commonName: streaming_replica
+  usages:
+    - client auth
+  issuerRef:
+    name: juicefs-meta-ca
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: juicefs-meta-client
+  namespace: juicefs-system
+spec:
+  secretName: juicefs-meta-client
+  commonName: juicefs
+  usages:
+    - client auth
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: juicefs-meta-ca
+    kind: Issuer
+    group: cert-manager.io

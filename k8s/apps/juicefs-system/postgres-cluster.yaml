@@ -29,7 +29,22 @@ spec:
       memory: 256Mi
     limits:
       memory: 512Mi
+  managed:
+    roles:
+      # the database owner: certificate only, the password is removed
+      - name: juicefs
+        ensure: present
+        login: true
+        disablePassword: true
+  certificates:
+    serverTLSSecret: juicefs-meta-server
+    serverCASecret: juicefs-meta-ca
+    clientCASecret: juicefs-meta-ca
+    replicationTLSSecret: juicefs-meta-replication
   postgresql:
+    pg_hba:
+      # Before CNPG's default "host all all all scram-sha-256" rule; cert auth matches CN against the role name.
+      - hostssl juicefs juicefs all cert
     synchronous:
       method: any
       number: 1

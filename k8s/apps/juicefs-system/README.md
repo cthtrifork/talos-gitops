@@ -5,7 +5,8 @@ Backends for a JuiceFS filesystem that gives the ARC runners ReadWriteMany cache
 | Part | What | Where it lives |
 |---|---|---|
 | Garage | Object store for the data blocks, 3 nodes, `replication_factor = 3`, bucket `juicefs` | `garage/`, `lvm-bulk` 10 Gi and `lvm-fast` 1 Gi per node |
-| `juicefs-meta` | PostgreSQL (CNPG) for the metadata, 3 instances, one synchronous standby | `postgres-cluster.yaml`, `lvm-fast` 2 Gi per instance |
+| `juicefs-meta` | PostgreSQL (CNPG) for the metadata, 3 instances, one synchronous standby, client-certificate login only (`postgres-pki.yaml`) | `postgres-cluster.yaml`, `lvm-fast` 2 Gi per instance |
+| CSI driver | JuiceFS CSI driver 0.34.0 in mount pod mode, StorageClass `juicefs` (ReadWriteMany) | `csi/`, `storageclass.yaml`; chart mirrored by `scripts/ci/helm/load-juicefs-charts.yaml` |
 
 - A separate Garage from Renovate's: `replication_factor` is fixed when a cluster is created.
 - Garage stays off `talos-tba-msi`, which has no `vg-bulk`.
