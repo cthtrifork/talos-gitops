@@ -62,12 +62,13 @@ pipeline:
                       - check: '@http_status_code == 404'
                         processors:
                           - http:
-                              url: http://dependency-track-api-server.dependency-track-system.svc.cluster.local:8080/api/v1/project?excludeInactive=false&pageSize=100&name=$${! @project_name.escape_url_query() }
+                              url: http://dependency-track-api-server.dependency-track-system.svc.cluster.local:8080/api/v1/project?excludeInactive=false&pageSize=100&sortName=lastBomImport&sortOrder=desc&name=$${! @project_name.escape_url_query() }
                               verb: GET
                               headers:
                                 X-Api-Key: $${DT_API_KEY}
                           - mapping: |
-                              let versions = this.filter(p -> p.name == @project_name).sort_by(p -> p.lastBomImport.or(0)).reverse()
+                              # the list comes newest first
+                              let versions = this.filter(p -> p.name == @project_name)
                               meta source_uuid = if $versions.length() > 0 { $versions.index(0).uuid } else { "" }
                               root = {
                                 "version": @project_version,
@@ -75,7 +76,7 @@ pipeline:
                                 "includes": ["COMPONENTS", "FINDINGS", "FINDINGS_AUDIT_HISTORY", "POLICY_VIOLATIONS", "POLICY_VIOLATIONS_AUDIT_HISTORY", "PROPERTIES", "TAGS"]
                               }
                           - switch:
-                              - check: '@source_uuid != ""'
+                              - check: '@source_uuid.or("") != ""'
                                 processors:
                                   - http:
                                       url: http://dependency-track-api-server.dependency-track-system.svc.cluster.local:8080/api/v2/projects/$${! @source_uuid }/clone
