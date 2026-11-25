@@ -965,13 +965,6 @@ spec:
                           x-kubernetes-list-type: atomic
                       type: object
                   type: object
-                allowedGroups:
-                  description: |-
-                    Deprecated: use Access.AdminGroups. Groups granted full access to this
-                    RenovateJob when authentication is enabled. Mutually exclusive with Access.
-                  items:
-                    type: string
-                  type: array
                 discoverTopics:
                   description: Topics to discover projects from, will be concatenated using , separator
                   items:
@@ -4374,8 +4367,6 @@ spec:
                   type: object
               type: object
               x-kubernetes-validations:
-                - message: allowedGroups and access are mutually exclusive; migrate allowedGroups to access.adminGroups
-                  rule: '!(has(self.allowedGroups) && has(self.access))'
                 - message: githubAppReference requires provider.name github
                   rule: '!has(self.githubAppReference) || !has(self.provider) || self.provider.name.lowerAscii() == ''github'''
           type: object
@@ -5648,13 +5639,6 @@ spec:
                           x-kubernetes-list-type: atomic
                       type: object
                   type: object
-                allowedGroups:
-                  description: |-
-                    Deprecated: use Access.AdminGroups. Groups granted full access to this
-                    RenovateJob when authentication is enabled. Mutually exclusive with Access.
-                  items:
-                    type: string
-                  type: array
                 discoverTopics:
                   description: Topics to discover projects from, will be concatenated using , separator
                   items:
@@ -9057,8 +9041,6 @@ spec:
                   type: object
               type: object
               x-kubernetes-validations:
-                - message: allowedGroups and access are mutually exclusive; migrate allowedGroups to access.adminGroups
-                  rule: '!(has(self.allowedGroups) && has(self.access))'
                 - message: githubAppReference requires provider.name github
                   rule: '!has(self.githubAppReference) || !has(self.provider) || self.provider.name.lowerAscii() == ''github'''
             status:
@@ -10098,13 +10080,6 @@ spec:
                           x-kubernetes-list-type: atomic
                       type: object
                   type: object
-                allowedGroups:
-                  description: |-
-                    Deprecated: use Access.AdminGroups. Groups granted full access to this
-                    RenovateJob when authentication is enabled. Mutually exclusive with Access.
-                  items:
-                    type: string
-                  type: array
                 discoverTopics:
                   description: Topics to discover projects from, will be concatenated using , separator
                   items:
@@ -13507,8 +13482,6 @@ spec:
                   type: object
               type: object
               x-kubernetes-validations:
-                - message: allowedGroups and access are mutually exclusive; migrate allowedGroups to access.adminGroups
-                  rule: '!(has(self.allowedGroups) && has(self.access))'
                 - message: githubAppReference requires provider.name github
                   rule: '!has(self.githubAppReference) || !has(self.provider) || self.provider.name.lowerAscii() == ''github'''
           type: object

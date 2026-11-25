@@ -38,10 +38,21 @@ spec:
         repository: registry.k8s.io/sig-storage/csi-resizer
         # renovate: datasource=docker depName=registry.k8s.io/sig-storage/csi-resizer versioning=docker
         tag: v2.3.1@sha256:d5b040c2f6ffb25127169feeb845aaf1fa3279e510d71fbebe386b5becc625cc
+    # Talos has a read-only /etc: without this every mount pod asks for a host path volume on /etc/updatedb.conf and fails to start
+    immutable: true
     # The web UI can read secret values and is granted write access to secrets cluster-wide; Prometheus covers monitoring
     dashboard:
       enabled: false
     controller:
+      # The driver itself reads the metadata engine (format, provisioning), so it needs the client certificate too, not only the mount pods
+      extraVolumes:
+        - name: meta-client
+          secret:
+            secretName: juicefs-meta-client
+      extraVolumeMounts:
+        - name: meta-client
+          mountPath: /etc/juicefs-pg
+          readOnly: true
       resources:
         requests:
           cpu: 50m
@@ -49,6 +60,14 @@ spec:
         limits:
           memory: 1Gi
     node:
+      extraVolumes:
+        - name: meta-client
+          secret:
+            secretName: juicefs-meta-client
+      extraVolumeMounts:
+        - name: meta-client
+          mountPath: /etc/juicefs-pg
+          readOnly: true
       resources:
         requests:
           cpu: 50m

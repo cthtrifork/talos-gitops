@@ -151,7 +151,7 @@ spec:
             path: username
           - key: password
             path: password
-          secretName: dependency-track-db-app
+          secretName: dependency-track-db
       - name: sm-database-kek
         secret:
           defaultMode: 292

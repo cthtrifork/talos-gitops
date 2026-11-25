@@ -104,6 +104,8 @@ spec:
           value: /var/lib/juicefs/config
         - name: JUICEFS_CE_MOUNT_IMAGE
           value: mirror.gcr.io/juicedata/mount:ce-v1.4.2@sha256:4177c77bc873898127debf45786515b78c79bee18fed378d276fb221baa85640
+        - name: JUICEFS_IMMUTABLE
+          value: "true"
         - name: JUICEFS_CSI_WEB_PORT
           value: "9567"
         - name: DRIVER_NAME
@@ -160,6 +162,9 @@ spec:
           name: jfs-fuse-fd
         - mountPath: /etc/config
           name: juicefs-config
+        - mountPath: /etc/juicefs-pg
+          name: meta-client
+          readOnly: true
       dnsPolicy: ClusterFirstWithHostNet
       priorityClassName: system-node-critical
       serviceAccount: juicefs-csi-node-sa
@@ -198,6 +203,9 @@ spec:
       - configMap:
           name: juicefs-csi-driver-config
         name: juicefs-config
+      - name: meta-client
+        secret:
+          secretName: juicefs-meta-client
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 50%

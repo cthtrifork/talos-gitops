@@ -24,7 +24,7 @@ spec:
     fullnameOverride: renovate-operator
     image:
       # renovate: datasource=docker depName=ghcr.io/mogenius/renovate-operator versioning=docker
-      tag: 6.10.0@sha256:a7f7e7448a5f5c8ea91f56566b940754fe1fe46447c75d375eacf4ced12e6655
+      tag: 7.0.0@sha256:27e71ee7f6891d00893859df8898e1e97dec7b804f55a4c1800a153b453cee9d
     # The CRDs are part of the release (not a kubectl hook Job, which would need egress)
     crd:
       mode: template

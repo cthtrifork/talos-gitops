@@ -43,8 +43,9 @@ spec:
     database:
 
       jdbcUrl: "jdbc:postgresql://dependency-track-db-rw.dependency-track-system.svc.cluster.local:5432/dtrack?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
-      existingSecret:
-        name: dependency-track-db-app # created by CNPG
+      # The login is a client certificate and the dtrack role has no password; the chart insists on both values.
+      username: dtrack
+      password: unused
     secretManagement:
       database:
         kek:
