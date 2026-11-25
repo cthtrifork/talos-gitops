@@ -141,6 +141,9 @@ spec:
           - name: github-auth
         securityContext:
           fsGroup: 1001
+          # Only check the volume root: the default (Always) recursively chgrps and ORs g+rw onto the persistent
+          # containers/bib volumes at every pod start, corrupting the POSIX metadata of the cached image layers.
+          fsGroupChangePolicy: OnRootMismatch
           seccompProfile:
             type: RuntimeDefault
         volumes:
