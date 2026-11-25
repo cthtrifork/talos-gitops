@@ -1,5 +1,6 @@
 # Database PKI: no passwords. PostgreSQL requires TLS and a client certificate whose CN equals the role name; one CA
-# signs server, replication and client certificates, and cert-manager (not CNPG) owns its key. Same as harper-pad.
+# signs server, replication and client certificates, and cert-manager (not CNPG) owns its key. Unlike harper-pad the CA
+# is issued by the root CA: the JVM verifies the server through its truststore, which only holds that root.
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
 apiVersion: cert-manager.io/v1
@@ -11,11 +12,14 @@ spec:
   isCA: true
   commonName: dependency-track-db-ca
   secretName: dependency-track-db-ca
+  # Leaf certificates carry a copy of this CA: a long life keeps a stale copy from expiring before the leaf.
+  duration: 43800h
+  renewBefore: 8760h
   privateKey:
     algorithm: ECDSA
     size: 256
   issuerRef:
-    name: portableinfo-pmx01-root-ca-bootstrap
+    name: certificate-cluster-issuer
     kind: ClusterIssuer
 ---
 apiVersion: cert-manager.io/v1
@@ -26,6 +30,8 @@ metadata:
 spec:
   secretName: dependency-track-db-server
   usages:
+    - digital signature
+    - key encipherment
     - server auth
   dnsNames:
     - dependency-track-db-rw
@@ -53,6 +59,7 @@ spec:
   secretName: dependency-track-db-replication
   commonName: streaming_replica
   usages:
+    - digital signature
     - client auth
   issuerRef:
     name: dependency-track-db-ca
@@ -68,6 +75,7 @@ spec:
   secretName: dependency-track-db-client
   commonName: dtrack
   usages:
+    - digital signature
     - client auth
   privateKey:
     algorithm: ECDSA
