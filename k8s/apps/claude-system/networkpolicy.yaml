@@ -116,21 +116,29 @@ spec:
         - matchName: githubassets.com
         - matchName: githubcopilot.com
 
-        # Context and documentation
+        # Docs: cluster components
         - matchName: cilium.io
         - matchPattern: "*.cilium.io"
-        - matchPattern: "*.githubusercontent.com"
+        - matchName: kubevirt.io
+        - matchName: docs.siderolabs.com
+        - matchName: developers.cloudflare.com
+        - matchName: polaris.docs.fairwinds.com
+        - matchName: cloudnative-pg.io
+        - matchName: garagehq.deuxfleurs.fr
+        - matchName: juicefs.com
+
+        # Docs: search and hosted sites
+        - matchName: "context7.com"
         # GitHub Pages sites (docs, JSON schema catalogs)
         - matchPattern: "*.github.io"
+        - matchPattern: "*.githubusercontent.com"
+
+        # JSON schemas for yaml-language-server
+        - matchName: schemas.fluxoperator.dev
+
         # Actions job logs (gh run view --log): the receiver and the results blob storage the logs redirect to
         - matchPattern: "*.actions.githubusercontent.com"
         - matchPattern: "*.blob.core.windows.net"
-        - matchName: "context7.com"
-        - matchName: developers.cloudflare.com
-        - matchName: kubevirt.io
-        - matchName: docs.siderolabs.com
-        # Flux Operator JSON schemas (yaml-language-server $schema)
-        - matchName: schemas.fluxoperator.dev
 
         # Container registries (crane/skopeo); ghcr.io blob redirects are covered by *.githubusercontent.com
         - matchName: ghcr.io
@@ -143,6 +151,8 @@ spec:
         - matchName: gcr.io
         - matchName: mirror.gcr.io
         - matchName: registry.k8s.io
+        # registry.k8s.io redirects blobs to Artifact Registry (europe-west4-docker.pkg.dev, region may change)
+        - matchPattern: "*.pkg.dev"
 
         # Bandwidth tests with curl (download __down, upload __up)
         - matchName: speed.cloudflare.com
