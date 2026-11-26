@@ -1,0 +1,42 @@
+name: Build and release the tools image
+
+# Caller of build-release-image.yaml.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - images/tools/**
+      - .github/workflows/build-tools.yaml
+      - .github/workflows/build-release-image.yaml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - images/tools/**
+      - .github/workflows/build-tools.yaml
+      - .github/workflows/build-release-image.yaml
+  schedule:
+    - cron: "17 4 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    permissions:
+      contents: write # create the release and its tag
+      id-token: write # sign the image and its provenance attestation (OIDC)
+      packages: write # push the image to ghcr.io
+      attestations: write # store the provenance attestation
+      pull-requests: write # the scan comment on pull requests
+    uses: ./.github/workflows/build-release-image.yaml
+    with:
+      name: tools
+      tag-prefix: tools
+      version-arg: KUBECTL_VERSION
