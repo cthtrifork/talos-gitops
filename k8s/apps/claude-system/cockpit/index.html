@@ -276,6 +276,7 @@ function cronWords(expr) {
   if (mon !== "*") return expr;
   if (dom === "*" && dow === "*" && h === "*" && (m = mi.match(/^\*\/(\d+)$/))) return `every ${m[1]} min`;
   if (dom === "*" && dow === "*" && h === "*" && mi === "0") return "every hour";
+  if (dom === "*" && dow === "*" && h === "*" && /^\d+$/.test(mi)) return `hourly at :${mi.padStart(2, "0")}`;
   if (dom === "*" && dow === "*" && /^\d+$/.test(mi) && (m = h.match(/^\*\/(\d+)$/))) return `every ${m[1]} h`;
   if (hhmm && dom === "*" && dow in days) return (days[dow] ? days[dow] + " " : "daily ") + hhmm;
   if (hhmm && /^\d+$/.test(dom) && dow === "*") return `day ${dom} of the month ${hhmm}`;
