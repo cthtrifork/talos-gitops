@@ -3,9 +3,52 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/cloudnative-pg/postgresql",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T15:36:11Z",
-  "version": 1,
+  "timestamp": "2026-11-26T22:00:32Z",
+  "version": 2,
   "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2018-5709"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/postgresql?repository_url=ghcr.io%2Fcloudnative-pg%2Fpostgresql",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/postgresql?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcloudnative-pg%2Fpostgresql",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
     {
       "vulnerability": {
         "name": "CVE-2019-1010022"
@@ -15,16 +58,16 @@
           "@id": "pkg:oci/postgresql?repository_url=ghcr.io%2Fcloudnative-pg%2Fpostgresql",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/locales@2.41-12%2Bdeb13u5?arch=all&distro=debian-13.8"
+              "@id": "pkg:deb/debian/libc-bin"
             },
             {
-              "@id": "pkg:deb/debian/libc6@2.41-12%2Bdeb13u5?arch=amd64&distro=debian-13.8"
+              "@id": "pkg:deb/debian/libc-l10n"
             },
             {
-              "@id": "pkg:deb/debian/libc-bin@2.41-12%2Bdeb13u5?arch=amd64&distro=debian-13.8"
+              "@id": "pkg:deb/debian/libc6"
             },
             {
-              "@id": "pkg:deb/debian/libc-l10n@2.41-12%2Bdeb13u5?arch=all&distro=debian-13.8"
+              "@id": "pkg:deb/debian/locales"
             }
           ]
         },
@@ -32,22 +75,194 @@
           "@id": "pkg:oci/postgresql?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcloudnative-pg%2Fpostgresql",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/locales@2.41-12%2Bdeb13u5?arch=all&distro=debian-13.8"
+              "@id": "pkg:deb/debian/libc-bin"
             },
             {
-              "@id": "pkg:deb/debian/libc6@2.41-12%2Bdeb13u5?arch=amd64&distro=debian-13.8"
+              "@id": "pkg:deb/debian/libc-l10n"
             },
             {
-              "@id": "pkg:deb/debian/libc-bin@2.41-12%2Bdeb13u5?arch=amd64&distro=debian-13.8"
+              "@id": "pkg:deb/debian/libc6"
             },
             {
-              "@id": "pkg:deb/debian/libc-l10n@2.41-12%2Bdeb13u5?arch=all&distro=debian-13.8"
+              "@id": "pkg:deb/debian/locales"
             }
           ]
         }
       ],
       "status": "not_affected",
       "impact_statement": "glibc stack-guard bypass disputed upstream, not a vulnerability by itself"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-26458"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/postgresql?repository_url=ghcr.io%2Fcloudnative-pg%2Fpostgresql",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/postgresql?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcloudnative-pg%2Fpostgresql",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-26461"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/postgresql?repository_url=ghcr.io%2Fcloudnative-pg%2Fpostgresql",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/postgresql?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcloudnative-pg%2Fpostgresql",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107708"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/postgresql?repository_url=ghcr.io%2Fcloudnative-pg%2Fpostgresql",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/postgresql?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcloudnative-pg%2Fpostgresql",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107778"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/postgresql?repository_url=ghcr.io%2Fcloudnative-pg%2Fpostgresql",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/postgresql?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcloudnative-pg%2Fpostgresql",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
     }
   ]
 }

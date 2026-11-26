@@ -1,0 +1,35 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/mirror.gcr.io/dependencytrack/apiserver",
+  "author": "Dependency-Track",
+  "role": "Automated export from Dependency-Track",
+  "timestamp": "2026-11-26T22:00:31Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-4738"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/apiserver?repository_url=mirror.gcr.io%2Fdependencytrack%2Fapiserver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/zlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/apiserver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fdependencytrack%2Fapiserver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/zlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "gdal infback9 bug matched to zlib by mistake; gdal is not in any image"
+    }
+  ]
+}

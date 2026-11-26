@@ -1,6 +1,78 @@
 {
-  "updated_at": "2026-11-26T15:36:11Z",
+  "updated_at": "2026-11-26T22:00:32Z",
   "packages": [
+    {
+      "id": "pkg:oci/apiserver?repository_url=mirror.gcr.io%2Fdependencytrack%2Fapiserver",
+      "location": "pkg/oci/mirror.gcr.io/dependencytrack/apiserver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/apiserver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fdependencytrack%2Fapiserver",
+      "location": "pkg/oci/mirror.gcr.io/dependencytrack/apiserver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cdi-apiserver?repository_url=quay.io%2Fkubevirt%2Fcdi-apiserver",
+      "location": "pkg/oci/quay.io/kubevirt/cdi-apiserver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cdi-apiserver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fkubevirt%2Fcdi-apiserver",
+      "location": "pkg/oci/quay.io/kubevirt/cdi-apiserver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cdi-controller?repository_url=quay.io%2Fkubevirt%2Fcdi-controller",
+      "location": "pkg/oci/quay.io/kubevirt/cdi-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cdi-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fkubevirt%2Fcdi-controller",
+      "location": "pkg/oci/quay.io/kubevirt/cdi-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cdi-operator?repository_url=quay.io%2Fkubevirt%2Fcdi-operator",
+      "location": "pkg/oci/quay.io/kubevirt/cdi-operator/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cdi-operator?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fkubevirt%2Fcdi-operator",
+      "location": "pkg/oci/quay.io/kubevirt/cdi-operator/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cdi-uploadproxy?repository_url=quay.io%2Fkubevirt%2Fcdi-uploadproxy",
+      "location": "pkg/oci/quay.io/kubevirt/cdi-uploadproxy/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cdi-uploadproxy?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fkubevirt%2Fcdi-uploadproxy",
+      "location": "pkg/oci/quay.io/kubevirt/cdi-uploadproxy/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cert-manager-cainjector?repository_url=quay.io%2Fjetstack%2Fcert-manager-cainjector",
+      "location": "pkg/oci/quay.io/jetstack/cert-manager-cainjector/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cert-manager-cainjector?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fjetstack%2Fcert-manager-cainjector",
+      "location": "pkg/oci/quay.io/jetstack/cert-manager-cainjector/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cert-manager-controller?repository_url=quay.io%2Fjetstack%2Fcert-manager-controller",
+      "location": "pkg/oci/quay.io/jetstack/cert-manager-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cert-manager-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fjetstack%2Fcert-manager-controller",
+      "location": "pkg/oci/quay.io/jetstack/cert-manager-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cert-manager-webhook?repository_url=quay.io%2Fjetstack%2Fcert-manager-webhook",
+      "location": "pkg/oci/quay.io/jetstack/cert-manager-webhook/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cert-manager-webhook?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fjetstack%2Fcert-manager-webhook",
+      "location": "pkg/oci/quay.io/jetstack/cert-manager-webhook/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cilium?repository_url=quay.io%2Fcilium%2Fcilium",
+      "location": "pkg/oci/quay.io/cilium/cilium/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cilium?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fcilium%2Fcilium",
+      "location": "pkg/oci/quay.io/cilium/cilium/oci.openvex.json"
+    },
     {
       "id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
       "location": "pkg/oci/ghcr.io/cthtrifork/talos-gitops/claude-runner/oci.openvex.json"
@@ -18,12 +90,268 @@
       "location": "pkg/oci/mirror.gcr.io/cloudflare/cloudflared/oci.openvex.json"
     },
     {
+      "id": "pkg:oci/controller?repository_url=quay.io%2Fmetallb%2Fcontroller",
+      "location": "pkg/oci/quay.io/metallb/controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fmetallb%2Fcontroller",
+      "location": "pkg/oci/quay.io/metallb/controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/coredns?repository_url=registry.k8s.io%2Fcoredns%2Fcoredns",
+      "location": "pkg/oci/registry.k8s.io/coredns/coredns/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/coredns?repository_url=zot.registry-system.svc.cluster.local:5000%2Fk8s-cache%2Fcoredns%2Fcoredns",
+      "location": "pkg/oci/registry.k8s.io/coredns/coredns/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/frontend?repository_url=mirror.gcr.io%2Fdependencytrack%2Ffrontend",
+      "location": "pkg/oci/mirror.gcr.io/dependencytrack/frontend/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/frontend?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fdependencytrack%2Ffrontend",
+      "location": "pkg/oci/mirror.gcr.io/dependencytrack/frontend/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/frr?repository_url=quay.io%2Ffrrouting%2Ffrr",
+      "location": "pkg/oci/quay.io/frrouting/frr/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/frr?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Ffrrouting%2Ffrr",
+      "location": "pkg/oci/quay.io/frrouting/frr/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/helm-controller?repository_url=ghcr.io%2Ffluxcd%2Fhelm-controller",
+      "location": "pkg/oci/ghcr.io/fluxcd/helm-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/helm-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fhelm-controller",
+      "location": "pkg/oci/ghcr.io/fluxcd/helm-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/hubble-ui-backend?repository_url=quay.io%2Fcilium%2Fhubble-ui-backend",
+      "location": "pkg/oci/quay.io/cilium/hubble-ui-backend/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/hubble-ui-backend?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fcilium%2Fhubble-ui-backend",
+      "location": "pkg/oci/quay.io/cilium/hubble-ui-backend/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/hubble-ui?repository_url=quay.io%2Fcilium%2Fhubble-ui",
+      "location": "pkg/oci/quay.io/cilium/hubble-ui/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/hubble-ui?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fcilium%2Fhubble-ui",
+      "location": "pkg/oci/quay.io/cilium/hubble-ui/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/k8s?repository_url=mirror.gcr.io%2Falpine%2Fk8s",
+      "location": "pkg/oci/mirror.gcr.io/alpine/k8s/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/k8s?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Falpine%2Fk8s",
+      "location": "pkg/oci/mirror.gcr.io/alpine/k8s/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/kube-service-exposer?repository_url=ghcr.io%2Fsiderolabs%2Fkube-service-exposer",
+      "location": "pkg/oci/ghcr.io/siderolabs/kube-service-exposer/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/kube-service-exposer?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fsiderolabs%2Fkube-service-exposer",
+      "location": "pkg/oci/ghcr.io/siderolabs/kube-service-exposer/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/kube-state-metrics?repository_url=registry.k8s.io%2Fkube-state-metrics%2Fkube-state-metrics",
+      "location": "pkg/oci/registry.k8s.io/kube-state-metrics/kube-state-metrics/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/kube-state-metrics?repository_url=zot.registry-system.svc.cluster.local:5000%2Fk8s-cache%2Fkube-state-metrics%2Fkube-state-metrics",
+      "location": "pkg/oci/registry.k8s.io/kube-state-metrics/kube-state-metrics/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/kyverno?repository_url=ghcr.io%2Fkyverno%2Fkyverno",
+      "location": "pkg/oci/ghcr.io/kyverno/kyverno/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/kyverno?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fkyverno%2Fkyverno",
+      "location": "pkg/oci/ghcr.io/kyverno/kyverno/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/kyvernopre?repository_url=ghcr.io%2Fkyverno%2Fkyvernopre",
+      "location": "pkg/oci/ghcr.io/kyverno/kyvernopre/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/kyvernopre?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fkyverno%2Fkyvernopre",
+      "location": "pkg/oci/ghcr.io/kyverno/kyvernopre/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+      "location": "pkg/oci/mirror.gcr.io/openebs/lvm-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+      "location": "pkg/oci/mirror.gcr.io/openebs/lvm-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/metrics-server?repository_url=registry.k8s.io%2Fmetrics-server%2Fmetrics-server",
+      "location": "pkg/oci/registry.k8s.io/metrics-server/metrics-server/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/metrics-server?repository_url=zot.registry-system.svc.cluster.local:5000%2Fk8s-cache%2Fmetrics-server%2Fmetrics-server",
+      "location": "pkg/oci/registry.k8s.io/metrics-server/metrics-server/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/nginx-unprivileged?repository_url=mirror.gcr.io%2Fnginxinc%2Fnginx-unprivileged",
+      "location": "pkg/oci/mirror.gcr.io/nginxinc/nginx-unprivileged/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/nginx-unprivileged?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fnginxinc%2Fnginx-unprivileged",
+      "location": "pkg/oci/mirror.gcr.io/nginxinc/nginx-unprivileged/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/notification-controller?repository_url=ghcr.io%2Ffluxcd%2Fnotification-controller",
+      "location": "pkg/oci/ghcr.io/fluxcd/notification-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/notification-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fnotification-controller",
+      "location": "pkg/oci/ghcr.io/fluxcd/notification-controller/oci.openvex.json"
+    },
+    {
       "id": "pkg:oci/postgresql?repository_url=ghcr.io%2Fcloudnative-pg%2Fpostgresql",
       "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
     },
     {
       "id": "pkg:oci/postgresql?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcloudnative-pg%2Fpostgresql",
       "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/prometheus?repository_url=quay.io%2Fprometheus%2Fprometheus",
+      "location": "pkg/oci/quay.io/prometheus/prometheus/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/prometheus?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fprometheus%2Fprometheus",
+      "location": "pkg/oci/quay.io/prometheus/prometheus/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/rclone?repository_url=mirror.gcr.io%2Frclone%2Frclone",
+      "location": "pkg/oci/mirror.gcr.io/rclone/rclone/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/rclone?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Frclone%2Frclone",
+      "location": "pkg/oci/mirror.gcr.io/rclone/rclone/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/source-controller?repository_url=ghcr.io%2Ffluxcd%2Fsource-controller",
+      "location": "pkg/oci/ghcr.io/fluxcd/source-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/source-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fsource-controller",
+      "location": "pkg/oci/ghcr.io/fluxcd/source-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/traefik?repository_url=mirror.gcr.io%2Flibrary%2Ftraefik",
+      "location": "pkg/oci/mirror.gcr.io/library/traefik/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/traefik?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Flibrary%2Ftraefik",
+      "location": "pkg/oci/mirror.gcr.io/library/traefik/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/trivy-operator?repository_url=mirror.gcr.io%2Faquasec%2Ftrivy-operator",
+      "location": "pkg/oci/mirror.gcr.io/aquasec/trivy-operator/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/trivy-operator?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Faquasec%2Ftrivy-operator",
+      "location": "pkg/oci/mirror.gcr.io/aquasec/trivy-operator/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/trivy?repository_url=ghcr.io%2Faquasecurity%2Ftrivy",
+      "location": "pkg/oci/ghcr.io/aquasecurity/trivy/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/trivy?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Faquasecurity%2Ftrivy",
+      "location": "pkg/oci/ghcr.io/aquasecurity/trivy/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/trust-manager?repository_url=quay.io%2Fjetstack%2Ftrust-manager",
+      "location": "pkg/oci/quay.io/jetstack/trust-manager/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/trust-manager?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fjetstack%2Ftrust-manager",
+      "location": "pkg/oci/quay.io/jetstack/trust-manager/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/valkey?repository_url=mirror.gcr.io%2Fvalkey%2Fvalkey",
+      "location": "pkg/oci/mirror.gcr.io/valkey/valkey/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/valkey?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fvalkey%2Fvalkey",
+      "location": "pkg/oci/mirror.gcr.io/valkey/valkey/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/virt-api?repository_url=quay.io%2Fkubevirt%2Fvirt-api",
+      "location": "pkg/oci/quay.io/kubevirt/virt-api/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/virt-api?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fkubevirt%2Fvirt-api",
+      "location": "pkg/oci/quay.io/kubevirt/virt-api/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/virt-controller?repository_url=quay.io%2Fkubevirt%2Fvirt-controller",
+      "location": "pkg/oci/quay.io/kubevirt/virt-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/virt-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fkubevirt%2Fvirt-controller",
+      "location": "pkg/oci/quay.io/kubevirt/virt-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/virt-exportproxy?repository_url=quay.io%2Fkubevirt%2Fvirt-exportproxy",
+      "location": "pkg/oci/quay.io/kubevirt/virt-exportproxy/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/virt-exportproxy?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fkubevirt%2Fvirt-exportproxy",
+      "location": "pkg/oci/quay.io/kubevirt/virt-exportproxy/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/virt-operator?repository_url=quay.io%2Fkubevirt%2Fvirt-operator",
+      "location": "pkg/oci/quay.io/kubevirt/virt-operator/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/virt-operator?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fkubevirt%2Fvirt-operator",
+      "location": "pkg/oci/quay.io/kubevirt/virt-operator/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/zot?repository_url=ghcr.io%2Fproject-zot%2Fzot",
+      "location": "pkg/oci/ghcr.io/project-zot/zot/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/zot?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fproject-zot%2Fzot",
+      "location": "pkg/oci/ghcr.io/project-zot/zot/oci.openvex.json"
     }
   ]
 }

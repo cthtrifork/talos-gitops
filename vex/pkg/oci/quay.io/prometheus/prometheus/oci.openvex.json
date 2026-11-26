@@ -1,0 +1,62 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/quay.io/prometheus/prometheus",
+  "author": "Dependency-Track",
+  "role": "Automated export from Dependency-Track",
+  "timestamp": "2026-11-26T22:00:32Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78661"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/prometheus?repository_url=quay.io%2Fprometheus%2Fprometheus",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/prometheus?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fprometheus%2Fprometheus",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-6860: govulncheck -mode=binary (v1.10.0, -show verbose) on usr/bin/prometheus of quay.io/prometheus/prometheus@sha256:9764044e0919 (v3.16.0-distroless): x/net v0.61.0 is in the binary but no x/net/html symbol of this advisory is, it is a Module Result only. Fix: x/net v0.62.0 via Renovate."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-97045"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/prometheus?repository_url=quay.io%2Fprometheus%2Fprometheus",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/prometheus?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fprometheus%2Fprometheus",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-6866: govulncheck -mode=binary (v1.10.0, -show verbose) on usr/bin/prometheus of quay.io/prometheus/prometheus@sha256:9764044e0919 (v3.16.0-distroless): x/net v0.61.0 is in the binary but no x/net/html symbol of this advisory is, it is a Module Result only. Fix: x/net v0.62.0 via Renovate."
+    }
+  ]
+}
