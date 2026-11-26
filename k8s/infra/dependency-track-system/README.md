@@ -110,10 +110,9 @@ consumers that read the key at start (`sbom-hook`, the claude-rc pod); the VEX e
 on each run. If the Job created a key but failed to store the Secret, the next run creates another; revoke the unused one.
 A lost admin Secret is recovered by seeding it with the current admin password.
 
-## Exporting Dependency-Track decisions to the VEX repository (suspended)
+## Exporting Dependency-Track decisions to the VEX repository
 
-Suspended (`suspend: true`): it only exports projects versioned by digest, and the versions are now image tags, so it would export nothing.
-To bring it back, version the projects by digest again or change the exporter.
+Still `suspend: true` until a manual run (Elevate page) has opened a pull request that looks right, then flip it in Git. Statements are per image repository, not per digest: the product is the project PURL without version and arch (`pkg:oci/<name>?repository_url=<registry>/<repo>`), so a decision covers every tag and digest of that repository. The versions (tags) of one repository are merged into one document.
 
 `dependency-track/vex-export-cronjob.yaml` is a daily CronJob that turns the analysis decisions made in Dependency-Track (state
 *not affected*, *false positive* or *resolved* on a finding) into OpenVEX documents in `vex/pkg/oci/<registry>/<repository>/`
@@ -140,10 +139,10 @@ Without the Secret the Job is a dry run that prints the documents it would write
    `kubectl -n dependency-track-system create job --from=cronjob/dependency-track-vex-export vex-first` and read its logs.
 
 The API key comes from `config-cronjob.yaml` (team `vex-exporter`). Trivy identifies a scanned image by the PURL
-`pkg:oci/<name>@<digest>?repository_url=<registry>/<repository>` and matches a statement only if the version is the same, so
-`sbom-hook/` versions each Dependency-Track project by the image digest, not the tag. The export skips projects whose
-version is not a digest. Decisions made on a project versioned by tag stay in Dependency-Track but are not exported;
-repeat them on the digest project, or delete the old project. A moved tag creates a new project per digest, so old ones pile up until retention removes them.
+`pkg:oci/<name>@<digest>?repository_url=<registry>/<repository>`. The export writes the product without the version, so one decision covers
+every tag and digest of the repository. **Check before relying on it:** the earlier design versioned projects by digest because a statement
+with a version was thought to match only that version; a statement without one is expected to match any version, but the first manual
+run has to show a finding actually hidden in a scan. The `repository_url` is the one the scan sees (the zot cache path), taken from the project PURL.
 
 Findings come from the projects/SBOMs uploaded to Dependency-Track. `sbom-hook/` (Redpanda Connect) receives every
 `SbomReport` that trivy-operator produces or regenerates through its webhook (`operator.webhookBroadcastURL`) and uploads
