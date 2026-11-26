@@ -5,7 +5,7 @@ FROM mirror.gcr.io/library/alpine:3.24@sha256:f59abe656b692d901e184be3445e084786
 # Renovate bumps the version. The linux-x64-musl checksum is read from the release manifest at build time
 # (https://downloads.claude.ai/claude-code-releases/<version>/manifest.json), so there is nothing to bump by hand.
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG CLAUDE_CODE_VERSION=2.1.330
+ARG CLAUDE_CODE_VERSION=2.1.332
 # Keep within one minor version of the cluster
 ARG KUBECTL_VERSION=v1.34.1
 # renovate: datasource=github-releases depName=cli/cli
