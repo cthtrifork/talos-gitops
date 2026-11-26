@@ -1,14 +1,14 @@
 ---
-# Cache and SQLite database. lvm-fast binds on the node of the first pod (the nodeSelector of the HelmRelease).
+# Cache and SQLite database of the cache server, on JuiceFS: its pod can start on any node. Peak use was 5.7 GiB; the cap is in helm-release.yaml.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: gha-cache-data-v2
+  name: gha-cache-data-jfs
   namespace: gha-cache-system
 spec:
   accessModes:
-    - ReadWriteOnce
-  storageClassName: lvm-fast
+    - ReadWriteMany
+  storageClassName: juicefs
   resources:
     requests:
-      storage: 100Gi
+      storage: 16Gi

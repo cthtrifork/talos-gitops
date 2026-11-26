@@ -85,7 +85,7 @@ Beyond the Polaris exemptions, Cilium is in `k8s/infra/cilium/rendered/`:
 
 Specs are in HelmRelease values (`k8s/apps/arc-runner/`), not `rendered/`.
 
-- All scale sets except `arc-files-bootc` have a privileged container; `arc-ubuntu`, `arc-ubuntu-podman`, `arc-iso-bootc` also mount hostPath `/dev` (root on the node).
+- All scale sets except `arc-files-bootc` have a privileged container; `arc-ubuntu-podman`, `arc-iso-bootc` also mount hostPath `/dev` (root on the node).
 - `arc-iso-bootc` and `arc-e2e-talos-gitops` serve public repositories.
 - All except `arc-e2e-talos-gitops` can read `FILESERVER_TOKEN` (fileserver upload).
 - Controls *outside the repo*: owner-only write access, approval for outside collaborators' runs, `environment: file-upload`.

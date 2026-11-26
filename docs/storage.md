@@ -20,7 +20,7 @@ flowchart TB
     sb --> garage
     meta -->|"mTLS, no password"| fs["JuiceFS, RWX<br/>StorageClass juicefs<br/>mount pod per node, FUSE"]
     garage -->|"S3 key"| fs
-    fs --> runners["Runner caches:<br/>dnf, cross-run, container-shared"]
+    fs --> runners["Runner caches:<br/>dnf, cross-run"]
 ```
 
 ## OpenEBS LVM (`k8s/infra/openebs-system/`)
@@ -32,9 +32,11 @@ flowchart TB
 ## JuiceFS (`k8s/apps/juicefs-system/`)
 
 - It gives the ARC runners caches that every runner shares, whichever node it lands on. Image storage stays on local volumes: overlay on FUSE is a bad idea.
+- The ARC runners share two caches on it, `dnf-cache-jfs` and `cross-run-cache-jfs` (`k8s/apps/arc-runner/pvc.yaml`); a root init container owns the volume roots. Image storage (`/var/lib/containers`) is a per-runner volume on `lvm-fast`: two runners cannot share it, so no runner depends on one node and any of them can start anywhere, cold.
 - Use it with `storageClassName: juicefs` and `ReadWriteMany`: each PVC is a subdirectory of one filesystem. The CSI driver runs in `juicefs-system` (privileged, with FUSE mount pods) and every image is pinned by digest, the mount image too (the driver's default is the moving `ce-nightly`).
 - Metadata (files, directories) is in PostgreSQL, data blocks are in Garage. PostgreSQL takes a client certificate (mTLS), the role has no password. Garage cannot: S3 requests are signed with a key, generated in `secret-store`. Both run three copies on different nodes: one node lost keeps Garage's quorum (2 of 3) and CNPG promotes a replica; two lost stops Garage. No backups, the data is CI caches.
-- Sizes follow the peak use of the shared caches over 3 days (4.0 GiB in about 1.4k files): Garage 10 Gi data and 1 Gi metadata per node, 2 Gi per PostgreSQL instance.
+- Sizes: the shared runner caches peaked at 4.0 GiB in about 1.4k files over 3 days and the GitHub Actions cache at 5.7 GiB, so Garage holds 30 Gi of data and 1 Gi of metadata per node (usable: 30 Gi, every node has a full copy; the cache server is capped at 16 GiB), and each PostgreSQL instance 2 Gi.
+- The GitHub Actions cache server (`k8s/apps/gha-cache/`) keeps its cache and its SQLite database on a JuiceFS volume, so its pod can start on any node and the runners are not tied to one either (they spread over the nodes). Losing that volume only costs a cold cache.
 - Each node caches the blocks it reads in `/var/jfsCache`, capped at 5 Gi (the default is 100 GiB and 90% of the disk), so it shows up in the cockpit's `/var` row. The cache is safe to lose; the write cache stays off.
 - Monitoring: the pods carry `prometheus-scrape: "true"`; `prometheusrule.yaml` alerts on a missing Garage node, lost quorum, a missing PostgreSQL instance and replication lag. `PersistentVolumeAlmostFull` covers the volumes.
 
@@ -46,6 +48,22 @@ Everything is a change in Git, nothing is run by hand.
 - **Garage:** raise the three `data-garage-<n>` sizes in `garage/pvc.yaml` and `clusterConfig.layout.capacity` in `garage/helm-release.yaml`, in one PR. Flux expands the PVCs online and the configure hook assigns the new capacity. Each node holds a full copy, so the usable space is that of the smallest one.
 - Never change `persistence.*.size` in the HelmRelease. Garage is a StatefulSet and its `volumeClaimTemplates` are immutable (Kubernetes v1.37), which a Helm retry does not fix (`docs/helmrelease-conventions.md`). That is why the claims are in `pvc.yaml`: the StatefulSet creates a claim only if it is missing and never resizes it, so a claim from Git with the template's name is used as is.
 - Do not run `garage layout apply` by hand at the same time: two applies of the same `--version` leave the cluster inconsistent.
+
+## Runners
+
+Sized from the peaks of the last 3 days; volumes are per runner and `lvm-fast` unless noted.
+
+| Scale set | Runners (min to max) | Volumes per runner |
+|---|---|---|
+| `arc-ubuntu-podman` (the only set behind the label `arc-ubuntu`) | 0 to 4 | `work` 16, `tmp` 16, `var-tmp` 24, rootful storage 32, rootless storage 28 Gi |
+| `arc-e2e-talos-gitops` | 0 to 3 | `work` 2, `docker-lib` 12 Gi |
+| `arc-iso-bootc` | 0 to 1 | `bootc-iso-cache` 80 Gi on `lvm-bulk` (one runner: the cache is ReadWriteOnce) |
+| `arc-files-bootc` | 0 to 1 | a 40 Gi emptyDir |
+| Renovate (`RenovateJob`) | 3 in parallel for 6 repositories | scratch 2 Gi, containerbase 3 Gi |
+
+The rootful storage stays at 32 Gi: the `homeserver-gui` build fails unless 20 GB are free at its start.
+
+The `homeserver-gui` build keeps a layer cache in zot (`buildcache/homeserver-gui`, `homeserver-bootc`'s build workflow): every self-hosted runner reads it, `main` writes it (a pull request writes its own `pr-<number>` namespace), and a weekly `CACHE_BUST` build argument expires the package layers so updates are never frozen. zot keeps a cache tag for 72 hours after its last push or pull (`buildcache/**` retention in `zot.json`). That cache, not a runner's local volume, is what makes a new runner start warm.
 
 ## Which to use
 
