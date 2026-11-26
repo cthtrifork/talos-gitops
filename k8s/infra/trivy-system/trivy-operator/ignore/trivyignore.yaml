@@ -25,3 +25,69 @@ vulnerabilities:
     statement: x/crypto ssh code, no SSH client, server or agent is used in any image
   - id: CVE-2026-46595
     statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+  - id: CVE-2026-39828
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+  - id: CVE-2026-39829
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+  - id: CVE-2026-39835
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+  - id: CVE-2026-46597
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+  - id: CVE-2026-56854
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+  - id: CVE-2025-30156
+    statement: Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images
+  - id: CVE-2026-39944
+    statement: Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images
+  - id: CVE-2026-50152
+    statement: Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images
+  - id: CVE-2026-54330
+    statement: Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images
+  - id: CVE-2018-5709
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2024-26458
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2024-26461
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2025-3576
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-107364
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-107708
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-107778
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-107884
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-111423
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-112314
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-112315
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-112316
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-112317
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-112318
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-112319
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-112320
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-112321
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-112322
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-112323
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-118380
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-11850
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-119079
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-71199
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
+  - id: CVE-2026-71200
+    statement: Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies
