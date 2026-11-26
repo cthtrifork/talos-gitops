@@ -55,6 +55,6 @@ spec:
           url: https://rekor.sigstore.dev
   validations:
     - expression: >-
-        images.containers.map(image,
+        (images.containers + images.initContainers).map(image,
         verifyImageSignatures(image, [image.startsWith('ghcr.io/cthtrifork/harper-pad-') ? attestors.harperpad : attestors.github])).all(e, e > 0)
       message: image is not signed by its build workflow (cthtrifork/talos-gitops build-*.yaml, cthtrifork/harper-pad release.yml)
