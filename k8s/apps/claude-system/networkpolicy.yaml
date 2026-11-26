@@ -129,6 +129,12 @@ spec:
         - matchName: garagehq.deuxfleurs.fr
         - matchName: juicefs.com
 
+        # CVE and CWE references (NVD pages and API, Aqua vulnerability database, CWE definitions)
+        - matchName: nvd.nist.gov
+        - matchName: services.nvd.nist.gov
+        - matchName: avd.aquasec.com
+        - matchName: cwe.mitre.org
+
         # Docs: search and hosted sites
         - matchName: "context7.com"
         # GitHub Pages sites (docs, JSON schema catalogs)
