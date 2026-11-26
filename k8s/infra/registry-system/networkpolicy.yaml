@@ -60,9 +60,6 @@ spec:
             # uses zot as cache for scanning image
             k8s:io.kubernetes.pod.namespace: trivy-system
         - matchLabels:
-            # the other replicas of the scale-out cluster proxy a request to the replica that owns the repository
-            k8s:app.kubernetes.io/name: zot
-        - matchLabels:
             k8s:io.kubernetes.pod.namespace: flux-system
             k8s:app: source-controller
       toPorts:
@@ -120,23 +117,16 @@ spec:
         - ports:
             - port: "3900"
               protocol: TCP
-    # The other replicas (cluster proxying) and the Valkey cache
+    # The Valkey metadata store
     - toEndpoints:
         - matchLabels:
-            k8s:app.kubernetes.io/name: zot
-      toPorts:
-        - ports:
-            - port: "5000"
-              protocol: TCP
-    - toEndpoints:
-        - matchLabels:
-            k8s:app.kubernetes.io/name: valkey
+            k8s:valkey.io/cluster: zot
       toPorts:
         - ports:
             - port: "6379"
               protocol: TCP
 ---
-# Garage (the object store behind a clustered zot): S3 (3900) only from zot, the RPC (3901) and admin (3903) ports only
+# Garage (the object store behind the zot replicas): S3 (3900) only from zot, the RPC (3901) and admin (3903) ports only
 # between Garage's own pods, which include the layout Job. Prometheus scrapes the admin port. Garage finds its peers
 # through the API server (allowed for the namespace above).
 apiVersion: cilium.io/v2
@@ -188,7 +178,8 @@ spec:
             - port: "3903"
               protocol: TCP
 ---
-# Valkey (the zot cluster's cache): only zot reaches it.
+# Valkey (the zot replicas' metadata store, run by the operator): only zot and the operator reach the pods, and the pods reach
+# each other (clients on 6379, replication and gossip on 6379 and the cluster bus on 16379).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -197,14 +188,36 @@ metadata:
 spec:
   endpointSelector:
     matchLabels:
-      app.kubernetes.io/name: valkey
+      valkey.io/cluster: zot
   ingress:
     - fromEndpoints:
         - matchLabels:
             k8s:app.kubernetes.io/name: zot
+        - matchLabels:
+            k8s:valkey.io/cluster: zot
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: valkey-operator-system
+            k8s:app.kubernetes.io/name: valkey-operator
       toPorts:
         - ports:
             - port: "6379"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:valkey.io/cluster: zot
+      toPorts:
+        - ports:
+            - port: "16379"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:valkey.io/cluster: zot
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+            - port: "16379"
               protocol: TCP
 ---
 # Spegel only serves what the nodes already hold; it has no internet egress.

@@ -26,8 +26,8 @@
     },
     "cacheDriver": {
       "name": "redis",
-      "url": "redis://valkey.registry-system.svc.cluster.local:6379",
-      "keyprefix": "zot"
+      "url": "redis://valkey-zot.registry-system.svc.cluster.local:6379?addr=valkey-zot.registry-system.svc.cluster.local:6379",
+      "keyprefix": "{zot}"
     },
     "gc": true,
     "gcDelay": "1h",
@@ -128,17 +128,6 @@
       ]
     }
   },
-  "cluster": {
-    "members": [
-      "zot-0.zot-headless.registry-system.svc.cluster.local:5000",
-      "zot-1.zot-headless.registry-system.svc.cluster.local:5000",
-      "zot-2.zot-headless.registry-system.svc.cluster.local:5000"
-    ],
-    "hashKey": "d17431e110ea9b5e",
-    "tls": {
-      "cacert": "/etc/zot/certs/ca.crt"
-    }
-  },
   "extensions": {
     "ui": {
       "enable": true
@@ -155,6 +144,7 @@
     "sync": {
       "enable": true,
       "credentialsFile": "/etc/zot/sync/creds.json",
+      "downloadDir": "/var/lib/registry/sync",
       "registries": [
         {
           "urls": [

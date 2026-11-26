@@ -37,8 +37,11 @@ spec:
       initContainers:
         - name: get-busybox-tools
           image: mirror.gcr.io/library/busybox:1.38-musl@sha256:80e38f9a1b39188b8bdb28879178edb322a4402b081a9aedda1924609decd6f6
-          command: ["/bin/sh", "-c", "cp /bin/busybox /tools/busybox && chmod +x /tools/busybox"]
-          securityContext: &securityContext
+          command:
+            - /bin/sh
+            - -c
+            - cp /bin/busybox /tools/busybox && chmod +x /tools/busybox
+          securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
@@ -55,8 +58,17 @@ spec:
               mountPath: /tools
         - name: get-garage-bin
           image: mirror.gcr.io/dxflrs/garage:v2.5.0@sha256:677e5b758e4425a325b811c425c026bf35a4bf42f7ddbaa773de3f4fd779a5a5
-          command: ["/tools/busybox", "cp", "/garage", "/shared/garage"]
-          securityContext: *securityContext
+          command:
+            - /tools/busybox
+            - cp
+            - /garage
+            - /shared/garage
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               cpu: 50m
@@ -71,8 +83,15 @@ spec:
       containers:
         - name: configure
           image: mirror.gcr.io/library/busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
-          command: ["/bin/sh", "/scripts/configure.sh"]
-          securityContext: *securityContext
+          command:
+            - /bin/sh
+            - /scripts/configure.sh
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               cpu: 50m

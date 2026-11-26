@@ -1,0 +1,96 @@
+# The shared metadata store and lock service of the zot replicas (storage.cacheDriver in zot/zot.json), run by the Valkey
+# operator (k8s/infra/controllers/valkey-operator-system/): 3 shards, each a primary and a replica, one pod per node. A
+# drained or lost node costs a shard its primary at most; the replica on another node takes over (the operator's
+# PodDisruptionBudget lets one pod go at a time).
+# zot's keys all carry the hash tag {zot} (keyprefix in zot.json), because zot changes several keys in one transaction and a
+# cluster only allows that inside one slot. So one shard holds all of the data and the other two only vote in the failover.
+# No password and no TLS: the namespace policy lets only zot and the operator reach it. A small volume per pod keeps the
+# metadata across restarts.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/valkey.io/valkeycluster_v1alpha1.json
+apiVersion: valkey.io/v1alpha1
+kind: ValkeyCluster
+metadata:
+  name: zot
+  namespace: registry-system
+  annotations:
+    # the operator adds the image's resources and probes to the pods and the security contexts are patched in below
+    polaris.fairwinds.com/cpuRequestsMissing-exempt: "true"
+    polaris.fairwinds.com/livenessProbeMissing-exempt: "true"
+    polaris.fairwinds.com/memoryLimitsMissing-exempt: "true"
+    polaris.fairwinds.com/memoryRequestsMissing-exempt: "true"
+    polaris.fairwinds.com/readinessProbeMissing-exempt: "true"
+    polaris.fairwinds.com/tagNotSpecified-exempt: "true"
+spec:
+  shards: 3
+  replicasPerShard: 1
+  # renovate: datasource=docker depName=mirror.gcr.io/valkey/valkey versioning=docker
+  image: mirror.gcr.io/valkey/valkey:9.2.0@sha256:1c2b25b09f354c66fe994733acdf12fcfd4bdf6f3bd92b88a93a70378d884056
+  acl:
+    users:
+      - name: default
+        password:
+          type: Any
+        permissions: "~* &* +@all"
+  networking:
+    discovery:
+      # the pod IP changes on a restart, the name does not
+      preferredEndpointType: Hostname
+  persistence:
+    size: 2Gi
+    storageClassName: lvm-fast
+  scheduling:
+    # All the nodes that run zot are control plane nodes
+    tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+    node:
+      spread:
+        # a primary and its replica never share a node, and neither do two primaries
+        shard:
+          mode: Required
+        primaries:
+          mode: Required
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  exporter:
+    enabled: false
+  podSecurityContext:
+    fsGroup: 56849
+    fsGroupChangePolicy: OnRootMismatch
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: server
+      lifecycle:
+        # A primary hands over to its replica and then stays up for a while as a replica. zot's client only reloads the slot
+        # map every 60 s or on a MOVED reply, so for those seconds it is told where the new primary is. Without this the
+        # primary is gone at once and zot's metadata writes fail until the map reloads.
+        preStop:
+          exec:
+            command:
+              - sh
+              - -c
+              - |
+                [ "$(valkey-cli role | head -n 1)" = master ] || exit 0
+                replica=$(valkey-cli cluster replicas "$(valkey-cli cluster myid)" | head -n 1 | cut -d' ' -f2 | cut -d, -f2)
+                [ -n "$replica" ] || exit 0
+                valkey-cli -h "${replica}" cluster failover
+                sleep 15
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 56849
+        runAsGroup: 56849
+        seccompProfile:
+          type: RuntimeDefault

@@ -7,4 +7,5 @@ resources:
   - external-secrets/
   - metallb/
   - cnpg-system/
+  - valkey-operator-system/
   - ingress-system/

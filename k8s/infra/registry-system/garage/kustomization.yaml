@@ -6,6 +6,7 @@ resources:
   - helm-repository.yaml
   - external-secrets.yaml
   - layout-job.yaml
+  - pdb.yaml
 configMapGenerator:
   - name: garage-layout
     namespace: registry-system

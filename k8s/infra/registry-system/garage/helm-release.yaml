@@ -1,11 +1,11 @@
 ---
-# The object store behind a clustered zot: 3 Garage nodes, one per node of the cluster, every object stored once
-# (replicationFactor 1), so the data and the read and write load are spread over the three nodes and a node holds a third
-# of the registry (about 15 GiB of today's 44 GiB). It is a cache and CI store: losing a node only loses the blobs on it,
-# which zot pulls again on demand. Separate from Renovate's single Garage (k8s/apps/renovate/garage/). The S3 API and the
-# admin API stay inside the cluster.
+# The object store behind the zot replicas: 3 Garage nodes, one per node of the cluster, every object stored on all
+# three (replicationFactor 3). A read and a write each need two of the three, so one node can be drained or lost with
+# no impact on zot (the PodDisruptionBudget in pdb.yaml keeps it to one). Every node holds a full copy of the registry
+# (about 45 GiB today). Separate from Renovate's single Garage (k8s/apps/renovate/garage/). The S3 API and the admin
+# API stay inside the cluster.
 # The chart's configure job only knows a single node, so it is off and the layout comes from layout-job.yaml.
-# Keep each data PVC and the layout capacity in configure.sh within the per-node lvm-bulk capacity.
+# Keep each data PVC and the layout capacity in configure.sh within the per-node lvm-fast capacity.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -77,7 +77,7 @@ spec:
       # renovate: datasource=docker depName=dxflrs/garage
       tag: v2.5.0@sha256:677e5b758e4425a325b811c425c026bf35a4bf42f7ddbaa773de3f4fd779a5a5
     garage:
-      replicationFactor: "1"
+      replicationFactor: "3"
       s3:
         api:
           region: garage
@@ -91,9 +91,10 @@ spec:
         storageClass: lvm-fast
         size: 2Gi
       data:
-        storageClass: lvm-bulk
+        # lvm-bulk is not on every node (talos-tba-msi has only its system SATA disk)
+        storageClass: lvm-fast
         # Keep this equal to CAPACITY in configure.sh.
-        size: 20Gi
+        size: 100Gi
     # Off: the chart's job assigns garage-0 only. layout-job.yaml assigns the three nodes and creates the bucket and key.
     clusterConfig:
       enabled: false

@@ -15,8 +15,6 @@ spec:
   dnsNames:
     - zot.registry-system.svc
     - zot.registry-system.svc.cluster.local
-    # the replicas talk to each other by pod name (cluster members in zot.json)
-    - "*.zot-headless.registry-system.svc.cluster.local"
   ipAddresses:
     - 192.168.1.240 # zot-lb: the address the Talos nodes use as registry mirror
   privateKey:

@@ -26,6 +26,7 @@ spec:
     manager:
       watchNamespaces:
         - renovate-system
+        - registry-system
     podLabels:
       prometheus-scrape: "true"
     metrics:

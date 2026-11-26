@@ -24,7 +24,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: d0e4d2f8809453aa52dae95a739eb4a8f699038425478275f272b48b073bc330
+        checksum/config: 78c5f125146f495b7e8038bb6c635a59bc1344bee42313b1b773d2d15d97c959
       labels:
         app.kubernetes.io/name: garage
         app.kubernetes.io/instance: garage
@@ -127,7 +127,7 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: "lvm-bulk"
+        storageClassName: "lvm-fast"
         resources:
           requests:
-            storage: "20Gi"
+            storage: "100Gi"

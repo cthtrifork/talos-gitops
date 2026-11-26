@@ -33,7 +33,7 @@ spec:
             dns:
               - matchPattern: "*"
 ---
-# The Valkey reconciler talks to the Kubernetes API and to individual cluster members in the watched namespace.
+# The Valkey reconciler talks to the Kubernetes API and to individual cluster members in the watched namespaces (renovate-system, registry-system).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -51,6 +51,14 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: renovate-system
             valkey.io/cluster: renovate
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: registry-system
+            valkey.io/cluster: zot
       toPorts:
         - ports:
             - port: "6379"

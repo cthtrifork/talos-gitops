@@ -39,14 +39,11 @@ spec:
     service:
       type: ClusterIP
       port: 5000
-    # Scale-out cluster (https://zotregistry.dev/v2.1.23/articles/scaleout/): every replica shares the Garage object
-    # store and the Valkey cache and owns the repositories its hash of the repo path maps to; a request that lands on
-    # another replica is proxied to the owner. One replica per node; more only need a bigger "members" list in zot.json
-    # and the same number here. Not self-healing: while a replica is down, the repositories it owns are unavailable.
-    replicaCount: 3
-    # headless Service zot-headless: the stable per-pod names used as cluster members
-    serviceHeadless:
-      enabled: true
+    # Two replicas that share one object store (Garage) and one metadata store (Valkey), so either one serves every
+    # repository and a node drain leaves the other running. They are not sharded (zot's scale-out "cluster" mode): there a
+    # replica that is down takes the repositories it owns with it. The price is that two replicas can write the same
+    # repository at once without coordinating; for a cache the worst case is a tag that is fetched or pushed again.
+    replicaCount: 2
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname
@@ -63,15 +60,15 @@ spec:
       repository: ghcr.io/project-zot/zot
       pullPolicy: IfNotPresent
       tag: "v2.1.23@sha256:9d3de83ac2099e6f4843045b4c9b65b7e8baf40f92d28f54906dee9d4d390fd7"
-    # The images are in Garage; the volume only holds zot's local root directory. It stays (a StatefulSet cannot drop or
-    # resize its volumeClaimTemplates), local-path only allocates what is written.
+    # The images are in Garage; the volume holds zot's local root directory and the staging area of the sync extension
+    # (downloadDir, required with remote storage): an image is downloaded there whole before it is pushed to Garage.
     persistence: true
     pvc:
       create: true
       accessModes:
         - "ReadWriteOnce"
-      storage: 150Gi
-      storageClassName: lvm-fast # a real 150Gi volume
+      storage: 30Gi
+      storageClassName: lvm-fast
     configFiles: ~
     # https://docs.giantswarm.io/tutorials/registry/zot/
     resources:
