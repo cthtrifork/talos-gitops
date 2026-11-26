@@ -141,5 +141,5 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: 150Gi
+          storage: 20Gi
       storageClassName: lvm-fast

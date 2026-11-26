@@ -25,6 +25,9 @@ spec:
     cleanupOnFail: true
     remediation:
       retries: 3
+      # One-time: the smaller volumeClaimTemplate is immutable, so the upgrade fails and the release is reinstalled.
+      # Remove after the rollout (docs/helmrelease-conventions.md).
+      strategy: uninstall
   # https://github.com/project-zot/helm-charts/blob/main/charts/zot/values.yaml
   values:
     podAnnotations:
@@ -61,13 +64,12 @@ spec:
       pullPolicy: IfNotPresent
       tag: "v2.1.23@sha256:9d3de83ac2099e6f4843045b4c9b65b7e8baf40f92d28f54906dee9d4d390fd7"
     # The images are in Garage; the volume only holds the root directory and the sync staging area (downloadDir).
-    # volumeClaimTemplates are immutable, so the size stays what the single-replica StatefulSet was created with.
     persistence: true
     pvc:
       create: true
       accessModes:
         - "ReadWriteOnce"
-      storage: 150Gi
+      storage: 20Gi
       storageClassName: lvm-fast
     configFiles: ~
     # https://docs.giantswarm.io/tutorials/registry/zot/

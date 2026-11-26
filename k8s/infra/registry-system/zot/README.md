@@ -29,8 +29,10 @@ flowchart LR
   each other's `index.json` and lose a tag. In the cache repositories that is a later cache miss. A direct push to `pr/**` or
   `buildcache/**` has to be rerun. The ARC runners fall back to the origin registry if zot is unavailable.
 - **`downloadDir`**: the sync extension needs a local staging directory with S3 storage. It is on the zot volume.
-- **The zot volume** is the single-replica StatefulSet's `150Gi` template. `volumeClaimTemplates` are immutable, so changing
-  `pvc.storage` fails the Helm upgrade (`docs/helmrelease-conventions.md`). Only the root directory and the staging area use it.
+- **The zot volume** is `20Gi` and only holds the root directory and the sync staging area. `volumeClaimTemplates` are immutable, so
+  the shrink from the old `150Gi` made the first upgrade fail; `upgrade.remediation.strategy: uninstall` in `helm-release.yaml`
+  reinstalls the release once. It is meant to be removed afterwards. An existing claim keeps its size: after the rollout delete
+  `zot-pvc-zot-0` (storage tier) and the pod `zot-0` (ops tier), and the StatefulSet recreates both at 20Gi.
 - **Valkey keys** start with the hash tag `{zot}` (`keyprefix` in `zot.json`). Do not remove the braces (see `valkeycluster.yaml`).
 - **The `garage-layout` Job** assigns the nodes and creates the bucket and key. Delete it to run it again.
 
