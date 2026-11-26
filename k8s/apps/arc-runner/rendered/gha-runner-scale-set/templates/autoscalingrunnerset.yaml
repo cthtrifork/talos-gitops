@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu-podman
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: c2bef0a7399216b2295195e8a59d71fa6ac6bdc5e90efe060eac54a18935f76
+    actions.github.com/values-hash: 84c6b1b5ab923ece24e73145fd6d6bb6558dd62ac93a6b356d85197080818fa
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-podman-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-podman-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-podman-gha-rs-no-permission
@@ -186,7 +186,7 @@ spec:
             - /bin/bash
             - -c
             - install -d -m 700 "$XDG_RUNTIME_DIR" && exec /usr/local/bin/use-cache-server /home/runner/run.sh
-          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261126.39@sha256:fa8a4a97f03b12aebc1ff9645ed07aafb3964fc965dedb024a36bb16218af214
+          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261126.41@sha256:bc132de2ece52acbc8eba892135d7db79163975955c353cdb51bf4ad32afd563
           imagePullPolicy: IfNotPresent
           resources:
             limits:
