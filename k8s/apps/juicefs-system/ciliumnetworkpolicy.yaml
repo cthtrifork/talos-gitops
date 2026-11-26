@@ -28,6 +28,11 @@ spec:
             app.kubernetes.io/name: juicefs-mount
         - matchLabels:
             app.kubernetes.io/name: juicefs-csi-driver
+        - matchExpressions:
+            - key: batch.kubernetes.io/job-name
+              operator: Exists
+            - key: app.kubernetes.io/name
+              operator: DoesNotExist
       toPorts:
         - ports:
             - port: "3900"
@@ -84,6 +89,11 @@ spec:
             app.kubernetes.io/name: juicefs-mount
         - matchLabels:
             app.kubernetes.io/name: juicefs-csi-driver
+        - matchExpressions:
+            - key: batch.kubernetes.io/job-name
+              operator: Exists
+            - key: app.kubernetes.io/name
+              operator: DoesNotExist
       toPorts:
         - ports:
             - port: "5432"
@@ -183,4 +193,34 @@ spec:
       toPorts:
         - ports:
             - port: "10250"
+              protocol: TCP
+---
+# The Jobs the CSI driver creates for volume create and delete, cache clean and snapshots. The driver puts app.kubernetes.io/name: juicefs-job
+# on the Job but not on its pod template, so the pods carry only the Job controller's labels. Garage's configure Job has app.kubernetes.io/name.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: juicefs-csi-jobs
+  namespace: juicefs-system
+spec:
+  endpointSelector:
+    matchExpressions:
+      - key: batch.kubernetes.io/job-name
+        operator: Exists
+      - key: app.kubernetes.io/name
+        operator: DoesNotExist
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: juicefs-meta
+      toPorts:
+        - ports:
+            - port: "5432"
               protocol: TCP
