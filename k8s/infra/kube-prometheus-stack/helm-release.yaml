@@ -98,10 +98,48 @@ spec:
       resources:
         requests:
           cpu: 10m
-          memory: 32Mi
+          memory: 64Mi
         limits:
           cpu: 100m
-          memory: 128Mi
+          memory: 256Mi # a VulnerabilityReport holds every finding of an image, so the watch cache is far larger than for most kinds
+      rbac:
+        extraRules:
+          - apiGroups:
+              - aquasecurity.github.io
+            resources:
+              - vulnerabilityreports
+            verbs:
+              - list
+              - watch
+      # When each image was last scanned: trivy-operator recreates its VulnerabilityReport on every rescan, so the creation time is the scan time.
+      # Joins to the trivy_* series on namespace and name. The Trivy page shows its age.
+      customResourceState:
+        enabled: true
+        config:
+          kind: CustomResourceStateMetrics
+          spec:
+            resources:
+              - groupVersionKind:
+                  group: aquasecurity.github.io
+                  version: v1alpha1
+                  kind: VulnerabilityReport
+                metricNamePrefix: kube_customresource_vulnerabilityreport
+                labelsFromPath:
+                  namespace:
+                    - metadata
+                    - namespace
+                  name:
+                    - metadata
+                    - name
+                metrics:
+                  - name: created
+                    help: Unix time the VulnerabilityReport was created, which is when its image was last scanned
+                    each:
+                      type: Gauge
+                      gauge:
+                        path:
+                          - metadata
+                          - creationTimestamp
     kubeStateMetrics:
       enabled: true
     grafana:

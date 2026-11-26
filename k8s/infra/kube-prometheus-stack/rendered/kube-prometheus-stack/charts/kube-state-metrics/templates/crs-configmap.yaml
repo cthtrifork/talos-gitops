@@ -1,0 +1,41 @@
+apiVersion: v1
+data:
+  config.yaml: |
+    kind: CustomResourceStateMetrics
+    spec:
+      resources:
+      - groupVersionKind:
+          group: aquasecurity.github.io
+          kind: VulnerabilityReport
+          version: v1alpha1
+        labelsFromPath:
+          name:
+          - metadata
+          - name
+          namespace:
+          - metadata
+          - namespace
+        metricNamePrefix: kube_customresource_vulnerabilityreport
+        metrics:
+        - each:
+            gauge:
+              path:
+              - metadata
+              - creationTimestamp
+            type: Gauge
+          help: Unix time the VulnerabilityReport was created, which is when its image
+            was last scanned
+          name: created
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/instance: kube-prometheus-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kube-state-metrics
+    app.kubernetes.io/part-of: kube-state-metrics
+    app.kubernetes.io/version: 2.20.0
+    helm.sh/chart: kube-state-metrics-9.1.0
+    release: kube-prometheus-stack
+  name: kube-prometheus-stack-kube-state-metrics-customresourcestate-config
+  namespace: kube-prometheus-stack-system
