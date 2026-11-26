@@ -504,15 +504,29 @@ processor_resources:
                 - resource: prom_get
               result_map: 'root.trivy_images = this.data.result.index(0).value.index(1).number().round().catch(0)'
 
+            # distinct CVEs per image (a CVE hits several packages), ranked here; findings per severity come from trivy_findings
             trivy_worst:
               request_map: |
-                meta path = "/api/v1/query?query=" + "topk(5, sum by (image_registry, image_repository, image_tag) (max by (image_registry, image_repository, image_tag, image_digest) (trivy_image_vulnerabilities{severity=~\"Critical|High\"})))".escape_url_query()
+                meta path = "/api/v1/query?query=" + "topk(5, count by (image_repository, image_tag) (count by (image_repository, image_tag, image_digest, vuln_id) (trivy_vulnerability_id{severity=~\"Critical|High\"})))".escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
               result_map: |
                 root.trivy_worst = this.data.result.map_each(r -> {
                   "image": r.metric.image_repository.or("unknown") + ":" + r.metric.image_tag.or(""),
+                  "cves": r.value.index(1).number().round()
+                })
+
+            trivy_findings:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "sum by (image_repository, image_tag, severity) (max by (image_repository, image_tag, image_digest, severity) (trivy_image_vulnerabilities{severity=~\"Critical|High\"}))".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.trivy_findings = this.data.result.map_each(r -> {
+                  "image": r.metric.image_repository.or("unknown") + ":" + r.metric.image_tag.or(""),
+                  "severity": r.metric.severity.lowercase(),
                   "count": r.value.index(1).number().round()
                 })
 
