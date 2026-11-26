@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trivy vulnerabilities</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23c4623f'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V7z'/%3E%3Cpath d='M12 9v4M12 16v.01'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f4f4f1;
+    --surface: #ffffff;
+    --ink: #141413;
+    --ink-2: #4a4843;
+    --muted: #6b6963;
+    --grid: #e3e2da;
+    --axis: #c3c2b7;
+    --ring: rgba(11, 11, 11, 0.10);
+    --env-rc: #2a78d6;
+    --accent: #c4623f;
+    --bar-neutral: #b9b7ae;
+    /* Severity colours, the same slots as the cockpit's Trivy panel. */
+    --sev-critical: #b3261e; --sev-high: #8a5a00; --sev-medium: #c4623f; --sev-low: #77756f; --sev-unknown: #6d28d9;
+    --ok: #1a7f4b;
+    --warn-bg: #fff4d6; --warn-ink: #5b4300;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    /* Shared with the cockpit: the type scale is small (labels, metadata), medium (body), large (titles), extra large (page title, headline numbers). */
+    --fs-sm: 12px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 28px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --ring: rgba(255, 255, 255, 0.10);
+      --env-rc: #3987e5; --bar-neutral: #4a4945;
+      --sev-critical: #ff8a80; --sev-high: #f2d98a; --sev-medium: #e08a66; --sev-low: #8d8b85; --sev-unknown: #b388ff; --ok: #3cc58a;
+      --warn-bg: #3a2f10; --warn-ink: #f2d98a;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255, 255, 255, 0.10);
+    --env-rc: #3987e5; --bar-neutral: #4a4945;
+    --sev-critical: #ff8a80; --sev-high: #f2d98a; --sev-medium: #e08a66; --sev-low: #8d8b85; --sev-unknown: #b388ff; --ok: #3cc58a;
+    --warn-bg: #3a2f10; --warn-ink: #f2d98a;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink); font: var(--fs-md)/1.45 var(--font);
+    padding-block: 20px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { max-width: 68rem; margin: 0 auto; display: grid; gap: 16px; }
+  h1 { font-size: var(--fs-xl); margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: var(--fs-md); margin: 0; font-weight: 650; }
+  .sub { color: var(--muted); font-size: var(--fs-sm); }
+  .back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 2px; color: var(--env-rc); text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  .back:focus-visible { outline: 2px solid var(--env-rc); outline-offset: 2px; border-radius: 3px; }
+  code, .src { font-family: var(--mono); font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
+
+  .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+  .group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .seg { display: inline-flex; max-width: 100%; overflow-x: auto; scrollbar-width: none; border: 1px solid var(--ring); border-radius: 8px; padding: 2px; }
+  .seg button { all: unset; cursor: pointer; padding: 5px 12px; border-radius: 6px; color: var(--ink-2); font-size: var(--fs-md); white-space: nowrap; flex: none; }
+  .seg button[aria-pressed="true"] { background: var(--page); color: var(--ink); font-weight: 600; }
+  .seg button:focus-visible { outline: 2px solid var(--env-rc); outline-offset: 1px; }
+  select, input[type="search"] {
+    font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 6px 10px; min-height: 34px; max-width: 100%;
+  }
+  select:focus-visible, input:focus-visible { outline: 2px solid var(--env-rc); outline-offset: 1px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 16px; min-width: 0; }
+  .panel-head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: 16px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+  .tile .k { color: var(--ink-2); font-size: var(--fs-sm); }
+  .tile .v { font-size: var(--fs-xl); font-weight: 650; letter-spacing: -0.02em; margin: 2px 0; }
+  .tile .s { color: var(--muted); font-size: var(--fs-sm); }
+  .tile .src { display: block; margin-top: 6px; font-size: 11px; }
+  .tile.sev { border-left: 4px solid var(--c); }
+  .tile.sev .v { color: var(--c); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-sm); color: var(--ink-2); margin-top: 8px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .row { display: grid; grid-template-columns: 11rem 1fr 4.5rem; gap: 10px; align-items: center; padding: 6px 0; }
+  .row .name { font-size: var(--fs-md); overflow-wrap: anywhere; }
+  .row .name small { display: block; color: var(--muted); font-size: var(--fs-sm); }
+  .row .val { text-align: right; font-variant-numeric: tabular-nums; }
+  .track { height: 22px; display: flex; gap: 2px; }
+  .track .seg-b { height: 100%; border-radius: 4px; min-width: 3px; }
+
+  .scroll, .seg {
+    background-color: var(--surface);
+    background-image: linear-gradient(to right, var(--surface) 30%, transparent), linear-gradient(to left, var(--surface) 30%, transparent), linear-gradient(to right, var(--axis), transparent), linear-gradient(to left, var(--axis), transparent);
+    background-position: 0 0, 100% 0, 0 0, 100% 0;
+    background-size: 32px 100%, 32px 100%, 12px 100%, 12px 100%;
+    background-repeat: no-repeat;
+    background-attachment: local, local, scroll, scroll;
+  }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
+  th { color: var(--muted); font-weight: 500; font-size: var(--fs-sm); }
+  td.l, th.l { text-align: left; }
+  td small { display: block; color: var(--muted); font-size: var(--fs-sm); }
+  td.t { white-space: normal; min-width: 14rem; max-width: 26rem; text-align: left; }
+  th button { all: unset; cursor: pointer; }
+  th button:focus-visible { outline: 2px solid var(--env-rc); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 600; color: var(--c); border: 1px solid var(--c); }
+  .pill.ok { --c: var(--ok); }
+  a.cve { color: var(--env-rc); text-decoration: none; font-family: var(--mono); font-size: var(--fs-sm); }
+  a.cve:hover { text-decoration: underline; }
+  .muted { color: var(--muted); }
+  .empty { color: var(--muted); padding: 12px 0; }
+  .more { all: unset; cursor: pointer; color: var(--env-rc); margin-top: 10px; display: inline-block; min-height: 32px; }
+  .more:focus-visible { outline: 2px solid var(--env-rc); }
+  #mock { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 12px; font-size: var(--fs-sm); }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .tools input { flex: 1 1 14rem; }
+
+  .fold > summary { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; justify-content: space-between; cursor: pointer; list-style: none; }
+  .fold[open] > summary { margin-bottom: 12px; }
+  .fold > summary::-webkit-details-marker { display: none; }
+  .fold > summary h2::before { content: "▸"; display: inline-block; width: 1.2em; color: var(--muted); }
+  .fold[open] > summary h2::before { content: "▾"; }
+
+  @media (pointer: coarse) { .seg button { display: inline-flex; align-items: center; min-height: 40px; } }
+  @media (max-width: 40rem) {
+    .bar { display: contents; }
+    .group { position: sticky; top: 0; z-index: 4; background: var(--page); padding: 8px 0; margin: -8px 0; box-shadow: 0 1px 0 var(--grid); }
+    .tile .src { display: none; }
+    .row { grid-template-columns: 1fr 4rem; }
+    .row .track { grid-column: 1 / -1; grid-row: 2; }
+  }
+</style>
+</head>
+<body>
+<trivy-app></trivy-app>
+<!-- Lit comes from jsDelivr as plain ES modules, every package pinned to an exact version. Bump the versions here. -->
+<script type="importmap">
+{
+  "imports": {
+    "lit": "https://cdn.jsdelivr.net/npm/lit@3.3.3/index.js",
+    "lit-element/": "https://cdn.jsdelivr.net/npm/lit-element@4.2.2/",
+    "lit-html": "https://cdn.jsdelivr.net/npm/lit-html@3.3.3/lit-html.js",
+    "lit-html/": "https://cdn.jsdelivr.net/npm/lit-html@3.3.3/",
+    "@lit/reactive-element": "https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.1.2/reactive-element.js",
+    "@lit/reactive-element/": "https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.1.2/"
+  }
+}
+</script>
+<script type="module">
+import { LitElement, html, nothing } from "lit";
+
+// ---- MOCK DATA ----
+// Shaped like the trivy-operator series the real page will query (trivy_vulnerability_id carries one series per CVE and package;
+// trivy_image_vulnerabilities and trivy_image_exposedsecrets carry counts per image and severity). Replace with get("api/v1/...") calls.
+// [vuln_id, severity, vuln_score, resource (package), installed_version, fixed_version, image, namespace, class, published_date, vuln_title]
+const FINDINGS = [
+  ["CVE-2025-49844", "critical", 9.9, "redis", "7.2.4", "7.2.11", "valkey/valkey:7.2", "dependency-track", "os-pkgs", "2025-10-03", "Redis: use-after-free in Lua scripting allows remote code execution"],
+  ["CVE-2025-47907", "critical", 9.8, "stdlib", "1.23.4", "1.23.12", "oci/cilium-operator:v1.16.3", "kube-system", "lang-pkgs", "2025-08-07", "database/sql: incorrect results returned from Rows.Scan"],
+  ["CVE-2025-22871", "critical", 9.1, "stdlib", "1.23.4", "1.23.8", "oci/hubble-relay:v1.16.3", "kube-system", "lang-pkgs", "2025-04-08", "net/http: request smuggling through invalid chunked data"],
+  ["CVE-2024-45337", "critical", 9.1, "golang.org/x/crypto", "0.28.0", "0.31.0", "oci/external-secrets:v0.12.1", "external-secrets", "lang-pkgs", "2024-12-12", "golang.org/x/crypto/ssh: misuse of ServerConfig.PublicKeyCallback may cause authorization bypass"],
+  ["CVE-2025-30204", "critical", 8.7, "github.com/golang-jwt/jwt/v5", "5.2.1", "5.2.2", "oci/cert-manager-controller:v1.16.2", "cert-manager", "lang-pkgs", "2025-03-21", "golang-jwt: excessive memory allocation during header parsing"],
+  ["CVE-2025-4802", "critical", 8.1, "libc6", "2.36-9+deb12u9", "", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2025-05-16", "glibc: static setuid binary dlopen may incorrectly search LD_LIBRARY_PATH"],
+  ["CVE-2025-22868", "high", 7.5, "golang.org/x/oauth2", "0.23.0", "0.27.0", "oci/external-secrets:v0.12.1", "external-secrets", "lang-pkgs", "2025-02-26", "golang.org/x/oauth2/jws: unexpected memory consumption during parsing"],
+  ["CVE-2025-22869", "high", 7.5, "golang.org/x/crypto", "0.28.0", "0.35.0", "oci/cert-manager-controller:v1.16.2", "cert-manager", "lang-pkgs", "2025-02-26", "ssh: denial of service in the Key Exchange"],
+  ["CVE-2025-22870", "high", 7.5, "golang.org/x/net", "0.30.0", "0.36.0", "oci/hubble-relay:v1.16.3", "kube-system", "lang-pkgs", "2025-03-12", "golang.org/x/net/proxy: IPv6 zone IDs bypass proxy settings"],
+  ["CVE-2025-22870", "high", 7.5, "golang.org/x/net", "0.30.0", "0.36.0", "oci/cilium-operator:v1.16.3", "kube-system", "lang-pkgs", "2025-03-12", "golang.org/x/net/proxy: IPv6 zone IDs bypass proxy settings"],
+  ["CVE-2025-0913", "high", 7.5, "stdlib", "1.23.4", "1.23.10", "oci/cilium-operator:v1.16.3", "kube-system", "lang-pkgs", "2025-06-11", "os: inconsistent handling of O_CREATE|O_EXCL on Unix and Windows"],
+  ["CVE-2025-47906", "high", 7.5, "stdlib", "1.23.4", "1.23.12", "oci/hubble-relay:v1.16.3", "kube-system", "lang-pkgs", "2025-08-07", "os/exec: LookPath may return unexpected paths"],
+  ["CVE-2025-58058", "high", 7.5, "github.com/ulikunitz/xz", "0.5.11", "0.5.14", "oci/trivy-operator:0.24.1", "trivy-system", "lang-pkgs", "2025-08-28", "xz: memory exhaustion when reading a crafted LZMA header"],
+  ["CVE-2025-4673", "high", 7.5, "stdlib", "1.23.4", "1.23.10", "oci/trivy-operator:0.24.1", "trivy-system", "lang-pkgs", "2025-06-11", "net/http: sensitive headers not cleared on cross-origin redirect"],
+  ["CVE-2024-56171", "high", 7.8, "libxml2", "2.9.14+dfsg-1.3~deb12u1", "2.9.14+dfsg-1.3~deb12u2", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2025-02-18", "libxml2: use-after-free in xmlSchemaIDCFillNodeTables"],
+  ["CVE-2025-24928", "high", 7.8, "libxml2", "2.9.14+dfsg-1.3~deb12u1", "2.9.14+dfsg-1.3~deb12u2", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2025-02-18", "libxml2: stack-based buffer overflow in xmlSnprintfElements"],
+  ["CVE-2025-6020", "high", 7.8, "libpam0g", "1.5.2-6+deb12u1", "1.5.2-6+deb12u2", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2025-06-17", "linux-pam: directory traversal in pam_namespace"],
+  ["CVE-2025-48060", "high", 7.5, "jq", "1.6-2.1", "", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2025-05-20", "jq: heap-based buffer overflow in jv_string_vfmt"],
+  ["CVE-2025-27789", "medium", 6.2, "@babel/runtime", "7.26.0", "7.26.10", "ghcr.io/cthtrifork/claude-runner", "claude-system", "lang-pkgs", "2025-03-11", "babel: inefficient regex complexity in generated code with named capturing groups"],
+  ["CVE-2025-5114", "medium", 5.9, "libssl3", "3.0.15-1~deb12u1", "3.0.16-1~deb12u1", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2025-06-04", "openssl: excessive CPU when parsing malformed PKCS#12"],
+  ["CVE-2025-31498", "medium", 5.5, "libc-ares2", "1.18.1-3", "1.18.1-3+deb12u1", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2025-04-08", "c-ares: use-after-free in read_answers()"],
+  ["CVE-2025-27113", "medium", 5.9, "libxml2", "2.9.14+dfsg-1.3~deb12u1", "2.9.14+dfsg-1.3~deb12u2", "oci/cert-manager-webhook:v1.16.2", "cert-manager", "os-pkgs", "2025-02-18", "libxml2: NULL pointer dereference in xmlPatMatch"],
+  ["CVE-2025-30749", "medium", 5.3, "github.com/cloudflare/circl", "1.5.0", "1.6.1", "oci/cert-manager-controller:v1.16.2", "cert-manager", "lang-pkgs", "2025-05-23", "circl: incorrect calculation in secp384r1 CombinedMult"],
+  ["CVE-2025-26519", "medium", 5.5, "musl", "1.2.5-r0", "1.2.5-r1", "library/redis:7.4-alpine", "dependency-track", "os-pkgs", "2025-02-13", "musl: out-of-bounds write in iconv conversion of EUC-KR"],
+  ["CVE-2025-46394", "low", 3.2, "busybox", "1.36.1-r29", "1.36.1-r31", "library/redis:7.4-alpine", "dependency-track", "os-pkgs", "2025-04-23", "busybox: terminal escape sequences in tar listings"],
+  ["CVE-2024-58251", "low", 2.5, "busybox", "1.36.1-r29", "1.36.1-r31", "library/redis:7.4-alpine", "dependency-track", "os-pkgs", "2025-05-04", "busybox: netstat terminal control characters in output"],
+  ["CVE-2025-0167", "low", 3.4, "curl", "7.88.1-10+deb12u8", "", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2025-02-05", "curl: netrc and default credential leak"],
+  ["CVE-2011-3374", "low", 3.7, "apt", "2.6.1", "", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2019-11-26", "apt: package signature validation bypass in apt-key"],
+  ["CVE-2022-0563", "low", 3.3, "util-linux", "2.38.1-5+deb12u3", "", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2022-02-21", "util-linux: partial disclosure of arbitrary files in chfn and chsh"],
+  ["GHSA-vc7p-xh2j-4h7p", "unknown", 0, "github.com/some/module", "1.2.3", "1.2.4", "oci/trivy-operator:0.24.1", "trivy-system", "lang-pkgs", "2025-09-01", "Advisory without a severity rating"],
+];
+// trivy_image_exposedsecrets: [image, namespace, severity, secret_rule_id, secret_target, secret_title]
+const SECRETS = [
+  ["ghcr.io/cthtrifork/claude-runner", "claude-system", "high", "github-pat", "/home/claude/.config/gh/hosts.yml", "GitHub Personal Access Token"],
+];
+const IMAGES_SCANNED = 41;
+// trivy_cluster_compliance would go here once the operator's compliance reports are enabled; not part of this page.
+
+const SEVERITIES = [["critical", "Critical"], ["high", "High"], ["medium", "Medium"], ["low", "Low"], ["unknown", "Unknown"]];
+const sevVar = (s) => `var(--sev-${s})`;
+const RANK = Object.fromEntries(SEVERITIES.map(([k], i) => [k, i]));
+const SEV_FILTERS = [["all", "All"], ...SEVERITIES.slice(0, 4)];
+const PAGE_ROWS = 12;
+const REFRESH_MS = 60000;
+const COCKPIT = "https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/#p-trivy-vulnerabilities";
+
+// ---- Helpers ----
+
+const sum = (a) => a.reduce((x, y) => x + y, 0);
+const countBy = (rows, key) => rows.reduce((m, r) => ((m[key(r)] = (m[key(r)] || 0) + 1), m), {});
+const emptyCounts = () => ({ critical: 0, high: 0, medium: 0, low: 0, unknown: 0 });
+const tally = (rows) => rows.reduce((c, r) => (c[r[1]]++, c), emptyCounts());
+const total = (c) => sum(Object.values(c));
+const shortImage = (i) => i.replace(/^(oci|library)\//, "");
+const idLink = (id) => (id.startsWith("CVE-") ? "https://avd.aquasec.com/nvd/" + id.toLowerCase() : "https://github.com/advisories/" + id);
+
+// ---- Building blocks ----
+
+const Segmented = ({ label, options, value, onPick }) => html`<div class="seg" role="group" aria-label=${label}>${options.map(([v, text]) => html`<button aria-pressed=${String(value === v)} @click=${() => onPick(v)}>${text}</button>`)}</div>`;
+const Dot = (color) => html`<span class="dot" style="background: ${color}"></span>`;
+const SevPill = (s) => html`<span class="pill" style="--c: ${sevVar(s)}">${s}</span>`;
+const Legend = (c) => html`<div class="legend">${SEVERITIES.map(([k, name]) => html`<span class=${c[k] ? nothing : "muted"}><span class="dot" style="background: ${sevVar(k)}; opacity: ${c[k] ? 1 : 0.35}"></span>${c[k]} ${name.toLowerCase()}</span>`)}</div>`;
+// One stacked track: a segment per severity, widths relative to `max`.
+const Track = (c, max, label) => html`<div class="track" role="img" aria-label=${label}>${SEVERITIES.map(([k]) => (c[k] ? html`<div class="seg-b" style="width: ${(c[k] / max) * 100}%; flex: 0 0 auto; background: ${sevVar(k)}"></div>` : nothing))}</div>`;
+const GroupRows = (groups) => {
+  const max = Math.max(1, ...groups.map(([, c]) => total(c)));
+  return groups.map(([name, c, sub]) => html`<div class="row">
+    <div class="name">${name}${sub ? html`<small>${sub}</small>` : nothing}</div>
+    ${Track(c, max, `${name}: ${c.critical} critical, ${c.high} high, ${c.medium} medium, ${c.low} low, ${c.unknown} unknown`)}
+    <div class="val"><strong>${total(c)}</strong></div>
+  </div>`);
+};
+const Empty = (text) => html`<div class="empty">${text}</div>`;
+
+// ---- Sections ----
+
+const Tiles = (rows) => {
+  const c = tally(rows);
+  const fixable = rows.filter((r) => r[5]).length;
+  const sevTile = ([k, name]) => html`<div class="tile sev" style="--c: ${sevVar(k)}"><div class="k">${name}</div><div class="v">${c[k]}</div><div class="s">${k === "critical" ? "CVSS 9.0 and up" : k === "high" ? "CVSS 7.0 to 8.9" : k === "medium" ? "CVSS 4.0 to 6.9" : "CVSS below 4.0"}</div><span class="src">trivy_vulnerability_id{severity}</span></div>`;
+  return html`<section class="tiles" aria-label="Totals">
+    ${SEVERITIES.slice(0, 4).map(sevTile)}
+    <div class="tile"><div class="k">Fixable</div><div class="v">${rows.length ? Math.round((fixable / rows.length) * 100) : 0}%</div><div class="s">${fixable} of ${rows.length} have a fixed version</div><span class="src">…_id{fixed_version}</span></div>
+    <div class="tile"><div class="k">Images scanned</div><div class="v">${IMAGES_SCANNED}</div><div class="s">${new Set(rows.map((r) => r[6])).size} with findings here</div><span class="src">…ilities{image_digest}</span></div>
+  </section>`;
+};
+
+const ByNamespace = (rows) => {
+  const groups = Object.entries(Object.groupBy(rows, (r) => r[7])).map(([ns, rs]) => [ns, tally(rs), `${new Set(rs.map((r) => r[6])).size} images`]).sort((a, b) => b[1].critical - a[1].critical || b[1].high - a[1].high || total(b[1]) - total(a[1]));
+  return html`<section class="panel">
+    <div class="panel-head"><h2>By namespace</h2><span class="src">trivy_vulnerability_id{namespace,severity}</span></div>
+    ${groups.length ? GroupRows(groups) : Empty("No findings for this selection.")}
+    ${Legend(tally(rows))}
+  </section>`;
+};
+
+const ByImage = (rows) => {
+  const groups = Object.entries(Object.groupBy(rows, (r) => r[6])).map(([img, rs]) => [shortImage(img), tally(rs), rs[0][7]]).sort((a, b) => b[1].critical - a[1].critical || b[1].high - a[1].high || total(b[1]) - total(a[1])).slice(0, 8);
+  return html`<section class="panel">
+    <div class="panel-head"><h2>Worst images</h2><span class="src">trivy_image_vulnerabilities{image_repository,image_tag,severity}</span></div>
+    ${groups.length ? GroupRows(groups) : Empty("No findings for this selection.")}
+    <div class="sub" style="margin-top:8px">Counted once per image digest, even when several pods run it.</div>
+  </section>`;
+};
+
+const FixSplit = (rows) => {
+  const classes = Object.entries(countBy(rows, (r) => (r[8] === "os-pkgs" ? "OS packages" : "Language packages")));
+  const fixable = rows.filter((r) => r[5]).length;
+  const bar = (label, n, of, color) => html`<div class="row"><div class="name">${label}</div><div class="track" role="img" aria-label=${`${label}: ${n} of ${of}`}><div class="seg-b" style="width: ${of ? (n / of) * 100 : 0}%; flex: 0 0 auto; background: ${color}"></div></div><div class="val"><strong>${n}</strong></div></div>`;
+  return html`<section class="panel">
+    <div class="panel-head"><h2>Fix availability</h2><span class="src">trivy_vulnerability_id{fixed_version,class}</span></div>
+    ${bar("Fix available", fixable, rows.length, "var(--ok)")}
+    ${bar("No fix yet", rows.length - fixable, rows.length, "var(--bar-neutral)")}
+    ${classes.map(([name, n]) => bar(name, n, rows.length, "var(--env-rc)"))}
+    <div class="sub" style="margin-top:8px">A "no fix yet" finding is waiting on the distribution; Renovate cannot clear it.</div>
+  </section>`;
+};
+
+const Secrets = () => html`<section class="panel">
+  <div class="panel-head"><h2>Exposed secrets</h2><span class="src">trivy_image_exposedsecrets · trivy_exposedsecrets_info</span></div>
+  ${SECRETS.length ? html`<div class="scroll"><table>
+    <thead><tr><th class="l">Severity</th><th class="l">Rule</th><th class="l">Image</th><th class="l">File</th></tr></thead>
+    <tbody>${SECRETS.map((s) => html`<tr><td class="l">${SevPill(s[2])}</td><td class="l">${s[5]}<small>${s[3]}</small></td><td class="l">${shortImage(s[0])}<small>${s[1]}</small></td><td class="l"><code>${s[4]}</code></td></tr>`)}</tbody>
+  </table></div>` : Empty("No exposed secrets found.")}
+  <div class="sub" style="margin-top:8px">Details need <code>OPERATOR_METRICS_EXPOSED_SECRET_INFO_ENABLED=true</code> on the operator.</div>
+</section>`;
+
+const COLUMNS = [["sev", "Severity", "l"], ["id", "Vulnerability", "l"], ["score", "CVSS", ""], ["pkg", "Package", "l"], ["fix", "Installed → fixed", "l"], ["image", "Image", "l"], ["pub", "Published", ""]];
+const SORTS = {
+  sev: (a, b) => RANK[a[1]] - RANK[b[1]] || b[2] - a[2], id: (a, b) => (a[0] < b[0] ? -1 : 1), score: (a, b) => b[2] - a[2],
+  pkg: (a, b) => (a[3] < b[3] ? -1 : 1), fix: (a, b) => !!b[5] - !!a[5], image: (a, b) => (a[6] < b[6] ? -1 : 1), pub: (a, b) => (a[9] < b[9] ? 1 : -1),
+};
+
+const Findings = (rows, ui, set) => {
+  const q = ui.query.trim().toLowerCase();
+  const shown = rows.filter((r) => !q || r.join(" ").toLowerCase().includes(q)).sort(SORTS[ui.sort]);
+  const visible = ui.all ? shown : shown.slice(0, PAGE_ROWS);
+  return html`<section class="panel">
+    <div class="panel-head"><h2>Findings</h2><span class="src">trivy_vulnerability_id · needs OPERATOR_METRICS_VULN_ID_ENABLED=true</span></div>
+    <div class="tools">
+      <input type="search" placeholder="Filter by CVE, package or image" aria-label="Filter findings" .value=${ui.query} @input=${(e) => set({ query: e.target.value, all: false })} />
+      <label class="sub" style="align-self:center"><input type="checkbox" .checked=${ui.fixableOnly} @change=${(e) => set({ fixableOnly: e.target.checked })} /> Fixable only</label>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr>${COLUMNS.map(([k, name, cls]) => html`<th class=${cls || nothing} aria-sort=${ui.sort === k ? "ascending" : "none"}><button @click=${() => set({ sort: k })}>${name}${ui.sort === k ? " ↓" : ""}</button></th>`)}</tr></thead>
+      <tbody>${visible.length ? visible.map((r) => html`<tr>
+        <td class="l">${SevPill(r[1])}</td>
+        <td class="t"><a class="cve" href=${idLink(r[0])} rel="noopener noreferrer" target="_blank">${r[0]}</a><small>${r[10]}</small></td>
+        <td>${r[2] ? r[2].toFixed(1) : "–"}</td>
+        <td class="l">${r[3]}<small>${r[8] === "os-pkgs" ? "OS package" : "language package"}</small></td>
+        <td class="l">${r[4]}<small>${r[5] ? "→ " + r[5] : html`<span class="muted">no fix yet</span>`}</small></td>
+        <td class="l">${shortImage(r[6])}<small>${r[7]}</small></td>
+        <td>${r[9]}</td>
+      </tr>`) : html`<tr><td colspan="7" class="l">No findings match.</td></tr>`}</tbody>
+    </table></div>
+    ${shown.length > PAGE_ROWS ? html`<button class="more" @click=${() => set({ all: !ui.all })}>${ui.all ? "Show fewer" : `Show all ${shown.length}`}</button>` : nothing}
+    <div class="sub" style="margin-top:8px">Each CVE appears once per image and package. The cockpit panel lists only the top critical ones.</div>
+  </section>`;
+};
+
+// ---- The page. Assigning to ui re-renders it. Selection survives a reload. ----
+
+const UI_KEY = "trivy-ui";
+const loadUi = () => {
+  const d = { severity: "all", namespace: "all", query: "", sort: "sev", fixableOnly: false, all: false };
+  try { const s = JSON.parse(localStorage.getItem(UI_KEY)) || {}; return { ...d, severity: s.severity || d.severity, namespace: s.namespace || d.namespace }; } catch { return d; }
+};
+const saveUi = (ui) => { try { localStorage.setItem(UI_KEY, JSON.stringify({ severity: ui.severity, namespace: ui.namespace })); } catch {} };
+
+class TrivyApp extends LitElement {
+  static properties = { ui: { state: true }, fetchedAt: { state: true } };
+  constructor() { super(); this.ui = loadUi(); this.fetchedAt = new Date(); }
+  createRenderRoot() { return this; }
+  // The real page polls here: setInterval(load, REFRESH_MS). The mock only stamps the time.
+  connectedCallback() { super.connectedCallback(); this._t = setInterval(() => { this.fetchedAt = new Date(); }, REFRESH_MS); }
+  disconnectedCallback() { clearInterval(this._t); super.disconnectedCallback(); }
+  set = (patch) => { this.ui = { ...this.ui, ...patch }; saveUi(this.ui); };
+  render() {
+    const ui = this.ui;
+    const namespaces = [...new Set(FINDINGS.map((r) => r[7]))].sort();
+    const ns = namespaces.includes(ui.namespace) ? ui.namespace : "all";
+    const scoped = FINDINGS.filter((r) => ns === "all" || r[7] === ns);
+    const bySeverity = scoped.filter((r) => ui.severity === "all" || r[1] === ui.severity);
+    const listed = bySeverity.filter((r) => !ui.fixableOnly || r[5]);
+    const stamp = this.fetchedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return html`<main>
+      <p id="mock" role="note">Mockup with sample data. The real page reads the same series from Prometheus through a Redpanda Connect pod, like the usage page.</p>
+      <header class="bar">
+        <div><a class="back" href=${COCKPIT}>← Cockpit</a><h1>Trivy vulnerabilities</h1><div class="sub">Image scans by trivy-operator · from Prometheus · updated ${stamp}</div></div>
+        <div class="group">
+          <select aria-label="Namespace" @change=${(e) => this.set({ namespace: e.target.value, all: false })}>
+            <option value="all" ?selected=${ns === "all"}>All namespaces</option>
+            ${namespaces.map((n) => html`<option value=${n} ?selected=${ns === n}>${n}</option>`)}
+          </select>
+          ${Segmented({ label: "Severity", options: SEV_FILTERS, value: ui.severity, onPick: (v) => this.set({ severity: v, all: false }) })}
+        </div>
+      </header>
+      ${Tiles(scoped)}
+      <div class="cols">${ByNamespace(bySeverity)}${ByImage(bySeverity)}</div>
+      <div class="cols">${FixSplit(bySeverity)}${Secrets()}</div>
+      ${Findings(listed, ui, this.set)}
+      <p class="sub">Series come from trivy-operator's <code>/metrics</code>. Counts are findings per package, so one CVE in two packages counts twice. The tiles ignore the severity filter.</p>
+    </main>`;
+  }
+}
+customElements.define("trivy-app", TrivyApp);
+</script>
+</body>
+</html>
