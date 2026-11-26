@@ -18,6 +18,9 @@ description: Query and assess vulnerability findings in Dependency-Track with th
 - Trivy in-cluster: `kubectl get vulnerabilityreports -A` (summary `criticalCount`; the same CVE repeats per package).
 - Old versions stay in DT until the retire job removes them: take the live tag from the running pods (`kubectl get pods -A`). A project can also lag (no SBOM yet for the live tag): say so.
 - DT severity is NVD's. For distro packages (deb, apk) Debian and Alpine rate many CVEs lower and have no fix: compare with Trivy (`vulnerabilityreports`: `severity`, `fixedVersion`).
-- Conventions: assess only HIGH and CRITICAL findings (by Trivy severity) that have no fixed version, as `EXPLOITABLE` + `CAN_NOT_FIX` with the reason in `analysisDetails` (accepted risk, not in the VEX export). Findings with a fix are not assessed: the fix is a bump.
-  A CVE that is not applicable goes in `k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml` (PR) and is not also assessed here.
+- Conventions, in this order:
+  1. A CVE that is not applicable to any image (wrong product, other OS, feature never used) goes in `k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml` (PR) and is not also assessed here.
+  2. A finding that is not applicable to this image only (the component is present but the vulnerable code is not used or reachable) is assessed here as `NOT_AFFECTED` (with `analysisJustification`) or `FALSE_POSITIVE`, even when a bump would fix it. It reaches the VEX export PR.
+  3. A finding that applies, has no fixed version and is HIGH or CRITICAL (by Trivy severity) is assessed as `EXPLOITABLE` + `CAN_NOT_FIX` with the reason in `analysisDetails` (accepted risk, not in the VEX export).
+  4. A finding that applies and has a fix is not assessed: the fix is a bump.
 - DT has no delete for an analysis: withdraw one with `analysisState` and `analysisResponse` `NOT_SET`. Reading one: `GET /api/v1/analysis?project=&component=&vulnerability=`.
