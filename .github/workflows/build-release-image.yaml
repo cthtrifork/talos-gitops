@@ -24,6 +24,8 @@ permissions:
 
 env:
   PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+  # a pull request from this repository pushes its pr-<n> tag, so the scan job can pull it
+  PUSH: ${{ (github.event_name != 'pull_request' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
   IMAGE: ghcr.io/${{ github.repository }}/${{ inputs.name }}
 
 jobs:
@@ -31,6 +33,8 @@ jobs:
     name: Build and publish (${{ inputs.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      digest: ${{ steps.build-push.outputs.digest }}
     permissions:
       contents: write # create the release and its tag
       id-token: write # sign the image and its provenance attestation (OIDC)
@@ -74,21 +78,21 @@ jobs:
             type=ref,event=pr
 
       - name: Log in to GitHub Container Registry
-        if: ${{ env.PUBLISH == 'true' }}
+        if: ${{ env.PUSH == 'true' }}
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build image${{ env.PUBLISH == 'true' && ' and push to GHCR' || ' (not pushed)' }}
+      - name: Build image${{ env.PUBLISH == 'true' && ' and push to GHCR' || (env.PUSH == 'true' && ' (pr tag only)' || ' (not pushed)') }}
         id: build-push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./images/${{ inputs.name }}
           file: ./images/${{ inputs.name }}/Dockerfile
           platforms: linux/amd64
-          push: ${{ env.PUBLISH == 'true' }}
+          push: ${{ env.PUSH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # the weekly run picks up new packages; a warm cache would reuse the old install layers
@@ -158,3 +162,85 @@ jobs:
             exit 0
           fi
           gh release create "$PREFIX-$TAG" --target "$GITHUB_SHA" --title "$PREFIX-$TAG" --notes-file notes.md --latest=false
+
+  trivy-db:
+    name: Trivy database
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    uses: ./.github/workflows/update-trivy-db.yaml
+
+  # the Renovate bump PR gets this comparison too (images.yaml), but only after the merge
+  scan:
+    name: Scan ${{ inputs.name }}
+    needs: [build, trivy-db]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TRIVY_SKIP_DB_UPDATE: true
+      TRIVY_SKIP_JAVA_DB_UPDATE: true
+      # as in the trivy-operator scans
+      TRIVY_IGNORE_STATUS: not_affected,will_not_fix
+    permissions:
+      contents: read
+      packages: read # pull the images
+      pull-requests: write # the PR comment
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: mkdir out
+      - name: Scan new image
+        id: new
+        uses: ./.github/actions/trivy-scan
+        with:
+          image: ${{ env.IMAGE }}@${{ needs.build.outputs.digest }}
+          output: out/new.json
+          version: ${{ needs.trivy-db.outputs.version }}
+          severity: CRITICAL,HIGH
+          trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
+          ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
+      - name: Scan the released image
+        id: old
+        uses: ./.github/actions/trivy-scan
+        with:
+          image: ${{ env.IMAGE }}:latest
+          output: out/old.json
+          version: ${{ needs.trivy-db.outputs.version }}
+          skip-setup: true
+          severity: CRITICAL,HIGH
+          trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
+          ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
+      - name: Write the comment
+        env:
+          NEW_REF: ${{ env.IMAGE }}@${{ needs.build.outputs.digest }}
+          OLD_REF: ${{ env.IMAGE }}:latest
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # a failed scan has no report: an empty object stands in
+          echo '{}' > empty.json
+          new=out/new.json old=out/old.json
+          [ -s "${new}" ] || new=empty.json
+          [ -s "${old}" ] || old=empty.json
+          jq -r --arg new_ref "${NEW_REF}" --arg old_ref "${OLD_REF}" --arg run_url "${RUN_URL}" --slurpfile o "${old}" -f scripts/ci/scan-comment.jq "${new}" > out/comment.md
+          if [ -s out/new.json ]; then
+            trivy convert --format template --template "@scripts/ci/vuln-list.tpl" out/new.json > list.md
+            count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' out/new.json)
+            if [ "${count}" -gt 0 ]; then
+              { echo "<details><summary>All ${count} in the new image</summary>"; echo; head -n 27 list.md; echo
+                [ "${count}" -le 25 ] || { echo "…and $((count - 25)) more in the full report."; echo; }
+                echo "</details>"; echo; } >> out/comment.md
+            fi
+            mv out/new.json "out/${{ inputs.name }}.trivy.json"
+          fi
+      - name: Report
+        uses: ./.github/actions/scan-report
+        with:
+          comment: out/comment.md
+          report: out/*.trivy.json
+          header: scan-images ${{ inputs.name }}
+      - name: Fail if the new scan failed
+        # findings never fail the job; a scan that could not run does (usually transient: re-run)
+        if: steps.new.outputs.outcome == 'failure'
+        run: |
+          echo "::error::The Trivy scan failed (see the scan step above); re-run the job"
+          exit 1

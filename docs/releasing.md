@@ -19,7 +19,7 @@ Each image has a small workflow that calls `.github/workflows/build-release-imag
 | `fileserver`            | `build-fileserver.yaml`            | merge to `images/fileserver/**`, manual              |
 
 A build of `main` pushes `ghcr.io/cthtrifork/talos-gitops/<image>:<tag>` and `latest`, signs it (cosign), attests its
-provenance and creates a release. A pull request, or a manual run on another branch, only builds the image to check it.
+provenance and creates a release. A pull request, or a manual run on another branch, builds the image to check it, pushes only its `pr-<n>` tag (same-repository PRs) and comments a Trivy scan against `latest`.
 The weekly runs pick up new packages.
 
 | Image                   | Tool version                                                        | Image tag                | Release                       |
