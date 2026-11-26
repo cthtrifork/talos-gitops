@@ -6,8 +6,11 @@ set -euo pipefail
 
 FINDINGS=/work/findings   # <image>/<project uuid>.json: the statements of one project (image tag)
 PREVIOUS=/work/previous   # vex/pkg/oci as it was on main
-DOCS=vex/pkg/oci          # <image>/oci.openvex.json: one OpenVEX document per image
+DOCS=vex/pkg/oci          # <image>/oci.openvex.json: one OpenVEX document per image, <image>/oci.images.json: its digests
 GITHUB_TOKEN=$(cat /github/token 2>/dev/null || true)
+
+# zot sync destinations (k8s/infra/registry-system/zot/zot.json) -> the registry named in the pod spec
+UPSTREAM='{"docker-hub-cache":"mirror.gcr.io","ghcr-cache":"ghcr.io","ghcr-private":"ghcr.io","gcr-cache":"gcr.io","quay-cache":"quay.io","k8s-cache":"registry.k8s.io","google-ar-cache":"us-docker.pkg.dev"}'
 
 dt_get() { curl -fsS -H "X-Api-Key: $API_KEY" "$DT_URL/$1"; }
 github() { curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$@"; }
@@ -42,14 +45,19 @@ export_findings() {
       product=$(jq -rn --arg p "$purl" '$p | sub("@sha256(%3A|:)[0-9a-f]+"; "") | sub("arch=[^&]*&?"; "") | sub("[?&]$"; "") | gsub("%3A"; ":")')
       image=$(jq -rn --arg p "$product" '$p | capture("repository_url=(?<u>[^&]*)").u | gsub("%2F"; "/")') || continue
       [ -n "$image" ] || continue
+      # Trivy scans through the zot mirror (its PURLs name zot), the pod and CI use the upstream registry: both products
+      upstream=$(jq -rn --argjson m "$UPSTREAM" --arg i "$image" '$i | capture("^zot\\.registry-system\\.svc\\.cluster\\.local:5000/(?<c>[^/]+)/(?<r>.+)$") | if $m[.c] then "\($m[.c])/\(.r)" else $i end' || echo "$image")
+      alias=$(jq -rn --arg u "$upstream" '"pkg:oci/\($u | split("/") | last)?repository_url=\($u | gsub("/"; "%2F"))"')
 
-      statements=$(dt_get "api/v1/vex/cyclonedx/project/$uuid" | jq -c -f /scripts/vex-export.jq --arg product "$product")
+      statements=$(dt_get "api/v1/vex/cyclonedx/project/$uuid" | jq -c -f /scripts/vex-export.jq --arg product "$product" --arg alias "$alias")
       count=$(printf '%s' "$statements" | jq length)
       [ "$count" -gt 0 ] || continue
 
-      echo "$name:$version -> $product: $count statements"
-      mkdir -p "$FINDINGS/$image"
-      printf '%s\n' "$statements" > "$FINDINGS/$image/$uuid.json"
+      echo "$name:$version -> $upstream: $count statements"
+      mkdir -p "$FINDINGS/$upstream"
+      printf '%s\n' "$statements" > "$FINDINGS/$upstream/$uuid.json"
+      # the scanned digest lets CI pull the image the decisions were made on
+      jq -rn --arg p "$purl" --arg u "$upstream" '$p | capture("@(?<d>sha256(%3A|:)[0-9a-f]+)") | "\($u)@\(.d | gsub("%3A"; ":"))"' > "$FINDINGS/$upstream/$uuid.ref" || true
     done
 }
 
@@ -73,12 +81,13 @@ write_documents() {
       version: ($old.version // 1),
       statements: (map(.[]) | unique | sort_by(.vulnerability.name, .products[0]."@id"))
     }' "$dir"/*.json > "$DOCS/$image/oci.openvex.json"
+    cat "$dir"/*.ref 2>/dev/null | sort -u | jq -R . | jq -s . > "$DOCS/$image/oci.images.json"
   done
 }
 
 bump_changed_documents() {
   echo "==> Bumping the version of changed documents"
-  for doc in $(git diff --name-only --diff-filter=M -- "$DOCS"); do
+  for doc in $(git diff --name-only --diff-filter=M -- "$DOCS" | grep '\.openvex\.json$' || true); do
     jq --arg now "$(date -u +%FT%TZ)" '.version += 1 | .timestamp = $now' "$doc" > /work/bumped.json
     mv /work/bumped.json "$doc"
   done
