@@ -76,7 +76,8 @@
 
   .panel { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 16px; min-width: 0; }
   .panel-head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
-  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: 16px; align-items: start; }
+  .cols { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+  @media (min-width: 60rem) { .cols { grid-template-columns: 4fr 5fr; } }
 
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 12px; }
   .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 14px 16px; min-width: 0; }
@@ -143,6 +144,9 @@
   details.fold > summary { display: block; margin-top: 12px; }
   details.fold > summary::before { content: "▸ "; color: var(--muted); }
   details.fold[open] > summary::before { content: "▾ "; }
+  .tall { max-height: 40rem; overflow-y: auto; }
+  table.grafana th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  table.grafana td.title { max-width: 12rem; overflow: hidden; text-overflow: ellipsis; }
   .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .tools input { flex: 1 1 14rem; }
 
@@ -154,6 +158,8 @@
 
   @media (pointer: coarse) { .seg button { display: inline-flex; align-items: center; min-height: 40px; } }
   @media (max-width: 40rem) {
+    table.grafana th:first-child, table.grafana td.title { display: none; }
+    table.grafana th, table.grafana td { padding: 6px 5px; }
     .bar { display: contents; }
     .group { position: sticky; top: 0; z-index: 4; background: var(--page); padding: 8px 0; margin: -8px 0; box-shadow: 0 1px 0 var(--grid); }
     .tile .src { display: none; }
@@ -240,7 +246,7 @@ const imageRows = () => Object.entries(Object.groupBy(FINDINGS, (r) => r[6]))
 // One row per CVE, optionally only those found in one image. Worst severity first, then the most images.
 // Source: count by (vuln_id, severity) of trivy_vulnerability_id, one series per image and package
 const cveRows = (image) => Object.entries(Object.groupBy(FINDINGS.filter((r) => !image || r[6] === image), (r) => r[0]))
-  .map(([id, rs]) => ({ id, sev: rs[0][1], score: rs[0][2], images: new Set(FINDINGS.filter((f) => f[0] === id).map((f) => f[6])).size }))
+  .map(([id, rs]) => ({ id, sev: rs[0][1], score: rs[0][2], title: rs[0][10], images: new Set(FINDINGS.filter((f) => f[0] === id).map((f) => f[6])).size }))
   .sort((a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images || b.score - a.score);
 
 // ---- Building blocks ----
@@ -262,29 +268,46 @@ const ImageList = (rows, sel, pick) => {
   </section>`;
 };
 
-const CveRow = (r) => html`<li><span class="l"><span class="dot" style="background: ${sevVar(r.sev)}"></span><a class="cve" href=${idLink(r.id)} rel="noopener noreferrer" target="_blank">${r.id}</a></span><span class="num muted">${r.images} ${r.images === 1 ? "image" : "images"}</span></li>`;
+// Like the Grafana "Top vulnerabilities" table: title, linked id, severity as coloured text, count. Headers sort, the box and the severity pick filter.
+const CVE_COLS = [["title", "Title", "l"], ["id", "Vulnerability", "l"], ["sev", "Severity", "l"], ["images", "Images", ""]];
+const CVE_SORT = {
+  title: (a, b) => a.title.localeCompare(b.title), id: (a, b) => a.id.localeCompare(b.id),
+  sev: (a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images, images: (a, b) => b.images - a.images || RANK[a.sev] - RANK[b.sev],
+};
 
-const CveList = (sel, clear) => {
-  const rows = cveRows(sel);
-  const group = (keys) => rows.filter((r) => keys.includes(r.sev));
-  const urgent = group(["critical", "high"]);
-  const rest = group(["medium", "low", "unknown"]);
-  const heading = (name, k, list) => list.length ? html`<h3 style="color: ${sevVar(k)}">${name} <span class="muted">${list.length}</span></h3><ul class="rows">${list.map(CveRow)}</ul>` : nothing;
+const CveTable = (ui, sel, set) => {
+  const q = ui.query.trim().toLowerCase();
+  const rows = cveRows(sel)
+    .filter((r) => (ui.sev === "all" || r.sev === ui.sev) && (!q || (r.id + " " + r.title).toLowerCase().includes(q)))
+    .sort((a, b) => (CVE_SORT[ui.sort](a, b)) * (ui.desc ? -1 : 1));
+  const head = ([k, name, cls]) => html`<th class=${cls || nothing} aria-sort=${ui.sort === k ? (ui.desc ? "descending" : "ascending") : "none"}><button @click=${() => set(ui.sort === k ? { desc: !ui.desc } : { sort: k, desc: false })}>${name}${ui.sort === k ? (ui.desc ? " ↓" : " ↑") : ""}</button></th>`;
   return html`<section class="panel">
-    <div class="panel-head"><h2>Vulnerabilities</h2><span class="src">trivy_vulnerability_id</span></div>
-    ${sel ? html`<p class="filter"><span>Only in <strong>${shortImage(sel)}</strong></span><button class="more" @click=${clear}>Show all</button></p>` : nothing}
-    ${heading("Critical", "critical", group(["critical"]))}
-    ${heading("High", "high", group(["high"]))}
-    ${rest.length ? html`<details class="fold" ?open=${!!sel}><summary>Medium, low and unknown <span class="muted">${rest.length}</span></summary>
-      ${heading("Medium", "medium", group(["medium"]))}${heading("Low", "low", group(["low"]))}${heading("Unknown", "unknown", group(["unknown"]))}
-    </details>` : nothing}
-    ${urgent.length + rest.length ? nothing : html`<div class="empty">No vulnerabilities.</div>`}
+    <div class="panel-head"><h2>Top vulnerabilities</h2><span class="src">trivy_vulnerability_id</span></div>
+    ${sel ? html`<p class="filter"><span>Only in <strong>${shortImage(sel)}</strong></span><button class="more" @click=${() => set({ sel: null })}>Show all</button></p>` : nothing}
+    <div class="tools">
+      <input type="search" placeholder="Filter by title or CVE" aria-label="Filter vulnerabilities" .value=${ui.query} @input=${(e) => set({ query: e.target.value })} />
+      <select aria-label="Severity" @change=${(e) => set({ sev: e.target.value })}>
+        <option value="all" ?selected=${ui.sev === "all"}>All severities</option>
+        ${SEVERITIES.map(([k, n]) => html`<option value=${k} ?selected=${ui.sev === k}>${n}</option>`)}
+      </select>
+    </div>
+    <div class="scroll tall"><table class="grafana">
+      <thead><tr>${CVE_COLS.map(head)}</tr></thead>
+      <tbody>${rows.length ? rows.map((r) => html`<tr>
+        <td class="l title" title=${r.title}>${r.title}</td>
+        <td class="l"><a class="cve" href=${idLink(r.id)} rel="noopener noreferrer" target="_blank">${r.id}</a></td>
+        <td class="l" style="color: ${sevVar(r.sev)}; font-weight: 600">${r.sev[0].toUpperCase() + r.sev.slice(1)}</td>
+        <td><strong>${r.images}</strong></td>
+      </tr>`) : html`<tr><td colspan="4" class="l muted">No vulnerabilities match.</td></tr>`}</tbody>
+    </table></div>
+    <div class="sub" style="margin-top:8px">${rows.length} shown · Images = number of images the vulnerability is found in</div>
   </section>`;
 };
 
 class TrivyApp extends LitElement {
-  static properties = { fetchedAt: { state: true }, sel: { state: true } };
-  constructor() { super(); this.fetchedAt = new Date(); this.sel = null; }
+  static properties = { fetchedAt: { state: true }, ui: { state: true } };
+  constructor() { super(); this.fetchedAt = new Date(); this.ui = { sel: null, query: "", sev: "all", sort: "sev", desc: false }; }
+  set = (patch) => { this.ui = { ...this.ui, ...patch }; };
   createRenderRoot() { return this; }
   // The real page polls here: setInterval(load, REFRESH_MS). The mock only stamps the time.
   connectedCallback() { super.connectedCallback(); this._t = setInterval(() => { this.fetchedAt = new Date(); }, REFRESH_MS); }
@@ -299,8 +322,8 @@ class TrivyApp extends LitElement {
         <div class="sub">${SEVERITIES.filter(([k]) => c[k]).map(([k, n]) => html`<span class="dot" style="background: ${sevVar(k)}"></span>${c[k]} ${n.toLowerCase()} `)}· from Prometheus · updated ${stamp}</div>
       </header>
       <div class="cols">
-        ${ImageList(imageRows(), this.sel, (i) => { this.sel = i; })}
-        ${CveList(this.sel, () => { this.sel = null; })}
+        ${ImageList(imageRows(), this.ui.sel, (i) => this.set({ sel: i }))}
+        ${CveTable(this.ui, this.ui.sel, this.set)}
       </div>
       <p class="sub">Pick an image to see only its vulnerabilities. Worst first: by severity, then by count. Counts are per image digest.</p>
     </main>`;
