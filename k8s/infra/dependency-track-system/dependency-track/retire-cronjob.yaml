@@ -32,7 +32,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: retire
-              image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
+              image: ghcr.io/cthtrifork/talos-gitops/tools:1.37.2-20261126.3@sha256:8849a678b45ff8affc709870049f6a36af4b8f89b9f0b5010d357ece0647f124
               command:
                 - sh
                 - /scripts/retire-projects.sh
