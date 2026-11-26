@@ -12,6 +12,8 @@ vex/
 └── pkg/<type>/<namespace>/<name>/<anything>.openvex.json
 ```
 
+Documents under `pkg/oci/` are filed by the registry named in the pod spec (`pkg/oci/ghcr.io/<repo>/oci.openvex.json`) and list that PURL and the zot mirror one Trivy reports, without a version, so they hold for every tag; `oci.images.json` next to them lists the scanned digests that CI pulls.
+
 Everything under `pkg/oci/` is generated from the current decisions in Dependency-Track by `k8s/infra/dependency-track-system/dependency-track/vex-export-cronjob.yaml` and rebuilt from scratch on every run; do not edit it by hand.
 
 ## Adding a statement

@@ -5,6 +5,8 @@ Usage: vex-images.py [document ...]   (default: every vex/pkg/oci/**/*.openvex.j
 
 An image product is a PURL `pkg:oci/<name>@<digest>?repository_url=<registry>%2F<repository>`; its scan reference
 is `<registry>/<repository>@<digest>`. Products without a digest cannot be pulled and are left out.
+Documents exported from Dependency-Track have digestless products (they hold for every version): their digests are
+in `oci.images.json` next to the document, as a JSON array of `<registry>/<repository>@<digest>`.
 """
 import json
 import sys
@@ -21,4 +23,8 @@ for doc in docs:
             repository = parse_qs(purl.query).get("repository_url", [""])[0]
             if digest.startswith("sha256:") and repository:
                 found[(doc, f"{unquote(repository)}@{digest}")] = None
+    images = Path(doc).with_name("oci.images.json")
+    if images.exists():
+        for ref in json.loads(images.read_text()):
+            found[(doc, ref)] = None
 print(json.dumps([{"doc": d, "ref": r} for d, r in found], separators=(",", ":")))

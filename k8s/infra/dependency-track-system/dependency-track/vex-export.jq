@@ -1,5 +1,6 @@
 # Input: the CycloneDX VEX of one Dependency-Track project (one image tag).
-# Arguments: $product = the image repository as a PURL without version (pkg:oci/<name>?repository_url=<host>/<repo>).
+# Arguments: $product = the image repository as a PURL without version (pkg:oci/<name>?repository_url=<host>/<repo>),
+# $alias = the same repository under the registry the pod and CI use (Trivy's PURLs name the zot mirror).
 # Output: OpenVEX statements, one per decided vulnerability.
 
 # Dependency-Track justification -> OpenVEX justification
@@ -38,15 +39,15 @@ def status_fields:
     + {impact_statement: (.analysis.detail // "Marked \(.analysis.state) in Dependency-Track")}
   end;
 
-def statement($product; $purls):
+def statement($product; $alias; $purls):
   subcomponents($purls) as $subcomponents
   | select($subcomponents | length > 0)
   | {
       vulnerability: {name: .id},
-      products: [{"@id": $product, subcomponents: $subcomponents}]
+      products: ([$product, $alias] | unique | map({"@id": ., subcomponents: $subcomponents}))
     }
     + status_fields;
 
 purls_by_bom_ref as $purls
 
-| [.vulnerabilities[]? | select(is_decision) | statement($product; $purls)]
+| [.vulnerabilities[]? | select(is_decision) | statement($product; $alias; $purls)]
