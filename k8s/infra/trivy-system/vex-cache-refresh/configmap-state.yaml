@@ -1,0 +1,7 @@
+# The last artifact timestamp handled; the CronJob writes data.built-at (no data here, so Flux leaves it alone).
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vex-cache-state
+  namespace: trivy-system

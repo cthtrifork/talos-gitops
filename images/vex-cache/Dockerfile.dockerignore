@@ -2,3 +2,5 @@
 *
 !images/vex-cache/repository.yaml
 !vex
+!k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
+!k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego

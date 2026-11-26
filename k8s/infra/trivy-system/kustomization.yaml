@@ -6,3 +6,4 @@ resources:
   - networkpolicy.yaml
   - trivy-operator/
   - vuln-policy-bundle/
+  - vex-cache-refresh/
