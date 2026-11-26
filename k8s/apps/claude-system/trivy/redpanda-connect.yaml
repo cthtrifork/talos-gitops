@@ -51,7 +51,7 @@ pipeline:
                 # The operator recreates a VulnerabilityReport on every rescan, so its creation time is the scan time (kube-state-metrics custom resource state)
                 - branch:
                     request_map: |
-                      meta promql = "max by (namespace, image_repository, image_tag, image_digest) ((time() - kube_customresource_vulnerabilityreport_created) * on (namespace, name) group_left (image_repository, image_tag, image_digest) max by (namespace, name, image_repository, image_tag, image_digest) (trivy_image_vulnerabilities))"
+                      meta promql = "max by (namespace, image_repository, image_tag, image_digest) ((time() - kube_customresource_vulnerabilityreport_created) * on (namespace, name) group_left (image_repository, image_tag, image_digest) group by (namespace, name, image_repository, image_tag, image_digest) (trivy_image_vulnerabilities))"
                       root = ""
                     processors:
                       - http:
@@ -75,13 +75,13 @@ pipeline:
                       "age_s": x.value.index(1).number().round()
                     })
 
-        # Every critical and high vulnerability with the number of images it is found in
+        # Every critical and high vulnerability: title and score per group, and the distinct images per id and severity
         - check: '@http_server_request_path == "/api/v1/vulnerabilities"'
           processors:
             - try:
                 - branch:
                     request_map: |
-                      meta promql = "count by (vuln_id, severity, vuln_title, vuln_score) (count by (vuln_id, severity, vuln_title, vuln_score, image_digest) (trivy_vulnerability_id{severity=~\"Critical|High\"}))"
+                      meta promql = "group by (vuln_id, severity, vuln_title, vuln_score) (trivy_vulnerability_id{severity=~\"Critical|High\"})"
                       root = ""
                     processors:
                       - http:
@@ -89,6 +89,17 @@ pipeline:
                           verb: GET
                           timeout: 10s
                     result_map: 'root.prom = this.data.result'
+                # Distinct images per id and severity, counted before the title and score split so no image is lost or counted twice
+                - branch:
+                    request_map: |
+                      meta promql = "count by (vuln_id, severity) (count by (vuln_id, severity, image_digest) (trivy_vulnerability_id{severity=~\"Critical|High\"}))"
+                      root = ""
+                    processors:
+                      - http:
+                          url: '${PROM_URL:http://kube-prom-prometheus.kube-prometheus-stack-system.svc:9090}/api/v1/query?query=${! @promql.escape_url_query() }'
+                          verb: GET
+                          timeout: 10s
+                    result_map: 'root.image_counts = this.data.result'
                 # One CVE can carry a different title or score per package: the page keeps one row per id and severity
                 - mapping: |
                     root.generated = now().ts_format("2006-01-02T15:04:05Z", "UTC")
@@ -96,8 +107,12 @@ pipeline:
                       "id": x.metric.vuln_id,
                       "severity": x.metric.severity.lowercase(),
                       "score": x.metric.vuln_score.number().catch(0),
-                      "title": x.metric.vuln_title.or(""),
-                      "images": x.value.index(1).number().round()
+                      "title": x.metric.vuln_title.or("")
+                    })
+                    root.images = this.image_counts.map_each(x -> {
+                      "id": x.metric.vuln_id,
+                      "severity": x.metric.severity.lowercase(),
+                      "count": x.value.index(1).number().round()
                     })
 
         - processors:

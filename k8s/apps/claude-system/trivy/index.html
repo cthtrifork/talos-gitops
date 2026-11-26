@@ -214,20 +214,21 @@ const imageRows = (d) => {
   for (const x of d.counts) {
     const k = x.namespace + "|" + x.digest;
     rows[k] ??= { image: x.image, ns: x.namespace, age: age[k] ?? null, c: Object.fromEntries(SEVERITIES.map(([s]) => [s, 0])) };
-    if (x.severity in rows[k].c) rows[k].c[x.severity] += x.count;
+    if (x.severity in rows[k].c) rows[k].c[x.severity] = Math.max(rows[k].c[x.severity], x.count); // aliases of one digest (:latest and a tag) are the same findings
   }
   return Object.values(rows).sort((a, b) => SEVERITIES.reduce((n, [k]) => n || b.c[k] - a.c[k], 0) || a.image.localeCompare(b.image));
 };
 
 // One row per CVE and severity. Worst severity first, then the most images.
-// /api/v1/vulnerabilities: count of images per trivy_vulnerability_id; a CVE with several titles or scores per package becomes one row
+// /api/v1/vulnerabilities: title and score rows, and the distinct image count per id and severity; a CVE with several titles or scores becomes one row
 const cveRows = (d) => {
+  const n = {};
+  for (const x of d.images) n[x.id + "|" + x.severity] = x.count;
   const rows = {};
   for (const x of d.vulnerabilities) {
     const k = x.id + "|" + x.severity;
-    const r = rows[k] ??= { id: x.id, sev: x.severity, score: 0, title: x.title, images: 0 };
+    const r = rows[k] ??= { id: x.id, sev: x.severity, score: 0, title: x.title, images: n[k] ?? 0 };
     r.score = Math.max(r.score, x.score);
-    r.images = Math.max(r.images, x.images);
     r.title ||= x.title;
   }
   return Object.values(rows).sort((a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images || b.score - a.score);
