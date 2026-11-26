@@ -14,4 +14,4 @@ images:
       strategy: list
       # renovate: datasource=docker depName=mirror.gcr.io/valkey/valkey versioning=docker
       list:
-        - "9.2.0"
+        - "9.2.1"
