@@ -76,7 +76,7 @@
 
   .panel { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 16px; min-width: 0; }
   .panel-head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
-  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: 16px; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: 16px; align-items: start; }
 
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 12px; }
   .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 14px 16px; min-width: 0; }
@@ -128,6 +128,21 @@
   ul.rows li:last-child { padding-bottom: 0; }
   ul.rows .l { flex: 1 1 12em; min-width: 0; overflow-wrap: anywhere; }
   .num { font-variant-numeric: tabular-nums; }
+  .sevbar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; display: flex; margin: 6px 0 4px; }
+  .sevbar i { display: block; height: 100%; min-width: 4px; }
+  .pick { all: unset; box-sizing: border-box; display: block; width: 100%; cursor: pointer; padding: 10px 12px; margin: 0 -12px; width: calc(100% + 24px); border-radius: 8px; }
+  .pick:hover { background: var(--page); }
+  .pick[aria-pressed="true"] { background: var(--page); box-shadow: inset 3px 0 0 var(--env-rc); }
+  .pick:focus-visible { outline: 2px solid var(--env-rc); outline-offset: -2px; }
+  .pick .top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
+  ul.rows li:has(.pick) { padding: 0; border-top: 0; }
+  h3 { font-size: var(--fs-sm); font-weight: 650; text-transform: uppercase; letter-spacing: .04em; margin: 16px 0 4px; }
+  h3:first-of-type { margin-top: 0; }
+  .filter { margin: 0 0 12px; padding: 8px 12px; background: var(--page); border-radius: 8px; font-size: var(--fs-sm); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .filter .more { margin: 0; }
+  details.fold > summary { display: block; margin-top: 12px; }
+  details.fold > summary::before { content: "▸ "; color: var(--muted); }
+  details.fold[open] > summary::before { content: "▾ "; }
   .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .tools input { flex: 1 1 14rem; }
 
@@ -214,56 +229,80 @@ const shortImage = (i) => i.replace(/^(oci|library)\//, "");
 const idLink = (id) => (id.startsWith("CVE-") ? "https://avd.aquasec.com/nvd/" + id.toLowerCase() : "https://github.com/advisories/" + id);
 const SevPill = (s) => html`<span class="pill" style="--c: ${sevVar(s)}">${s}</span>`;
 
+// ---- Data shaping ----
+
 // One row per image: findings per severity. Worst first: most critical, then high, medium, low, unknown.
 // Source: trivy_image_vulnerabilities{image_repository,image_tag,severity}
 const imageRows = () => Object.entries(Object.groupBy(FINDINGS, (r) => r[6]))
   .map(([image, rs]) => ({ image, ns: rs[0][7], c: Object.fromEntries(SEVERITIES.map(([k]) => [k, rs.filter((r) => r[1] === k).length])) }))
   .sort((a, b) => SEVERITIES.reduce((d, [k]) => d || b.c[k] - a.c[k], 0));
 
-// One row per CVE: how many images it hits. Worst severity first, then most images.
+// One row per CVE, optionally only those found in one image. Worst severity first, then the most images.
 // Source: count by (vuln_id, severity) of trivy_vulnerability_id, one series per image and package
-const cveRows = () => Object.entries(Object.groupBy(FINDINGS, (r) => r[0]))
-  .map(([id, rs]) => ({ id, sev: rs[0][1], score: rs[0][2], title: rs[0][10], pkg: rs[0][3], fixed: rs[0][5], images: new Set(rs.map((r) => r[6])).size }))
+const cveRows = (image) => Object.entries(Object.groupBy(FINDINGS.filter((r) => !image || r[6] === image), (r) => r[0]))
+  .map(([id, rs]) => ({ id, sev: rs[0][1], score: rs[0][2], images: new Set(FINDINGS.filter((f) => f[0] === id).map((f) => f[6])).size }))
   .sort((a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images || b.score - a.score);
 
-// The cockpit panel's rows: image, its findings per severity as the sub line, its CVE count on the right.
-const ImageList = () => html`<section class="panel">
-  <div class="panel-head"><h2>Images</h2><span class="src">trivy_image_vulnerabilities</span></div>
-  <ul class="rows">${imageRows().map((r) => html`<li>
-    <span class="l"><strong>${shortImage(r.image)}</strong><br /><span class="muted">${SEVERITIES.filter(([k]) => r.c[k]).map(([k, name]) => `${r.c[k]} ${name.toLowerCase()}`).join(" · ")} · ${r.ns}</span></span>
-    <span class="num muted">${sum(Object.values(r.c))} ${sum(Object.values(r.c)) === 1 ? "CVE" : "CVEs"}</span>
-  </li>`)}</ul>
-</section>`;
+// ---- Building blocks ----
 
-const CveTable = () => html`<section class="panel">
-  <div class="panel-head"><h2>Vulnerabilities</h2><span class="src">trivy_vulnerability_id</span></div>
-  <div class="scroll"><table>
-    <thead><tr><th class="l">Vulnerability</th><th class="l">Severity</th><th>Images</th></tr></thead>
-    <tbody>${cveRows().map((r) => html`<tr>
-      <td class="l"><a class="cve" href=${idLink(r.id)} rel="noopener noreferrer" target="_blank">${r.id}</a></td>
-      <td class="l">${SevPill(r.sev)}</td>
-      <td><strong>${r.images}</strong></td>
-    </tr>`)}</tbody>
-  </table></div>
-</section>`;
+const Bar = (c, max) => html`<div class="sevbar" role="img" aria-label=${SEVERITIES.map(([k, n]) => `${c[k]} ${n.toLowerCase()}`).join(", ")}>${SEVERITIES.filter(([k]) => c[k]).map(([k]) => html`<i style="width: ${(c[k] / max) * 100}%; background: ${sevVar(k)}"></i>`)}</div>`;
+
+const ImageList = (rows, sel, pick) => {
+  const max = Math.max(...rows.map((r) => sum(Object.values(r.c))));
+  return html`<section class="panel">
+    <div class="panel-head"><h2>Images</h2><span class="src">trivy_image_vulnerabilities</span></div>
+    <ul class="rows">${rows.map((r) => {
+      const n = sum(Object.values(r.c));
+      return html`<li><button class="pick" aria-pressed=${String(sel === r.image)} @click=${() => pick(sel === r.image ? null : r.image)}>
+        <span class="top"><strong>${shortImage(r.image)}</strong><span class="num">${r.c.critical ? html`<b style="color: var(--sev-critical)">${r.c.critical} critical</b> · ` : nothing}${r.c.high ? html`<b style="color: var(--sev-high)">${r.c.high} high</b> · ` : nothing}<span class="muted">${n} total</span></span></span>
+        ${Bar(r.c, max)}
+        <span class="muted sub">${r.ns}</span>
+      </button></li>`;
+    })}</ul>
+  </section>`;
+};
+
+const CveRow = (r) => html`<li><span class="l"><span class="dot" style="background: ${sevVar(r.sev)}"></span><a class="cve" href=${idLink(r.id)} rel="noopener noreferrer" target="_blank">${r.id}</a></span><span class="num muted">${r.images} ${r.images === 1 ? "image" : "images"}</span></li>`;
+
+const CveList = (sel, clear) => {
+  const rows = cveRows(sel);
+  const group = (keys) => rows.filter((r) => keys.includes(r.sev));
+  const urgent = group(["critical", "high"]);
+  const rest = group(["medium", "low", "unknown"]);
+  const heading = (name, k, list) => list.length ? html`<h3 style="color: ${sevVar(k)}">${name} <span class="muted">${list.length}</span></h3><ul class="rows">${list.map(CveRow)}</ul>` : nothing;
+  return html`<section class="panel">
+    <div class="panel-head"><h2>Vulnerabilities</h2><span class="src">trivy_vulnerability_id</span></div>
+    ${sel ? html`<p class="filter"><span>Only in <strong>${shortImage(sel)}</strong></span><button class="more" @click=${clear}>Show all</button></p>` : nothing}
+    ${heading("Critical", "critical", group(["critical"]))}
+    ${heading("High", "high", group(["high"]))}
+    ${rest.length ? html`<details class="fold" ?open=${!!sel}><summary>Medium, low and unknown <span class="muted">${rest.length}</span></summary>
+      ${heading("Medium", "medium", group(["medium"]))}${heading("Low", "low", group(["low"]))}${heading("Unknown", "unknown", group(["unknown"]))}
+    </details>` : nothing}
+    ${urgent.length + rest.length ? nothing : html`<div class="empty">No vulnerabilities.</div>`}
+  </section>`;
+};
 
 class TrivyApp extends LitElement {
-  static properties = { fetchedAt: { state: true } };
-  constructor() { super(); this.fetchedAt = new Date(); }
+  static properties = { fetchedAt: { state: true }, sel: { state: true } };
+  constructor() { super(); this.fetchedAt = new Date(); this.sel = null; }
   createRenderRoot() { return this; }
   // The real page polls here: setInterval(load, REFRESH_MS). The mock only stamps the time.
   connectedCallback() { super.connectedCallback(); this._t = setInterval(() => { this.fetchedAt = new Date(); }, REFRESH_MS); }
   disconnectedCallback() { clearInterval(this._t); super.disconnectedCallback(); }
   render() {
     const stamp = this.fetchedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const c = Object.fromEntries(SEVERITIES.map(([k]) => [k, cveRows().filter((r) => r.sev === k).length]));
     return html`<main>
       <p id="mock" role="note">Mockup with sample data. The real page reads the same series from Prometheus through a Redpanda Connect pod, like the usage page.</p>
       <header>
-        <a class="back" href=${COCKPIT}>← Cockpit</a><h1>Trivy vulnerabilities</h1><div class="sub">Image scans by trivy-operator · from Prometheus · updated ${stamp}</div>
+        <a class="back" href=${COCKPIT}>← Cockpit</a><h1>Trivy vulnerabilities</h1>
+        <div class="sub">${SEVERITIES.filter(([k]) => c[k]).map(([k, n]) => html`<span class="dot" style="background: ${sevVar(k)}"></span>${c[k]} ${n.toLowerCase()} `)}· from Prometheus · updated ${stamp}</div>
       </header>
-      ${ImageList()}
-      ${CveTable()}
-      <p class="sub">Both lists sort worst first: by severity, then by count. Counts are per image digest.</p>
+      <div class="cols">
+        ${ImageList(imageRows(), this.sel, (i) => { this.sel = i; })}
+        ${CveList(this.sel, () => { this.sel = null; })}
+      </div>
+      <p class="sub">Pick an image to see only its vulnerabilities. Worst first: by severity, then by count. Counts are per image digest.</p>
     </main>`;
   }
 }
