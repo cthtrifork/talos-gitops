@@ -20,6 +20,20 @@ description: Query and assess vulnerability findings in Dependency-Track with th
 - Consider usage first: what this cluster actually uses decides applicability, not the CVE title. Grep the repo (`git grep -i <feature>` in `k8s/`, the app README and values) for the feature behind the package (Kerberos/GSSAPI, Ceph, SSH, DTLS, image decoders, ...). Unused in every image: `trivyignore.yaml` PR with the reason, never a DT record (a server-only title such as KDC or kadmind is the wrong reason when the whole feature is unused). Unused in this image only: `NOT_AFFECTED` with `CODE_NOT_PRESENT` or `CODE_NOT_REACHABLE`. Used, or unclear: leave it open and say so. Never record one only because the risk is low, and never from title guesses or from an exposure claim you did not check (say "not verified" instead).
 - Go dependency CVE (`golang.org/x/*`, stdlib): run the `govulncheck` skill first. Symbol absent from the binary: `NOT_AFFECTED` / `CODE_NOT_PRESENT`; present or not checked: use the exposure rule below, or leave it open.
 - Exposure from network policies: when asked to assess, or when the code path is unknown, read the CiliumNetworkPolicies first (`kubectl get ciliumnetworkpolicy -n <ns> -o yaml`) and the pod spec (`hostNetwork`). Default deny, ingress only from kube-apiserver, host or cluster, and egress only to named hosts (no untrusted input reaches the binary): after the owner agrees, record `NOT_AFFECTED` with `PROTECTED_BY_MITIGATING_CONTROL` and say in `analysisDetails` that linkage was not verified. Leave open: LAN or world ingress (`fromCIDR`, `world`), `hostNetwork` pods (Cilium policies do not apply), open internet egress, tools that process input you choose, namespaces whose policy you did not read, and projects whose DT version is not the live tag. Do not answer "cannot assess" when this evidence exists: do it, or list what is missing.
+- Workflow when asked to assess (the request is the owner's agreement; do not ask again per step or per project):
+  1. List the affected projects (`.../vuln/<id>/projects`) and keep the live tags from the running pods; read the Trivy row for the same image.
+  2. Gather evidence per image in this order: unused everywhere (trivyignore), Go CVE (`govulncheck` skill), exposure (below).
+  3. Record every project that meets the rules in the same turn, then give one summary: recorded (with the evidence), left open (why), not verified.
+  4. Anything that needs a permission or a tool you lack: say which, do the rest, do not reach around it.
+- Exposure is more than the CiliumNetworkPolicy: also read the Services (`LoadBalancer`, `NodePort`), IngressRoutes and the pod's `hostNetwork`.
+  A Service can expose more than its name says (`prometheus-otlp-lb` reaches the whole Prometheus HTTP API from the LAN).
+  Never write an exposure claim ("never parses untrusted HTML") without that evidence; say "not verified".
+- Go CVE to GO id: `curl -s https://vuln.go.dev/ID/<GO-id>.json` (`aliases`, `affected[].ranges`, `imports[].symbols`). A GO finding that DT does not hold needs no record.
+  `govulncheck -mode=binary` lists a vulnerability under "Symbol Results" only if a vulnerable symbol is in the binary: absent is `CODE_NOT_PRESENT`
+  (confirm with `-show verbose` when that is the basis of a record).
+- Findings on the scanned app's own module (Prometheus, kubectl, ...) can be false positives: the main module has no version, so govulncheck uses a
+  pseudo-version `v0.0.0-<date>-<commit>` that sorts below every release. Compare the build commit with the advisory's fix (`gh api repos/<owner>/<repo>/compare/<fix>...<tag>`,
+  `behind_by` 0 means contained) and the release number with the ranges (Prometheus `3.N.x` is module `v0.3NN.x`) before calling one real.
 - Old versions stay in DT until the retire job removes them: take the live tag from the running pods (`kubectl get pods -A`). A project can also lag (no SBOM yet for the live tag): say so.
 - DT severity is NVD's. For distro packages (deb, apk) Debian and Alpine rate many CVEs lower and have no fix: compare with Trivy (`vulnerabilityreports`: `severity`, `fixedVersion`).
 - Conventions, in this order:
