@@ -1,4 +1,4 @@
-name: PR title
+name: Check PR title
 
 # Conventional Commits on PR titles (squash merges use the title as the subject listed in the image release notes);
 # the autolabeler in .github/release-drafter.yml labels the PR from it.
