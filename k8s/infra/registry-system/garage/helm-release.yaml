@@ -1,0 +1,100 @@
+---
+# The object store behind zot: 3 nodes, every object on all three (replicationFactor 3), so a read and a write need two
+# of them and one node can be down (the point of the scale-out). Every node holds a full copy: zot held 97 GiB on
+# 2026-11-26 (zot_repo_storage_bytes), so 120Gi per node is the usable size. Separate from Renovate's Garage (k8s/apps/renovate/garage/).
+# The chart's configure job only assigns garage-0, so it is off (clusterConfig) and layout-job.yaml does the layout.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: garage
+  namespace: registry-system
+spec:
+  interval: 30m
+  releaseName: garage
+  chartRef:
+    kind: OCIRepository
+    name: garage
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  # https://github.com/datahub-local/garage-helm/blob/main/charts/garage/values.yaml
+  values:
+    deployment:
+      replicaCount: 3
+      # without a layout the nodes are not ready, so OrderedReady would never start the second one
+      podManagementPolicy: Parallel
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: garage
+                app.kubernetes.io/instance: garage
+            topologyKey: kubernetes.io/hostname
+    tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+    # Garage's admin API answers /health once the node is up and in the layout
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 3903
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 3903
+      initialDelaySeconds: 10
+      periodSeconds: 15
+    # Prometheus scrapes the admin port (3903)
+    commonLabels:
+      prometheus-scrape: "true"
+    monitoring:
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+          labels:
+            release: kube-prometheus-stack
+    # PodSecurity is privileged for the namespace; keep the pods restricted
+    podSecurityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+    image:
+      repository: mirror.gcr.io/dxflrs/garage
+      # renovate: datasource=docker depName=dxflrs/garage versioning=docker
+      tag: v2.6.0@sha256:4b5a318fc9fe2fbec5d3af590eeafe05d83492e6411266fa0b9e215c20264013
+    garage:
+      replicationFactor: "3"
+      s3:
+        api:
+          region: garage
+      # rpcSecret and adminToken from external-secrets.yaml
+      secret:
+        create: false
+        name: garage-secrets
+    persistence:
+      enabled: true
+      meta:
+        storageClass: lvm-fast
+        size: 2Gi
+      data:
+        # lvm-bulk is not on every node (talos-tba-msi has only its system SATA disk)
+        storageClass: lvm-fast
+        # Keep this equal to CAPACITY in configure.sh.
+        size: 120Gi
+    clusterConfig:
+      enabled: false

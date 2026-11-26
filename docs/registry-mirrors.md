@@ -93,8 +93,9 @@ Patch 11 is applied per node. The init log of a new Spegel pod shows what its no
 - Retention keeps the newest tag of every cache repository and, with `keepUntagged`, the newest and most recently pulled untagged manifest,
   so digest-pinned images stay available without internet. The caches and the catch-all policy also keep anything pulled or pushed within
   720 hours; `pr/**` and `buildcache/**` keep 72.
-- The volume is 150Gi on `lvm-fast` (expandable online). A PVC's storage class cannot change in place: moving it means recreating the
-  StatefulSet and the PVC, and the cache refills on demand.
+- The images are in Garage (`k8s/infra/registry-system/zot/README.md`); the zot volume is 20Gi on `lvm-fast` and only holds the root
+  directory and the sync staging area. A PVC's storage class cannot change in place: moving it means recreating the StatefulSet and
+  the PVC, and the cache refills on demand.
 
 ## OCIRepositories (Flux charts)
 

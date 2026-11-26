@@ -9,6 +9,8 @@ spec:
   distribution:
     version: "2.9.5" # renovate: datasource=github-releases depName=fluxcd/flux2
     registry: "ghcr.io/fluxcd"
+  # No spec.storage: the artifacts of source-controller live in an emptyDir and are refetched after a restart (the OCI sources
+  # come through zot), so the controller is not tied to the node of a local volume
   components:
     - source-controller
     - kustomize-controller

@@ -47,6 +47,7 @@ spec:
             - --metrics-bind-address=:8080
             - --metrics-secure=false
             - --watch-namespace=renovate-system
+            - --watch-namespace=registry-system
             - --default-valkey-image=valkey/valkey:9.0.0
             - --default-exporter-image=oliver006/redis_exporter:v1.88.0
           ports:

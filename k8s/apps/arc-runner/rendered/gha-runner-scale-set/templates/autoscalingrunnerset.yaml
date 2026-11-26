@@ -186,7 +186,7 @@ spec:
             - /bin/bash
             - -c
             - install -d -m 700 "$XDG_RUNTIME_DIR" && exec /usr/local/bin/use-cache-server /home/runner/run.sh
-          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261123.33@sha256:23beaea4d501a868353503220de45c38ccdc1e629530d56adfbbec6d9f1c89f2
+          image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261125.37@sha256:fa26f3aa3f5e2c8f990615f79cf93b8dbba0afbd6d9bf63b2864c02673c8107a
           imagePullPolicy: IfNotPresent
           resources:
             limits:

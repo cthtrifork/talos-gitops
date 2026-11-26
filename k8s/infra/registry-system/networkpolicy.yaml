@@ -54,8 +54,10 @@ spec:
               protocol: TCP
     - fromEndpoints:
         - matchLabels:
+            # use zot as cache when pulling images and charts
             k8s:io.kubernetes.pod.namespace: arc-runners-system
         - matchLabels:
+            # uses zot as cache for scanning image
             k8s:io.kubernetes.pod.namespace: trivy-system
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: flux-system
@@ -106,6 +108,114 @@ spec:
       toPorts:
         - ports:
             - port: "4954"
+              protocol: TCP
+    # Garage (S3)
+    - toEndpoints:
+        - matchLabels:
+            k8s:app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+    # Valkey
+    - toEndpoints:
+        - matchLabels:
+            k8s:valkey.io/cluster: zot
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+---
+# Garage: S3 (3900) only from zot, RPC (3901) and admin (3903) only between Garage's own pods, which include the layout Job.
+# Prometheus scrapes the admin port.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: garage
+  namespace: registry-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: garage
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:app.kubernetes.io/name: zot
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+            - port: "3901"
+              protocol: TCP
+            - port: "3903"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            k8s:app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "3903"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:app.kubernetes.io/name: garage
+      toPorts:
+        - ports:
+            - port: "3900"
+              protocol: TCP
+            - port: "3901"
+              protocol: TCP
+            - port: "3903"
+              protocol: TCP
+---
+# Valkey (run by the operator): reachable from zot and the operator; the pods talk to each other on 6379 and the cluster bus (16379).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: valkey
+  namespace: registry-system
+spec:
+  endpointSelector:
+    matchLabels:
+      valkey.io/cluster: zot
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:app.kubernetes.io/name: zot
+        - matchLabels:
+            k8s:valkey.io/cluster: zot
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: valkey-operator-system
+            k8s:app.kubernetes.io/name: valkey-operator
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:valkey.io/cluster: zot
+      toPorts:
+        - ports:
+            - port: "16379"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:valkey.io/cluster: zot
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+            - port: "16379"
               protocol: TCP
 ---
 # Spegel only serves what the nodes already hold; it has no internet egress.

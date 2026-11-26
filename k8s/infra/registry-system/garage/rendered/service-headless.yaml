@@ -1,0 +1,39 @@
+---
+# Source: garage/templates/service-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-headless
+  labels:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/component: garage
+    app.kubernetes.io/version: "v2.5.0"
+    app.kubernetes.io/managed-by: Helm
+    prometheus-scrape: "true"
+  namespace: registry-system
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: 3900
+      targetPort: s3-api
+      protocol: TCP
+      name: s3-api
+    - port: 3902
+      targetPort: s3-web
+      protocol: TCP
+      name: s3-web
+    - port: 3901
+      targetPort: rpc
+      protocol: TCP
+      name: rpc
+    - port: 3903
+      targetPort: admin
+      protocol: TCP
+      name: admin
+  selector:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/instance: garage
+    app.kubernetes.io/component: garage
