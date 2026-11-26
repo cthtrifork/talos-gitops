@@ -1,4 +1,4 @@
-# Tools for in-cluster Jobs and init containers: curl, jq, yq, kubectl, bash, git, zip. Runs as non-root.
+# Tools for in-cluster Jobs and init containers: curl, jq, yq, kubectl, bash, git, zip, busybox httpd. Runs as non-root.
 # Same package set as https://gitlab.com/gitlab-ci-utils/curl-jq, plus yq and kubectl, on the Alpine base of claude-runner.
 FROM mirror.gcr.io/library/alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
@@ -8,7 +8,8 @@ ARG KUBECTL_VERSION=1.37.2
 ARG YQ_VERSION=4.54.3
 
 # coreutils for `date -d` and friends, as in curl-jq
-RUN apk add --no-cache bash git curl jq ca-certificates coreutils zip
+# busybox-extras for `busybox-extras httpd` (Alpine's busybox has no httpd applet)
+RUN apk add --no-cache bash git curl jq ca-certificates coreutils zip busybox-extras
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN curl -fsSL "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl \
