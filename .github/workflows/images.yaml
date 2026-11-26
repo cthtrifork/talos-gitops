@@ -66,6 +66,8 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
         with:
+          # the registry port in the directory names would be escaped as \:
+          safe_output: false
           files: |
             vex/pkg/oci/**/*.openvex.json
       - name: List the images of the VEX documents
