@@ -339,6 +339,8 @@ processor_resources:
                 let current_chips = "max by (instance, chip, chip_name) (" + $drivers + ")"
                 let historical_chips = "max by (instance, chip, chip_name) (present_over_time(" + $drivers + $range + "))"
                 let classify = " * on (instance, chip) group_left (chip_name) "
+                # NVMe temp1 is the composite; other NVMe sensors can be stuck (talos-tba-msi temp3 reads a flat 81.9 °C)
+                let extra_nvme = "node_hwmon_temp_celsius{chip=~\"nvme_.*\", sensor!=\"temp1\"}"
                 let nodes = "max by (instance, node) (label_replace(kube_node_info{internal_ip!=\"\"}, \"instance\", \"$1:9100\", \"internal_ip\", \"(.*)\"))"
                 let node_join = " * on (instance) group_left (node) " + $nodes
                 let stats = [
@@ -346,7 +348,7 @@ processor_resources:
                   {"name": "min", "aggregate": "min", "expr": "min_over_time(" + $sensors + $range + ")" + $classify + $historical_chips},
                   {"name": "max", "aggregate": "max", "expr": "max_over_time(" + $sensors + $range + ")" + $classify + $historical_chips},
                   {"name": "coverage", "aggregate": "min", "expr": "(count_over_time(" + $sensors + $range + ")" + $classify + $historical_chips + ") / " + $samples.string()}
-                ].map_each(s -> "label_replace(" + s.aggregate + " by (node, chip_name) ((" + s.expr + ")" + $node_join + "), \"stat\", \"" + s.name + "\", \"node\", \".*\")")
+                ].map_each(s -> "label_replace(" + s.aggregate + " by (node, chip_name) ((" + s.expr + ") unless on (instance, chip, sensor) " + $extra_nvme + $node_join + "), \"stat\", \"" + s.name + "\", \"node\", \".*\")")
                 meta path = "/api/v1/query?query=" + ("group by (node) (kube_node_info) or " + $stats.join(" or ")).escape_url_query()
                 root = ""
               processors:
@@ -389,8 +391,10 @@ processor_resources:
                 let step = if $window == "30d" { 28800 } else if $window == "7d" { 7200 } else { 900 }
                 let query = """
                   max by (chip_name) (
-                    node_hwmon_temp_celsius * on (instance, chip) group_left (chip_name)
-                    max by (instance, chip, chip_name) (node_hwmon_chip_names{chip_name=~"coretemp|nvme|spd5118"})
+                    (
+                      node_hwmon_temp_celsius * on (instance, chip) group_left (chip_name)
+                      max by (instance, chip, chip_name) (node_hwmon_chip_names{chip_name=~"coretemp|nvme|spd5118"})
+                    ) unless on (instance, chip, sensor) node_hwmon_temp_celsius{chip=~"nvme_.*", sensor!="temp1"}
                   )
                 """
                 meta path = "/api/v1/query_range?query=" + $query.escape_url_query() + "&start=" + ($end - $duration).string() + "&end=" + $end.string() + "&step=" + $step.string()
