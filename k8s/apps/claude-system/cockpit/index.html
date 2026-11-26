@@ -245,14 +245,8 @@ function ago(sec) {
   if (sec < 5400) return Math.round(sec / 60) + " min";
   return Math.round(sec / 3600) + " h";
 }
+// "10 h 16 min", the same style as the Run jobs page.
 function until(sec) {
-  if (sec < 90) return "less than a minute";
-  if (sec < 5400) return Math.round(sec / 60) + " min";
-  if (sec < 172800) return Math.round(sec / 360) / 10 + " h";
-  return Math.round(sec / 86400) + " days";
-}
-// "10 h 16 min", the style of the Run jobs page; `until` rounds to tenths of an hour for the other panels.
-function span(sec) {
   const m = Math.max(1, Math.round(sec / 60));
   if (m < 60) return m + " min";
   const h = Math.floor(m / 60);
@@ -861,7 +855,7 @@ const JobsPanel = (d) => {
     ? Muted("No namespace allows running jobs.")
     : html`${Rows(jobs.slice(0, MAX_ROWS).map((j) => ({
         title: `${j.namespace}/${j.name}`,
-        sub: j.suspended ? "suspended" : j.next ? `next run in ${span((j.next - Date.now()) / 1000)} · ${j.schedule}` : `schedule ${j.schedule}`,
+        sub: j.suspended ? "suspended" : j.next ? `next run in ${until((j.next - Date.now()) / 1000)} · ${j.schedule}` : `schedule ${j.schedule}`,
         right: j.running ? Pill("warn", "running") : nothing,
       })))}
       ${hidden > 0 ? Muted(`and ${hidden} more not listed`) : nothing}`);
