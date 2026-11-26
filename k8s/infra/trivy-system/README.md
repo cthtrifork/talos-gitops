@@ -21,8 +21,8 @@ trivy server and the scan jobs:
   `<cache-dir>/vex`. `skip-vex-repo-update` keeps Trivy from downloading anything at scan time, so the URLs in the file
   are not fetched. The image is rebuilt when `vex/` changes on `main` and when the workflow is run by hand; the Trivy VEX hub
   part only changes when it runs. VEX statements mark CVEs as not exploitable in a product.
-- `trivy-operator/ignore/trivyignore.yaml` (`trivy-ignorefile`): accepted findings, with an expiry.
-- `trivy-operator/ignore/ignore-policy.rego` (`trivy-ignorepolicy`): a Rego policy, `ignore` is false by default.
+- `trivy-operator/ignore/trivyignore.yaml` (`trivy-ignorefile`): CVEs that do not apply (no expiry) and accepted risk (with an expiry).
+- `trivy-operator/ignore/ignore-policy.rego` (`trivy-ignorepolicy`): a Rego policy, `ignore` is false by default. Rules that rest on the cluster setup ignore only LOW and MEDIUM.
 
 They are wired through the `configFile` in `trivy-operator/helm-release.yaml` (`vex`, `ignorefile`, `ignore-policy`).
 A change takes effect for the next scan job; reports are regenerated after `scannerReportTTL`.
