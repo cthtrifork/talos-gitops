@@ -195,25 +195,16 @@ const FINDINGS = [
   ["CVE-2022-0563", "low", 3.3, "util-linux", "2.38.1-5+deb12u3", "", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2022-02-21", "util-linux: partial disclosure of arbitrary files in chfn and chsh"],
   ["GHSA-vc7p-xh2j-4h7p", "unknown", 0, "github.com/some/module", "1.2.3", "1.2.4", "oci/trivy-operator:0.24.1", "trivy-system", "lang-pkgs", "2025-09-01", "Advisory without a severity rating"],
 ];
-// trivy_image_exposedsecrets: [image, namespace, severity, secret_rule_id, secret_target, secret_title]
-const SECRETS = [
-  ["ghcr.io/cthtrifork/claude-runner", "claude-system", "high", "github-pat", "/home/claude/.config/gh/hosts.yml", "GitHub Personal Access Token"],
-];
-const IMAGES_SCANNED = 41;
-// trivy_cluster_compliance would go here once the operator's compliance reports are enabled; not part of this page.
-
 const SEVERITIES = [["critical", "Critical"], ["high", "High"], ["medium", "Medium"], ["low", "Low"], ["unknown", "Unknown"]];
 const sevVar = (s) => `var(--sev-${s})`;
 const RANK = Object.fromEntries(SEVERITIES.map(([k], i) => [k, i]));
 const SEV_FILTERS = [["all", "All"], ...SEVERITIES.slice(0, 4)];
-const PAGE_ROWS = 12;
 const REFRESH_MS = 60000;
 const COCKPIT = "https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/#p-trivy-vulnerabilities";
 
 // ---- Helpers ----
 
 const sum = (a) => a.reduce((x, y) => x + y, 0);
-const countBy = (rows, key) => rows.reduce((m, r) => ((m[key(r)] = (m[key(r)] || 0) + 1), m), {});
 const emptyCounts = () => ({ critical: 0, high: 0, medium: 0, low: 0, unknown: 0 });
 const tally = (rows) => rows.reduce((c, r) => (c[r[1]]++, c), emptyCounts());
 const total = (c) => sum(Object.values(c));
@@ -236,7 +227,6 @@ const GroupRows = (groups) => {
     <div class="val"><strong>${total(c)}</strong></div>
   </div>`);
 };
-const Empty = (text) => html`<div class="empty">${text}</div>`;
 
 // ---- Sections ----
 
@@ -247,7 +237,6 @@ const Tiles = (rows) => {
   return html`<section class="tiles" aria-label="Totals">
     ${SEVERITIES.slice(0, 4).map(sevTile)}
     <div class="tile"><div class="k">Fixable</div><div class="v">${rows.length ? Math.round((fixable / rows.length) * 100) : 0}%</div><div class="s">${fixable} of ${rows.length} have a fixed version</div><span class="src">…_id{fixed_version}</span></div>
-    <div class="tile"><div class="k">Images scanned</div><div class="v">${IMAGES_SCANNED}</div><div class="s">${new Set(rows.map((r) => r[6])).size} with findings here</div><span class="src">…ilities{image_digest}</span></div>
   </section>`;
 };
 
@@ -255,80 +244,30 @@ const ByNamespace = (rows) => {
   const groups = Object.entries(Object.groupBy(rows, (r) => r[7])).map(([ns, rs]) => [ns, tally(rs), `${new Set(rs.map((r) => r[6])).size} images`]).sort((a, b) => b[1].critical - a[1].critical || b[1].high - a[1].high || total(b[1]) - total(a[1]));
   return html`<section class="panel">
     <div class="panel-head"><h2>By namespace</h2><span class="src">trivy_vulnerability_id{namespace,severity}</span></div>
-    ${groups.length ? GroupRows(groups) : Empty("No findings for this selection.")}
+    ${groups.length ? GroupRows(groups) : html`<div class="empty">No findings for this selection.</div>`}
     ${Legend(tally(rows))}
   </section>`;
 };
 
-const ByImage = (rows) => {
-  const groups = Object.entries(Object.groupBy(rows, (r) => r[6])).map(([img, rs]) => [shortImage(img), tally(rs), rs[0][7]]).sort((a, b) => b[1].critical - a[1].critical || b[1].high - a[1].high || total(b[1]) - total(a[1])).slice(0, 8);
-  return html`<section class="panel">
-    <div class="panel-head"><h2>Worst images</h2><span class="src">trivy_image_vulnerabilities{image_repository,image_tag,severity}</span></div>
-    ${groups.length ? GroupRows(groups) : Empty("No findings for this selection.")}
-    <div class="sub" style="margin-top:8px">Counted once per image digest, even when several pods run it.</div>
-  </section>`;
-};
-
-const FixSplit = (rows) => {
-  const classes = Object.entries(countBy(rows, (r) => (r[8] === "os-pkgs" ? "OS packages" : "Language packages")));
-  const fixable = rows.filter((r) => r[5]).length;
-  const bar = (label, n, of, color) => html`<div class="row"><div class="name">${label}</div><div class="track" role="img" aria-label=${`${label}: ${n} of ${of}`}><div class="seg-b" style="width: ${of ? (n / of) * 100 : 0}%; flex: 0 0 auto; background: ${color}"></div></div><div class="val"><strong>${n}</strong></div></div>`;
-  return html`<section class="panel">
-    <div class="panel-head"><h2>Fix availability</h2><span class="src">trivy_vulnerability_id{fixed_version,class}</span></div>
-    ${bar("Fix available", fixable, rows.length, "var(--ok)")}
-    ${bar("No fix yet", rows.length - fixable, rows.length, "var(--bar-neutral)")}
-    ${classes.map(([name, n]) => bar(name, n, rows.length, "var(--env-rc)"))}
-    <div class="sub" style="margin-top:8px">A "no fix yet" finding is waiting on the distribution; Renovate cannot clear it.</div>
-  </section>`;
-};
-
-const Secrets = () => html`<section class="panel">
-  <div class="panel-head"><h2>Exposed secrets</h2><span class="src">trivy_image_exposedsecrets · trivy_exposedsecrets_info</span></div>
-  ${SECRETS.length ? html`<div class="scroll"><table>
-    <thead><tr><th class="l">Severity</th><th class="l">Rule</th><th class="l">Image</th><th class="l">File</th></tr></thead>
-    <tbody>${SECRETS.map((s) => html`<tr><td class="l">${SevPill(s[2])}</td><td class="l">${s[5]}<small>${s[3]}</small></td><td class="l">${shortImage(s[0])}<small>${s[1]}</small></td><td class="l"><code>${s[4]}</code></td></tr>`)}</tbody>
-  </table></div>` : Empty("No exposed secrets found.")}
-  <div class="sub" style="margin-top:8px">Details need <code>OPERATOR_METRICS_EXPOSED_SECRET_INFO_ENABLED=true</code> on the operator.</div>
+const Findings = (rows) => html`<section class="panel">
+  <div class="panel-head"><h2>Findings</h2><span class="src">trivy_vulnerability_id</span></div>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Severity</th><th class="l">Vulnerability</th><th class="l">Package</th><th class="l">Fixed in</th><th class="l">Image</th></tr></thead>
+    <tbody>${rows.length ? rows.slice().sort((a, b) => RANK[a[1]] - RANK[b[1]] || b[2] - a[2]).map((r) => html`<tr>
+      <td class="l">${SevPill(r[1])}</td>
+      <td class="t"><a class="cve" href=${idLink(r[0])} rel="noopener noreferrer" target="_blank">${r[0]}</a><small>${r[10]}</small></td>
+      <td class="l">${r[3]}<small>${r[4]}</small></td>
+      <td class="l">${r[5] || html`<span class="muted">no fix yet</span>`}</td>
+      <td class="l">${shortImage(r[6])}<small>${r[7]}</small></td>
+    </tr>`) : html`<tr><td colspan="5" class="l">No findings match.</td></tr>`}</tbody>
+  </table></div>
 </section>`;
-
-const COLUMNS = [["sev", "Severity", "l"], ["id", "Vulnerability", "l"], ["score", "CVSS", ""], ["pkg", "Package", "l"], ["fix", "Installed → fixed", "l"], ["image", "Image", "l"], ["pub", "Published", ""]];
-const SORTS = {
-  sev: (a, b) => RANK[a[1]] - RANK[b[1]] || b[2] - a[2], id: (a, b) => (a[0] < b[0] ? -1 : 1), score: (a, b) => b[2] - a[2],
-  pkg: (a, b) => (a[3] < b[3] ? -1 : 1), fix: (a, b) => !!b[5] - !!a[5], image: (a, b) => (a[6] < b[6] ? -1 : 1), pub: (a, b) => (a[9] < b[9] ? 1 : -1),
-};
-
-const Findings = (rows, ui, set) => {
-  const q = ui.query.trim().toLowerCase();
-  const shown = rows.filter((r) => !q || r.join(" ").toLowerCase().includes(q)).sort(SORTS[ui.sort]);
-  const visible = ui.all ? shown : shown.slice(0, PAGE_ROWS);
-  return html`<section class="panel">
-    <div class="panel-head"><h2>Findings</h2><span class="src">trivy_vulnerability_id · needs OPERATOR_METRICS_VULN_ID_ENABLED=true</span></div>
-    <div class="tools">
-      <input type="search" placeholder="Filter by CVE, package or image" aria-label="Filter findings" .value=${ui.query} @input=${(e) => set({ query: e.target.value, all: false })} />
-      <label class="sub" style="align-self:center"><input type="checkbox" .checked=${ui.fixableOnly} @change=${(e) => set({ fixableOnly: e.target.checked })} /> Fixable only</label>
-    </div>
-    <div class="scroll"><table>
-      <thead><tr>${COLUMNS.map(([k, name, cls]) => html`<th class=${cls || nothing} aria-sort=${ui.sort === k ? "ascending" : "none"}><button @click=${() => set({ sort: k })}>${name}${ui.sort === k ? " ↓" : ""}</button></th>`)}</tr></thead>
-      <tbody>${visible.length ? visible.map((r) => html`<tr>
-        <td class="l">${SevPill(r[1])}</td>
-        <td class="t"><a class="cve" href=${idLink(r[0])} rel="noopener noreferrer" target="_blank">${r[0]}</a><small>${r[10]}</small></td>
-        <td>${r[2] ? r[2].toFixed(1) : "–"}</td>
-        <td class="l">${r[3]}<small>${r[8] === "os-pkgs" ? "OS package" : "language package"}</small></td>
-        <td class="l">${r[4]}<small>${r[5] ? "→ " + r[5] : html`<span class="muted">no fix yet</span>`}</small></td>
-        <td class="l">${shortImage(r[6])}<small>${r[7]}</small></td>
-        <td>${r[9]}</td>
-      </tr>`) : html`<tr><td colspan="7" class="l">No findings match.</td></tr>`}</tbody>
-    </table></div>
-    ${shown.length > PAGE_ROWS ? html`<button class="more" @click=${() => set({ all: !ui.all })}>${ui.all ? "Show fewer" : `Show all ${shown.length}`}</button>` : nothing}
-    <div class="sub" style="margin-top:8px">Each CVE appears once per image and package. The cockpit panel lists only the top critical ones.</div>
-  </section>`;
-};
 
 // ---- The page. Assigning to ui re-renders it. Selection survives a reload. ----
 
 const UI_KEY = "trivy-ui";
 const loadUi = () => {
-  const d = { severity: "all", namespace: "all", query: "", sort: "sev", fixableOnly: false, all: false };
+  const d = { severity: "all", namespace: "all" };
   try { const s = JSON.parse(localStorage.getItem(UI_KEY)) || {}; return { ...d, severity: s.severity || d.severity, namespace: s.namespace || d.namespace }; } catch { return d; }
 };
 const saveUi = (ui) => { try { localStorage.setItem(UI_KEY, JSON.stringify({ severity: ui.severity, namespace: ui.namespace })); } catch {} };
@@ -347,25 +286,23 @@ class TrivyApp extends LitElement {
     const ns = namespaces.includes(ui.namespace) ? ui.namespace : "all";
     const scoped = FINDINGS.filter((r) => ns === "all" || r[7] === ns);
     const bySeverity = scoped.filter((r) => ui.severity === "all" || r[1] === ui.severity);
-    const listed = bySeverity.filter((r) => !ui.fixableOnly || r[5]);
     const stamp = this.fetchedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     return html`<main>
       <p id="mock" role="note">Mockup with sample data. The real page reads the same series from Prometheus through a Redpanda Connect pod, like the usage page.</p>
       <header class="bar">
         <div><a class="back" href=${COCKPIT}>← Cockpit</a><h1>Trivy vulnerabilities</h1><div class="sub">Image scans by trivy-operator · from Prometheus · updated ${stamp}</div></div>
         <div class="group">
-          <select aria-label="Namespace" @change=${(e) => this.set({ namespace: e.target.value, all: false })}>
+          <select aria-label="Namespace" @change=${(e) => this.set({ namespace: e.target.value })}>
             <option value="all" ?selected=${ns === "all"}>All namespaces</option>
             ${namespaces.map((n) => html`<option value=${n} ?selected=${ns === n}>${n}</option>`)}
           </select>
-          ${Segmented({ label: "Severity", options: SEV_FILTERS, value: ui.severity, onPick: (v) => this.set({ severity: v, all: false }) })}
+          ${Segmented({ label: "Severity", options: SEV_FILTERS, value: ui.severity, onPick: (v) => this.set({ severity: v }) })}
         </div>
       </header>
       ${Tiles(scoped)}
-      <div class="cols">${ByNamespace(bySeverity)}${ByImage(bySeverity)}</div>
-      <div class="cols">${FixSplit(bySeverity)}${Secrets()}</div>
-      ${Findings(listed, ui, this.set)}
-      <p class="sub">Series come from trivy-operator's <code>/metrics</code>. Counts are findings per package, so one CVE in two packages counts twice. The tiles ignore the severity filter.</p>
+      ${ByNamespace(bySeverity)}
+      ${Findings(bySeverity)}
+      <p class="sub">Series come from trivy-operator's <code>/metrics</code>. Counts are findings per package.</p>
     </main>`;
   }
 }
