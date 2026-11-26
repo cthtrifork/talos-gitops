@@ -118,6 +118,10 @@
   .pill.ok { --c: var(--ok); }
   a.ext { color: var(--env-rc); text-decoration: none; }
   a.ext:hover { text-decoration: underline; }
+  .chip { all: unset; cursor: pointer; margin-left: 6px; padding: 0 8px; min-width: 2.6rem; text-align: center; box-sizing: border-box; border: 1px solid var(--ring); border-radius: 999px; font-size: 11px; line-height: 18px; color: var(--ink-2); vertical-align: 1px; }
+  .chip:hover { background: var(--page); color: var(--ink); }
+  .chip:focus-visible { outline: 2px solid var(--env-rc); outline-offset: 1px; }
+  @media (pointer: coarse) { .chip { padding: 6px 10px; line-height: 16px; } }
   a.cve { color: var(--env-rc); text-decoration: none; font-family: var(--mono); font-size: var(--fs-sm); }
   a.cve:hover { text-decoration: underline; }
   .muted { color: var(--muted); }
@@ -275,6 +279,14 @@ const CVE_SORT = {
   sev: (a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images, images: (a, b) => b.images - a.images || RANK[a.sev] - RANK[b.sev],
 };
 
+// A small chip that copies the id and says "Copied" for a moment. It changes its own label, so the page does not re-render.
+const copy = async (ev, text) => {
+  const b = ev.currentTarget;
+  try { await navigator.clipboard.writeText(text); b.textContent = "Copied"; } catch { b.textContent = "Failed"; }
+  setTimeout(() => { b.textContent = "Copy"; }, 1500);
+};
+const CopyChip = (text) => html`<button class="chip" aria-label=${"Copy " + text} @click=${(ev) => copy(ev, text)}>Copy</button>`;
+
 const CveTable = (ui, set) => {
   const rows = cveRows()
       .sort((a, b) => (CVE_SORT[ui.sort](a, b)) * (ui.desc ? -1 : 1));
@@ -285,7 +297,7 @@ const CveTable = (ui, set) => {
       <thead><tr>${CVE_COLS.map(head)}</tr></thead>
       <tbody>${rows.length ? rows.map((r) => html`<tr>
         <td class="l title" title=${r.title}>${r.title}</td>
-        <td class="l"><a class="cve" href=${idLink(r.id)} rel="noopener noreferrer" target="_blank">${r.id}</a></td>
+        <td class="l"><a class="cve" href=${idLink(r.id)} rel="noopener noreferrer" target="_blank">${r.id}</a> ${CopyChip(r.id)}</td>
         <td class="l" style="color: ${sevVar(r.sev)}; font-weight: 600">${r.sev[0].toUpperCase() + r.sev.slice(1)}</td>
         <td><strong>${r.images}</strong></td>
       </tr>`) : html`<tr><td colspan="4" class="l muted">No vulnerabilities match.</td></tr>`}</tbody>
