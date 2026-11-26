@@ -644,6 +644,26 @@ processor_resources:
                     })
               result_map: 'root.elevate = this'
 
+            # schedule and last run only: the status also carries the csrf value, which must not be copied
+            jobs:
+              request_map: 'root = ""'
+              processors:
+                - http:
+                    url: '${JOBS_URL:http://claude-jobs.claude-system.svc}/api/v1/status'
+                    verb: GET
+                    timeout: 10s
+                - mapping: |
+                    root.cronjobs = this.cronjobs.or([]).map_each(c -> {
+                      "namespace": c.namespace.or("").slice(0, 63),
+                      "name": c.name.or("").slice(0, 63),
+                      "schedule": c.schedule.or("").slice(0, 100),
+                      "time_zone": c.time_zone.or("").slice(0, 60),
+                      "suspended": c.suspended.or(false),
+                      "last_run": c.last_run.or(""),
+                      "running": c.running.or(0)
+                    })
+              result_map: 'root.jobs = this'
+
             vm_image_claude_vm:
               request_map: |
                 meta image = "claude-vm-bootc"

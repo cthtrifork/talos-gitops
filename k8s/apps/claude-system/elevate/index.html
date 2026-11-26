@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta name="description" content="Give Claude a short-lived token for a tier, and run a CronJob now.">
+<meta name="description" content="Give Claude a short-lived token for a tier.">
 <title>Elevate Claude</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23c4623f'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 12.5L12 7l5.5 5.5M6.5 18L12 12.5 17.5 18'/%3E%3C/g%3E%3C/svg%3E">
 <style>
@@ -76,8 +76,6 @@
   .jump { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 999px; background: var(--accent-bg); color: var(--accent);
           font-size: var(--fs-md); font-weight: 600; text-decoration: none; white-space: nowrap; }
   .jump:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  .jobrow { display: grid; gap: 10px; }
-  .desc { margin: 0; color: var(--ink-2); font-size: var(--fs-md); min-height: 1.4em; }
   section.card { scroll-margin-top: 12px; }
   .empty { margin: 0; color: var(--ink-2); font-size: var(--fs-md); }
 
@@ -112,13 +110,10 @@
   .badge.storage { background: var(--warn-bg); color: var(--danger); }
   .left { color: var(--ink-2); font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
   .left.soon { color: var(--warn); font-weight: 600; }
-  select { font: inherit; width: 100%; min-height: 48px; padding: 10px 12px; color: var(--ink); background: var(--chip); border: 1.5px solid var(--line); border-radius: 12px; }
-  select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .none { margin: 0; color: var(--ink-2); font-size: var(--fs-md); }
   [hidden] { display: none !important; }
 
   @media (min-width: 560px) { .tiers { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
-  @media (min-width: 560px) { .jobrow { grid-template-columns: minmax(0, 1fr) auto; align-items: start; } .jobrow select { min-width: 0; } .jobrow .desc, .jobrow .hint { grid-column: 1 / -1; } }
   @media (min-width: 880px) {
     .jump { display: none; }
     body { padding-top: 32px; }
@@ -190,18 +185,6 @@
         <ul id="grants"></ul>
         <p id="none" class="none">Nothing is elevated.</p>
         <button id="revokeAll" type="button" class="danger" style="margin-top:12px" hidden>Revoke everything</button>
-      </section>
-      <section class="card">
-        <h2>Run a job</h2>
-        <p class="none" style="margin-bottom:12px">Runs a CronJob now from its own template, in namespaces that allow it. Claude gets no rights from this.</p>
-        <form id="jobForm" autocomplete="off" novalidate>
-          <div class="jobrow">
-            <select id="jobSelect" aria-label="CronJob" aria-describedby="jobDesc" disabled></select>
-            <button id="jobGo" type="submit" disabled>Run now</button>
-            <p id="jobDesc" class="desc"></p>
-            <p id="jobMsg" class="hint" role="status"></p>
-          </div>
-        </form>
       </section>
     </div>
   </div>
@@ -297,34 +280,8 @@
     s.className = "summary" + (confirming ? " confirm" : "") + (confirming && selectedTier() === "storage" ? " danger" : "");
   }
 
-  var jobsKey = "";
-  function buildJobs() {
-    var jobs = status.cronjobs || [];
-    var key = jobs.map(function (j) { return j.namespace + "/" + j.name + "|" + (j.description || ""); }).join(",");
-    if (key === jobsKey) return;
-    jobsKey = key;
-    var keep = $("jobSelect").value, sel = $("jobSelect");
-    clear(sel);
-    jobs.forEach(function (j) {
-      var o = el("option", j.namespace + "/" + j.name + (j.suspended ? " (suspended)" : ""));
-      o.value = j.namespace + "/" + j.name;
-      sel.appendChild(o);
-    });
-    if (keep) sel.value = keep;
-    if (jobs.length === 0) { var e = el("option", "No namespace allows running jobs"); sel.appendChild(e); }
-    sel.disabled = $("jobGo").disabled = jobs.length === 0;
-    showJobDescription();
-  }
-  // the description comes from the CronJob's claude-elevate/description annotation
-  function showJobDescription() {
-    var v = $("jobSelect").value, d = $("jobDesc");
-    var j = (status.cronjobs || []).filter(function (x) { return x.namespace + "/" + x.name === v; })[0];
-    d.textContent = !j ? "" : j.description || "No description. Add the annotation claude-elevate/description to the CronJob.";
-  }
-
   function render() {
     if (!status) return;
-    buildJobs();
     buildNamespaces();
     var list = $("grants");
     var grants = (status.grants || []).slice().sort(function (a, b) { return Date.parse(a.expires_at) - Date.parse(b.expires_at); });
@@ -445,20 +402,6 @@
     var tier = selectedTier(), minutes = selectedMinutes();
     setConfirming(false);
     send("/api/v1/grants", ns.map(function (n) { return { tier: tier, minutes: minutes, namespace: n }; }), "Elevated " + tier + " in " + ns.join(", ") + " for " + human(minutes) + ".");
-  });
-
-  $("jobSelect").addEventListener("change", showJobDescription);
-  $("jobForm").addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    var parts = $("jobSelect").value.split("/");
-    if (parts.length !== 2) return;
-    var msg = $("jobMsg");
-    msg.textContent = ""; msg.className = "hint";
-    $("jobGo").disabled = true; $("jobGo").textContent = "Starting…";
-    fetch("api/v1/jobs", { method: "POST", headers: HEADERS, body: JSON.stringify({ csrf: status.csrf, namespace: parts[0], cronjob: parts[1] }) })
-      .then(function (r) { return r.json().then(function (j) { return r.ok ? { ok: true, text: j.job ? "Started " + j.job + "." : "Job started." } : { text: "Refused: " + j.error }; }); })
-      .catch(function (e) { return { text: "Could not start the job: " + e.message }; })
-      .then(function (res) { msg.textContent = res.text; msg.className = "hint " + (res.ok ? "ok" : "warn"); $("jobGo").disabled = false; $("jobGo").textContent = "Run now"; });
   });
 
   $("revokeAll").addEventListener("click", function () {

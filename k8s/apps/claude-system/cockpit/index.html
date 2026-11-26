@@ -229,6 +229,7 @@ const OPEN = {
   "p-share-urls": ["Open Share URLs", "claudeurlshare"],
   "p-claude-usage": ["Open Claude usage", "claudeusage"],
   "p-elevate-claude": ["Open Elevate Claude", "claudeelevate"],
+  "p-scheduled-jobs": ["Open Run jobs", "claudejobs"],
 };
 
 // ---- Plain helpers: formatting, status levels and the data behind the panels ----
@@ -244,23 +245,41 @@ function ago(sec) {
   if (sec < 5400) return Math.round(sec / 60) + " min";
   return Math.round(sec / 3600) + " h";
 }
+// "10 h 16 min", the same style as the Run jobs page.
 function until(sec) {
-  if (sec < 90) return "less than a minute";
-  if (sec < 5400) return Math.round(sec / 60) + " min";
-  if (sec < 172800) return Math.round(sec / 360) / 10 + " h";
-  return Math.round(sec / 86400) + " days";
+  const m = Math.max(1, Math.round(sec / 60));
+  if (m < 60) return m + " min";
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + " h" + (m % 60 ? " " + (m % 60) + " min" : "");
+  return Math.floor(h / 24) + " d" + (h % 24 ? " " + (h % 24) + " h" : "");
 }
 // A used percentage as a status (and a bar colour): quiet below 75, warn from 75, bad from `bad`.
 const usedState = (pct, bad) => (pct >= bad ? "bad" : pct >= 75 ? "warn" : "ok");
 const usedColor = (pct, bad) => ({ bad: "var(--bad)", warn: "var(--warn)", ok: "var(--calm)" })[usedState(pct, bad)];
-// Next time a cron expression (UTC, as the operator runs it) fires; null if it does not parse.
-function cronNext(expr) {
+// Next time a cron expression fires (UTC unless a time zone is given, as the operator runs it); null if it does not parse.
+function cronNext(expr, timezone = "UTC") {
   try {
-    const t = new Cron(expr, { timezone: "UTC" }).nextRun();
+    const t = new Cron(expr, { timezone }).nextRun();
     return t ? t.getTime() : null;
   } catch (e) {
     return null;
   }
+}
+// A cron expression in words for the common shapes ("every 15 min", "weekdays 06:00"); anything else stays as written.
+function cronWords(expr) {
+  const f = String(expr).trim().split(/\s+/);
+  if (f.length !== 5) return expr;
+  const [mi, h, dom, mon, dow] = f;
+  const hhmm = /^\d+$/.test(mi) && /^\d+$/.test(h) ? h.padStart(2, "0") + ":" + mi.padStart(2, "0") : null;
+  const days = { "*": "", "1-5": "weekdays", "0,6": "weekends", "6,0": "weekends", 0: "Sundays", 1: "Mondays", 2: "Tuesdays", 3: "Wednesdays", 4: "Thursdays", 5: "Fridays", 6: "Saturdays", 7: "Sundays" };
+  let m;
+  if (mon !== "*") return expr;
+  if (dom === "*" && dow === "*" && h === "*" && (m = mi.match(/^\*\/(\d+)$/))) return `every ${m[1]} min`;
+  if (dom === "*" && dow === "*" && h === "*" && mi === "0") return "every hour";
+  if (dom === "*" && dow === "*" && /^\d+$/.test(mi) && (m = h.match(/^\*\/(\d+)$/))) return `every ${m[1]} h`;
+  if (hhmm && dom === "*" && dow in days) return (days[dow] ? days[dow] + " " : "daily ") + hhmm;
+  if (hhmm && /^\d+$/.test(dom) && dow === "*") return `day ${dom} of the month ${hhmm}`;
+  return expr;
 }
 // The same filter the cockpit uses, as a GitHub search, so the "Open" link opens the whole list.
 function ghSearch(group, d) {
@@ -841,6 +860,27 @@ const ElevatePanel = (d) => {
         ${hidden > 0 ? Muted(`and ${hidden} more not listed`) : nothing}`}`);
 };
 
+// The CronJobs the Run jobs page lists, soonest next run first; suspended ones last. The pill says what is running, else when the next run is.
+const JobsPanel = (d) => {
+  const title = "Scheduled jobs";
+  if (!d.jobs) return Unavailable({ title, source: "claude-jobs · /api/v1/status", d });
+  const jobs = d.jobs.cronjobs
+    .map((j) => ({ ...j, next: j.suspended ? null : cronNext(j.schedule, j.time_zone || "UTC") }))
+    .sort((a, b) => (a.next ?? Infinity) - (b.next ?? Infinity) || compare(a.namespace + a.name, b.namespace + b.name));
+  const hidden = jobs.length - MAX_ROWS;
+  const running = jobs.filter((j) => j.running).length;
+  const soonest = jobs.find((j) => j.next);
+  const text = running ? `${running} running` : soonest ? `next in ${until((soonest.next - Date.now()) / 1000)}` : "none scheduled";
+  return Panel({ title, state: running ? "warn" : "none", text, compact: jobs.length === 0, d }, jobs.length === 0
+    ? Muted("No namespace allows running jobs.")
+    : html`${Rows(jobs.slice(0, MAX_ROWS).map((j) => ({
+        title: j.name,
+        sub: [j.namespace, j.suspended ? "suspended" : j.next ? `next in ${until((j.next - Date.now()) / 1000)}` : null, cronWords(j.schedule)].filter(Boolean).join(" · "),
+        right: j.running ? Pill("warn", "running") : nothing,
+      })))}
+      ${hidden > 0 ? Muted(`and ${hidden} more on the Run jobs page`) : nothing}`);
+};
+
 // ---- The page ----
 
 const Chip = ({ state, text, href }) =>
@@ -985,7 +1025,7 @@ class CockpitApp extends LitElement {
       </header>
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
       ${d ? html`${Strip(d, hardwareWarning)}
-        ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
+        ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${JobsPanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
         ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}`)}
         ${Section({ id: "hardware", title: "Cluster hardware", layout: "hardware-band" }, html`${HardwarePanel(d, hardware, hardwareWarning, this.pendingHardwareWindow, (v) => this.setHardwareWindow(v))}${ComputePanel(d)}${NodesPanel(d)}`)}
         ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}

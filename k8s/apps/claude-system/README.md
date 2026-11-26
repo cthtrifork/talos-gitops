@@ -9,6 +9,7 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | `rbac.yaml` | ServiceAccount `claude`; built-in `view` (no Secrets) plus read-only access to nodes, storage, CRDs and the CRD groups in use (including MetalLB, the ARC runner resources, the trivy-operator reports, External Secrets and the Renovate operator). No write verbs, no `pods/exec` |
 | `clusterrole-elevated.yaml` | The break-glass ClusterRoles `claude-ops`, `claude-debug` and `claude-storage`; nothing binds them by default |
 | `elevate/` | The "Elevate Claude" page (below): a Redpanda Connect pod, its RBAC, limits and admission policies |
+| `jobs/` | The "Run jobs" page (below): a Redpanda Connect pod with its own ServiceAccount, RBAC and admission policy |
 | `prometheusrule.yaml` | The recorded expiry date of the Omni service account key as a Prometheus series, and the warning (30 days) and critical (7 days) alerts on it |
 | `networkpolicy.yaml` | Cilium default deny, then DNS, the Kubernetes API and TCP 443 to the hosts Claude Code needs |
 | `githubaccesstoken.yaml` | External Secrets `GithubAccessToken` generator |
@@ -293,10 +294,6 @@ Kubernetes API with the pod's own token; the routes and steps are in the pipelin
 | `flux` | `claude-flux` | up to 15 min | ask Flux to reconcile a HelmRelease or Kustomization (`reconcile.fluxcd.io/requestedAt`, `forceAt`, `resetAt` annotations only; the admission policy `claude-flux-reconcile-only` rejects any other change) |
 | `storage` | `claude-storage` | up to 15 min | delete PersistentVolumeClaims (both storage classes reclaim with `Delete`: a bound claim loses its data), CloudNativePG `Cluster`s and CDI `DataVolume`s (so Flux recreates them) |
 
-- **Run a job.** The page also runs a CronJob now (`POST /api/v1/jobs`), the way `kubectl create job --from=cronjob/<name>` does. The elevator creates the Job
-  from the CronJob's own template and owner reference; Claude's tokens get no `jobs` rights. Only in namespaces labelled `claude-elevate/jobs: "true"`
-  (`dependency-track-system`); the page shows each CronJob's one-line description from its annotation `claude-elevate/description` (add it to every CronJob in such a namespace), enforced by the admission policy `claude-elevator-jobs` (manual annotation, one CronJob owner). The policy cannot compare the pod spec
-  with the CronJob's, so the elevator pod's token (`create jobs` cluster-wide, gated by that label) is the trust boundary, as it already is for tokens and bindings.
 - **Opt-in.** A namespace opts in per tier with the label `claude-elevate/<tier>: "true"` in its own manifest (`grep -r claude-elevate/ k8s`). `debug` is only
   set in `adguard-system` (exec elsewhere could read secrets), and `external-dns-system` has `ops` only, since exec there could read the DNS API token.
   `flux-system` is managed by the flux-operator, so its labels (`ops`, `flux`) come from a patch in the `FluxInstance`.
@@ -312,6 +309,21 @@ Kubernetes API with the pod's own token; the routes and steps are in the pipelin
   (mounted Secrets, its ServiceAccount token).
 - **Token storage and audit.** The token is plain text in the Secret (readable with `get secrets` in `claude-system`) and in the mount. Grants and
   revokes are log lines on the container (no log shipper: `kubectl logs`) and count in `elevate_requests{action,tier}`; who clicked is not recorded.
+
+### Run jobs (CronJobs now)
+
+A page behind the Omni exposer (`Service/claude-jobs`, port 50098), in its own pod so that the elevator keeps no `jobs` rights. It lists the CronJobs of
+the opted-in namespaces with their schedule, time zone, next run (computed in the browser with Croner; Kubernetes reports none) and last run, and runs
+one now (`POST /api/v1/jobs`), the way `kubectl create job --from=cronjob/<name>` does. The pod creates the Job from the CronJob's own template and
+owner reference; Claude's tokens get no `jobs` rights. Routes and steps: `jobs/redpanda-connect.yaml`.
+
+- **Opt-in.** Only namespaces labelled `claude-elevate/jobs: "true"` (`dependency-track-system`); the page shows each CronJob's one-line description from its
+  annotation `claude-elevate/description` (add it to every CronJob in such a namespace).
+- **Limits.** `ServiceAccount/claude-job-runner` can list namespaces, CronJobs and Jobs (a CronJob counts as running while a Job it owns is unfinished, manual ones included), get a CronJob and create Jobs, nothing else. The admission policy
+  `claude-job-runner` allows a Job only in an opted-in namespace, with the manual annotation and one CronJob owner. The policy cannot compare the pod spec
+  with the CronJob's, so the pod's token (`create jobs` cluster-wide, gated by that label) is the trust boundary.
+- **Reach.** Only the Omni exposer, the cockpit (page port, read-only status; it drops the csrf value) and Prometheus (metrics port) reach the pod, never
+  `claude-rc`. A POST must carry the `csrf` value from the status, as on the Elevate page. Starts are log lines and count in `jobs_requests{action}`.
 
 ## Share URLs (approval-gated page fetch)
 
@@ -400,6 +412,7 @@ flowchart LR
 | Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io`, read with the runner's `ghcr-pull` read:packages token (`homeserver-bootc` is a private package) |
 | Share URLs | `claude-urlshare` `GET /api/v1/requests` on the approval listener (read-only, never the page content): what waits for approval and what was decided in the last 24 hours. `CiliumNetworkPolicy/claude-urlshare` lets the cockpit pod in on `:8080` |
 | Elevate Claude | `claude-elevate` `GET /api/v1/status` on the page listener: the active grants (tier, namespace, expiry), nothing else; the status's csrf value is dropped in the mapping. `CiliumNetworkPolicy/claude-elevate` lets the cockpit pod in on `:8080` |
+| Scheduled jobs | `claude-jobs` `GET /api/v1/status` on the page listener: namespace, name, schedule, time zone, suspended, last run; the csrf value is dropped in the mapping. The next run is computed in the page. `CiliumNetworkPolicy/claude-jobs` lets the cockpit pod in on `:8080` |
 | Claude usage | Pushed every 5 minutes by the `usage-poller` container of `claude-rc` (see "Claude usage from the pod") to `POST /api/v1/usage` on `:8081`, one value kept in memory for 24 hours |
 
 The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in the `app=claude-rc` pod only, through the ClusterIP Service

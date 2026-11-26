@@ -37,6 +37,12 @@ resources:
   - elevate/deployment.yaml
   - elevate/service.yaml
   - elevate/podmonitor.yaml
+  - jobs/rbac.yaml
+  - jobs/validatingadmissionpolicy.yaml
+  - jobs/validatingadmissionpolicybinding.yaml
+  - jobs/deployment.yaml
+  - jobs/service.yaml
+  - jobs/podmonitor.yaml
   - cockpit/rbac.yaml
   - cockpit/githubaccesstoken.yaml
   - cockpit/externalsecret.yaml
@@ -79,6 +85,14 @@ configMapGenerator:
     files:
       - elevate/redpanda-connect.yaml
       - elevate/index.html
+  - name: claude-jobs-connect-config
+    namespace: claude-system
+    options:
+      annotations:
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+    files:
+      - jobs/redpanda-connect.yaml
+      - jobs/index.html
   - name: claude-cockpit-connect-config
     namespace: claude-system
     options:

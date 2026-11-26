@@ -353,6 +353,53 @@ spec:
     - toEntities:
         - kube-apiserver
 ---
+# Run jobs. claude-rc has no ingress rule: the page starts Jobs, so Claude must not reach it.
+# The pod does not carry the prometheus-scrape label, whose cluster-wide rule would also open 8080.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: claude-jobs
+  namespace: claude-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: claude-jobs
+  ingress:
+    - fromEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    # The cockpit lists the jobs and their schedules
+    - fromEndpoints:
+        - matchLabels:
+            k8s:app: claude-cockpit
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            k8s:app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "4195"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toEntities:
+        - kube-apiserver
+---
 # URL sharing. Egress is the real fetch filter: it checks the connected address, so it holds for DNS and redirects. Cluster pods and
 # nodes are not CIDR identities, so 10/8, 172.16/12 and 192.168/16 are excepted explicitly too.
 apiVersion: cilium.io/v2
@@ -512,6 +559,14 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:app: claude-elevate
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    # Run jobs: scheduled jobs (GET /api/v1/status)
+    - toEndpoints:
+        - matchLabels:
+            k8s:app: claude-jobs
       toPorts:
         - ports:
             - port: "8080"

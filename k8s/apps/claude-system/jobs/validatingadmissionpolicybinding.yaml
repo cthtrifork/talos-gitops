@@ -1,0 +1,10 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicybinding_v1.json
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: claude-job-runner
+spec:
+  policyName: claude-job-runner
+  validationActions:
+    - Deny
