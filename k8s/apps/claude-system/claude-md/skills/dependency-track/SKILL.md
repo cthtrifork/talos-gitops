@@ -9,10 +9,15 @@ description: Query and assess vulnerability findings in Dependency-Track with th
 `-H "X-Api-Key: $DT_API_KEY"`. Check with `[ -n "$DT_API_KEY" ] && echo set`. Unset: the config CronJob has not made the key yet or the pod needs a restart; ask.
 
 - Permissions: view portfolio and vulnerabilities, read/create/update analysis. No BOM upload, no admin.
-- Projects are workload containers (name `namespace/repository`, version = image tag; a new tag is cloned from the previous version with its audit history): `curl -s -H "$H" "$DT_URL/api/v1/project?limit=200"`. Only some images are tracked, so a CVE in Trivy can be absent here: say so.
+- Projects are workload containers (name `namespace/repository`, version = image tag; a new tag is cloned from the previous version with its audit history): `curl -s -H "$H" "$DT_URL/api/v1/project?pageSize=100&pageNumber=1"`. Lists and findings return 100 rows per page (`X-Total-Count` has the total): loop over `pageNumber`, `limit` is ignored. Only some images are tracked, so a CVE in Trivy can be absent here: say so.
 - A CVE: `GET /api/v1/vulnerability/source/NVD/vuln/<id>` (severity, CVSS, EPSS) and `.../projects` for the affected projects.
-- Findings of a project: `GET /api/v1/finding/project/<uuid>`. `searchText` on `/api/v1/finding` does not filter by CVE; do not trust it.
+- Findings of a project: `GET /api/v1/finding/project/<uuid>?pageSize=100&pageNumber=N` (project `metrics.critical` matches the findings once paged). `searchText` on `/api/v1/finding` does not filter by CVE; do not trust it.
 - Record an assessment: `PUT /api/v1/analysis` with `project`, `component`, `vulnerability` uuids, `analysisState`, `analysisJustification`, `analysisDetails`, `suppressed`.
   Only after the owner agrees. `NOT_AFFECTED`, `FALSE_POSITIVE` and `RESOLVED` end up in the daily VEX export PR.
 - Assess from the data: DT severity and EPSS vs Trivy's, whether the vulnerable component (e.g. `sshd` vs a client-only package) is in the image, and whether a fix exists. Say what you did not verify.
 - Trivy in-cluster: `kubectl get vulnerabilityreports -A` (summary `criticalCount`; the same CVE repeats per package).
+- Old versions stay in DT until the retire job removes them: take the live tag from the running pods (`kubectl get pods -A`). A project can also lag (no SBOM yet for the live tag): say so.
+- DT severity is NVD's. For distro packages (deb, apk) Debian and Alpine rate many CVEs lower and have no fix: compare with Trivy (`vulnerabilityreports`: `severity`, `fixedVersion`).
+- Conventions: assess only HIGH and CRITICAL findings (by Trivy severity) that have no fixed version, as `EXPLOITABLE` + `CAN_NOT_FIX` with the reason in `analysisDetails` (accepted risk, not in the VEX export). Findings with a fix are not assessed: the fix is a bump.
+  A CVE that is not applicable goes in `k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml` (PR) and is not also assessed here.
+- DT has no delete for an analysis: withdraw one with `analysisState` and `analysisResponse` `NOT_SET`. Reading one: `GET /api/v1/analysis?project=&component=&vulnerability=`.
