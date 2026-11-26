@@ -203,4 +203,4 @@ jobs:
               echo "- Patched: \`${REF}@${DIGEST:-n/a}\`"
               echo "- Fixable HIGH/CRITICAL findings: $(fixable source.json) before, $(fixable patched.json) after"
             fi
-          } >> "${GITHUB_STEP_SUMMARY}"
+          } | tee -a "${GITHUB_STEP_SUMMARY}"
