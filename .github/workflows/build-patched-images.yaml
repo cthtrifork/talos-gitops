@@ -127,6 +127,12 @@ jobs:
             copa patch --config "${RUNNER_TEMP}/job.yaml" --addr buildx:// --oci-dir "${RUNNER_TEMP}/oci" --timeout 20m
           fi
 
+      # Copa pushes the patched platform as <tag>-amd64 and an index that also lists the unpatched platforms of the source,
+      # whose manifests are not in our repository. The cluster is amd64 only, so the tag is the single patched manifest.
+      - name: Make the tag the patched amd64 image
+        if: ${{ env.PUSH == 'true' }}
+        run: docker buildx imagetools create -t "${REGISTRY}/${NAME}:${PATCHED_TAG}" "${REGISTRY}/${NAME}:${PATCHED_TAG}-amd64"
+
       - name: Patched image digest
         id: digest
         if: ${{ env.PUSH == 'true' }}
