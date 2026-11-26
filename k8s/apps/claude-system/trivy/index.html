@@ -122,6 +122,12 @@
   .more { all: unset; cursor: pointer; color: var(--env-rc); margin-top: 10px; display: inline-block; min-height: 32px; }
   .more:focus-visible { outline: 2px solid var(--env-rc); }
   #mock { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 12px; font-size: var(--fs-sm); }
+  ul.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  ul.rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--grid); }
+  ul.rows li:first-child { border-top: 0; padding-top: 0; }
+  ul.rows li:last-child { padding-bottom: 0; }
+  ul.rows .l { flex: 1 1 12em; min-width: 0; overflow-wrap: anywhere; }
+  .num { font-variant-numeric: tabular-nums; }
   .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .tools input { flex: 1 1 14rem; }
 
@@ -220,23 +226,22 @@ const cveRows = () => Object.entries(Object.groupBy(FINDINGS, (r) => r[0]))
   .map(([id, rs]) => ({ id, sev: rs[0][1], score: rs[0][2], title: rs[0][10], pkg: rs[0][3], fixed: rs[0][5], images: new Set(rs.map((r) => r[6])).size }))
   .sort((a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images || b.score - a.score);
 
-const ImageTable = () => html`<section class="panel">
+// The cockpit panel's rows: image, its findings per severity as the sub line, its CVE count on the right.
+const ImageList = () => html`<section class="panel">
   <div class="panel-head"><h2>Images</h2><span class="src">trivy_image_vulnerabilities</span></div>
-  <div class="scroll"><table>
-    <thead><tr><th class="l">Image</th>${SEVERITIES.map(([, name]) => html`<th>${name}</th>`)}</tr></thead>
-    <tbody>${imageRows().map((r) => html`<tr><td class="l">${shortImage(r.image)}<small>${r.ns}</small></td>${SEVERITIES.map(([k]) => html`<td style=${r.c[k] ? `color: ${sevVar(k)}; font-weight: 650` : "color: var(--muted)"}>${r.c[k] || "–"}</td>`)}</tr>`)}</tbody>
-  </table></div>
+  <ul class="rows">${imageRows().map((r) => html`<li>
+    <span class="l"><strong>${shortImage(r.image)}</strong><br /><span class="muted">${SEVERITIES.filter(([k]) => r.c[k]).map(([k, name]) => `${r.c[k]} ${name.toLowerCase()}`).join(" · ")} · ${r.ns}</span></span>
+    <span class="num muted">${sum(Object.values(r.c))} ${sum(Object.values(r.c)) === 1 ? "CVE" : "CVEs"}</span>
+  </li>`)}</ul>
 </section>`;
 
 const CveTable = () => html`<section class="panel">
   <div class="panel-head"><h2>Vulnerabilities</h2><span class="src">trivy_vulnerability_id</span></div>
   <div class="scroll"><table>
-    <thead><tr><th class="l">Severity</th><th class="l">Vulnerability</th><th class="l">Package</th><th class="l">Fixed in</th><th>Images</th></tr></thead>
+    <thead><tr><th class="l">Vulnerability</th><th class="l">Severity</th><th>Images</th></tr></thead>
     <tbody>${cveRows().map((r) => html`<tr>
+      <td class="l"><a class="cve" href=${idLink(r.id)} rel="noopener noreferrer" target="_blank">${r.id}</a></td>
       <td class="l">${SevPill(r.sev)}</td>
-      <td class="t"><a class="cve" href=${idLink(r.id)} rel="noopener noreferrer" target="_blank">${r.id}</a><small>${r.title}</small></td>
-      <td class="l">${r.pkg}</td>
-      <td class="l">${r.fixed || html`<span class="muted">no fix yet</span>`}</td>
       <td><strong>${r.images}</strong></td>
     </tr>`)}</tbody>
   </table></div>
@@ -256,9 +261,9 @@ class TrivyApp extends LitElement {
       <header>
         <a class="back" href=${COCKPIT}>← Cockpit</a><h1>Trivy vulnerabilities</h1><div class="sub">Image scans by trivy-operator · from Prometheus · updated ${stamp}</div>
       </header>
-      ${ImageTable()}
+      ${ImageList()}
       ${CveTable()}
-      <p class="sub">Both tables sort worst first: by severity, then by count. Counts are per image digest.</p>
+      <p class="sub">Both lists sort worst first: by severity, then by count. Counts are per image digest.</p>
     </main>`;
   }
 }
