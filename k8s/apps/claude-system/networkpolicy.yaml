@@ -166,6 +166,9 @@ spec:
         - matchName: gitlab.com
         - matchName: cdn.registry.gitlab-static.net
 
+        # Go vulnerability database (govulncheck)
+        - matchName: vuln.go.dev
+
         # Bandwidth tests with curl (download __down, upload __up)
         - matchName: speed.cloudflare.com
 

@@ -84,8 +84,8 @@ edit or commit in the shared clone; give every task its own worktree.
 ## Skills
 
 Task-specific runbooks live in skills (`claude-md/skills/`): `cluster-alerts`, `cilium-drops`, `cluster-disk-usage`,
-`polaris-report`, `image-inspect`, `bandwidth-test`, `ci-k8s-reference`, `urlshare`, `dependency-track`, `svg-to-png`. Guardrails that hold even if a skill is not
-loaded: `crane` is inspection only (never push, copy, tag, delete, append, mutate or flatten), bandwidth tests go only to
+`polaris-report`, `image-inspect`, `bandwidth-test`, `ci-k8s-reference`, `urlshare`, `dependency-track`, `govulncheck`, `svg-to-png`. Guardrails that hold even if a skill is not
+loaded: `crane export` only through `govulncheck-image` (one image at a time, session scratchpad, never `/tmp`, `/workspace` or a node; extracted files are never executed); `crane` is otherwise inspection only (never push, copy, tag, delete, append, mutate or flatten), bandwidth tests go only to
 `speed.cloudflare.com`, pages the egress allowlist does not cover are read only through `urlshare` (never around it), and registry
 credentials are never printed or copied.
 

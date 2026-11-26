@@ -1,5 +1,11 @@
 # Claude Code self-hosted environment runner (https://code.claude.com/docs/en/self-hosted-environments-deploy).
 # Anthropic publishes no runner image, so this wraps the claude binary. Runs as non-root.
+# govulncheck is built from source: it has no release binaries. Same pinned Go image as images/fileserver.
+FROM mirror.gcr.io/library/golang:1.27-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS govulncheck
+# renovate: datasource=go depName=golang.org/x/vuln
+ARG GOVULNCHECK_VERSION=v1.10.0
+RUN CGO_ENABLED=0 GOBIN=/out go install -trimpath "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
+
 FROM mirror.gcr.io/library/alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
 # Renovate bumps the version. The linux-x64-musl checksum is read from the release manifest at build time
@@ -75,6 +81,10 @@ RUN base="https://github.com/google/go-containerregistry/releases/download/v${CR
  && tar -xzf "${tarball}" crane \
  && install -m 0755 crane /usr/local/bin/crane \
  && rm -rf "${tarball}" crane
+
+# govulncheck (scripts: govulncheck-image): reads a Go binary pulled out of a cluster image and lists the vulnerable symbols in it
+COPY --from=govulncheck /out/govulncheck /usr/local/bin/govulncheck
+COPY govulncheck-image /usr/local/bin/govulncheck-image
 
 # yq (mikefarah, the one the repo's CI scripts use), checksum verified against the release's checksums file. Its
 # columns follow checksums_hashes_order; SHA-256 is the 18th hash, so field 19.
