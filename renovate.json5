@@ -378,9 +378,9 @@
     },
     {
       "customType": "regex",
-      "description": "npm packages the cockpit and usage pages load from jsDelivr, in their import map or an import (cdn.jsdelivr.net/npm/<package>@<version>/...)",
+      "description": "npm packages the cockpit, usage and jobs pages load from jsDelivr, in their import map or an import (cdn.jsdelivr.net/npm/<package>@<version>/...)",
       "managerFilePatterns": [
-        "/^k8s/apps/claude-system/(cockpit|usage)/index\\.html$/"
+        "/^k8s/apps/claude-system/(cockpit|usage|jobs)/index\\.html$/"
       ],
       "matchStrings": [
         "https://cdn\\.jsdelivr\\.net/npm/(?<depName>(?:@[^/@\"'\\s]+/)?[^/@\"'\\s]+)@(?<currentValue>[^/\"'\\s]+)/"

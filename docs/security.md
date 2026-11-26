@@ -41,7 +41,7 @@ Policies: `networkpolicy.yaml` next to each workload.
 
 ### Omni service exposer
 
-Services annotated `omni-kube-service-exposer.sidero.dev/*` (grep for it) are published by Omni's exposer on the host network (traffic arrives as `host` or `remote-node`). Access control is Omni's login (*outside the repo*). `claude-elevate` is one of them and grants break-glass RBAC.
+Services annotated `omni-kube-service-exposer.sidero.dev/*` (grep for it) are published by Omni's exposer on the host network (traffic arrives as `host` or `remote-node`). Access control is Omni's login (*outside the repo*). `claude-elevate` is one of them and grants break-glass RBAC; `claude-jobs` runs CronJobs now.
 
 ## Network
 
@@ -109,7 +109,7 @@ Specs are in HelmRelease values (`k8s/apps/arc-runner/`), not `rendered/`.
 | `require-namespace-psa-enforce` | Native VAP | Blocks | Every Namespace sets a PSA enforce level. Exempt: system namespaces, `flux-system` |
 | `require-image-digest` | Native VAP | Blocks | Every container, init and ephemeral image has `@sha256:`. Exempt in `kube-system`: Talos and Omni generated pods |
 
-Kyverno policies run at admission only; running pods are not re-evaluated. Files: `k8s/infra/{image-policies,policy-system,post/kyverno-policies}/`. The elevate page adds blocking VAPs that bound its grants (`k8s/apps/claude-system/elevate/`).
+Kyverno policies run at admission only; running pods are not re-evaluated. Files: `k8s/infra/{image-policies,policy-system,post/kyverno-policies}/`. The elevate page adds blocking VAPs that bound its grants (`k8s/apps/claude-system/elevate/`), and the jobs page one that bounds the Jobs it creates (`jobs/`).
 
 ### Trust bundle injection
 
@@ -166,7 +166,7 @@ admitted unchanged.
 - `claude-rc` ServiceAccount `claude`: built-in `view` (no Secrets) plus read of nodes, PVs, StorageClasses, CRDs, ClusterRoles and bindings. No write verbs, no `pods/exec` (`k8s/apps/claude-system/rbac.yaml`).
 - The `claude-rc` pod also holds: the claude.ai login on a PVC; a one-hour GitHub App installation token (Contents, Pull requests, Workflows read/write on installed repositories); an Omni service account with role Reader (TTL 365 days); the Dependency-Track key of the `claude-triage` team (analysis read/create/update; no BOM upload, no admin); optionally a `read:packages` GHCR token and a read-only Cloudflare API token.
 - Elevate tiers (`ops`, `debug`, `storage`, `flux`; `k8s/apps/claude-system/clusterrole-elevated.yaml`) are bound per opted-in namespace (`claude-elevate/<tier>` label) by `claude-elevator` for a short-lived token. No tier patches workloads except `debug` on `pods/ephemeralcontainers`. `debug` (`pods/exec`, `attach`, `portforward`) is opted in by `adguard-system` only.
-- `claude-elevator` can create ServiceAccounts, RoleBindings, Jobs and tokens cluster-wide; the VAPs pin `bind`, `patch`, `delete` and `token` to the tier names.
+- `claude-elevator` can create ServiceAccounts, RoleBindings and tokens cluster-wide; the VAPs pin `bind`, `patch`, `delete` and `token` to the tier names. `claude-job-runner` (the jobs page) can create Jobs cluster-wide, only in namespaces labelled `claude-elevate/jobs` (VAP `claude-job-runner`).
 
 ## Secrets
 

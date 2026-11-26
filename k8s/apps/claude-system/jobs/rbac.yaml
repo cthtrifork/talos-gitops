@@ -1,0 +1,47 @@
+---
+# Run-jobs page: runs a CronJob now. No grant powers: the elevator is a different ServiceAccount.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: claude-job-runner
+  namespace: claude-system
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
+# Reads CronJobs and creates Jobs; the admission policy claude-job-runner limits where and how.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: claude-job-runner
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - list
+  - apiGroups:
+      - batch
+    resources:
+      - cronjobs
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: claude-job-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: claude-job-runner
+subjects:
+  - kind: ServiceAccount
+    name: claude-job-runner
+    namespace: claude-system

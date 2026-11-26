@@ -1,0 +1,23 @@
+---
+# Omni exposer (Omni login). The NetworkPolicy lets in nothing else, claude-rc included.
+apiVersion: v1
+kind: Service
+metadata:
+  name: claude-jobs
+  namespace: claude-system
+  annotations:
+    omni-kube-service-exposer.sidero.dev/icon: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iI2M0NjIzZiIvPjxwYXRoIGQ9Ik05IDdsOCA1LTggNXoiIGZpbGw9IiNmZmYiLz48L3N2Zz4=
+    omni-kube-service-exposer.sidero.dev/label: "Run jobs"
+    omni-kube-service-exposer.sidero.dev/port: "50098"
+    omni-kube-service-exposer.sidero.dev/prefix: claudejobs
+spec:
+  type: ClusterIP
+  selector:
+    app: claude-jobs
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: metrics
+      port: 4195
+      targetPort: metrics

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Scheduled CronJobs with their next run, and a button to run one now.">
+<title>Run jobs</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23c4623f'/%3E%3Cpath d='M9 7l8 5-8 5z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  :root {
+    color-scheme: light dark;
+    --page: #f4f4f1; --card: #ffffff; --ink: #141413; --ink-2: #4a4843; --line: #e3e2da; --chip: #f4f4f1;
+    --accent: #1f63b5; --on-accent: #ffffff; --ok: #1a7f4b; --warn: #8a5a00; --warn-bg: #fff4d6;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --fs-sm: 12px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 28px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --card: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --line: #2c2c2a; --chip: #232321;
+      --accent: #3987e5; --ok: #3cc58a; --warn: #f2d98a; --warn-bg: #3a2f10;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: var(--fs-lg)/1.5 var(--font);
+         padding: 20px max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left)); }
+  main { width: 100%; max-width: 760px; margin: 0 auto; }
+  .back { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-size: var(--fs-md); text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  .back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  h1 { font-size: var(--fs-xl); line-height: 1.25; margin: 0 0 2px; }
+  .sub { margin: 0 0 16px; color: var(--ink-2); font-size: var(--fs-md); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li.job { display: grid; gap: 4px 12px; grid-template-columns: minmax(0, 1fr) auto; align-items: start; padding: 14px 0; border-top: 1px solid var(--line); }
+  li.job:first-child { border-top: 0; }
+  .name { font-family: var(--mono); font-size: var(--fs-md); font-weight: 600; overflow-wrap: anywhere; }
+  .desc, .when, .last { margin: 0; color: var(--ink-2); font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
+  .desc, .when, .last, .msg { grid-column: 1 / -1; }
+  .name + .desc { grid-column: 1; }
+  .msg { margin: 0; font-size: var(--fs-md); white-space: pre-line; }
+  .msg:empty { display: none; }
+  .msg.ok { color: var(--ok); }
+  .msg.warn { color: var(--warn); }
+  .badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 600; background: var(--warn-bg); color: var(--warn); }
+  button { font: inherit; font-weight: 600; min-height: 44px; padding: 8px 18px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); cursor: pointer; grid-row: 1; grid-column: 2; }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .none { margin: 0; padding: 14px 0; color: var(--ink-2); font-size: var(--fs-md); }
+  .err { margin: 12px 0 0; color: var(--warn); font-size: var(--fs-md); }
+  .err:empty { display: none; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a>
+  <h1>Run jobs</h1>
+  <p class="sub">Scheduled CronJobs and when they run next. Run now starts one from its own template, in namespaces that allow it. Claude gets no rights from this.</p>
+  <section class="card" aria-label="CronJobs">
+    <ul id="jobs"></ul>
+    <p id="none" class="none" hidden>No namespace allows running jobs.</p>
+  </section>
+  <p id="error" class="err" role="alert"></p>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var status = null;
+  var jobsKey = "";
+  var nextCache = {};
+
+  function el(tag, text, cls) {
+    var e = document.createElement(tag);
+    if (text !== undefined) e.textContent = text;
+    if (cls) e.className = cls;
+    return e;
+  }
+
+  // Croner parses the schedule and knows time zones; Kubernetes does not report the next run. Without it the page shows "unknown".
+  var Cron = null;
+  import("https://cdn.jsdelivr.net/npm/croner@11.0.1/dist/croner.js").then(function (m) { Cron = m.Cron; tick(); }).catch(function () {});
+  // the next run after now in the CronJob's time zone (the cluster's default is UTC); null when unknown
+  function nextRun(expr, tz) {
+    try { var t = Cron && new Cron(expr, { timezone: tz || "UTC" }).nextRun(); return t ? t.getTime() : null; } catch (e) { return null; }
+  }
+  function span(ms) {
+    var m = Math.max(1, Math.round(ms / 60000));
+    if (m < 60) return m + " min";
+    var h = Math.floor(m / 60);
+    if (h < 24) return h + " h" + (m % 60 ? " " + (m % 60) + " min" : "");
+    return Math.floor(h / 24) + " d" + (h % 24 ? " " + (h % 24) + " h" : "");
+  }
+  function nextOf(j) {
+    var key = j.schedule + "|" + j.time_zone, n = nextCache[key];
+    if (!n || n <= Date.now()) n = nextCache[key] = nextRun(j.schedule, j.time_zone);
+    return n;
+  }
+  function whenText(j) {
+    var text = "Schedule " + j.schedule + " (" + (j.time_zone || "UTC") + ")";
+    if (j.suspended) return text + ". Suspended, so nothing runs by itself.";
+    var n = nextOf(j);
+    return text + (n ? ". Next run in " + span(n - Date.now()) + ", " + new Date(n).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) + "." : ". Next run unknown.");
+  }
+  function lastText(j) {
+    var t = Date.parse(j.last_run);
+    var text = isNaN(t) ? "Not scheduled yet." : "Last scheduled " + span(Date.now() - t) + " ago.";
+    return j.running ? text + " Running now." : text;
+  }
+
+  // the description comes from the CronJob's claude-elevate/description annotation
+  function build() {
+    var jobs = status.cronjobs || [];
+    var key = jobs.map(function (j) { return j.namespace + "/" + j.name + "|" + j.description + "|" + j.schedule + "|" + j.time_zone + "|" + j.suspended; }).join(",");
+    $("none").hidden = jobs.length > 0;
+    if (key === jobsKey) return;
+    jobsKey = key;
+    var list = $("jobs");
+    while (list.firstChild) list.removeChild(list.firstChild);
+    jobs.forEach(function (j) {
+      var li = el("li", undefined, "job");
+      li.setAttribute("data-key", j.namespace + "/" + j.name);
+      var name = el("div", j.namespace + "/" + j.name, "name");
+      if (j.suspended) name.appendChild(el("span", "suspended", "badge"));
+      li.appendChild(name);
+      var b = el("button", "Run now");
+      b.type = "button";
+      b.setAttribute("aria-label", "Run " + j.namespace + "/" + j.name + " now");
+      li.appendChild(b);
+      li.appendChild(el("p", j.description || "No description. Add the annotation claude-elevate/description to the CronJob.", "desc"));
+      li.appendChild(el("p", "", "when"));
+      li.appendChild(el("p", "", "last"));
+      var msg = el("p", "", "msg");
+      msg.setAttribute("role", "status");
+      li.appendChild(msg);
+      b.addEventListener("click", function () { run(j, b, msg); });
+      list.appendChild(li);
+    });
+  }
+
+  // countdowns and relative times change every second; the structure only when the status does
+  function tick() {
+    if (!status) return;
+    var byKey = {};
+    (status.cronjobs || []).forEach(function (j) { byKey[j.namespace + "/" + j.name] = j; });
+    Array.prototype.forEach.call(document.querySelectorAll("#jobs li"), function (li) {
+      var j = byKey[li.getAttribute("data-key")];
+      if (!j) return;
+      li.querySelector(".when").textContent = whenText(j);
+      li.querySelector(".last").textContent = lastText(j);
+    });
+  }
+
+  function load() {
+    return fetch("api/v1/status", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
+      .then(function (s) { status = s; $("error").textContent = ""; build(); tick(); })
+      .catch(function (e) { $("error").textContent = "Cannot read status: " + e.message; });
+  }
+
+  function run(j, b, msg) {
+    msg.textContent = ""; msg.className = "msg";
+    b.disabled = true; b.textContent = "Starting\u2026";
+    fetch("api/v1/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ csrf: status.csrf, namespace: j.namespace, cronjob: j.name }) })
+      .then(function (r) { return r.json().then(function (x) { return r.ok ? { ok: true, text: x.job ? "Started " + x.job + "." : "Job started." } : { text: "Refused: " + x.error }; }); })
+      .catch(function (e) { return { text: "Could not start the job: " + e.message }; })
+      .then(function (res) { msg.textContent = res.text; msg.className = "msg " + (res.ok ? "ok" : "warn"); b.disabled = false; b.textContent = "Run now"; load(); });
+  }
+
+  load();
+  setInterval(load, 15000);
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>

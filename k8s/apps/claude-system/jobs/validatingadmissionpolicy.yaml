@@ -1,0 +1,35 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
+# The job runner may only create a Job the way `kubectl create job --from=cronjob/<name>` does, in a namespace labelled claude-elevate/jobs.
+# A policy cannot read the CronJob, so the pod spec is trusted to the job runner's mapping; the label limits the blast radius.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: claude-job-runner
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - batch
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+        resources:
+          - jobs
+  matchConditions:
+    - name: from-the-job-runner
+      expression: request.userInfo.username == "system:serviceaccount:claude-system:claude-job-runner"
+  variables:
+    - name: owner
+      expression: 'object.metadata.?ownerReferences.orValue([])'
+  validations:
+    - expression: 'namespaceObject.metadata.?labels["claude-elevate/jobs"].orValue("") == "true"'
+      message: the namespace has not opted in to running jobs (label claude-elevate/jobs)
+    - expression: 'object.metadata.?annotations["cronjob.kubernetes.io/instantiate"].orValue("") == "manual"'
+      message: a job from the job runner carries the annotation cronjob.kubernetes.io/instantiate=manual
+    - expression: >-
+        variables.owner.size() == 1 && variables.owner[0].kind == "CronJob" && variables.owner[0].apiVersion == "batch/v1" &&
+        object.metadata.name.startsWith((variables.owner[0].name.size() > 40 ? variables.owner[0].name.substring(0, 40) : variables.owner[0].name) + "-manual-")
+      message: a job from the job runner is owned by one CronJob and named <cronjob>-manual-<time>
