@@ -32,7 +32,7 @@ spec:
           'dependency-track-system/dependency-track-config',
           'dependency-track-system/dependency-track-retire',
           'dependency-track-system/',
-          'trivy-system/vex-cache-refresh',
+          'trivy-system/vex-cache-refresh'
         ]
       message: the job runs as a ServiceAccount that is not on the job runner's allow-list (a CronJob in an opted-in namespace needs its pair here)
     - expression: 'object.metadata.?annotations["cronjob.kubernetes.io/instantiate"].orValue("") == "manual"'
