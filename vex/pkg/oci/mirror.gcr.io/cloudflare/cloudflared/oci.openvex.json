@@ -1,9 +1,9 @@
 {
   "@context": "https://openvex.dev/ns/v0.2.0",
-  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/zot.registry-system.svc.cluster.local:5000/docker-hub-cache/cloudflare/cloudflared",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/mirror.gcr.io/cloudflare/cloudflared",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T15:24:20Z",
+  "timestamp": "2026-11-26T15:36:11Z",
   "version": 1,
   "statements": [
     {
@@ -11,6 +11,14 @@
         "name": "CVE-2019-1010022"
       },
       "products": [
+        {
+          "@id": "pkg:oci/cloudflared?repository_url=mirror.gcr.io%2Fcloudflare%2Fcloudflared",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libc6@2.41-12%2Bdeb13u5?arch=amd64&distro=debian-13.8"
+            }
+          ]
+        },
         {
           "@id": "pkg:oci/cloudflared?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fcloudflare%2Fcloudflared",
           "subcomponents": [

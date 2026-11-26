@@ -1,9 +1,9 @@
 {
   "@context": "https://openvex.dev/ns/v0.2.0",
-  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/zot.registry-system.svc.cluster.local:5000/ghcr-cache/cloudnative-pg/postgresql",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/cloudnative-pg/postgresql",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T15:24:20Z",
+  "timestamp": "2026-11-26T15:36:11Z",
   "version": 1,
   "statements": [
     {
@@ -11,6 +11,23 @@
         "name": "CVE-2019-1010022"
       },
       "products": [
+        {
+          "@id": "pkg:oci/postgresql?repository_url=ghcr.io%2Fcloudnative-pg%2Fpostgresql",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/locales@2.41-12%2Bdeb13u5?arch=all&distro=debian-13.8"
+            },
+            {
+              "@id": "pkg:deb/debian/libc6@2.41-12%2Bdeb13u5?arch=amd64&distro=debian-13.8"
+            },
+            {
+              "@id": "pkg:deb/debian/libc-bin@2.41-12%2Bdeb13u5?arch=amd64&distro=debian-13.8"
+            },
+            {
+              "@id": "pkg:deb/debian/libc-l10n@2.41-12%2Bdeb13u5?arch=all&distro=debian-13.8"
+            }
+          ]
+        },
         {
           "@id": "pkg:oci/postgresql?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcloudnative-pg%2Fpostgresql",
           "subcomponents": [
