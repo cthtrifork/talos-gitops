@@ -24,7 +24,6 @@ resources:
   - gitops-infra-post.yaml
   - gitops-infra-kyverno-policies.yaml
   - gitops-infra-post-workloads.yaml
-  - app-valkey-operator-system.yaml
   - app-controllers.yaml
   - app-adguard.yaml
   - app-arc-runner.yaml
