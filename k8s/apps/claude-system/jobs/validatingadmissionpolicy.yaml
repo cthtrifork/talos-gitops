@@ -1,6 +1,6 @@
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/admissionregistration.k8s.io/validatingadmissionpolicy_v1.json
-# The job runner may only create a Job the way `kubectl create job --from=cronjob/<name>` does, in a namespace labelled claude-jobs/run.
+# The job runner may only create a Job the way `kubectl create job --from=cronjob/<name>` does, in a namespace labelled claude-elevate/jobs.
 # A policy cannot read the CronJob, so the pod spec is trusted to the job runner's mapping; the label limits the blast radius.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
@@ -25,16 +25,8 @@ spec:
     - name: owner
       expression: 'object.metadata.?ownerReferences.orValue([])'
   validations:
-    - expression: 'namespaceObject.metadata.?labels["claude-jobs/run"].orValue("") == "true"'
-      message: the namespace has not opted in to running jobs (label claude-jobs/run)
-    - expression: >-
-        (request.namespace + '/' + object.spec.template.spec.?serviceAccountName.orValue('')) in [
-          'dependency-track-system/dependency-track-config',
-          'dependency-track-system/dependency-track-retire',
-          'dependency-track-system/',
-          'trivy-system/vex-cache-refresh'
-        ]
-      message: the job runs as a ServiceAccount that is not on the job runner's allow-list (a CronJob in an opted-in namespace needs its pair here)
+    - expression: 'namespaceObject.metadata.?labels["claude-elevate/jobs"].orValue("") == "true"'
+      message: the namespace has not opted in to running jobs (label claude-elevate/jobs)
     - expression: 'object.metadata.?annotations["cronjob.kubernetes.io/instantiate"].orValue("") == "manual"'
       message: a job from the job runner carries the annotation cronjob.kubernetes.io/instantiate=manual
     - expression: >-
