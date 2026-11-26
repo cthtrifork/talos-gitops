@@ -1,5 +1,5 @@
-# Input: the CycloneDX VEX of one Dependency-Track project (one image digest).
-# Arguments: $name = image repository (e.g. mirror.gcr.io/redpandadata/connect), $version = image digest.
+# Input: the CycloneDX VEX of one Dependency-Track project (one image tag).
+# Arguments: $product = the image repository as a PURL without version (pkg:oci/<name>?repository_url=<host>/<repo>).
 # Output: OpenVEX statements, one per decided vulnerability.
 
 # Dependency-Track justification -> OpenVEX justification
@@ -20,10 +20,6 @@ def purls_by_bom_ref:
   (.components // [])
   | map(select(."bom-ref" != null and (.purl // "") != "") | {key: ."bom-ref", value: .purl})
   | from_entries;
-
-def image_purl($name; $version):
-  ($name | split("/") | last | ascii_downcase) as $short_name
-  | "pkg:oci/\($short_name)@\($version)?repository_url=\($name | @uri)";
 
 def is_decision:
   .analysis.state | IN("not_affected", "false_positive", "resolved");
@@ -52,5 +48,5 @@ def statement($product; $purls):
     + status_fields;
 
 purls_by_bom_ref as $purls
-| image_purl($name; $version) as $product
+
 | [.vulnerabilities[]? | select(is_decision) | statement($product; $purls)]

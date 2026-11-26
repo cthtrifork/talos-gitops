@@ -4,7 +4,7 @@
 # Env: DT_URL, API_KEY, REPO, GIT_URL, GITHUB_API, BRANCH. Optional file: /github/token.
 set -euo pipefail
 
-FINDINGS=/work/findings   # <image>/<digest>.json: the statements of one image digest
+FINDINGS=/work/findings   # <image>/<project uuid>.json: the statements of one project (image tag)
 PREVIOUS=/work/previous   # vex/pkg/oci as it was on main
 DOCS=vex/pkg/oci          # <image>/oci.openvex.json: one OpenVEX document per image
 GITHUB_TOKEN=$(cat /github/token 2>/dev/null || true)
@@ -36,19 +36,20 @@ prepare_repo() {
 export_findings() {
   echo "==> Exporting decisions from Dependency-Track"
   dt_get "api/v1/project?pageSize=1000" |
-    jq -r '.[] | [.uuid, .name, (.version // "-")] | @tsv' |
-    while IFS=$'\t' read -r uuid image version; do
-      # Trivy matches an image by its digest, so only projects versioned by digest count
-      case "$version" in sha256:*) ;; *) continue ;; esac
+    jq -r '.[] | select(.active != false and (.purl // "") != "") | [.uuid, .name, (.version // "-"), .purl] | @tsv' |
+    while IFS=$'\t' read -r uuid name version purl; do
+      # The product is the image repository, not a digest: the project PURL without version and arch
+      product=$(jq -rn --arg p "$purl" '$p | sub("@sha256(%3A|:)[0-9a-f]+"; "") | sub("arch=[^&]*&?"; "") | sub("[?&]$"; "") | gsub("%3A"; ":")')
+      image=$(jq -rn --arg p "$product" '$p | capture("repository_url=(?<u>[^&]*)").u | gsub("%2F"; "/")') || continue
+      [ -n "$image" ] || continue
 
-      statements=$(dt_get "api/v1/vex/cyclonedx/project/$uuid" |
-        jq -c -f /scripts/vex-export.jq --arg name "$image" --arg version "$version")
+      statements=$(dt_get "api/v1/vex/cyclonedx/project/$uuid" | jq -c -f /scripts/vex-export.jq --arg product "$product")
       count=$(printf '%s' "$statements" | jq length)
       [ "$count" -gt 0 ] || continue
 
-      echo "$image $version: $count statements"
+      echo "$name:$version -> $product: $count statements"
       mkdir -p "$FINDINGS/$image"
-      printf '%s\n' "$statements" > "$FINDINGS/$image/${version#sha256:}.json"
+      printf '%s\n' "$statements" > "$FINDINGS/$image/$uuid.json"
     done
 }
 
@@ -70,7 +71,7 @@ write_documents() {
       role: "Automated export from Dependency-Track",
       timestamp: ($old.timestamp // $now),
       version: ($old.version // 1),
-      statements: (map(.[]) | sort_by(.vulnerability.name, .products[0]."@id"))
+      statements: (map(.[]) | unique | sort_by(.vulnerability.name, .products[0]."@id"))
     }' "$dir"/*.json > "$DOCS/$image/oci.openvex.json"
   done
 }
