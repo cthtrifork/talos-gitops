@@ -1,5 +1,5 @@
 # Sets up the Garage layout (three nodes, one zone each), the zot bucket and the zot key. Safe to run twice; to run it again,
-# delete the Job and let Flux recreate it.
+# change the Job (Flux recreates it, see the force annotation).
 # The Garage image has no shell, so its binary is copied into a busybox image through a static busybox, as the chart's job does.
 ---
 apiVersion: batch/v1
@@ -11,6 +11,9 @@ metadata:
     app.kubernetes.io/name: garage
     app.kubernetes.io/instance: garage
     app.kubernetes.io/component: layout
+  annotations:
+    # a changed pod template is immutable: let Flux recreate the Job
+    kustomize.toolkit.fluxcd.io/force: enabled
 spec:
   backoffLimit: 6
   template:
