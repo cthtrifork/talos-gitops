@@ -28,7 +28,7 @@ trivy server and the scan jobs:
 They are wired through the `configFile` in `trivy-operator/helm-release.yaml` (`vex`, `ignorefile`, `ignore-policy`).
 A change takes effect for the next scan job; reports are regenerated after `scannerReportTTL`.
 
-`vex-cache-refresh/` is a CronJob (every 10 minutes) that mounts the `vex-cache` artifact as an image volume and compares `homelab-built-at` with the
+`vex-cache-refresh/` ([README](vex-cache-refresh/README.md)) is a CronJob (every 10 minutes) that mounts the `vex-cache` artifact as an image volume and compares `homelab-built-at` with the
 last one it handled (ConfigMap `vex-cache-state`). If the artifact is newer and the live ConfigMaps `trivy-ignorefile` and `trivy-ignorepolicy` match its hashes
 (Flux may not have applied them yet; it retries on the next run), it deletes all `VulnerabilityReports` and the operator scans again with the new inputs.
 The first run only records the timestamp.
