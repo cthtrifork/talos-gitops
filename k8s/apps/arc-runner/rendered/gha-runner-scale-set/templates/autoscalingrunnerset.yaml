@@ -16,7 +16,7 @@ metadata:
     actions.github.com/scale-set-name: arc-ubuntu-podman
     actions.github.com/scale-set-namespace: arc-runners-system
   annotations:
-    actions.github.com/values-hash: aedd5453bfd899464f04e7aa8e0079b000f793a8ba8310717fcf1995b5f3b29
+    actions.github.com/values-hash: 4c7a3e22ac1d91317bac3432883b792c2b382d6e1d4eb56a19564312ac24706
     actions.github.com/cleanup-manager-role-binding: arc-ubuntu-podman-gha-rs-manager
     actions.github.com/cleanup-manager-role-name: arc-ubuntu-podman-gha-rs-manager
     actions.github.com/cleanup-no-permission-service-account-name: arc-ubuntu-podman-gha-rs-no-permission
