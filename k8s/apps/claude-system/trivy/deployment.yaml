@@ -1,0 +1,73 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-trivy
+  namespace: claude-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: claude-trivy
+  template:
+    metadata:
+      labels:
+        app: claude-trivy
+        prometheus-scrape: "true"
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: connect
+          image: mirror.gcr.io/redpandadata/connect:4.119.0@sha256:64a140553f57eaefe897ad9613b9190e30a51e08fa8cdc9ebb02120440654fa7 # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
+          args:
+            - -c
+            - /etc/connect/redpanda-connect.yaml
+            - --disable-telemetry
+          env:
+            - name: GOMEMLIMIT
+              value: 200MiB # about 80% of the limit: Go does not read the cgroup limit
+            - name: GOGC
+              value: "50"
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: metrics
+              containerPort: 4195
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: metrics
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: config
+              mountPath: /etc/connect
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: claude-trivy-connect-config

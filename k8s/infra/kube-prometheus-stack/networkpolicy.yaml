@@ -67,6 +67,9 @@ spec:
             k8s:app: claude-usage
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: claude-system
+            k8s:app: claude-trivy
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: claude-system
             k8s:app: claude-cockpit
       toPorts:
         - ports:

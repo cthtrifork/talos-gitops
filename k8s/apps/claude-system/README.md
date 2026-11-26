@@ -18,6 +18,7 @@ claude.ai/code. No admin settings or environment key are needed. Docs: <https://
 | `claude-md/CLAUDE.md` | The only `CLAUDE.md` (user-level and repo notes together), generated into the `claude-md` ConfigMap by `kustomization.yaml` and symlinked to `~/.claude/CLAUDE.md` at pod start. Edit it in Git; the ConfigMap name hash rolls the pod |
 | `claude-md/skills/<name>/SKILL.md` | Task-specific runbooks split out of `CLAUDE.md`, generated into the `claude-skills` ConfigMap and mounted at `/etc/claude-skills` (items map each key to `<name>/SKILL.md`); copied into `~/.claude/skills/` at pod start |
 | `usage/` | Usage page and JSON API out: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml` for the Redpanda Connect; `redpanda-connect.yaml` (PromQL behind each endpoint), `index.html` (the page) |
+| `trivy/` | Trivy vulnerabilities page and JSON API out: `deployment.yaml`, `service.yaml`, `podmonitor.yaml`; `redpanda-connect.yaml` (PromQL behind each endpoint), `index.html` (the page) |
 | `vm-upgrade/` | "Update VMs" buttons (claude-vm and homeserver): `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (a flag per VM, two listeners), `index.html` (the page) |
 | `cockpit/` | The cockpit status page (below): `deployment.yaml`, `service.yaml`, `podmonitor.yaml` and `rbac.yaml`; `redpanda-connect.yaml` (one read-only status call, a branch per source), `index.html` (the page) |
 | `urlshare/` | Approval-gated URL sharing: `deployment.yaml`, `service.yaml`, and `podmonitor.yaml`; `redpanda-connect.yaml` (requests, fetch, TTL, clear cache), `index.html` (the approval page) |
@@ -194,6 +195,21 @@ Only series Prometheus holds are shown. Tokens, cost and lines have a `model` la
 time do not, so they are per environment only (and so is cost per commit). The page script is plain JavaScript with no external assets; the numbers are `increase()` over
 the window, so the very first export of a new model or environment is not counted.
 From `claude-rc`: `curl -s http://claude-usage.claude-system.svc/api/v1/summary`.
+
+### Trivy vulnerabilities page and API
+
+`trivy/` is the same pattern as `usage/`: a Redpanda Connect that holds no data and answers each request with PromQL against Prometheus (`Service/claude-trivy`, port 50099, prefix `claudetrivy`, LAN only, read-only).
+
+| Request | Answer |
+|---|---|
+| `GET /` | the page (`trivy/index.html`: findings per image, critical and high vulnerabilities) |
+| `GET /api/v1/images` | `trivy_image_vulnerabilities` per namespace, image digest and severity, plus the scan age per image |
+| `GET /api/v1/vulnerabilities` | critical and high `trivy_vulnerability_id` with title, score and the number of images they are found in |
+| `GET /healthz` | `ok` |
+
+Scan age is `time() - kube_customresource_vulnerabilityreport_created` (kube-state-metrics custom resource state, `k8s/infra/kube-prometheus-stack/`), joined to the trivy series on namespace and report name: the operator recreates the report on every rescan.
+Every query takes the `max` or `count` per image digest, because the operator can run twice during a rollout and exports one series per container. A failed query answers `502`.
+From `claude-rc`: `curl -s http://claude-trivy.claude-system.svc/api/v1/images`.
 
 ## Update VMs buttons
 

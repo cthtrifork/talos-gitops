@@ -23,6 +23,9 @@ resources:
   - usage/deployment.yaml
   - usage/service.yaml
   - usage/podmonitor.yaml
+  - trivy/deployment.yaml
+  - trivy/service.yaml
+  - trivy/podmonitor.yaml
   - vm-upgrade/deployment.yaml
   - vm-upgrade/externalsecret.yaml
   - vm-upgrade/service.yaml
@@ -61,6 +64,14 @@ configMapGenerator:
     files:
       - usage/redpanda-connect.yaml
       - usage/index.html
+  - name: claude-trivy-connect-config
+    namespace: claude-system
+    options:
+      annotations:
+        kustomize.toolkit.fluxcd.io/substitute: disabled
+    files:
+      - trivy/redpanda-connect.yaml
+      - trivy/index.html
   - name: claude-vm-upgrade-connect-config
     namespace: claude-system
     options:
