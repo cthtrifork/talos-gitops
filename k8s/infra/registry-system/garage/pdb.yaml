@@ -1,0 +1,18 @@
+# Garage needs two of its three nodes for a read and a write, so a drain may take one at a time. The layout Job shares the
+# labels but not the component.
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: garage
+  namespace: registry-system
+  labels:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/instance: garage
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: garage
+      app.kubernetes.io/instance: garage
+      app.kubernetes.io/component: garage

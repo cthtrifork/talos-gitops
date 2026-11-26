@@ -25,6 +25,9 @@ spec:
     cleanupOnFail: true
     remediation:
       retries: 3
+      # One-time: the smaller volumeClaimTemplate is immutable, so the upgrade fails and the release is reinstalled.
+      # Remove in the follow-up PR (docs/helmrelease-conventions.md).
+      strategy: uninstall
   # https://github.com/project-zot/helm-charts/blob/main/charts/zot/values.yaml
   values:
     podAnnotations:
@@ -39,19 +42,35 @@ spec:
     service:
       type: ClusterIP
       port: 5000
-    replicaCount: 1
+    # Two unsharded replicas (not zot's "cluster" mode) on one Garage store and one Valkey cache: either serves every
+    # repository, so draining a node leaves one running. Accepted trade-off: zot's store lock is per process, so two
+    # replicas updating the same repository at once can lose a tag. Cache repositories just refetch it; only a direct
+    # push to pr/** or buildcache/** needs a rerun. One replica would not survive a drain: its volume is pinned to a node.
+    replicaCount: 2
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: zot
+            app.kubernetes.io/instance: zot
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 1
     # todo: consider VPA
     image:
       repository: ghcr.io/project-zot/zot
       pullPolicy: IfNotPresent
       tag: "v2.1.23@sha256:9d3de83ac2099e6f4843045b4c9b65b7e8baf40f92d28f54906dee9d4d390fd7"
+    # The images are in Garage; the volume only holds the root directory and the sync staging area (downloadDir).
     persistence: true
     pvc:
       create: true
       accessModes:
         - "ReadWriteOnce"
-      storage: 150Gi
-      storageClassName: lvm-fast # a real 150Gi volume
+      storage: 20Gi
+      storageClassName: lvm-fast
     configFiles: ~
     # https://docs.giantswarm.io/tutorials/registry/zot/
     resources:
@@ -68,6 +87,17 @@ spec:
         value: 1600MiB
       - name: ZOT_CREDENTIALS_FILE
         value: "/run/secrets/github_auth"
+      # the S3 driver reads its Garage key from the AWS_* variables
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: garage-s3-key
+            key: access-key-id
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: garage-s3-key
+            key: secret-access-key
     metrics:
       enabled: true
       # the chart's ServiceMonitor forces basicAuth and HTTP, but zot has no auth and serves TLS
@@ -76,8 +106,6 @@ spec:
     externalSecrets:
       - secretName: zot-sync-creds
         mountPath: /etc/zot/sync
-    strategy:
-      type: Recreate
     extraVolumes:
       - name: tmp
         emptyDir:

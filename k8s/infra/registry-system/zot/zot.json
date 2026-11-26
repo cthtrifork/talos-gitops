@@ -13,6 +13,22 @@
   },
   "storage": {
     "rootDirectory": "/var/lib/registry",
+    "dedupe": false,
+    "remoteCache": true,
+    "storageDriver": {
+      "name": "s3",
+      "rootdirectory": "/zot",
+      "region": "garage",
+      "regionendpoint": "garage.registry-system.svc.cluster.local:3900",
+      "bucket": "zot",
+      "secure": false,
+      "forcepathstyle": true
+    },
+    "cacheDriver": {
+      "name": "redis",
+      "url": "redis://valkey-zot.registry-system.svc.cluster.local:6379?addr=valkey-zot.registry-system.svc.cluster.local:6379",
+      "keyprefix": "{zot}"
+    },
     "gc": true,
     "gcDelay": "1h",
     "gcInterval": "1h",
@@ -128,6 +144,7 @@
     "sync": {
       "enable": true,
       "credentialsFile": "/etc/zot/sync/creds.json",
+      "downloadDir": "/var/lib/registry/sync",
       "registries": [
         {
           "urls": [

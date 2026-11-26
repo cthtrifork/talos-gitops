@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/kustomize.toolkit.fluxcd.io/kustomization_v1.json
 ---
-# The Valkey operator and its CRDs, watching renovate-system. The valkey-resources HelmRelease in app-controllers depends on its HelmRelease.
+# Retired: the Valkey operator moved to k8s/infra/controllers/valkey-operator-system/ (gitops-infra-controllers). Kept one merge
+# with prune off and suspended, so that removing it does not delete the operator the new owner adopted. Delete this file afterwards.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -11,7 +12,8 @@ metadata:
 spec:
   interval: 30m
   retryInterval: 2m
-  prune: true
+  prune: false
+  suspend: true
   wait: true
   timeout: 10m
   dependsOn:
@@ -19,7 +21,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ../../k8s/apps/valkey-operator-system
+  path: ../../k8s/infra/controllers/valkey-operator-system
   postBuild:
     substitute:
       var_substitution_enabled: "true"

@@ -7,7 +7,7 @@ The GitHub Actions workflow (`.github/workflows/renovate.yaml`) runs daily as a 
 | Part | Where |
 |---|---|
 | Namespace, Renovate operator and CRDs, Valkey cluster, network policies and ExternalSecrets | here (`app-controllers`, so the CRDs exist first) |
-| Valkey operator and CRDs (namespace `valkey-operator-system`, watching `renovate-system`) | `k8s/apps/valkey-operator-system/` (own Flux Kustomization, `app-valkey-operator-system`) |
+| Valkey operator and CRDs (namespace `valkey-operator-system`, watching `renovate-system` and `registry-system`) | `k8s/infra/controllers/valkey-operator-system/` (infra tier, `gitops-infra-controllers`; it also runs the zot cache in `registry-system`) |
 | Garage (one node, `lvm-fast` meta and `lvm-bulk` data) | `k8s/apps/renovate/garage/` |
 | The `RenovateJob` | `k8s/apps/renovate/renovatejob.yaml` |
 
