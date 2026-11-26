@@ -1,7 +1,6 @@
 # Tools for in-cluster Jobs and init containers: curl, jq, yq, kubectl, bash, git, zip. Runs as non-root.
 # Same package set as https://gitlab.com/gitlab-ci-utils/curl-jq, plus yq and kubectl, on the Alpine base of claude-runner.
-ARG ALPINE_IMAGE=mirror.gcr.io/library/alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
-FROM ${ALPINE_IMAGE}
+FROM mirror.gcr.io/library/alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
 # Keep within one minor version of the cluster. Not tracked by Renovate; it is also the image tag's version.
 ARG KUBECTL_VERSION=1.37.2

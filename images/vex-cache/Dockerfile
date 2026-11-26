@@ -1,11 +1,9 @@
 # Pre-warmed Trivy VEX cache, mounted read-only by the trivy-operator scan jobs (trivy-operator/helm-release.yaml).
 # The build context is the repository root: vex/ is baked in too.
-ARG TRIVY_IMAGE=ghcr.io/aquasecurity/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
-# python: the trivy image has no httpd
-ARG PYTHON_IMAGE=python:3.15-alpine@sha256:0f9552bb28711333da16915ec146f5e6bb44a7fdac9ced15dc17c2e0206346dd
-FROM ${TRIVY_IMAGE} AS trivy
+FROM ghcr.io/aquasecurity/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb AS trivy
 
-FROM ${PYTHON_IMAGE} AS build
+# python: the trivy image has no httpd
+FROM python:3.15-alpine@sha256:0f9552bb28711333da16915ec146f5e6bb44a7fdac9ced15dc17c2e0206346dd AS build
 COPY --from=trivy /usr/local/bin/trivy /usr/local/bin/trivy
 ENV HOME=/root
 COPY images/vex-cache/repository.yaml /root/.trivy/vex/repository.yaml
