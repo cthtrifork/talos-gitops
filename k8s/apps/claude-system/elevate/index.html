@@ -79,6 +79,8 @@
   .jobrow { display: grid; gap: 10px; }
   .desc { margin: 0; color: var(--ink-2); font-size: var(--fs-md); min-height: 1.4em; }
   section.card { scroll-margin-top: 12px; }
+  #jobWhen { min-height: 0; font-variant-numeric: tabular-nums; }
+  #jobWhen:empty { display: none; }
   .empty { margin: 0; color: var(--ink-2); font-size: var(--fs-md); }
 
   .actions { position: sticky; bottom: 0; z-index: 2; margin: 0 -16px -16px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
@@ -199,6 +201,7 @@
             <select id="jobSelect" aria-label="CronJob" aria-describedby="jobDesc" disabled></select>
             <button id="jobGo" type="submit" disabled>Run now</button>
             <p id="jobDesc" class="desc"></p>
+            <p id="jobWhen" class="desc" aria-live="off"></p>
             <p id="jobMsg" class="hint" role="status"></p>
           </div>
         </form>
@@ -300,7 +303,7 @@
   var jobsKey = "";
   function buildJobs() {
     var jobs = status.cronjobs || [];
-    var key = jobs.map(function (j) { return j.namespace + "/" + j.name + "|" + (j.description || ""); }).join(",");
+    var key = jobs.map(function (j) { return j.namespace + "/" + j.name + "|" + (j.description || "") + "|" + j.schedule + "|" + (j.time_zone || "") + "|" + j.suspended; }).join(",");
     if (key === jobsKey) return;
     jobsKey = key;
     var keep = $("jobSelect").value, sel = $("jobSelect");
@@ -315,11 +318,86 @@
     sel.disabled = $("jobGo").disabled = jobs.length === 0;
     showJobDescription();
   }
+
+  // Minimal cron parser (5 fields and @macros); Kubernetes does not report the next run, so it is computed here.
+  var MACROS = { "@yearly": "0 0 1 1 *", "@annually": "0 0 1 1 *", "@monthly": "0 0 1 * *", "@weekly": "0 0 * * 0", "@daily": "0 0 * * *", "@midnight": "0 0 * * *", "@hourly": "0 * * * *" };
+  var NAMES = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12, sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+  function parseField(text, min, max) {
+    var set = {}, star = false;
+    text.split(",").forEach(function (part) {
+      var sp = part.split("/"), step = sp.length > 1 ? parseInt(sp[1], 10) : 1, range = sp[0], lo, hi;
+      if (!(step > 0)) throw new Error("step");
+      if (range === "*" || range === "?") { lo = min; hi = max; star = star || sp.length === 1; }
+      else {
+        var ends = range.split("-").map(function (v) { var n = NAMES[v.toLowerCase()]; return n !== undefined ? n : parseInt(v, 10); });
+        lo = ends[0]; hi = ends.length > 1 ? ends[1] : (sp.length > 1 ? max : lo);
+      }
+      if (isNaN(lo) || isNaN(hi) || lo < min || hi > max || lo > hi) throw new Error("range");
+      for (var v = lo; v <= hi; v += step) set[v] = true;
+    });
+    return { set: set, star: star };
+  }
+  function parseCron(expr) {
+    try {
+      var f = (MACROS[expr.trim().toLowerCase()] || expr).trim().split(/\s+/);
+      if (f.length !== 5) return null;
+      var dow = parseField(f[4], 0, 7);
+      if (dow.set[7]) dow.set[0] = true;
+      return { min: parseField(f[0], 0, 59), hour: parseField(f[1], 0, 23), dom: parseField(f[2], 1, 31), mon: parseField(f[3], 1, 12), dow: dow };
+    } catch (e) { return null; }
+  }
+  var formatters = {};
+  function wallClock(ms, tz) {
+    var f = formatters[tz] || (formatters[tz] = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", weekday: "short" }));
+    var o = {};
+    f.formatToParts(new Date(ms)).forEach(function (p) { o[p.type] = p.value; });
+    return { mon: +o.month, dom: +o.day, hour: +o.hour, min: +o.minute, dow: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(o.weekday) };
+  }
+  // the next run after "from" in the CronJob's time zone (the cluster's default is UTC); null when unknown
+  function nextRun(expr, tz, from) {
+    var c = parseCron(expr);
+    if (!c) return null;
+    try {
+      var t = Math.floor(from / 60000) * 60000 + 60000;
+      for (var i = 0; i < 30000; i++) {
+        var w = wallClock(t, tz || "UTC");
+        // like cron: when both day fields are restricted, either may match
+        var day = c.dom.star || c.dow.star ? c.dom.set[w.dom] && c.dow.set[w.dow] : c.dom.set[w.dom] || c.dow.set[w.dow];
+        if (!c.mon.set[w.mon] || !day) t += (1440 - w.hour * 60 - w.min) * 60000;
+        else if (!c.hour.set[w.hour]) t += (60 - w.min) * 60000;
+        else if (!c.min.set[w.min]) t += 60000;
+        else return t;
+      }
+    } catch (e) { /* unknown time zone */ }
+    return null;
+  }
+  function span(ms) {
+    var m = Math.max(1, Math.round(ms / 60000));
+    if (m < 60) return m + " min";
+    var h = Math.floor(m / 60);
+    if (h < 24) return h + " h" + (m % 60 ? " " + (m % 60) + " min" : "");
+    return Math.floor(h / 24) + " d" + (h % 24 ? " " + (h % 24) + " h" : "");
+  }
+  var nextCache = {};
+  function showJobWhen() {
+    var v = $("jobSelect").value, d = $("jobWhen");
+    var j = ((status && status.cronjobs) || []).filter(function (x) { return x.namespace + "/" + x.name === v; })[0];
+    if (!j) { d.textContent = ""; return; }
+    var text = "Schedule: " + j.schedule + " (" + (j.time_zone || "UTC") + ")";
+    if (j.suspended) text += ". Suspended, so nothing runs by itself.";
+    else {
+      var key = j.schedule + "|" + j.time_zone, n = nextCache[key];
+      if (!n || n <= Date.now()) n = nextCache[key] = nextRun(j.schedule, j.time_zone, Date.now());
+      text += n ? ". Next run in " + span(n - Date.now()) + ", " + new Date(n).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) + "." : ". Next run unknown.";
+    }
+    d.textContent = text;
+  }
   // the description comes from the CronJob's claude-elevate/description annotation
   function showJobDescription() {
     var v = $("jobSelect").value, d = $("jobDesc");
     var j = (status.cronjobs || []).filter(function (x) { return x.namespace + "/" + x.name === v; })[0];
     d.textContent = !j ? "" : j.description || "No description. Add the annotation claude-elevate/description to the CronJob.";
+    showJobWhen();
   }
 
   function render() {
@@ -362,6 +440,7 @@
 
   // updates the countdown text of the listed grants
   function tick() {
+    showJobWhen();
     Array.prototype.forEach.call(document.querySelectorAll("#grants .left"), function (n) {
       var r = remaining(n.getAttribute("data-expires"));
       n.textContent = r.text;

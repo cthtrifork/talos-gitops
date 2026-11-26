@@ -193,6 +193,7 @@ processor_resources:
             "namespace": c.metadata.namespace,
             "name": c.metadata.name,
             "schedule": c.spec.schedule,
+            "time_zone": c.spec.timeZone.or(""),
             "suspended": c.spec.suspend.or(false),
             "description": c.metadata.annotations.or({}).get("claude-elevate/description").or("")
           })
