@@ -7,7 +7,7 @@ metadata:
   name: vex-cache-refresh
   namespace: trivy-system
   annotations:
-    claude-elevate/description: Deletes all Trivy VulnerabilityReports when a newer vex-cache artifact is published, so they are scanned again with the new VEX, ignore file and policy.
+    claude-jobs/description: Deletes all Trivy VulnerabilityReports when a newer vex-cache artifact is published, so they are scanned again with the new VEX, ignore file and policy.
 spec:
   schedule: "*/10 * * * *"
   concurrencyPolicy: Forbid

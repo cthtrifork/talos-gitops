@@ -317,7 +317,7 @@ the opted-in namespaces with their schedule, time zone, next run (computed in th
 one now (`POST /api/v1/jobs`), the way `kubectl create job --from=cronjob/<name>` does. The pod creates the Job from the CronJob's own template and
 owner reference; Claude's tokens get no `jobs` rights. Routes and steps: `jobs/redpanda-connect.yaml`.
 
-- **Opt-in.** Only namespaces labelled `claude-elevate/jobs: "true"` (`dependency-track-system`, `trivy-system`); the page shows each CronJob's one-line description from its
+- **Opt-in.** Only namespaces labelled `claude-elevate/jobs: "true"` (`dependency-track-system`); the page shows each CronJob's one-line description from its
   annotation `claude-elevate/description` (add it to every CronJob in such a namespace).
 - **Limits.** `ServiceAccount/claude-job-runner` can list namespaces, CronJobs and Jobs (a CronJob counts as running while a Job it owns is unfinished, manual ones included), get a CronJob and create Jobs, nothing else. The admission policy
   `claude-job-runner` allows a Job only in an opted-in namespace, with the manual annotation and one CronJob owner. The policy cannot compare the pod spec

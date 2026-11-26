@@ -38,7 +38,7 @@ ConfigMaps hash to the same values. Otherwise it exits and checks again on the n
 ## State and permissions
 
 - `vex-cache-state` (`configmap-state.yaml`): `data.built-at` is written by the job; the manifest has no data, so Flux leaves it alone.
-- Run it now: the Run jobs page in the cockpit lists it (namespace label `claude-elevate/jobs`, annotation `claude-elevate/description` in `cronjob.yaml`); a manual run follows the same checks as a scheduled one.
+- Run it now: the Run jobs page in the cockpit lists it (namespace label `claude-jobs/run`, annotation `claude-jobs/description` in `cronjob.yaml`); a manual run follows the same checks as a scheduled one.
 - `rbac.yaml`: list and delete `vulnerabilityreports` cluster-wide; get and patch only the three ConfigMaps above in `trivy-system`.
 - The first run records the timestamp and deletes nothing.
 
