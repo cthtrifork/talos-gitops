@@ -1,4 +1,4 @@
-name: Renovate
+name: Run Renovate
 
 # Self-hosted Renovate as a GitHub App, so its PRs trigger CI. Config: renovate.json5, renovate-config.js.
 on:

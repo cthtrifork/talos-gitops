@@ -1,4 +1,4 @@
-name: Images
+name: Scan images and build the VEX cache
 
 on:
   pull_request:

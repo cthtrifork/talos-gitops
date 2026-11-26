@@ -1,4 +1,4 @@
-name: Sync Helm Charts
+name: Sync Helm charts to GHCR
 
 on:
   push:
