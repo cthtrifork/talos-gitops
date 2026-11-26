@@ -683,6 +683,19 @@ data:
         - livenessProbeMissing
         - readinessProbeMissing
       - controllerNames:
+        - juicefs-talos-
+        namespace: juicefs-system
+        rules:
+        - runAsPrivileged
+        - runAsRootAllowed
+        - privilegeEscalationAllowed
+        - linuxHardening
+        - insecureCapabilities
+        - notReadOnlyRootFilesystem
+        - hostPathSet
+        - livenessProbeMissing
+        - readinessProbeMissing
+      - controllerNames:
         - cilium
         namespace: kube-system
         rules: []
