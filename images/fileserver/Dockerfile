@@ -1,7 +1,6 @@
 # fileserver: one static Go binary, four modes (see README.md), no third-party dependencies. The final image is scratch
 # plus CA certificates (the rotator talks TLS to the Kubernetes API), so there is no OS to patch.
-ARG GO_IMAGE=mirror.gcr.io/library/golang:1.27-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280
-FROM ${GO_IMAGE} AS build
+FROM mirror.gcr.io/library/golang:1.27-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS build
 WORKDIR /src
 COPY . .
 RUN CGO_ENABLED=0 go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/fileserver .

@@ -1,7 +1,6 @@
 # Claude Code self-hosted environment runner (https://code.claude.com/docs/en/self-hosted-environments-deploy).
 # Anthropic publishes no runner image, so this wraps the claude binary. Runs as non-root.
-ARG ALPINE_IMAGE=mirror.gcr.io/library/alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
-FROM ${ALPINE_IMAGE}
+FROM mirror.gcr.io/library/alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
 # Renovate bumps the version. The linux-x64-musl checksum is read from the release manifest at build time
 # (https://downloads.claude.ai/claude-code-releases/<version>/manifest.json), so there is nothing to bump by hand.

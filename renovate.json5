@@ -270,6 +270,7 @@
       "matchPackageNames": [
         "ghcr.io/cthtrifork/talos-gitops/github-actions-runner",
         "ghcr.io/cthtrifork/talos-gitops/claude-runner",
+        "ghcr.io/cthtrifork/talos-gitops/tools",
         "ghcr.io/cthtrifork/talos-gitops/fileserver"
       ],
       "ignoreUnstable": false
@@ -300,6 +301,14 @@
       "matchFileNames": ["images/claude-runner/Dockerfile"],
       "matchPackageNames": ["!@anthropic-ai/claude-code"],
       "commitMessageTopic": "claude-runner tool {{{depName}}}"
+    },
+    {
+      "description": "yq in the tools image: minor and patch updates automerge (the image build is the check); majors stay manual.",
+      "matchFileNames": ["images/tools/Dockerfile"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "commitMessageTopic": "tools image tool {{{depName}}}",
+      "automerge": true,
+      "automergeType": "pr"
     },
     {
       "description": "cli/cli is the GitHub CLI; say so in the title.",
