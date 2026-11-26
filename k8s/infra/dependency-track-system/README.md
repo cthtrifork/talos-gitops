@@ -112,7 +112,7 @@ A lost admin Secret is recovered by seeding it with the current admin password.
 
 ## Exporting Dependency-Track decisions to the VEX repository
 
-Enabled (daily). Check its first pull request before merging it. Statements are per image repository, not per digest: the product is the project PURL without version and arch (`pkg:oci/<name>?repository_url=<registry>/<repo>`), so a decision covers every tag and digest of that repository. The versions (tags) of one repository are merged into one document.
+Enabled (daily). Check its first pull request before merging it. Statements are per image repository, not per digest: the product is the project PURL without version and arch (`pkg:oci/<name>?repository_url=<registry>/<repo>`), so a decision covers every tag and digest of that repository. Only the latest deployed version of each project is exported (the version marked latest, else the newest upload): older tags are ignored, so their digests are not scanned. A *not affected* or *false positive* statement names the package without version and qualifiers, so it keeps holding when the image moves to a new package version; a *resolved* (fixed) statement keeps the version. The exporter reads all project pages (100 per page).
 
 `dependency-track/vex-export-cronjob.yaml` is a daily CronJob that turns the analysis decisions made in Dependency-Track (state
 *not affected*, *false positive* or *resolved* on a finding) into OpenVEX documents in `vex/pkg/oci/<registry>/<repository>/`
