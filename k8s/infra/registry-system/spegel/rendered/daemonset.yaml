@@ -105,6 +105,8 @@ spec:
             - --containerd-registry-config-path=/etc/cri/conf.d/hosts
             - --bootstrap-kind=dns
             - --dns-bootstrap-domain=spegel-bootstrap.registry-system.svc.cluster.local.
+            - --registry-filters
+            - ".*:latest$"
             - --containerd-content-path=/var/lib/containerd/io.containerd.content.v1.content
             - --debug-web-enabled=true
             - --data-dir=/var/lib/spegel

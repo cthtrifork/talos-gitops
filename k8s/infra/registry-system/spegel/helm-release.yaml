@@ -39,6 +39,9 @@ spec:
         - https://us-docker.pkg.dev
       # order: Spegel, zot, upstream; restart the pods after a Talos registry patch (docs/registry-mirrors.md)
       prependExisting: true
+      # a reused tag is pinned to its first digest cluster-wide; resolve :latest upstream
+      registryFilters:
+        - ".*:latest$"
     serviceMonitor:
       enabled: true
     grafanaDashboard:
