@@ -1,0 +1,17 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: trivy-system
+resources:
+  - rbac.yaml
+  - configmap-state.yaml
+  - cronjob.yaml
+configMapGenerator:
+  - name: vex-cache-refresh
+    files:
+      - refresh.sh
+    options:
+      annotations:
+        kustomize.toolkit.fluxcd.io/substitute: disabled # shell uses $ freely
+generatorOptions:
+  disableNameSuffixHash: true

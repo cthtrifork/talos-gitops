@@ -1,0 +1,74 @@
+# Rescans everything when a new vex-cache artifact (VEX documents, ignore file or ignore policy changed) was published.
+# The artifact is mounted as an image volume, like in the scan jobs (trivy-operator/helm-release.yaml).
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vex-cache-refresh
+  namespace: trivy-system
+  annotations:
+    claude-jobs/description: Deletes all Trivy VulnerabilityReports when a newer vex-cache artifact is published, so they are scanned again with the new VEX, ignore file and policy.
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: vex-cache-refresh
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: refresh
+              image: ghcr.io/cthtrifork/talos-gitops/tools:1.37.2-20261126.3@sha256:8849a678b45ff8affc709870049f6a36af4b8f89b9f0b5010d357ece0647f124
+              command:
+                - bash
+                - /scripts/refresh.sh
+              env:
+                - name: HOME
+                  value: /work
+                - name: JOB_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.labels['job-name']
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: vex-cache
+                  mountPath: /vex-cache
+                  readOnly: true
+                - name: work
+                  mountPath: /work
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: scripts
+              configMap:
+                name: vex-cache-refresh
+            - name: vex-cache
+              image:
+                reference: ghcr.io/cthtrifork/talos-gitops/vex-cache:latest
+                pullPolicy: Always
+            - name: work
+              emptyDir:
+                sizeLimit: 64Mi

@@ -19,13 +19,18 @@ trivy server and the scan jobs:
   (`default`) and our `vex/` directory (`homelab-vexhub`). The data is in the `vex-cache` image (`images/vex-cache`, built
   by `.github/workflows/images.yaml` from the hub and `vex/`), which the scan jobs mount read-only at
   `<cache-dir>/vex`. `skip-vex-repo-update` keeps Trivy from downloading anything at scan time, so the URLs in the file
-  are not fetched. The image is rebuilt when `vex/` changes on `main` and when the workflow is run by hand; the Trivy VEX hub
-  part only changes when it runs. VEX statements mark CVEs as not exploitable in a product.
+  are not fetched. The image is rebuilt when `vex/`, `trivyignore.yaml` or `ignore-policy.rego` change on `main` (the `changes` job of `images.yaml`, with `tj-actions/changed-files`) and when the workflow is run by hand; the Trivy VEX hub
+  part only changes when it runs. It carries `homelab-built-at` (epoch seconds) and the hashes of the ignore file and policy. VEX statements mark CVEs as not exploitable in a product.
 - `trivy-operator/ignore/trivyignore.yaml` (`trivy-ignorefile`): CVEs that do not apply (no expiry) and accepted risk (with an expiry).
 - `trivy-operator/ignore/ignore-policy.rego` (`trivy-ignorepolicy`): a Rego policy, `ignore` is false by default. Rules that rest on the cluster setup ignore only LOW and MEDIUM.
 
 They are wired through the `configFile` in `trivy-operator/helm-release.yaml` (`vex`, `ignorefile`, `ignore-policy`).
 A change takes effect for the next scan job; reports are regenerated after `scannerReportTTL`.
+
+`vex-cache-refresh/` ([README](vex-cache-refresh/README.md)) is a CronJob (every 10 minutes) that mounts the `vex-cache` artifact as an image volume and compares `homelab-built-at` with the
+last one it handled (ConfigMap `vex-cache-state`). If the artifact is newer and the live ConfigMaps `trivy-ignorefile` and `trivy-ignorepolicy` match its hashes
+(Flux may not have applied them yet; it retries on the next run), it deletes all `VulnerabilityReports` and the operator scans again with the new inputs.
+The first run only records the timestamp. A run started by hand always deletes them.
 
 `vuln-policy-bundle/` turns `trivyignore.yaml` into a Dependency-Track vulnerability policy bundle (one policy per CVE: `NOT_AFFECTED`, suppressed,
 the statement as details, `validUntil` from `expired_at`) and serves it at `bundle.zip`. Dependency-Track fetches it through
