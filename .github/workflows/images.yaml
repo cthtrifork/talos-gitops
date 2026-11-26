@@ -304,10 +304,13 @@ jobs:
         env:
           DOC: ${{ matrix.image.doc }}
           REPORT: vex-${{ strategy.job-index }}.trivy.json
+        # a CVE the image does not have (a decision from another tag of the image) is skipped
         run: >-
           jq -e -n -r --slurpfile d "${DOC}" --slurpfile s "${REPORT}"
-          '($d[0].statements | map(.vulnerability.name)) - [$s[0].Results[]?.ExperimentalModifiedFindings[]? | .Finding.VulnerabilityID]
-          | if length == 0 then "all statements applied" else error("not suppressed: " + join(", ")) end'
+          '([$s[0].Results[]?.ExperimentalModifiedFindings[]? | .Finding.VulnerabilityID]) as $applied
+          | ([$s[0].Results[]?.Vulnerabilities[]?.VulnerabilityID]) as $present
+          | ($d[0].statements | map(.vulnerability.name) | map(select(. as $c | $applied | index($c) | not)) | map(select(. as $c | $present | index($c)))) as $missing
+          | if ($missing | length) == 0 then "all statements applied" else error("not suppressed: " + ($missing | join(", "))) end'
 
   build-and-publish:
     name: Build and publish (vex-cache)
