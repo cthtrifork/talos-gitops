@@ -116,6 +116,8 @@
   th button:focus-visible { outline: 2px solid var(--env-rc); }
   .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 600; color: var(--c); border: 1px solid var(--c); }
   .pill.ok { --c: var(--ok); }
+  a.ext { color: var(--env-rc); text-decoration: none; }
+  a.ext:hover { text-decoration: underline; }
   a.cve { color: var(--env-rc); text-decoration: none; font-family: var(--mono); font-size: var(--fs-sm); }
   a.cve:hover { text-decoration: underline; }
   .muted { color: var(--muted); }
@@ -131,16 +133,10 @@
   .num { font-variant-numeric: tabular-nums; }
   .sevbar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; display: flex; margin: 6px 0 4px; }
   .sevbar i { display: block; height: 100%; min-width: 4px; }
-  .pick { all: unset; box-sizing: border-box; display: block; width: 100%; cursor: pointer; padding: 10px 12px; margin: 0 -12px; width: calc(100% + 24px); border-radius: 8px; }
-  .pick:hover { background: var(--page); }
-  .pick[aria-pressed="true"] { background: var(--page); box-shadow: inset 3px 0 0 var(--env-rc); }
-  .pick:focus-visible { outline: 2px solid var(--env-rc); outline-offset: -2px; }
-  .pick .top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
-  ul.rows li:has(.pick) { padding: 0; border-top: 0; }
+  ul.rows li.img { display: block; }
+  .img .top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
   h3 { font-size: var(--fs-sm); font-weight: 650; text-transform: uppercase; letter-spacing: .04em; margin: 16px 0 4px; }
   h3:first-of-type { margin-top: 0; }
-  .filter { margin: 0 0 12px; padding: 8px 12px; background: var(--page); border-radius: 8px; font-size: var(--fs-sm); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .filter .more { margin: 0; }
   details.fold > summary { display: block; margin-top: 12px; }
   details.fold > summary::before { content: "▸ "; color: var(--muted); }
   details.fold[open] > summary::before { content: "▾ "; }
@@ -242,9 +238,9 @@ const imageRows = () => Object.entries(Object.groupBy(FINDINGS, (r) => r[6]))
   .map(([image, rs]) => ({ image, ns: rs[0][7], c: Object.fromEntries(SEVERITIES.map(([k]) => [k, rs.filter((r) => r[1] === k).length])) }))
   .sort((a, b) => SEVERITIES.reduce((d, [k]) => d || b.c[k] - a.c[k], 0));
 
-// One row per CVE, optionally only those found in one image. Worst severity first, then the most images.
+// One row per CVE. Worst severity first, then the most images.
 // Source: count by (vuln_id, severity) of trivy_vulnerability_id, one series per image and package
-const cveRows = (image) => Object.entries(Object.groupBy(FINDINGS.filter((r) => !image || r[6] === image), (r) => r[0]))
+const cveRows = () => Object.entries(Object.groupBy(FINDINGS, (r) => r[0]))
   .map(([id, rs]) => ({ id, sev: rs[0][1], score: rs[0][2], title: rs[0][10], images: new Set(FINDINGS.filter((f) => f[0] === id).map((f) => f[6])).size }))
   .sort((a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images || b.score - a.score);
 
@@ -252,17 +248,22 @@ const cveRows = (image) => Object.entries(Object.groupBy(FINDINGS.filter((r) => 
 
 const Bar = (c, max) => html`<div class="sevbar" role="img" aria-label=${SEVERITIES.map(([k, n]) => `${c[k]} ${n.toLowerCase()}`).join(", ")}>${SEVERITIES.filter(([k]) => c[k]).map(([k]) => html`<i style="width: ${(c[k] / max) * 100}%; background: ${sevVar(k)}"></i>`)}</div>`;
 
-const ImageList = (rows, sel, pick) => {
+// Dependency-Track names a project "<namespace>/<repository>" (the version is the tag). Its project list reads ?searchText=, so the link needs no lookup.
+// Only some images are tracked there; the search then shows no result.
+const DTRACK = "https://dtrack.portableinfo.cloud/projects?searchText=";
+const dtrackLink = (r) => DTRACK + encodeURIComponent(r.ns + "/" + r.image.replace(/:[^:/]+$/, "").replace(/^[^/]+\.[^/]+\//, ""));
+
+const ImageList = (rows) => {
   const max = Math.max(...rows.map((r) => sum(Object.values(r.c))));
   return html`<section class="panel">
     <div class="panel-head"><h2>Images</h2><span class="src">trivy_image_vulnerabilities</span></div>
     <ul class="rows">${rows.map((r) => {
       const n = sum(Object.values(r.c));
-      return html`<li><button class="pick" aria-pressed=${String(sel === r.image)} @click=${() => pick(sel === r.image ? null : r.image)}>
+      return html`<li class="img">
         <span class="top"><strong>${shortImage(r.image)}</strong><span class="num">${r.c.critical ? html`<b style="color: var(--sev-critical)">${r.c.critical} critical</b> · ` : nothing}${r.c.high ? html`<b style="color: var(--sev-high)">${r.c.high} high</b> · ` : nothing}<span class="muted">${n} total</span></span></span>
         ${Bar(r.c, max)}
-        <span class="muted sub">${r.ns}</span>
-      </button></li>`;
+        <span class="sub"><span class="muted">${r.ns}</span> · <a class="ext" href=${dtrackLink(r)} rel="noopener noreferrer" target="_blank">Dependency-Track ↗</a></span>
+      </li>`;
     })}</ul>
   </section>`;
 };
@@ -274,14 +275,12 @@ const CVE_SORT = {
   sev: (a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images, images: (a, b) => b.images - a.images || RANK[a.sev] - RANK[b.sev],
 };
 
-const CveTable = (ui, sel, set) => {
-  const rows = cveRows(sel)
-    .filter((r) => r.sev === "critical" || r.sev === "high")
-    .sort((a, b) => (CVE_SORT[ui.sort](a, b)) * (ui.desc ? -1 : 1));
+const CveTable = (ui, set) => {
+  const rows = cveRows()
+      .sort((a, b) => (CVE_SORT[ui.sort](a, b)) * (ui.desc ? -1 : 1));
   const head = ([k, name, cls]) => html`<th class=${cls || nothing} aria-sort=${ui.sort === k ? (ui.desc ? "descending" : "ascending") : "none"}><button @click=${() => set(ui.sort === k ? { desc: !ui.desc } : { sort: k, desc: false })}>${name}${ui.sort === k ? (ui.desc ? " ↓" : " ↑") : ""}</button></th>`;
   return html`<section class="panel">
     <div class="panel-head"><h2>Vulnerabilities</h2><span class="src">trivy_vulnerability_id</span></div>
-    ${sel ? html`<p class="filter"><span>Only in <strong>${shortImage(sel)}</strong></span><button class="more" @click=${() => set({ sel: null })}>Show all</button></p>` : nothing}
     <div class="scroll"><table class="grafana">
       <thead><tr>${CVE_COLS.map(head)}</tr></thead>
       <tbody>${rows.length ? rows.map((r) => html`<tr>
@@ -297,7 +296,7 @@ const CveTable = (ui, sel, set) => {
 
 class TrivyApp extends LitElement {
   static properties = { fetchedAt: { state: true }, ui: { state: true } };
-  constructor() { super(); this.fetchedAt = new Date(); this.ui = { sel: null, sort: "sev", desc: false }; }
+  constructor() { super(); this.fetchedAt = new Date(); this.ui = { sort: "sev", desc: false }; }
   set = (patch) => { this.ui = { ...this.ui, ...patch }; };
   createRenderRoot() { return this; }
   // The real page polls here: setInterval(load, REFRESH_MS). The mock only stamps the time.
@@ -313,10 +312,10 @@ class TrivyApp extends LitElement {
         <div class="sub">${SEVERITIES.filter(([k]) => c[k]).map(([k, n]) => html`<span class="dot" style="background: ${sevVar(k)}"></span>${c[k]} ${n.toLowerCase()} `)}· from Prometheus · updated ${stamp}</div>
       </header>
       <div class="cols">
-        ${ImageList(imageRows(), this.ui.sel, (i) => this.set({ sel: i }))}
-        ${CveTable(this.ui, this.ui.sel, this.set)}
+        ${ImageList(imageRows())}
+        ${CveTable(this.ui, this.set)}
       </div>
-      <p class="sub">Pick an image to see only its vulnerabilities. Worst first: by severity, then by count. Counts are per image digest.</p>
+      <p class="sub">Worst first: by severity, then by count. Counts are per image digest. Dependency-Track tracks only some images.</p>
     </main>`;
   }
 }
