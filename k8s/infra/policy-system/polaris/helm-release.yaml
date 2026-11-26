@@ -755,6 +755,20 @@ spec:
             - hostPathSet
             - livenessProbeMissing
             - readinessProbeMissing
+        # Mount pods the CSI driver creates per volume and node (juicefs-<node>-pvc-...): privileged FUSE, no probes
+        - namespace: juicefs-system
+          controllerNames:
+            - juicefs-talos-
+          rules:
+            - runAsPrivileged
+            - runAsRootAllowed
+            - privilegeEscalationAllowed
+            - linuxHardening
+            - insecureCapabilities
+            - notReadOnlyRootFilesystem
+            - hostPathSet
+            - livenessProbeMissing
+            - readinessProbeMissing
         - namespace: kube-system
           controllerNames:
             - cilium
