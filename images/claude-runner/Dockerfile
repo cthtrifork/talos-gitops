@@ -12,6 +12,10 @@ ARG KUBECTL_VERSION=v1.34.1
 ARG GH_VERSION=2.106.0
 # renovate: datasource=github-releases depName=google/go-containerregistry
 ARG CRANE_VERSION=0.22.1
+# renovate: datasource=github-releases depName=DataDog/trivy-plugin-govulncheck
+ARG TRIVY_GOVULNCHECK_VERSION=0.1.4
+# renovate: datasource=github-releases depName=aquasecurity/trivy
+ARG TRIVY_VERSION=0.76.2
 # renovate: datasource=github-releases depName=mikefarah/yq
 ARG YQ_VERSION=4.54.3
 # renovate: datasource=github-releases depName=controlplaneio-fluxcd/flux-operator
@@ -75,6 +79,26 @@ RUN base="https://github.com/google/go-containerregistry/releases/download/v${CR
  && tar -xzf "${tarball}" crane \
  && install -m 0755 crane /usr/local/bin/crane \
  && rm -rf "${tarball}" crane
+
+# trivy and the DataDog govulncheck output plugin (https://github.com/DataDog/trivy-plugin-govulncheck): the plugin pulls the
+# image itself and runs govulncheck in binary mode, so a Trivy finding for a Go dependency is kept only if its vulnerable
+# symbol is in the binary. Both are static binaries, checksum verified against the release's checksums file.
+RUN base="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}" \
+ && tarball="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
+ && cd /tmp \
+ && curl -fsSL "${base}/${tarball}" -o "${tarball}" \
+ && curl -fsSL "${base}/trivy_${TRIVY_VERSION}_checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
+ && tar -xzf "${tarball}" trivy \
+ && install -m 0755 trivy /usr/local/bin/trivy \
+ && rm -rf "${tarball}" trivy
+RUN base="https://github.com/DataDog/trivy-plugin-govulncheck/releases/download/v${TRIVY_GOVULNCHECK_VERSION}" \
+ && tarball="trivy-govulncheck_${TRIVY_GOVULNCHECK_VERSION}_linux-amd64.tar.gz" \
+ && cd /tmp \
+ && curl -fsSL "${base}/${tarball}" -o "${tarball}" \
+ && curl -fsSL "${base}/trivy-govulncheck_${TRIVY_GOVULNCHECK_VERSION}_checksums.txt" | grep -F "  ${tarball}" | sha256sum -c - \
+ && tar -xzf "${tarball}" trivy-govulncheck \
+ && install -m 0755 trivy-govulncheck /usr/local/bin/trivy-govulncheck \
+ && rm -rf "${tarball}" trivy-govulncheck
 
 # yq (mikefarah, the one the repo's CI scripts use), checksum verified against the release's checksums file. Its
 # columns follow checksums_hashes_order; SHA-256 is the 18th hash, so field 19.
