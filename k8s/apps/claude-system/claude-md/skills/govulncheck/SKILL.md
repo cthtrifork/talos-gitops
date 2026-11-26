@@ -5,11 +5,12 @@ description: Check whether a Go vulnerability (golang.org/x/*, stdlib) is really
 
 # Go reachability with govulncheck
 
-`govulncheck-image <image> <path-in-image>` (script in the runner image) extracts that one file with `crane export`, runs
+`govulncheck-image <image> <path-in-image> [govulncheck flags]` (script in the runner image) extracts that one file with `crane export`, runs
 `govulncheck -mode=binary` on it and deletes it. Output lists the vulnerable symbols found in the binary (GO-ids with CVE aliases);
 exit 3 means findings. Binary mode shows a symbol is linked, not that it is called; a missing symbol is `CODE_NOT_PRESENT`.
 
-- Find the binary: `crane config <image> | jq '.config.Entrypoint,.config.Cmd'`, or the Trivy report's `target`/path (`kubectl get vulnerabilityreport`).
+- Extra flags go to govulncheck: `-show verbose` also lists vulnerabilities in modules present but not called (a CVE missing from the default output may be there). Never call `crane export` or `govulncheck` on an image yourself.
+- Find the binary: `crane config <image> | jq '.config.Entrypoint,.config.Cmd'`, or the Trivy report's `target`/path (`kubectl get vulnerabilityreport`). Distroless images symlink `/bin` to `usr/bin`: the path is then `usr/bin/<name>`.
   Use the live tag and digest from the running pod (`kubectl get pod -o jsonpath='{..imageID}'`), not an old DT version.
 - Scratch: `export TMPDIR=<session scratchpad>/gvc` (`mkdir -p`), never `/tmp` or `/workspace`. One image at a time. Never run the extracted file.
 - Needs the image's registry and `vuln.go.dev` in the egress allowlist; a hang on connect: see `cilium-drops`. Registry
