@@ -26,8 +26,11 @@ def is_decision:
   .analysis.state | IN("not_affected", "false_positive", "resolved");
 
 # The affected components that have a purl. Without one a statement would cover the whole image.
+# A not affected decision names the package without version and qualifiers, so it keeps holding when the image moves to a new
+# version of the package (no new assessment per image tag). A fixed (resolved) decision keeps the version: an older one is not fixed.
 def subcomponents($purls):
-  [.affects[]?.ref | $purls[.] // empty | {"@id": .}];
+  (.analysis.state != "resolved") as $any_version
+  | [.affects[]?.ref | $purls[.] // empty | if $any_version then sub("[@?].*$"; "") else . end | {"@id": .}] | unique;
 
 def status_fields:
   if .analysis.state == "resolved" then

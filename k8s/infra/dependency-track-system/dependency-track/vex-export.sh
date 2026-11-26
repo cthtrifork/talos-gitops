@@ -12,7 +12,7 @@ GITHUB_TOKEN=$(cat /github/token 2>/dev/null || true)
 # zot sync destinations (k8s/infra/registry-system/zot/zot.json) -> the registry named in the pod spec
 UPSTREAM='{"docker-hub-cache":"mirror.gcr.io","ghcr-cache":"ghcr.io","ghcr-private":"ghcr.io","gcr-cache":"gcr.io","quay-cache":"quay.io","k8s-cache":"registry.k8s.io","google-ar-cache":"us-docker.pkg.dev"}'
 
-dt_get() { curl -fsS -H "X-Api-Key: $API_KEY" "$DT_URL/$1"; }
+dt_get() { local path=$1; shift; curl -fsS "$@" -H "X-Api-Key: $API_KEY" "$DT_URL/$path"; }
 github() { curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$@"; }
 
 prepare_repo() {
@@ -36,10 +36,27 @@ prepare_repo() {
   mkdir -p "$DOCS" "$FINDINGS"
 }
 
+# Every project, 100 per page (DT caps pageSize at 100; X-Total-Count has the total)
+all_projects() {
+  local page=1 total=0 seen=0 body
+  while :; do
+    body=$(dt_get "api/v1/project?pageSize=100&pageNumber=$page" -D /work/headers) || return 1
+    printf '%s\n' "$body"
+    total=$(awk 'tolower($1)=="x-total-count:"{print $2+0}' /work/headers)
+    seen=$((seen + $(printf '%s' "$body" | jq length)))
+    [ "$seen" -lt "$total" ] && [ "$(printf '%s' "$body" | jq length)" -gt 0 ] || break
+    page=$((page + 1))
+  done | jq -s 'add // []'
+}
+
 export_findings() {
   echo "==> Exporting decisions from Dependency-Track"
-  dt_get "api/v1/project?pageSize=1000" |
-    jq -r '.[] | select(.active != false and (.purl // "") != "") | [.uuid, .name, (.version // "-"), .purl] | @tsv' |
+  # Only the latest deployed version of each project (namespace/repository): the one marked latest, else the newest upload.
+  # Older tags are not exported, so their digests are not scanned and their decisions do not linger.
+  all_projects |
+    jq -r '[.[] | select(.active != false and (.purl // "") != "")]
+      | group_by(.name) | map(sort_by([(.isLatest // false), (.lastBomImport // 0)]) | last) | .[]
+      | [.uuid, .name, (.version // "-"), .purl] | @tsv' |
     while IFS=$'\t' read -r uuid name version purl; do
       # The product is the image repository, not a digest: the project PURL without version and arch
       product=$(jq -rn --arg p "$purl" '$p | sub("@sha256(%3A|:)[0-9a-f]+"; "") | sub("arch=[^&]*&?"; "") | sub("[?&]$"; "") | gsub("%3A"; ":")')
