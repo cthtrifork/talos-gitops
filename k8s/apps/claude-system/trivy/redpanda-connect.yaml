@@ -59,12 +59,12 @@ pipeline:
                           verb: GET
                           timeout: 10s
                     result_map: 'root.ages = this.data.result'
-                # Flat rows: the page pivots them per image
+                # Flat rows: the page pivots them per image. A digest-pinned image has no image_tag label (Prometheus drops empty labels): the catch leaves the bare repository.
                 - mapping: |
                     root.generated = now().ts_format("2006-01-02T15:04:05Z", "UTC")
                     root.counts = this.counts.map_each(x -> {
                       "namespace": x.metric.namespace,
-                      "image": x.metric.image_repository + ":" + x.metric.image_tag,
+                      "image": x.metric.image_repository + (":" + x.metric.image_tag).catch(""),
                       "digest": x.metric.image_digest,
                       "severity": x.metric.severity.lowercase(),
                       "count": x.value.index(1).number().round()
