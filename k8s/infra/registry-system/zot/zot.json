@@ -37,6 +37,18 @@
       "delay": "24h",
       "policies": [
         {
+          "repositories": ["buildcache/pr-*/**"],
+          "deleteReferrers": false,
+          "deleteUntagged": true,
+          "keepTags": [
+            {
+              "patterns": [".*"],
+              "pulledWithin": "24h",
+              "pushedWithin": "24h"
+            }
+          ]
+        },
+        {
           "repositories": ["buildcache/**"],
           "deleteReferrers": false,
           "deleteUntagged": true,
