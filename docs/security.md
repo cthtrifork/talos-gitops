@@ -166,7 +166,7 @@ admitted unchanged.
 - `claude-rc` ServiceAccount `claude`: built-in `view` (no Secrets) plus read of nodes, PVs, StorageClasses, CRDs, ClusterRoles and bindings. No write verbs, no `pods/exec` (`k8s/apps/claude-system/rbac.yaml`).
 - The `claude-rc` pod also holds: the claude.ai login on a PVC; a one-hour GitHub App installation token (Contents, Pull requests, Workflows read/write on installed repositories); an Omni service account with role Reader (TTL 365 days); the Dependency-Track key of the `claude-triage` team (analysis read/create/update; no BOM upload, no admin); optionally a `read:packages` GHCR token and a read-only Cloudflare API token.
 - Elevate tiers (`ops`, `debug`, `storage`, `flux`; `k8s/apps/claude-system/clusterrole-elevated.yaml`) are bound per opted-in namespace (`claude-elevate/<tier>` label) by `claude-elevator` for a short-lived token. No tier patches workloads except `debug` on `pods/ephemeralcontainers`. `debug` (`pods/exec`, `attach`, `portforward`) is opted in by `adguard-system` only.
-- `claude-elevator` can create ServiceAccounts, RoleBindings and tokens cluster-wide; the VAPs pin `bind`, `patch`, `delete` and `token` to the tier names. `claude-job-runner` (the jobs page) can create Jobs cluster-wide, only in namespaces labelled `claude-elevate/jobs` (VAP `claude-job-runner`).
+- `claude-elevator` can create ServiceAccounts, RoleBindings and tokens cluster-wide; the VAPs pin `bind`, `patch`, `delete` and `token` to the tier names. `claude-job-runner` (the jobs page) can create Jobs cluster-wide, only in namespaces labelled `claude-jobs/run` (VAP `claude-job-runner`).
 
 ## Secrets
 

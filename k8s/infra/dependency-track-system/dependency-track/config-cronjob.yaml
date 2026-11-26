@@ -7,7 +7,7 @@ metadata:
   name: dependency-track-config
   namespace: dependency-track-system
   annotations:
-    claude-elevate/description: Applies the Dependency-Track configuration (teams, API keys, properties, analyzers) and repairs drift. Safe to repeat.
+    claude-jobs/description: Applies the Dependency-Track configuration (teams, API keys, properties, analyzers) and repairs drift. Safe to repeat.
     reloader.stakater.com/auto: "true"
 spec:
   schedule: "7 * * * *"
