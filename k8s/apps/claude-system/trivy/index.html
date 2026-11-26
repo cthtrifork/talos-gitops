@@ -144,7 +144,6 @@
   details.fold > summary { display: block; margin-top: 12px; }
   details.fold > summary::before { content: "▸ "; color: var(--muted); }
   details.fold[open] > summary::before { content: "▾ "; }
-  .tall { max-height: 40rem; overflow-y: auto; }
   table.grafana th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
   table.grafana td.title { max-width: 12rem; overflow: hidden; text-overflow: ellipsis; }
   .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -268,7 +267,7 @@ const ImageList = (rows, sel, pick) => {
   </section>`;
 };
 
-// Like the Grafana "Top vulnerabilities" table: title, linked id, severity as coloured text, count. Headers sort, the box and the severity pick filter.
+// Like the Grafana "Top vulnerabilities" table: title, linked id, severity as coloured text, count. Headers sort. Every critical and high one is listed; medium and below are left out.
 const CVE_COLS = [["title", "Title", "l"], ["id", "Vulnerability", "l"], ["sev", "Severity", "l"], ["images", "Images", ""]];
 const CVE_SORT = {
   title: (a, b) => a.title.localeCompare(b.title), id: (a, b) => a.id.localeCompare(b.id),
@@ -276,22 +275,14 @@ const CVE_SORT = {
 };
 
 const CveTable = (ui, sel, set) => {
-  const q = ui.query.trim().toLowerCase();
   const rows = cveRows(sel)
-    .filter((r) => (ui.sev === "all" || r.sev === ui.sev) && (!q || (r.id + " " + r.title).toLowerCase().includes(q)))
+    .filter((r) => r.sev === "critical" || r.sev === "high")
     .sort((a, b) => (CVE_SORT[ui.sort](a, b)) * (ui.desc ? -1 : 1));
   const head = ([k, name, cls]) => html`<th class=${cls || nothing} aria-sort=${ui.sort === k ? (ui.desc ? "descending" : "ascending") : "none"}><button @click=${() => set(ui.sort === k ? { desc: !ui.desc } : { sort: k, desc: false })}>${name}${ui.sort === k ? (ui.desc ? " ↓" : " ↑") : ""}</button></th>`;
   return html`<section class="panel">
-    <div class="panel-head"><h2>Top vulnerabilities</h2><span class="src">trivy_vulnerability_id</span></div>
+    <div class="panel-head"><h2>Vulnerabilities</h2><span class="src">trivy_vulnerability_id</span></div>
     ${sel ? html`<p class="filter"><span>Only in <strong>${shortImage(sel)}</strong></span><button class="more" @click=${() => set({ sel: null })}>Show all</button></p>` : nothing}
-    <div class="tools">
-      <input type="search" placeholder="Filter by title or CVE" aria-label="Filter vulnerabilities" .value=${ui.query} @input=${(e) => set({ query: e.target.value })} />
-      <select aria-label="Severity" @change=${(e) => set({ sev: e.target.value })}>
-        <option value="all" ?selected=${ui.sev === "all"}>All severities</option>
-        ${SEVERITIES.map(([k, n]) => html`<option value=${k} ?selected=${ui.sev === k}>${n}</option>`)}
-      </select>
-    </div>
-    <div class="scroll tall"><table class="grafana">
+    <div class="scroll"><table class="grafana">
       <thead><tr>${CVE_COLS.map(head)}</tr></thead>
       <tbody>${rows.length ? rows.map((r) => html`<tr>
         <td class="l title" title=${r.title}>${r.title}</td>
@@ -300,13 +291,13 @@ const CveTable = (ui, sel, set) => {
         <td><strong>${r.images}</strong></td>
       </tr>`) : html`<tr><td colspan="4" class="l muted">No vulnerabilities match.</td></tr>`}</tbody>
     </table></div>
-    <div class="sub" style="margin-top:8px">${rows.length} shown · Images = number of images the vulnerability is found in</div>
+    <div class="sub" style="margin-top:8px">Critical and high only · Images = number of images the vulnerability is found in</div>
   </section>`;
 };
 
 class TrivyApp extends LitElement {
   static properties = { fetchedAt: { state: true }, ui: { state: true } };
-  constructor() { super(); this.fetchedAt = new Date(); this.ui = { sel: null, query: "", sev: "all", sort: "sev", desc: false }; }
+  constructor() { super(); this.fetchedAt = new Date(); this.ui = { sel: null, sort: "sev", desc: false }; }
   set = (patch) => { this.ui = { ...this.ui, ...patch }; };
   createRenderRoot() { return this; }
   // The real page polls here: setInterval(load, REFRESH_MS). The mock only stamps the time.
