@@ -14,3 +14,24 @@ vulnerabilities:
   - id: CVE-2019-1010022
     statement: glibc stack-guard bypass disputed upstream, not a vulnerability by itself
     expired_at: 2027-05-26
+  - id: CVE-2026-39830
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+    expired_at: 2027-05-26
+  - id: CVE-2026-39831
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+    expired_at: 2027-05-26
+  - id: CVE-2026-39832
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+    expired_at: 2027-05-26
+  - id: CVE-2026-39833
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+    expired_at: 2027-05-26
+  - id: CVE-2026-39834
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+    expired_at: 2027-05-26
+  - id: CVE-2026-42508
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+    expired_at: 2027-05-26
+  - id: CVE-2026-46595
+    statement: x/crypto ssh code, no SSH client, server or agent is used in any image
+    expired_at: 2027-05-26
