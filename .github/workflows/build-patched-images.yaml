@@ -1,0 +1,236 @@
+name: Build patched images
+
+# Patches the third-party images in images/patched/copa.yaml with Copacetic and publishes them to
+# ghcr.io/cthtrifork/talos-gitops/patched/ (docs/releasing.md). A pull request from this repository pushes a test tag
+# (<tag>-patched-pr<number>, unsigned) and scans it; a fork has no write token and only runs Copa.
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - images/patched/**
+      - .github/workflows/build-patched-images.yaml
+  push:
+    branches:
+      - main
+    paths:
+      - images/patched/**
+      - .github/workflows/build-patched-images.yaml
+  schedule:
+    - cron: "41 4 * * 1" # new OS fixes land without an upstream release
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }} # sign and attest only on main
+  PUSH: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+  COPA_VERSION: v0.15.0 # renovate: datasource=github-releases depName=project-copacetic/copacetic
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      images: ${{ steps.plan.outputs.images }}
+      count: ${{ steps.plan.outputs.count }}
+      registry: ${{ steps.plan.outputs.registry }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: One entry per image and tag
+        id: plan
+        run: |
+          config=images/patched/copa.yaml
+          images="$(yq -o=json '.images' "${config}" | jq -c '
+            if any(.[]; .tags.strategy != "list") then error("only tags.strategy list is supported")
+            else [.[] | {name, source: .image, tag: .tags.list[]}] end')"
+          echo "images=${images}" >> "${GITHUB_OUTPUT}"
+          echo "count=$(jq length <<< "${images}")" >> "${GITHUB_OUTPUT}"
+          echo "registry=$(yq '.target.registry' "${config}")" >> "${GITHUB_OUTPUT}"
+          jq -r '.[] | "\(.source):\(.tag)"' <<< "${images}"
+
+  trivy-db:
+    name: Trivy database
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    uses: ./.github/workflows/update-trivy-db.yaml
+
+  patch:
+    name: Patch ${{ matrix.image.name }}:${{ matrix.image.tag }}
+    needs: [plan, trivy-db]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.trivy-db.result == 'success' && needs.plan.outputs.count != '0' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.plan.outputs.images) }}
+    permissions:
+      contents: read
+      id-token: write # sign the image and its provenance attestation (OIDC)
+      packages: write # push the image to ghcr.io
+      attestations: write # store the provenance attestation
+      pull-requests: write # the PR comment
+    env:
+      NAME: ${{ matrix.image.name }}
+      SOURCE: ${{ matrix.image.source }}
+      TAG: ${{ matrix.image.tag }}
+      REGISTRY: ${{ needs.plan.outputs.registry }}
+      # as in the scan-k8s job of images.yaml and the trivy-operator scans
+      TRIVY_SKIP_DB_UPDATE: true
+      TRIVY_SKIP_JAVA_DB_UPDATE: true
+      TRIVY_IGNORE_STATUS: not_affected,will_not_fix
+      PATCHED_TAG: ${{ github.event_name == 'pull_request' && format('{0}-patched-pr{1}', matrix.image.tag, github.event.pull_request.number) || format('{0}-patched', matrix.image.tag) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Install Copa
+        run: |
+          version="${COPA_VERSION#v}"
+          file="copa_${version}_linux_amd64.tar.gz"
+          base="https://github.com/project-copacetic/copacetic/releases/download/${COPA_VERSION}"
+          curl -fsSL -o "${RUNNER_TEMP}/${file}" "${base}/${file}"
+          curl -fsSL -o "${RUNNER_TEMP}/checksums.txt" "${base}/copacetic_checksums.txt"
+          (cd "${RUNNER_TEMP}" && grep " ${file}\$" checksums.txt | sha256sum --check -)
+          sudo tar -xzf "${RUNNER_TEMP}/${file}" -C /usr/local/bin copa
+          copa --version
+
+      - name: Log in to GitHub Container Registry
+        if: ${{ env.PUSH == 'true' }}
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write the config of this image
+        run: |
+          yq -o=json . images/patched/copa.yaml \
+            | jq --arg n "${NAME}" --arg t "${TAG}" --arg p "${PATCHED_TAG}" \
+                '.images |= map(select(.name == $n) | .tags.list = [$t]) | .target.tag = ("{{ .SourceTag }}" + ($p | ltrimstr($t)))' > "${RUNNER_TEMP}/job.yaml"
+
+      - name: Patch${{ env.PUSH == 'true' && ' and push' || ' (not pushed)' }}
+        run: |
+          if [[ "${PUSH}" == true ]]; then
+            copa patch --config "${RUNNER_TEMP}/job.yaml" --addr buildx:// --push --timeout 20m
+          else
+            copa patch --config "${RUNNER_TEMP}/job.yaml" --addr buildx:// --oci-dir "${RUNNER_TEMP}/oci" --timeout 20m
+          fi
+
+      # Copa pushes the patched platform as <tag>-amd64 and an index that also lists the unpatched platforms of the source,
+      # whose manifests are not in our repository. The cluster is amd64 only, so the tag is the single patched manifest.
+      - name: Make the tag the patched amd64 image
+        if: ${{ env.PUSH == 'true' }}
+        run: docker buildx imagetools create -t "${REGISTRY}/${NAME}:${PATCHED_TAG}" "${REGISTRY}/${NAME}:${PATCHED_TAG}-amd64"
+
+      - name: Patched image digest
+        id: digest
+        if: ${{ env.PUSH == 'true' }}
+        run: |
+          ref="${REGISTRY}/${NAME}:${PATCHED_TAG}"
+          digest="$(docker buildx imagetools inspect "${ref}" --format '{{json .Manifest}}' | jq -r .digest)"
+          [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::no digest for ${ref}"; exit 1; }
+          echo "ref=${ref}" >> "${GITHUB_OUTPUT}"
+          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+
+      - name: Install cosign
+        if: ${{ env.PUBLISH == 'true' }}
+        uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
+
+      - name: Sign image with cosign (keyless)
+        if: ${{ env.PUBLISH == 'true' }}
+        env:
+          REF: ${{ steps.digest.outputs.ref }}
+          DIGEST: ${{ steps.digest.outputs.digest }}
+        run: cosign sign --yes "${REF%:*}@${DIGEST}"
+
+      - name: Attest build provenance
+        if: ${{ env.PUBLISH == 'true' }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ needs.plan.outputs.registry }}/${{ matrix.image.name }}
+          subject-digest: ${{ steps.digest.outputs.digest }}
+          push-to-registry: true
+
+      # The findings before and after, in the PR comment. Not a gate: a manifest only uses the
+      # patched image when a PR switches it to the digest.
+      - name: Scan the source image
+        id: scan-source
+        if: ${{ env.PUSH == 'true' }}
+        uses: ./.github/actions/trivy-scan
+        with:
+          image: ${{ env.SOURCE }}:${{ env.TAG }}
+          output: source.json
+          version: ${{ needs.trivy-db.outputs.version }}
+          severity: CRITICAL,HIGH
+          trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
+          ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
+      - name: Scan the patched image
+        id: scan-patched
+        if: ${{ env.PUSH == 'true' }}
+        uses: ./.github/actions/trivy-scan
+        with:
+          image: ${{ steps.digest.outputs.ref }}
+          output: patched.json
+          version: ${{ needs.trivy-db.outputs.version }}
+          skip-setup: true
+          severity: CRITICAL,HIGH
+          trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
+          ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
+
+      - name: Write the comment
+        if: ${{ env.PUSH == 'true' }}
+        env:
+          NEW_REF: ${{ steps.digest.outputs.ref }}
+          OLD_REF: ${{ matrix.image.source }}:${{ matrix.image.tag }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # a failed scan has no report: an empty object stands in
+          echo '{}' > empty.json
+          new=patched.json old=source.json
+          [ -s "${new}" ] || new=empty.json
+          [ -s "${old}" ] || old=empty.json
+          jq -r --arg new_ref "${NEW_REF}" --arg old_ref "${OLD_REF}" --arg run_url "${RUN_URL}" --slurpfile o "${old}" -f scripts/ci/scan-comment.jq "${new}" > comment.md
+          # an unzipped artifact is named after its file
+          [ ! -s patched.json ] || mv patched.json "patched-${NAME}-${TAG}.trivy.json"
+      - name: Report
+        if: ${{ env.PUSH == 'true' }}
+        uses: ./.github/actions/scan-report
+        with:
+          comment: comment.md
+          report: patched-*.trivy.json
+          header: patched-images ${{ matrix.image.name }} ${{ matrix.image.tag }}
+      - name: Fail if a scan failed
+        # findings never fail the job; a scan that could not run does (usually transient: re-run)
+        if: steps.scan-source.outcome == 'failure' || steps.scan-patched.outcome == 'failure'
+        run: |
+          echo "::error::A Trivy scan failed (see the scan step above); re-run the job"
+          exit 1
+
+      - name: Summarize
+        if: ${{ always() }}
+        env:
+          REF: ${{ steps.digest.outputs.ref }}
+          DIGEST: ${{ steps.digest.outputs.digest }}
+        run: |
+          {
+            echo "### ${NAME}:${TAG}"
+            echo "- Source: \`${SOURCE}:${TAG}\`"
+            echo "- Pushed: ${PUSH}, signed: ${PUBLISH}"
+            [[ "${PUSH}" != true ]] || echo "- Patched: \`${REF}@${DIGEST:-n/a}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
