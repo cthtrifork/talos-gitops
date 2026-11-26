@@ -348,7 +348,7 @@ processor_resources:
                   {"name": "min", "aggregate": "min", "expr": "min_over_time(" + $sensors + $range + ")" + $classify + $historical_chips},
                   {"name": "max", "aggregate": "max", "expr": "max_over_time(" + $sensors + $range + ")" + $classify + $historical_chips},
                   {"name": "coverage", "aggregate": "min", "expr": "(count_over_time(" + $sensors + $range + ")" + $classify + $historical_chips + ") / " + $samples.string()}
-                ].map_each(s -> "label_replace(" + s.aggregate + " by (node, chip_name) ((" + s.expr + ") unless on (instance, chip, sensor) " + $extra_nvme + $node_join + "), \"stat\", \"" + s.name + "\", \"node\", \".*\")")
+                ].map_each(s -> "label_replace(" + s.aggregate + " by (node, chip_name) (((" + s.expr + ") unless on (instance, chip, sensor) " + $extra_nvme + ")" + $node_join + "), \"stat\", \"" + s.name + "\", \"node\", \".*\")")
                 meta path = "/api/v1/query?query=" + ("group by (node) (kube_node_info) or " + $stats.join(" or ")).escape_url_query()
                 root = ""
               processors:
