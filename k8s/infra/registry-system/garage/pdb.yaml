@@ -1,5 +1,5 @@
-# Every object lives on one node, so a drain makes a third of the objects unavailable for its duration: allow one node at a
-# time. The layout Job shares the labels but not the component.
+# Garage needs two of its three nodes for a read and a write, so a drain may take one at a time. The layout Job shares the
+# labels but not the component.
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

@@ -1,7 +1,7 @@
 ---
-# The object store behind zot: 3 nodes, every object on one of them (replicationFactor 1, the registry is a cache and zot
-# downtime is accepted), so a node down makes about a third of the objects unavailable. zot held 97 GiB on 2026-11-26
-# (zot_repo_storage_bytes), so 3x60Gi leaves room to grow. Separate from Renovate's Garage (k8s/apps/renovate/garage/).
+# The object store behind zot: 3 nodes, every object on all three (replicationFactor 3), so a read and a write need two
+# of them and one node can be down (the point of the scale-out). Every node holds a full copy: zot held 97 GiB on
+# 2026-11-26 (zot_repo_storage_bytes), so 120Gi per node is the usable size. Separate from Renovate's Garage (k8s/apps/renovate/garage/).
 # The chart's configure job only assigns garage-0, so it is off (clusterConfig) and layout-job.yaml does the layout.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -78,7 +78,7 @@ spec:
       # renovate: datasource=docker depName=dxflrs/garage
       tag: v2.5.0@sha256:677e5b758e4425a325b811c425c026bf35a4bf42f7ddbaa773de3f4fd779a5a5
     garage:
-      replicationFactor: "1"
+      replicationFactor: "3"
       s3:
         api:
           region: garage
@@ -95,6 +95,6 @@ spec:
         # lvm-bulk is not on every node (talos-tba-msi has only its system SATA disk)
         storageClass: lvm-fast
         # Keep this equal to CAPACITY in configure.sh.
-        size: 60Gi
+        size: 120Gi
     clusterConfig:
       enabled: false
