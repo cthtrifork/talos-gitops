@@ -1,4 +1,17 @@
 {
-  "updated_at": "2026-11-23T05:43:17Z",
-  "packages": []
+  "updated_at": "2026-11-26T15:24:20Z",
+  "packages": [
+    {
+      "id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+      "location": "pkg/oci/zot.registry-system.svc.cluster.local:5000/ghcr-cache/cthtrifork/talos-gitops/claude-runner/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cloudflared?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fcloudflare%2Fcloudflared",
+      "location": "pkg/oci/zot.registry-system.svc.cluster.local:5000/docker-hub-cache/cloudflare/cloudflared/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/postgresql?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcloudnative-pg%2Fpostgresql",
+      "location": "pkg/oci/zot.registry-system.svc.cluster.local:5000/ghcr-cache/cloudnative-pg/postgresql/oci.openvex.json"
+    }
+  ]
 }
