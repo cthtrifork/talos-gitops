@@ -88,6 +88,14 @@ spec:
         - ports:
             - port: "4954"
               protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: trivy-system
+            k8s:app.kubernetes.io/name: vuln-policy-bundle
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
     # DNS with the proxy on, so Cilium learns the addresses behind the hosts below
     - toEndpoints:
         - matchLabels:

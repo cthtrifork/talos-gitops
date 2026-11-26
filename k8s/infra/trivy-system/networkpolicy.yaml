@@ -122,3 +122,23 @@ spec:
         - ports:
             - port: "5000"
               protocol: TCP
+---
+# Dependency-Track fetches the vulnerability policy bundle built from trivyignore.yaml.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vuln-policy-bundle
+  namespace: trivy-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: vuln-policy-bundle
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: dependency-track-system
+            k8s:app.kubernetes.io/name: dependency-track-api-server
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP

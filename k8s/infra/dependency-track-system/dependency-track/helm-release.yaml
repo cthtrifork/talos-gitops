@@ -63,6 +63,9 @@ spec:
       extraEnv:
         - name: DT_TELEMETRY_SUBMISSION_DEFAULT_ENABLED
           value: "false"
+        # Vulnerability policies built from trivyignore.yaml (trivy-system/vuln-policy-bundle)
+        - name: DT_VULN_POLICY_BUNDLE_URL
+          value: http://vuln-policy-bundle.trivy-system.svc.cluster.local:8080/bundle.zip
         # The database login is a client certificate; the JDBC driver takes it from the JVM keystore. Kyverno appends the truststore to this variable.
         - name: JAVA_TOOL_OPTIONS
           value: "-Djavax.net.ssl.keyStore=/etc/dt/db-client/keystore.p12 -Djavax.net.ssl.keyStoreType=PKCS12 -Djavax.net.ssl.keyStorePassword=not-a-secret"
