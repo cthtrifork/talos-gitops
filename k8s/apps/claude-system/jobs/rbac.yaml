@@ -7,7 +7,7 @@ metadata:
   namespace: claude-system
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/clusterrole-rbac-v1.json
-# Reads CronJobs and creates Jobs; the admission policy claude-job-runner limits where and how.
+# Reads CronJobs, lists Jobs (which of them still run) and creates Jobs; the admission policy claude-job-runner limits where and how.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -32,6 +32,7 @@ rules:
       - jobs
     verbs:
       - create
+      - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

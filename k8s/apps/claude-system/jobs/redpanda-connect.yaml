@@ -122,6 +122,14 @@ processor_resources:
           processors:
             - resource: get
           result_map: 'meta cronjobs = this.items'
+      - branch:
+          request_map: |
+            meta path = "/apis/batch/v1/jobs"
+            root = ""
+          processors:
+            - resource: get
+          result_map: 'meta jobs = this.items'
+      # status.active leaves out manual Jobs, so count the unfinished Jobs the CronJob owns
       - mapping: |
           root.csrf = @token.hash("sha256").encode("hex")
           root.cronjobs = @cronjobs.filter(c -> @namespaces.filter(n -> n.metadata.name == c.metadata.namespace && n.metadata.labels.or({}).get("claude-elevate/jobs") == "true").length() > 0).map_each(c -> {
@@ -131,7 +139,7 @@ processor_resources:
             "time_zone": c.spec.timeZone.or(""),
             "suspended": c.spec.suspend.or(false),
             "last_run": c.status.lastScheduleTime.or(""),
-            "running": c.status.active.or([]).length(),
+            "running": @jobs.filter(j -> j.metadata.ownerReferences.or([]).filter(o -> o.uid == c.metadata.uid).length() > 0 && j.status.conditions.or([]).filter(x -> (x.type == "Complete" || x.type == "Failed") && x.status == "True").length() == 0).length(),
             "description": c.metadata.annotations.or({}).get("claude-elevate/description").or("")
           })
 

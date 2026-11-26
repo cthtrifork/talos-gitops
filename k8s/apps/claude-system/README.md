@@ -319,7 +319,7 @@ owner reference; Claude's tokens get no `jobs` rights. Routes and steps: `jobs/r
 
 - **Opt-in.** Only namespaces labelled `claude-elevate/jobs: "true"` (`dependency-track-system`); the page shows each CronJob's one-line description from its
   annotation `claude-elevate/description` (add it to every CronJob in such a namespace).
-- **Limits.** `ServiceAccount/claude-job-runner` can list namespaces and CronJobs, get a CronJob and create Jobs, nothing else. The admission policy
+- **Limits.** `ServiceAccount/claude-job-runner` can list namespaces, CronJobs and Jobs (a CronJob counts as running while a Job it owns is unfinished, manual ones included), get a CronJob and create Jobs, nothing else. The admission policy
   `claude-job-runner` allows a Job only in an opted-in namespace, with the manual annotation and one CronJob owner. The policy cannot compare the pod spec
   with the CronJob's, so the pod's token (`create jobs` cluster-wide, gated by that label) is the trust boundary.
 - **Reach.** Only the Omni exposer, the cockpit (page port, read-only status; it drops the csrf value) and Prometheus (metrics port) reach the pod, never
