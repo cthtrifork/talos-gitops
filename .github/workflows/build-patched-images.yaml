@@ -88,6 +88,8 @@ jobs:
       # as in the scan-k8s job of images.yaml and the trivy-operator scans
       TRIVY_SKIP_DB_UPDATE: true
       TRIVY_SKIP_JAVA_DB_UPDATE: true
+      TRIVY_SKIP_VERSION_CHECK: true
+      TRIVY_DISABLE_TELEMETRY: true
       TRIVY_IGNORE_STATUS: not_affected,will_not_fix
       PATCHED_TAG: ${{ github.event_name == 'pull_request' && format('{0}-patched-pr{1}', matrix.image.tag, github.event.pull_request.number) || format('{0}-patched', matrix.image.tag) }}
     steps:
