@@ -27,7 +27,9 @@ spec:
       initContainers:
         - name: build
           image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
-          command: ["/bin/sh", "/build/build.sh"]
+          command:
+            - /bin/sh
+            - /build/build.sh
           volumeMounts:
             - name: build
               mountPath: /build
@@ -55,7 +57,13 @@ spec:
       containers:
         - name: server
           image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
-          command: ["python3", "-m", "http.server", "8080", "--directory", "/srv"]
+          command:
+            - python3
+            - -m
+            - http.server
+            - "8080"
+            - --directory
+            - /srv
           ports:
             - name: http
               containerPort: 8080
