@@ -27,6 +27,12 @@ trivy server and the scan jobs:
 They are wired through the `configFile` in `trivy-operator/helm-release.yaml` (`vex`, `ignorefile`, `ignore-policy`).
 A change takes effect for the next scan job; reports are regenerated after `scannerReportTTL`.
 
+`vuln-policy-bundle/` turns `trivyignore.yaml` into a Dependency-Track vulnerability policy bundle (one policy per CVE: `NOT_AFFECTED`, suppressed,
+the statement as details, `validUntil` from `expired_at`) and serves it at `bundle.zip`. Dependency-Track fetches it through
+`DT_VULN_POLICY_BUNDLE_URL` (`dependency-track-system/dependency-track/helm-release.yaml`), so an ignored CVE is hidden there too. Reloader restarts the
+Deployment when the file changes and Dependency-Track syncs on its schedule (Policy Management > Vulnerability Policies > Bundles > Sync runs it now).
+Removing an entry reverts its analyses. A bundle that fails validation is rejected whole: the reason shows in the Bundles view.
+
 ## Zot CA trust
 
 zot's certificate comes from `certificate-cluster-issuer`. trust-manager's `portableinfo-internal-ca-bundle` Bundle

@@ -1,0 +1,97 @@
+# Serves trivyignore.yaml as a Dependency-Track vulnerability policy bundle (README.md). Reloader restarts it when the file changes.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vuln-policy-bundle
+  namespace: trivy-system
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vuln-policy-bundle
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vuln-policy-bundle
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: build
+          image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
+          command: ["/bin/sh", "/build/build.sh"]
+          volumeMounts:
+            - name: build
+              mountPath: /build
+              readOnly: true
+            - name: ignorefile
+              mountPath: /etc/trivy/.trivyignore.yaml
+              subPath: .trivyignore.yaml
+              readOnly: true
+            - name: srv
+              mountPath: /srv
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      containers:
+        - name: server
+          image: mirror.gcr.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0
+          command: ["python3", "-m", "http.server", "8080", "--directory", "/srv"]
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /bundle.zip
+              port: http
+          livenessProbe:
+            tcpSocket:
+              port: http
+          volumeMounts:
+            - name: srv
+              mountPath: /srv
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: build
+          configMap:
+            name: vuln-policy-bundle-build
+        - name: ignorefile
+          configMap:
+            name: trivy-ignorefile
+        - name: srv
+          emptyDir:
+            sizeLimit: 8Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 8Mi

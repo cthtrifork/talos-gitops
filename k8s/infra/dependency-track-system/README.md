@@ -39,7 +39,7 @@ The `claude-triage` team (view portfolio and vulnerabilities, read/create/update
 key in the Secret `dependency-track-claude-api-key` of `claude-system`, created once by `config-cronjob.yaml` and exposed to
 the pod as `DT_API_KEY` (with `DT_URL`). A session records its assessment with `PUT /api/v1/analysis` (state, justification,
 response, comment); the daily VEX export then turns *not affected* decisions into a pull request. The key is never printed.
-Sessions assess only findings that are not applicable to an image, as `NOT_AFFECTED` / `FALSE_POSITIVE` (also when a bump would fix them); they reach the VEX export. Applicable findings are left open, with or without a fix. CVEs that do not apply to any image go in `trivy-system/trivy-operator/ignore/trivyignore.yaml` instead, never both. See the `dependency-track` skill.
+Sessions assess only findings that are not applicable to an image, as `NOT_AFFECTED` / `FALSE_POSITIVE` (also when a bump would fix them); they reach the VEX export. Applicable findings are left open, with or without a fix. CVEs that do not apply to any image go in `trivy-system/trivy-operator/ignore/trivyignore.yaml` instead, never assessed by hand: `trivy-system/vuln-policy-bundle/` turns that file into Dependency-Track vulnerability policies. See the `dependency-track` skill.
 
 ## The Dependency-Track KEK
 
