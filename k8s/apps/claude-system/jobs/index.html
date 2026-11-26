@@ -11,7 +11,7 @@
   :root {
     color-scheme: light dark;
     --page: #f4f4f1; --card: #ffffff; --ink: #141413; --ink-2: #4a4843; --line: #e3e2da; --chip: #f4f4f1;
-    --accent: #1f63b5; --on-accent: #ffffff; --ok: #1a7f4b; --warn: #8a5a00; --warn-bg: #fff4d6;
+    --accent: #1f63b5; --on-accent: #ffffff; --ok: #146c3e; --ok-bg: #dff3e8; --warn: #8a5a00; --warn-bg: #fff4d6;
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
     --fs-sm: 12px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 28px;
@@ -19,7 +19,7 @@
   @media (prefers-color-scheme: dark) {
     :root {
       --page: #0d0d0d; --card: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --line: #2c2c2a; --chip: #232321;
-      --accent: #3987e5; --ok: #3cc58a; --warn: #f2d98a; --warn-bg: #3a2f10;
+      --accent: #3987e5; --ok: #3cc58a; --ok-bg: #12301f; --warn: #f2d98a; --warn-bg: #3a2f10;
     }
   }
   * { box-sizing: border-box; }
@@ -37,18 +37,24 @@
   li.job { display: grid; gap: 4px 12px; grid-template-columns: minmax(0, 1fr) auto; align-items: start; padding: 14px 0; border-top: 1px solid var(--line); }
   li.job:first-child { border-top: 0; }
   .name { font-family: var(--mono); font-size: var(--fs-md); font-weight: 600; overflow-wrap: anywhere; }
-  .desc, .when, .last { margin: 0; color: var(--ink-2); font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
-  .desc, .when, .last, .msg { grid-column: 1 / -1; }
+  .desc, .when, .sched, .last { margin: 0; color: var(--ink-2); font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
+  .when { color: var(--ink); font-weight: 600; }
+  .sched, .last { font-size: var(--fs-sm); }
+  .desc, .when, .sched, .last, .msg { grid-column: 1 / -1; }
   .name + .desc { grid-column: 1; }
-  .msg { margin: 0; font-size: var(--fs-md); white-space: pre-line; }
+  .msg { margin: 4px 0 0; padding: 8px 12px; border-radius: 10px; font-size: var(--fs-md); font-weight: 600; white-space: pre-line; }
   .msg:empty { display: none; }
-  .msg.ok { color: var(--ok); }
-  .msg.warn { color: var(--warn); }
+  .msg.ok { color: var(--ok); background: var(--ok-bg); }
+  .msg.warn { color: var(--warn); background: var(--warn-bg); }
+  .badge.run { background: var(--ok-bg); color: var(--ok); }
   .badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 600; background: var(--warn-bg); color: var(--warn); }
   button { font: inherit; font-weight: 600; min-height: 44px; padding: 8px 18px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); cursor: pointer; grid-row: 1; grid-column: 2; }
+  button.secondary { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+  button.confirm { background: var(--warn-bg); color: var(--warn); box-shadow: inset 0 0 0 2px var(--warn); }
   button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   button:disabled { opacity: .5; cursor: default; }
   .none { margin: 0; padding: 14px 0; color: var(--ink-2); font-size: var(--fs-md); }
+  .updated { margin: 12px 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
   .err { margin: 12px 0 0; color: var(--warn); font-size: var(--fs-md); }
   .err:empty { display: none; }
   [hidden] { display: none !important; }
@@ -58,12 +64,14 @@
 <main>
   <a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a>
   <h1>Run jobs</h1>
-  <p class="sub">Scheduled CronJobs and when they run next. Run now starts one from its own template, in namespaces that allow it. Claude gets no rights from this.</p>
+  <p class="sub">Scheduled CronJobs and when they run next. Run now starts one from its own template.</p>
   <section class="card" aria-label="CronJobs">
     <ul id="jobs"></ul>
+    <p id="loading" class="none">Loading jobs\u2026</p>
     <p id="none" class="none" hidden>No namespace allows running jobs.</p>
   </section>
   <p id="error" class="err" role="alert"></p>
+  <p id="updated" class="updated"></p>
 </main>
 <script>
 (function () {
@@ -94,26 +102,48 @@
     if (h < 24) return h + " h" + (m % 60 ? " " + (m % 60) + " min" : "");
     return Math.floor(h / 24) + " d" + (h % 24 ? " " + (h % 24) + " h" : "");
   }
+  // the common cron shapes in words ("every 15 min", "weekdays 06:00"); anything else stays as written
+  function cronWords(expr) {
+    var f = String(expr).trim().split(/\s+/);
+    if (f.length !== 5) return expr;
+    var mi = f[0], h = f[1], dom = f[2], mon = f[3], dow = f[4], m;
+    var hhmm = /^\d+$/.test(mi) && /^\d+$/.test(h) ? ("0" + h).slice(-2) + ":" + ("0" + mi).slice(-2) : null;
+    var days = { "*": "", "1-5": "weekdays", "0,6": "weekends", "6,0": "weekends", "0": "Sundays", "1": "Mondays", "2": "Tuesdays", "3": "Wednesdays", "4": "Thursdays", "5": "Fridays", "6": "Saturdays", "7": "Sundays" };
+    if (mon !== "*") return expr;
+    if (dom === "*" && dow === "*" && h === "*" && (m = mi.match(/^\*\/(\d+)$/))) return "every " + m[1] + " min";
+    if (dom === "*" && dow === "*" && h === "*" && mi === "0") return "every hour";
+    if (dom === "*" && dow === "*" && /^\d+$/.test(mi) && (m = h.match(/^\*\/(\d+)$/))) return "every " + m[1] + " h";
+    if (hhmm && dom === "*" && days.hasOwnProperty(dow)) return (days[dow] ? days[dow] + " " : "daily ") + hhmm;
+    if (hhmm && /^\d+$/.test(dom) && dow === "*") return "day " + dom + " of the month " + hhmm;
+    return expr;
+  }
   function nextOf(j) {
     var key = j.schedule + "|" + j.time_zone, n = nextCache[key];
     if (!n || n <= Date.now()) n = nextCache[key] = nextRun(j.schedule, j.time_zone);
     return n;
   }
   function whenText(j) {
-    var text = "Schedule " + j.schedule + " (" + (j.time_zone || "UTC") + ")";
-    if (j.suspended) return text + ". Suspended, so nothing runs by itself.";
+    if (j.suspended) return "Suspended, nothing runs by itself";
     var n = nextOf(j);
-    return text + (n ? ". Next run in " + span(n - Date.now()) + ", " + new Date(n).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) + "." : ". Next run unknown.");
+    return n ? "Next run in " + span(n - Date.now()) + " (" + new Date(n).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) + ")" : "Next run unknown";
   }
+  function schedText(j) { return cronWords(j.schedule) + " \u00b7 " + j.schedule + " (" + (j.time_zone || "UTC") + ")"; }
   function lastText(j) {
     var t = Date.parse(j.last_run);
-    var text = isNaN(t) ? "Not scheduled yet." : "Last scheduled " + span(Date.now() - t) + " ago.";
-    return j.running ? text + " Running now." : text;
+    return isNaN(t) ? "Never scheduled" : "Last scheduled " + span(Date.now() - t) + " ago";
+  }
+
+  // soonest next run first, suspended last, the same order as the cockpit panel
+  function sorted() {
+    return (status.cronjobs || []).slice().sort(function (a, b) {
+      var na = a.suspended ? Infinity : nextOf(a) || Infinity, nb = b.suspended ? Infinity : nextOf(b) || Infinity;
+      return na === nb ? (a.namespace + a.name < b.namespace + b.name ? -1 : 1) : na < nb ? -1 : 1;
+    });
   }
 
   // the description comes from the CronJob's claude-elevate/description annotation
   function build() {
-    var jobs = status.cronjobs || [];
+    var jobs = sorted();
     var key = jobs.map(function (j) { return j.namespace + "/" + j.name + "|" + j.description + "|" + j.schedule + "|" + j.time_zone + "|" + j.suspended; }).join(",");
     $("none").hidden = jobs.length > 0;
     if (key === jobsKey) return;
@@ -125,18 +155,33 @@
       li.setAttribute("data-key", j.namespace + "/" + j.name);
       var name = el("div", j.namespace + "/" + j.name, "name");
       if (j.suspended) name.appendChild(el("span", "suspended", "badge"));
+      var live = el("span", "running", "badge run");
+      live.hidden = true;
+      name.appendChild(live);
       li.appendChild(name);
-      var b = el("button", "Run now");
+      var b = el("button", "Run now", j.suspended ? "secondary" : "");
       b.type = "button";
-      b.setAttribute("aria-label", "Run " + j.namespace + "/" + j.name + " now");
+      var label = j.namespace + "/" + j.name;
+      b.setAttribute("aria-label", "Run now: " + label);
       li.appendChild(b);
       li.appendChild(el("p", j.description || "No description. Add the annotation claude-elevate/description to the CronJob.", "desc"));
       li.appendChild(el("p", "", "when"));
+      li.appendChild(el("p", "", "sched"));
       li.appendChild(el("p", "", "last"));
       var msg = el("p", "", "msg");
       msg.setAttribute("role", "status");
       li.appendChild(msg);
-      b.addEventListener("click", function () { run(j, b, msg); });
+      // a first tap arms the button for four seconds; the second one starts the job
+      var armed = null;
+      b.addEventListener("click", function () {
+        if (!armed) {
+          armed = setTimeout(function () { armed = null; b.textContent = "Run now"; b.setAttribute("aria-label", "Run now: " + label); b.classList.remove("confirm"); }, 4000);
+          b.textContent = "Confirm run?"; b.setAttribute("aria-label", "Confirm run?: " + label); b.classList.add("confirm"); msg.textContent = ""; msg.className = "msg";
+          return;
+        }
+        clearTimeout(armed); armed = null; b.classList.remove("confirm"); b.setAttribute("aria-label", "Run now: " + label);
+        run(j, b, msg);
+      });
       list.appendChild(li);
     });
   }
@@ -150,14 +195,16 @@
       var j = byKey[li.getAttribute("data-key")];
       if (!j) return;
       li.querySelector(".when").textContent = whenText(j);
+      li.querySelector(".sched").textContent = schedText(j);
       li.querySelector(".last").textContent = lastText(j);
+      li.querySelector(".badge.run").hidden = !j.running;
     });
   }
 
   function load() {
     return fetch("api/v1/status", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
-      .then(function (s) { status = s; $("error").textContent = ""; build(); tick(); })
+      .then(function (s) { status = s; $("error").textContent = ""; $("loading").hidden = true; $("updated").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); build(); tick(); })
       .catch(function (e) { $("error").textContent = "Cannot read status: " + e.message; });
   }
 

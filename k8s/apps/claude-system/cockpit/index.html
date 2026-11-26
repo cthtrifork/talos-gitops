@@ -265,6 +265,22 @@ function cronNext(expr, timezone = "UTC") {
     return null;
   }
 }
+// A cron expression in words for the common shapes ("every 15 min", "weekdays 06:00"); anything else stays as written.
+function cronWords(expr) {
+  const f = String(expr).trim().split(/\s+/);
+  if (f.length !== 5) return expr;
+  const [mi, h, dom, mon, dow] = f;
+  const hhmm = /^\d+$/.test(mi) && /^\d+$/.test(h) ? h.padStart(2, "0") + ":" + mi.padStart(2, "0") : null;
+  const days = { "*": "", "1-5": "weekdays", "0,6": "weekends", "6,0": "weekends", 0: "Sundays", 1: "Mondays", 2: "Tuesdays", 3: "Wednesdays", 4: "Thursdays", 5: "Fridays", 6: "Saturdays", 7: "Sundays" };
+  let m;
+  if (mon !== "*") return expr;
+  if (dom === "*" && dow === "*" && h === "*" && (m = mi.match(/^\*\/(\d+)$/))) return `every ${m[1]} min`;
+  if (dom === "*" && dow === "*" && h === "*" && mi === "0") return "every hour";
+  if (dom === "*" && dow === "*" && /^\d+$/.test(mi) && (m = h.match(/^\*\/(\d+)$/))) return `every ${m[1]} h`;
+  if (hhmm && dom === "*" && dow in days) return (days[dow] ? days[dow] + " " : "daily ") + hhmm;
+  if (hhmm && /^\d+$/.test(dom) && dow === "*") return `day ${dom} of the month ${hhmm}`;
+  return expr;
+}
 // The same filter the cockpit uses, as a GitHub search, so the "Open" link opens the whole list.
 function ghSearch(group, d) {
   const app = "author:app/" + d.github.renovate_app; // the Renovate GitHub App, from RENOVATE_APP on the pod
@@ -843,7 +859,7 @@ const ElevatePanel = (d) => {
         ${hidden > 0 ? Muted(`and ${hidden} more not listed`) : nothing}`}`);
 };
 
-// The CronJobs the Run jobs page lists, soonest next run first; suspended ones last.
+// The CronJobs the Run jobs page lists, soonest next run first; suspended ones last. The pill says what is running, else when the next run is.
 const JobsPanel = (d) => {
   const title = "Scheduled jobs";
   if (!d.jobs) return Unavailable({ title, source: "claude-jobs · /api/v1/status", d });
@@ -851,14 +867,17 @@ const JobsPanel = (d) => {
     .map((j) => ({ ...j, next: j.suspended ? null : cronNext(j.schedule, j.time_zone || "UTC") }))
     .sort((a, b) => (a.next ?? Infinity) - (b.next ?? Infinity) || compare(a.namespace + a.name, b.namespace + b.name));
   const hidden = jobs.length - MAX_ROWS;
-  return Panel({ title, state: "ok", text: "", compact: jobs.length === 0, d }, jobs.length === 0
+  const running = jobs.filter((j) => j.running).length;
+  const soonest = jobs.find((j) => j.next);
+  const text = running ? `${running} running` : soonest ? `next in ${until((soonest.next - Date.now()) / 1000)}` : "none scheduled";
+  return Panel({ title, state: running ? "warn" : "none", text, compact: jobs.length === 0, d }, jobs.length === 0
     ? Muted("No namespace allows running jobs.")
     : html`${Rows(jobs.slice(0, MAX_ROWS).map((j) => ({
-        title: `${j.namespace}/${j.name}`,
-        sub: j.suspended ? "suspended" : j.next ? `next run in ${until((j.next - Date.now()) / 1000)} · ${j.schedule}` : `schedule ${j.schedule}`,
+        title: j.name,
+        sub: [j.namespace, j.suspended ? "suspended" : j.next ? `next in ${until((j.next - Date.now()) / 1000)}` : null, cronWords(j.schedule)].filter(Boolean).join(" · "),
         right: j.running ? Pill("warn", "running") : nothing,
       })))}
-      ${hidden > 0 ? Muted(`and ${hidden} more not listed`) : nothing}`);
+      ${hidden > 0 ? Muted(`and ${hidden} more on the Run jobs page`) : nothing}`);
 };
 
 // ---- The page ----
