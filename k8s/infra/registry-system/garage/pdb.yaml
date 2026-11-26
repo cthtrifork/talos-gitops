@@ -1,5 +1,5 @@
-# Garage needs two of its three nodes for a read and a write: a drain may take one at a time (the layout Job shares the
-# labels but not the component).
+# Garage needs two of its three nodes for a read and a write, so a drain may take one at a time. The layout Job shares the
+# labels but not the component.
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

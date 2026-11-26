@@ -109,7 +109,7 @@ spec:
         - ports:
             - port: "4954"
               protocol: TCP
-    # The Garage object store (S3)
+    # Garage (S3)
     - toEndpoints:
         - matchLabels:
             k8s:app.kubernetes.io/name: garage
@@ -117,7 +117,7 @@ spec:
         - ports:
             - port: "3900"
               protocol: TCP
-    # The Valkey metadata store
+    # Valkey
     - toEndpoints:
         - matchLabels:
             k8s:valkey.io/cluster: zot
@@ -126,9 +126,8 @@ spec:
             - port: "6379"
               protocol: TCP
 ---
-# Garage (the object store behind the zot replicas): S3 (3900) only from zot, the RPC (3901) and admin (3903) ports only
-# between Garage's own pods, which include the layout Job. Prometheus scrapes the admin port. Garage finds its peers
-# through the API server (allowed for the namespace above).
+# Garage: S3 (3900) only from zot, RPC (3901) and admin (3903) only between Garage's own pods, which include the layout Job.
+# Prometheus scrapes the admin port.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -178,8 +177,7 @@ spec:
             - port: "3903"
               protocol: TCP
 ---
-# Valkey (the zot replicas' metadata store, run by the operator): only zot and the operator reach the pods, and the pods reach
-# each other (clients on 6379, replication and gossip on 6379 and the cluster bus on 16379).
+# Valkey (run by the operator): reachable from zot and the operator; the pods talk to each other on 6379 and the cluster bus (16379).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

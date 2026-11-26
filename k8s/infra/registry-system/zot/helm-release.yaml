@@ -39,10 +39,10 @@ spec:
     service:
       type: ClusterIP
       port: 5000
-    # Two replicas that share one object store (Garage) and one metadata store (Valkey), so either one serves every
-    # repository and a node drain leaves the other running. They are not sharded (zot's scale-out "cluster" mode): there a
-    # replica that is down takes the repositories it owns with it. The price is that two replicas can write the same
-    # repository at once without coordinating; for a cache the worst case is a tag that is fetched or pushed again.
+    # Two unsharded replicas (not zot's "cluster" mode) on one Garage store and one Valkey cache: either serves every
+    # repository, so draining a node leaves one running. Accepted trade-off: zot's store lock is per process, so two
+    # replicas updating the same repository at once can lose a tag. Cache repositories just refetch it; only a direct
+    # push to pr/** or buildcache/** needs a rerun. One replica would not survive a drain: its volume is pinned to a node.
     replicaCount: 2
     topologySpreadConstraints:
       - maxSkew: 1
@@ -60,14 +60,14 @@ spec:
       repository: ghcr.io/project-zot/zot
       pullPolicy: IfNotPresent
       tag: "v2.1.23@sha256:9d3de83ac2099e6f4843045b4c9b65b7e8baf40f92d28f54906dee9d4d390fd7"
-    # The images are in Garage; the volume holds zot's local root directory and the staging area of the sync extension
-    # (downloadDir, required with remote storage): an image is downloaded there whole before it is pushed to Garage.
+    # The images are in Garage; the volume only holds the root directory and the sync staging area (downloadDir).
+    # volumeClaimTemplates are immutable, so the size stays what the single-replica StatefulSet was created with.
     persistence: true
     pvc:
       create: true
       accessModes:
         - "ReadWriteOnce"
-      storage: 30Gi
+      storage: 150Gi
       storageClassName: lvm-fast
     configFiles: ~
     # https://docs.giantswarm.io/tutorials/registry/zot/
@@ -85,7 +85,7 @@ spec:
         value: 1600MiB
       - name: ZOT_CREDENTIALS_FILE
         value: "/run/secrets/github_auth"
-      # the S3 key of the Garage store (garage-s3-key, k8s/infra/registry-system/garage/); the S3 driver reads the AWS variables
+      # the S3 driver reads its Garage key from the AWS_* variables
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
           secretKeyRef:

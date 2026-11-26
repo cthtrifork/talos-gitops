@@ -1,5 +1,5 @@
 #!/bin/sh
-# Garage layout for the zot store: one zone per node, the bucket and the key. Idempotent: every step may already be done.
+# Garage layout for the zot store: one zone per node, the bucket and the key. Idempotent.
 set -e
 
 SERVICE_DNS=garage-headless.registry-system.svc.cluster.local
@@ -27,7 +27,7 @@ run_garage() {
   /shared/garage -h "$GARAGE_RPC_HOST" "$@"
 }
 
-# One zone per pod; the same capacity on each, so the data is spread evenly
+# one zone per pod, the same capacity on each
 for i in $REPLICAS; do
   NODE_ID=$(get_node_id "garage-$i.${SERVICE_DNS}")
   echo "Assigning garage-$i ($NODE_ID) to zone z$i"
@@ -41,7 +41,7 @@ fi
 
 run_garage bucket create zot 2>/dev/null || true
 
-# Garage wants a key id of GK plus 24 hex characters and a secret of 64 hex characters
+# GK plus 24 hex characters, and 64 hex characters, are what Garage accepts
 if ! echo "$KEY_ID" | grep -qE '^GK[0-9a-fA-F]{24}$'; then
   echo "ERROR: the key id must be GK followed by 24 hex characters"
   exit 1
