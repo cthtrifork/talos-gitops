@@ -251,6 +251,14 @@ function until(sec) {
   if (sec < 172800) return Math.round(sec / 360) / 10 + " h";
   return Math.round(sec / 86400) + " days";
 }
+// "10 h 16 min", the style of the Run jobs page; `until` rounds to tenths of an hour for the other panels.
+function span(sec) {
+  const m = Math.max(1, Math.round(sec / 60));
+  if (m < 60) return m + " min";
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + " h" + (m % 60 ? " " + (m % 60) + " min" : "");
+  return Math.floor(h / 24) + " d" + (h % 24 ? " " + (h % 24) + " h" : "");
+}
 // A used percentage as a status (and a bar colour): quiet below 75, warn from 75, bad from `bad`.
 const usedState = (pct, bad) => (pct >= bad ? "bad" : pct >= 75 ? "warn" : "ok");
 const usedColor = (pct, bad) => ({ bad: "var(--bad)", warn: "var(--warn)", ok: "var(--calm)" })[usedState(pct, bad)];
@@ -853,7 +861,7 @@ const JobsPanel = (d) => {
     ? Muted("No namespace allows running jobs.")
     : html`${Rows(jobs.slice(0, MAX_ROWS).map((j) => ({
         title: `${j.namespace}/${j.name}`,
-        sub: j.suspended ? "suspended" : j.next ? `next run in ${until(Math.round((j.next - Date.now()) / 1000))} · ${j.schedule}` : `schedule ${j.schedule}`,
+        sub: j.suspended ? "suspended" : j.next ? `next run in ${span((j.next - Date.now()) / 1000)} · ${j.schedule}` : `schedule ${j.schedule}`,
         right: j.running ? Pill("warn", "running") : nothing,
       })))}
       ${hidden > 0 ? Muted(`and ${hidden} more not listed`) : nothing}`);
