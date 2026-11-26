@@ -267,31 +267,15 @@ function cronNext(expr, timezone = "UTC") {
     return null;
   }
 }
-// Cronstrue's long prose ("At 7 minutes past the hour"), for the shapes cronWords has no short form for; the raw expression if it does not parse.
+// A cron expression in words ("At 7 minutes past the hour"), from cronstrue; the expression as written if it does not parse.
 // The package is CommonJS behind jsDelivr's +esm, so the function can sit on the namespace or on its default export.
 const cronstrue = cronstrueModule.default ?? cronstrueModule;
-function cronProse(expr) {
+function cronWords(expr) {
   try {
-    return cronstrue.toString(expr, { use24HourTimeFormat: true, verbose: false });
+    return cronstrue.toString(expr, { use24HourTimeFormat: true });
   } catch (e) {
     return expr;
   }
-}
-// A cron expression in words: a short form for the common shapes ("every 15 min", "weekdays 06:00"), cronstrue prose for the rest.
-function cronWords(expr) {
-  const f = String(expr).trim().split(/\s+/);
-  if (f.length !== 5) return cronProse(expr);
-  const [mi, h, dom, mon, dow] = f;
-  const hhmm = /^\d+$/.test(mi) && /^\d+$/.test(h) ? h.padStart(2, "0") + ":" + mi.padStart(2, "0") : null;
-  const days = { "*": "", "1-5": "weekdays", "0,6": "weekends", "6,0": "weekends", 0: "Sundays", 1: "Mondays", 2: "Tuesdays", 3: "Wednesdays", 4: "Thursdays", 5: "Fridays", 6: "Saturdays", 7: "Sundays" };
-  let m;
-  if (mon !== "*") return cronProse(expr);
-  if (dom === "*" && dow === "*" && h === "*" && (m = mi.match(/^\*\/(\d+)$/))) return `every ${m[1]} min`;
-  if (dom === "*" && dow === "*" && h === "*" && mi === "0") return "every hour";
-  if (dom === "*" && dow === "*" && /^\d+$/.test(mi) && (m = h.match(/^\*\/(\d+)$/))) return `every ${m[1]} h`;
-  if (hhmm && dom === "*" && dow in days) return (days[dow] ? days[dow] + " " : "daily ") + hhmm;
-  if (hhmm && /^\d+$/.test(dom) && dow === "*") return `day ${dom} of the month ${hhmm}`;
-  return cronProse(expr);
 }
 // The same filter the cockpit uses, as a GitHub search, so the "Open" link opens the whole list.
 function ghSearch(group, d) {

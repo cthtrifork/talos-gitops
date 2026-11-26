@@ -102,20 +102,11 @@
     if (h < 24) return h + " h" + (m % 60 ? " " + (m % 60) + " min" : "");
     return Math.floor(h / 24) + " d" + (h % 24 ? " " + (h % 24) + " h" : "");
   }
-  // the common cron shapes in words ("every 15 min", "weekdays 06:00"); anything else stays as written
+  // cronstrue turns the expression into words ("At 7 minutes past the hour"); like Croner it is loaded lazily, and without it the expression stays as written
+  var cronstrue = null;
+  import("https://cdn.jsdelivr.net/npm/cronstrue@3.51.0/+esm").then(function (m) { cronstrue = m.default || m; tick(); }).catch(function () {});
   function cronWords(expr) {
-    var f = String(expr).trim().split(/\s+/);
-    if (f.length !== 5) return expr;
-    var mi = f[0], h = f[1], dom = f[2], mon = f[3], dow = f[4], m;
-    var hhmm = /^\d+$/.test(mi) && /^\d+$/.test(h) ? ("0" + h).slice(-2) + ":" + ("0" + mi).slice(-2) : null;
-    var days = { "*": "", "1-5": "weekdays", "0,6": "weekends", "6,0": "weekends", "0": "Sundays", "1": "Mondays", "2": "Tuesdays", "3": "Wednesdays", "4": "Thursdays", "5": "Fridays", "6": "Saturdays", "7": "Sundays" };
-    if (mon !== "*") return expr;
-    if (dom === "*" && dow === "*" && h === "*" && (m = mi.match(/^\*\/(\d+)$/))) return "every " + m[1] + " min";
-    if (dom === "*" && dow === "*" && h === "*" && mi === "0") return "every hour";
-    if (dom === "*" && dow === "*" && /^\d+$/.test(mi) && (m = h.match(/^\*\/(\d+)$/))) return "every " + m[1] + " h";
-    if (hhmm && dom === "*" && days.hasOwnProperty(dow)) return (days[dow] ? days[dow] + " " : "daily ") + hhmm;
-    if (hhmm && /^\d+$/.test(dom) && dow === "*") return "day " + dom + " of the month " + hhmm;
-    return expr;
+    try { return cronstrue ? cronstrue.toString(expr, { use24HourTimeFormat: true }) : expr; } catch (e) { return expr; }
   }
   function nextOf(j) {
     var key = j.schedule + "|" + j.time_zone, n = nextCache[key];
