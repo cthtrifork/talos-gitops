@@ -140,9 +140,9 @@ Without the Secret the Job is a dry run that prints the documents it would write
 
 The API key comes from `config-cronjob.yaml` (team `vex-exporter`). Trivy identifies a scanned image by the PURL
 `pkg:oci/<name>@<digest>?repository_url=<registry>/<repository>`. The export writes the product without the version, so one decision covers
-every tag and digest of the repository. **Check before relying on it:** the earlier design versioned projects by digest because a statement
-with a version was thought to match only that version; a statement without one is expected to match any version, but the first manual
-run has to show a finding actually hidden in a scan. The `repository_url` is the one the scan sees (the zot cache path), taken from the project PURL.
+every tag and digest of the repository. Trivy (0.76.2) looks the document up in `index.json` by the scanned PURL without version and arch but with
+`repository_url`, then go-vex `PurlMatches` lets a statement product without a version match any version, so a pod that moves to a new tag or
+digest keeps its decisions. Not tested end to end: the first merged export has to show a finding hidden in a scan.
 
 Findings come from the projects/SBOMs uploaded to Dependency-Track. `sbom-hook/` (Redpanda Connect) receives every
 `SbomReport` that trivy-operator produces or regenerates through its webhook (`operator.webhookBroadcastURL`) and uploads
