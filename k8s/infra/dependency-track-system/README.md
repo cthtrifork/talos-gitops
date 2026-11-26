@@ -112,7 +112,7 @@ A lost admin Secret is recovered by seeding it with the current admin password.
 
 ## Exporting Dependency-Track decisions to the VEX repository
 
-Still `suspend: true` until a manual run (Elevate page) has opened a pull request that looks right, then flip it in Git. Statements are per image repository, not per digest: the product is the project PURL without version and arch (`pkg:oci/<name>?repository_url=<registry>/<repo>`), so a decision covers every tag and digest of that repository. The versions (tags) of one repository are merged into one document.
+Enabled (daily). Check its first pull request before merging it. Statements are per image repository, not per digest: the product is the project PURL without version and arch (`pkg:oci/<name>?repository_url=<registry>/<repo>`), so a decision covers every tag and digest of that repository. The versions (tags) of one repository are merged into one document.
 
 `dependency-track/vex-export-cronjob.yaml` is a daily CronJob that turns the analysis decisions made in Dependency-Track (state
 *not affected*, *false positive* or *resolved* on a finding) into OpenVEX documents in `vex/pkg/oci/<registry>/<repository>/`
