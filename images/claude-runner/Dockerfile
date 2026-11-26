@@ -36,10 +36,10 @@ ARG TALOSCTL_VERSION=1.14.7
 ARG OMNICTL_VERSION=1.14.0
 
 # The GNU userland keeps the scripts and skills working as on Debian (BusyBox differs in flags); libgcc, libstdc++ and
-# ripgrep are what the musl build of claude needs (USE_BUILTIN_RIPGREP below).
+# ripgrep are what the musl build of claude needs (USE_BUILTIN_RIPGREP below); font-dejavu is for rsvg-convert text.
 RUN apk add --no-cache \
       bash git curl ca-certificates openssh-client-default jq python3 py3-pip shellcheck make rsvg-convert \
-      coreutils findutils grep sed gawk diffutils libgcc libstdc++ ripgrep
+      coreutils findutils grep sed gawk diffutils libgcc libstdc++ ripgrep font-dejavu
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN base="https://downloads.claude.ai/claude-code-releases/${CLAUDE_CODE_VERSION}" \
