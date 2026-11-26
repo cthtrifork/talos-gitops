@@ -1,11 +1,16 @@
 #!/bin/sh
-# Usage: govulncheck-image <image> <path-in-image>, e.g. quay.io/prometheus/prometheus:v3.16.0-distroless bin/prometheus
+# Usage: govulncheck-image <image> <path-in-image> [govulncheck flags], e.g. quay.io/prometheus/prometheus:v3.16.0-distroless usr/bin/prometheus -show verbose
 # Extracts one file from the image into a scratch dir (TMPDIR), runs govulncheck in binary mode on it and removes it.
 # The file is only read, never executed. Exit 3 means govulncheck found vulnerabilities.
 set -eu
-[ $# -eq 2 ] || { echo "usage: govulncheck-image <image> <path-in-image>" >&2; exit 2; }
+[ $# -ge 2 ] || { echo "usage: govulncheck-image <image> <path-in-image> [govulncheck flags]" >&2; exit 2; }
+image=$1
 path=${2#/}
+shift 2
 work=$(mktemp -d "${TMPDIR:-/tmp}/govulncheck.XXXXXX")
 trap 'rm -rf "$work"' EXIT
-crane export "$1" - | tar -x -C "$work" "$path"
-govulncheck -mode=binary "$work/$path"
+crane export "$image" - | tar -x -C "$work" "$path" || {
+  echo "govulncheck-image: $path is not in the archive; a path through a symlinked directory (bin -> usr/bin) is stored under its target, try usr/$path" >&2
+  exit 1
+}
+govulncheck -mode=binary "$@" "$work/$path"
