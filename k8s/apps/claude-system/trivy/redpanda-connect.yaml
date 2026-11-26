@@ -1,3 +1,4 @@
+---
 # Holds no data: every request becomes PromQL against Prometheus. No query parameters.
 # trivy-operator can run twice during a rollout, so every query takes max or count per image digest first.
 # ${PROM_URL:default} is Redpanda Connect's own interpolation, not a Flux variable.
