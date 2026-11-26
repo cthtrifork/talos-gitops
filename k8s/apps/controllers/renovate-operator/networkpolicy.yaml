@@ -95,8 +95,9 @@ spec:
         - matchName: mcr.microsoft.com
         - matchName: cgr.dev
         - matchName: registry.access.redhat.com
-        # cthtrifork/kglance builds in registry.fedoraproject.org/fedora
+        # cthtrifork/kglance builds in registry.fedoraproject.org/fedora, blobs come from its CDN
         - matchName: registry.fedoraproject.org
+        - matchName: cdn.registry.fedoraproject.org
         - matchName: registry.k8s.io
         - matchName: cdn.registry.k8s.io
         # registry.k8s.io redirects images to Artifact Registry
