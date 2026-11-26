@@ -132,7 +132,7 @@
     });
   }
 
-  // the description comes from the CronJob's claude-elevate/description annotation
+  // the description comes from the CronJob's claude-jobs/description annotation
   function build() {
     var jobs = sorted();
     var key = jobs.map(function (j) { return j.namespace + "/" + j.name + "|" + j.description + "|" + j.schedule + "|" + j.time_zone + "|" + j.suspended; }).join(",");
@@ -155,7 +155,7 @@
       var label = j.namespace + "/" + j.name;
       b.setAttribute("aria-label", "Run now: " + label);
       li.appendChild(b);
-      li.appendChild(el("p", j.description || "No description. Add the annotation claude-elevate/description to the CronJob.", "desc"));
+      li.appendChild(el("p", j.description || "No description. Add the annotation claude-jobs/description to the CronJob.", "desc"));
       li.appendChild(el("p", "", "when"));
       li.appendChild(el("p", "", "sched"));
       li.appendChild(el("p", "", "last"));
