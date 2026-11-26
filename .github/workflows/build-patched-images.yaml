@@ -79,6 +79,7 @@ jobs:
       id-token: write # sign the image and its provenance attestation (OIDC)
       packages: write # push the image to ghcr.io
       attestations: write # store the provenance attestation
+      pull-requests: write # the PR comment
     env:
       NAME: ${{ matrix.image.name }}
       SOURCE: ${{ matrix.image.source }}
@@ -166,7 +167,7 @@ jobs:
           subject-digest: ${{ steps.digest.outputs.digest }}
           push-to-registry: true
 
-      # The fixable HIGH/CRITICAL findings before and after, for the summary. Not a gate: a manifest only uses the
+      # The findings before and after, in the PR comment. Not a gate: a manifest only uses the
       # patched image when a PR switches it to the digest.
       - name: Scan the source image
         id: scan-source
@@ -192,19 +193,44 @@ jobs:
           trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
           ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
 
+      - name: Write the comment
+        if: ${{ env.PUSH == 'true' }}
+        env:
+          NEW_REF: ${{ steps.digest.outputs.ref }}
+          OLD_REF: ${{ matrix.image.source }}:${{ matrix.image.tag }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # a failed scan has no report: an empty object stands in
+          echo '{}' > empty.json
+          new=patched.json old=source.json
+          [ -s "${new}" ] || new=empty.json
+          [ -s "${old}" ] || old=empty.json
+          jq -r --arg new_ref "${NEW_REF}" --arg old_ref "${OLD_REF}" --arg run_url "${RUN_URL}" --slurpfile o "${old}" -f scripts/ci/scan-comment.jq "${new}" > comment.md
+          # an unzipped artifact is named after its file
+          [ ! -s patched.json ] || mv patched.json "patched-${NAME}-${TAG}.trivy.json"
+      - name: Report
+        if: ${{ env.PUSH == 'true' }}
+        uses: ./.github/actions/scan-report
+        with:
+          comment: comment.md
+          report: patched-*.trivy.json
+          header: patched-images ${{ matrix.image.name }} ${{ matrix.image.tag }}
+      - name: Fail if a scan failed
+        # findings never fail the job; a scan that could not run does (usually transient: re-run)
+        if: steps.scan-source.outcome == 'failure' || steps.scan-patched.outcome == 'failure'
+        run: |
+          echo "::error::A Trivy scan failed (see the scan step above); re-run the job"
+          exit 1
+
       - name: Summarize
         if: ${{ always() }}
         env:
           REF: ${{ steps.digest.outputs.ref }}
           DIGEST: ${{ steps.digest.outputs.digest }}
         run: |
-          fixable() { [[ -s "$1" ]] && jq '[.Results[]?.Vulnerabilities[]? | select(.FixedVersion != null and .FixedVersion != "")] | length' "$1" || echo n/a; }
           {
             echo "### ${NAME}:${TAG}"
             echo "- Source: \`${SOURCE}:${TAG}\`"
             echo "- Pushed: ${PUSH}, signed: ${PUBLISH}"
-            if [[ "${PUSH}" == true ]]; then
-              echo "- Patched: \`${REF}@${DIGEST:-n/a}\`"
-              echo "- Fixable HIGH/CRITICAL findings: $(fixable source.json) before, $(fixable patched.json) after"
-            fi
-          } | tee -a "${GITHUB_STEP_SUMMARY}"
+            [[ "${PUSH}" != true ]] || echo "- Patched: \`${REF}@${DIGEST:-n/a}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
