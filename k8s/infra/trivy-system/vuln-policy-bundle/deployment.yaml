@@ -56,15 +56,7 @@ spec:
                 - ALL
       containers:
         - name: server
-          image: ghcr.io/cthtrifork/talos-gitops/tools:1.37.2-20261126.3@sha256:8849a678b45ff8affc709870049f6a36af4b8f89b9f0b5010d357ece0647f124
-          command:
-            - busybox
-            - httpd
-            - -f
-            - -p
-            - "8080"
-            - -h
-            - /srv
+          image: mirror.gcr.io/nginxinc/nginx-unprivileged:1.31.7-alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
           ports:
             - name: http
               containerPort: 8080
@@ -77,8 +69,10 @@ spec:
               port: http
           volumeMounts:
             - name: srv
-              mountPath: /srv
+              mountPath: /usr/share/nginx/html
               readOnly: true
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 10m
