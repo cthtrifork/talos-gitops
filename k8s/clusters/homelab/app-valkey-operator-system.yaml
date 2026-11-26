@@ -21,7 +21,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ../../k8s/apps/valkey-operator-system
+  path: ../../k8s/infra/controllers/valkey-operator-system
   postBuild:
     substitute:
       var_substitution_enabled: "true"
