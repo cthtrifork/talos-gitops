@@ -153,6 +153,9 @@ spec:
         - matchName: registry.k8s.io
         # registry.k8s.io redirects blobs to Artifact Registry (europe-west4-docker.pkg.dev, region may change)
         - matchPattern: "*.pkg.dev"
+        # GitLab registry: token from gitlab.com, blobs redirect to storage.googleapis.com
+        - matchName: registry.gitlab.com
+        - matchName: gitlab.com
 
         # Bandwidth tests with curl (download __down, upload __up)
         - matchName: speed.cloudflare.com

@@ -180,6 +180,7 @@ admitted unchanged.
 - Renovate pins digests and automerges patch and digest updates, except components listed in `renovate.json5`.
 - Pull path: containerd, Spegel, zot, upstream (`docs/registry-mirrors.md`). Container images pin digests, so the mirror cannot change what runs. Pulled by tag instead: the VM disks (`*-containerdisk:latest`, imported by CDI) and the Trivy `vex-cache:latest` volume.
 - Images built here are signed keyless with cosign, attested and scanned with Trivy (`.github/workflows/`).
+- Third-party images listed in `images/patched/copa.yaml` are patched with Copacetic and published under `ghcr.io/cthtrifork/talos-gitops/patched/`, signed like our own images (`docs/releasing.md`).
 
 ### Vulnerability data flow
 

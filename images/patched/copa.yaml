@@ -1,0 +1,17 @@
+---
+# Third-party images patched with Copacetic (.github/workflows/build-patched-images.yaml), pushed to
+# ghcr.io/cthtrifork/talos-gitops/patched/<name>:<tag>-patched. Only `strategy: list` is supported.
+apiVersion: copa.sh/v1alpha1
+kind: PatchConfig
+target:
+  registry: ghcr.io/cthtrifork/talos-gitops/patched
+images:
+  - name: valkey
+    image: mirror.gcr.io/valkey/valkey
+    platforms:
+      - linux/amd64
+    tags:
+      strategy: list
+      # renovate: datasource=docker depName=mirror.gcr.io/valkey/valkey versioning=docker
+      list:
+        - "9.2.0"

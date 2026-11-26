@@ -74,6 +74,11 @@
   },
   "packageRules": [
     {
+      "description": "The tags in images/patched/copa.yaml are listed for Copa to pull, not pinned",
+      "matchFileNames": ["images/patched/copa.yaml"],
+      "pinDigests": false
+    },
+    {
       "description": "Show chart names and exact versions for Flux Helm charts fetched through Zot mirrors.",
       "matchManagers": [
         "flux"
@@ -331,6 +336,26 @@
     }
   ],
   "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Source image tags that Copa patches (images/patched/copa.yaml); the patched copies are not tracked here",
+      "managerFilePatterns": [
+        "/^images/patched/copa\\.yaml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\s+list:\\s+- \"(?<currentValue>[^\"]+)\""
+      ]
+    },
+    {
+      "customType": "regex",
+      "description": "Copa release in the patched-images workflow",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/build-patched-images\\.yaml$/"
+      ],
+      "matchStrings": [
+        "COPA_VERSION: (?<currentValue>v\\S+) # renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)"
+      ]
+    },
     {
       "customType": "regex",
       "description": "Image references in env values (the images the KubeVirt and CDI operators start), pinned by tag and digest",

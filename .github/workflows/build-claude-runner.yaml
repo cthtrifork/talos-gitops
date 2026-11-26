@@ -34,6 +34,7 @@ jobs:
       id-token: write # sign the image and its provenance attestation (OIDC)
       packages: write # push the image to ghcr.io
       attestations: write # store the provenance attestation
+      pull-requests: write # the scan comment on pull requests
     uses: ./.github/workflows/build-release-image.yaml
     with:
       name: claude-runner
