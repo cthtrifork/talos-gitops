@@ -198,111 +198,67 @@ const FINDINGS = [
 const SEVERITIES = [["critical", "Critical"], ["high", "High"], ["medium", "Medium"], ["low", "Low"], ["unknown", "Unknown"]];
 const sevVar = (s) => `var(--sev-${s})`;
 const RANK = Object.fromEntries(SEVERITIES.map(([k], i) => [k, i]));
-const SEV_FILTERS = [["all", "All"], ...SEVERITIES.slice(0, 4)];
 const REFRESH_MS = 60000;
 const COCKPIT = "https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/#p-trivy-vulnerabilities";
 
 // ---- Helpers ----
 
 const sum = (a) => a.reduce((x, y) => x + y, 0);
-const emptyCounts = () => ({ critical: 0, high: 0, medium: 0, low: 0, unknown: 0 });
-const tally = (rows) => rows.reduce((c, r) => (c[r[1]]++, c), emptyCounts());
-const total = (c) => sum(Object.values(c));
 const shortImage = (i) => i.replace(/^(oci|library)\//, "");
 const idLink = (id) => (id.startsWith("CVE-") ? "https://avd.aquasec.com/nvd/" + id.toLowerCase() : "https://github.com/advisories/" + id);
-
-// ---- Building blocks ----
-
-const Segmented = ({ label, options, value, onPick }) => html`<div class="seg" role="group" aria-label=${label}>${options.map(([v, text]) => html`<button aria-pressed=${String(value === v)} @click=${() => onPick(v)}>${text}</button>`)}</div>`;
-const Dot = (color) => html`<span class="dot" style="background: ${color}"></span>`;
 const SevPill = (s) => html`<span class="pill" style="--c: ${sevVar(s)}">${s}</span>`;
-const Legend = (c) => html`<div class="legend">${SEVERITIES.map(([k, name]) => html`<span class=${c[k] ? nothing : "muted"}><span class="dot" style="background: ${sevVar(k)}; opacity: ${c[k] ? 1 : 0.35}"></span>${c[k]} ${name.toLowerCase()}</span>`)}</div>`;
-// One stacked track: a segment per severity, widths relative to `max`.
-const Track = (c, max, label) => html`<div class="track" role="img" aria-label=${label}>${SEVERITIES.map(([k]) => (c[k] ? html`<div class="seg-b" style="width: ${(c[k] / max) * 100}%; flex: 0 0 auto; background: ${sevVar(k)}"></div>` : nothing))}</div>`;
-const GroupRows = (groups) => {
-  const max = Math.max(1, ...groups.map(([, c]) => total(c)));
-  return groups.map(([name, c, sub]) => html`<div class="row">
-    <div class="name">${name}${sub ? html`<small>${sub}</small>` : nothing}</div>
-    ${Track(c, max, `${name}: ${c.critical} critical, ${c.high} high, ${c.medium} medium, ${c.low} low, ${c.unknown} unknown`)}
-    <div class="val"><strong>${total(c)}</strong></div>
-  </div>`);
-};
 
-// ---- Sections ----
+// One row per image: findings per severity. Worst first: most critical, then high, medium, low, unknown.
+// Source: trivy_image_vulnerabilities{image_repository,image_tag,severity}
+const imageRows = () => Object.entries(Object.groupBy(FINDINGS, (r) => r[6]))
+  .map(([image, rs]) => ({ image, ns: rs[0][7], c: Object.fromEntries(SEVERITIES.map(([k]) => [k, rs.filter((r) => r[1] === k).length])) }))
+  .sort((a, b) => SEVERITIES.reduce((d, [k]) => d || b.c[k] - a.c[k], 0));
 
-const Tiles = (rows) => {
-  const c = tally(rows);
-  const fixable = rows.filter((r) => r[5]).length;
-  const sevTile = ([k, name]) => html`<div class="tile sev" style="--c: ${sevVar(k)}"><div class="k">${name}</div><div class="v">${c[k]}</div><div class="s">${k === "critical" ? "CVSS 9.0 and up" : k === "high" ? "CVSS 7.0 to 8.9" : k === "medium" ? "CVSS 4.0 to 6.9" : "CVSS below 4.0"}</div><span class="src">trivy_vulnerability_id{severity}</span></div>`;
-  return html`<section class="tiles" aria-label="Totals">
-    ${SEVERITIES.slice(0, 4).map(sevTile)}
-    <div class="tile"><div class="k">Fixable</div><div class="v">${rows.length ? Math.round((fixable / rows.length) * 100) : 0}%</div><div class="s">${fixable} of ${rows.length} have a fixed version</div><span class="src">…_id{fixed_version}</span></div>
-  </section>`;
-};
+// One row per CVE: how many images it hits. Worst severity first, then most images.
+// Source: count by (vuln_id, severity) of trivy_vulnerability_id, one series per image and package
+const cveRows = () => Object.entries(Object.groupBy(FINDINGS, (r) => r[0]))
+  .map(([id, rs]) => ({ id, sev: rs[0][1], score: rs[0][2], title: rs[0][10], pkg: rs[0][3], fixed: rs[0][5], images: new Set(rs.map((r) => r[6])).size }))
+  .sort((a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images || b.score - a.score);
 
-const ByNamespace = (rows) => {
-  const groups = Object.entries(Object.groupBy(rows, (r) => r[7])).map(([ns, rs]) => [ns, tally(rs), `${new Set(rs.map((r) => r[6])).size} images`]).sort((a, b) => b[1].critical - a[1].critical || b[1].high - a[1].high || total(b[1]) - total(a[1]));
-  return html`<section class="panel">
-    <div class="panel-head"><h2>By namespace</h2><span class="src">trivy_vulnerability_id{namespace,severity}</span></div>
-    ${groups.length ? GroupRows(groups) : html`<div class="empty">No findings for this selection.</div>`}
-    ${Legend(tally(rows))}
-  </section>`;
-};
-
-const Findings = (rows) => html`<section class="panel">
-  <div class="panel-head"><h2>Findings</h2><span class="src">trivy_vulnerability_id</span></div>
+const ImageTable = () => html`<section class="panel">
+  <div class="panel-head"><h2>Images</h2><span class="src">trivy_image_vulnerabilities</span></div>
   <div class="scroll"><table>
-    <thead><tr><th class="l">Severity</th><th class="l">Vulnerability</th><th class="l">Package</th><th class="l">Fixed in</th><th class="l">Image</th></tr></thead>
-    <tbody>${rows.length ? rows.slice().sort((a, b) => RANK[a[1]] - RANK[b[1]] || b[2] - a[2]).map((r) => html`<tr>
-      <td class="l">${SevPill(r[1])}</td>
-      <td class="t"><a class="cve" href=${idLink(r[0])} rel="noopener noreferrer" target="_blank">${r[0]}</a><small>${r[10]}</small></td>
-      <td class="l">${r[3]}<small>${r[4]}</small></td>
-      <td class="l">${r[5] || html`<span class="muted">no fix yet</span>`}</td>
-      <td class="l">${shortImage(r[6])}<small>${r[7]}</small></td>
-    </tr>`) : html`<tr><td colspan="5" class="l">No findings match.</td></tr>`}</tbody>
+    <thead><tr><th class="l">Image</th>${SEVERITIES.map(([, name]) => html`<th>${name}</th>`)}</tr></thead>
+    <tbody>${imageRows().map((r) => html`<tr><td class="l">${shortImage(r.image)}<small>${r.ns}</small></td>${SEVERITIES.map(([k]) => html`<td style=${r.c[k] ? `color: ${sevVar(k)}; font-weight: 650` : "color: var(--muted)"}>${r.c[k] || "–"}</td>`)}</tr>`)}</tbody>
   </table></div>
 </section>`;
 
-// ---- The page. Assigning to ui re-renders it. Selection survives a reload. ----
-
-const UI_KEY = "trivy-ui";
-const loadUi = () => {
-  const d = { severity: "all", namespace: "all" };
-  try { const s = JSON.parse(localStorage.getItem(UI_KEY)) || {}; return { ...d, severity: s.severity || d.severity, namespace: s.namespace || d.namespace }; } catch { return d; }
-};
-const saveUi = (ui) => { try { localStorage.setItem(UI_KEY, JSON.stringify({ severity: ui.severity, namespace: ui.namespace })); } catch {} };
+const CveTable = () => html`<section class="panel">
+  <div class="panel-head"><h2>Vulnerabilities</h2><span class="src">trivy_vulnerability_id</span></div>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Severity</th><th class="l">Vulnerability</th><th class="l">Package</th><th class="l">Fixed in</th><th>Images</th></tr></thead>
+    <tbody>${cveRows().map((r) => html`<tr>
+      <td class="l">${SevPill(r.sev)}</td>
+      <td class="t"><a class="cve" href=${idLink(r.id)} rel="noopener noreferrer" target="_blank">${r.id}</a><small>${r.title}</small></td>
+      <td class="l">${r.pkg}</td>
+      <td class="l">${r.fixed || html`<span class="muted">no fix yet</span>`}</td>
+      <td><strong>${r.images}</strong></td>
+    </tr>`)}</tbody>
+  </table></div>
+</section>`;
 
 class TrivyApp extends LitElement {
-  static properties = { ui: { state: true }, fetchedAt: { state: true } };
-  constructor() { super(); this.ui = loadUi(); this.fetchedAt = new Date(); }
+  static properties = { fetchedAt: { state: true } };
+  constructor() { super(); this.fetchedAt = new Date(); }
   createRenderRoot() { return this; }
   // The real page polls here: setInterval(load, REFRESH_MS). The mock only stamps the time.
   connectedCallback() { super.connectedCallback(); this._t = setInterval(() => { this.fetchedAt = new Date(); }, REFRESH_MS); }
   disconnectedCallback() { clearInterval(this._t); super.disconnectedCallback(); }
-  set = (patch) => { this.ui = { ...this.ui, ...patch }; saveUi(this.ui); };
   render() {
-    const ui = this.ui;
-    const namespaces = [...new Set(FINDINGS.map((r) => r[7]))].sort();
-    const ns = namespaces.includes(ui.namespace) ? ui.namespace : "all";
-    const scoped = FINDINGS.filter((r) => ns === "all" || r[7] === ns);
-    const bySeverity = scoped.filter((r) => ui.severity === "all" || r[1] === ui.severity);
     const stamp = this.fetchedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     return html`<main>
       <p id="mock" role="note">Mockup with sample data. The real page reads the same series from Prometheus through a Redpanda Connect pod, like the usage page.</p>
-      <header class="bar">
-        <div><a class="back" href=${COCKPIT}>← Cockpit</a><h1>Trivy vulnerabilities</h1><div class="sub">Image scans by trivy-operator · from Prometheus · updated ${stamp}</div></div>
-        <div class="group">
-          <select aria-label="Namespace" @change=${(e) => this.set({ namespace: e.target.value })}>
-            <option value="all" ?selected=${ns === "all"}>All namespaces</option>
-            ${namespaces.map((n) => html`<option value=${n} ?selected=${ns === n}>${n}</option>`)}
-          </select>
-          ${Segmented({ label: "Severity", options: SEV_FILTERS, value: ui.severity, onPick: (v) => this.set({ severity: v }) })}
-        </div>
+      <header>
+        <a class="back" href=${COCKPIT}>← Cockpit</a><h1>Trivy vulnerabilities</h1><div class="sub">Image scans by trivy-operator · from Prometheus · updated ${stamp}</div>
       </header>
-      ${Tiles(scoped)}
-      ${ByNamespace(bySeverity)}
-      ${Findings(bySeverity)}
-      <p class="sub">Series come from trivy-operator's <code>/metrics</code>. Counts are findings per package.</p>
+      ${ImageTable()}
+      ${CveTable()}
+      <p class="sub">Both tables sort worst first: by severity, then by count. Counts are per image digest.</p>
     </main>`;
   }
 }
