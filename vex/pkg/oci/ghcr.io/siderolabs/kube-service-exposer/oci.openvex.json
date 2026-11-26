@@ -1,0 +1,35 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/siderolabs/kube-service-exposer",
+  "author": "Dependency-Track",
+  "role": "Automated export from Dependency-Track",
+  "timestamp": "2026-11-26T22:00:31Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56857"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kube-service-exposer?repository_url=ghcr.io%2Fsiderolabs%2Fkube-service-exposer",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kube-service-exposer?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fsiderolabs%2Fkube-service-exposer",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Windows-only (os.Root junction); all images are Linux"
+    }
+  ]
+}

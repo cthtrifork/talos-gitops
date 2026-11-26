@@ -1,0 +1,35 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/project-zot/zot",
+  "author": "Dependency-Track",
+  "role": "Automated export from Dependency-Track",
+  "timestamp": "2026-11-26T22:00:31Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2019-1010022"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/zot?repository_url=ghcr.io%2Fproject-zot%2Fzot",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libc6"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/zot?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fproject-zot%2Fzot",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libc6"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "glibc stack-guard bypass disputed upstream, not a vulnerability by itself"
+    }
+  ]
+}

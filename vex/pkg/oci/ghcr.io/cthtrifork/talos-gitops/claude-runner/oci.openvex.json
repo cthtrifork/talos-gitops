@@ -3,22 +3,19 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/cthtrifork/talos-gitops/claude-runner",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T15:36:11Z",
-  "version": 1,
+  "timestamp": "2026-11-26T22:00:32Z",
+  "version": 2,
   "statements": [
     {
       "vulnerability": {
-        "name": "CVE-2019-1010022"
+        "name": "CVE-2026-4738"
       },
       "products": [
         {
           "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libc6@2.36-9%2Bdeb12u14?arch=amd64&distro=debian-12.15"
-            },
-            {
-              "@id": "pkg:deb/debian/libc-bin@2.36-9%2Bdeb12u14?arch=amd64&distro=debian-12.15"
+              "@id": "pkg:apk/alpine/zlib"
             }
           ]
         },
@@ -26,16 +23,13 @@
           "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libc6@2.36-9%2Bdeb12u14?arch=amd64&distro=debian-12.15"
-            },
-            {
-              "@id": "pkg:deb/debian/libc-bin@2.36-9%2Bdeb12u14?arch=amd64&distro=debian-12.15"
+              "@id": "pkg:apk/alpine/zlib"
             }
           ]
         }
       ],
       "status": "not_affected",
-      "impact_statement": "glibc stack-guard bypass disputed upstream, not a vulnerability by itself"
+      "impact_statement": "gdal infback9 bug matched to zlib by mistake; gdal is not in any image"
     },
     {
       "vulnerability": {
@@ -46,19 +40,7 @@
           "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
           "subcomponents": [
             {
-              "@id": "pkg:golang/stdlib@v1.26.6"
-            },
-            {
-              "@id": "pkg:golang/stdlib@v1.27.1"
-            },
-            {
-              "@id": "pkg:golang/stdlib@v1.24.6"
-            },
-            {
-              "@id": "pkg:golang/stdlib@v1.26.3"
-            },
-            {
-              "@id": "pkg:golang/stdlib@v1.26.1"
+              "@id": "pkg:golang/stdlib"
             }
           ]
         },
@@ -66,19 +48,7 @@
           "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
           "subcomponents": [
             {
-              "@id": "pkg:golang/stdlib@v1.26.6"
-            },
-            {
-              "@id": "pkg:golang/stdlib@v1.27.1"
-            },
-            {
-              "@id": "pkg:golang/stdlib@v1.24.6"
-            },
-            {
-              "@id": "pkg:golang/stdlib@v1.26.3"
-            },
-            {
-              "@id": "pkg:golang/stdlib@v1.26.1"
+              "@id": "pkg:golang/stdlib"
             }
           ]
         }

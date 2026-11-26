@@ -1,0 +1,36 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/quay.io/jetstack/trust-manager",
+  "author": "Dependency-Track",
+  "role": "Automated export from Dependency-Track",
+  "timestamp": "2026-11-26T22:00:32Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78661"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/trust-manager?repository_url=quay.io%2Fjetstack%2Ftrust-manager",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/trust-manager?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fjetstack%2Ftrust-manager",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "inline_mitigations_already_exist",
+      "impact_statement": "CVE-2026-78661 is in x/net/html parsing. Not verified whether the binary links it. No untrusted HTML reaches this workload: default-deny CiliumNetworkPolicy, ingress only from kube-apiserver/node/cluster, egress only to named hosts (GitHub, ghcr, quay, Let's Encrypt, Cloudflare API). Fix: x/net v0.62.0 via Renovate."
+    }
+  ]
+}

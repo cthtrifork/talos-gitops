@@ -1,0 +1,41 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/mirror.gcr.io/valkey/valkey",
+  "author": "Dependency-Track",
+  "role": "Automated export from Dependency-Track",
+  "timestamp": "2026-11-26T22:00:31Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2019-1010022"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/valkey?repository_url=mirror.gcr.io%2Fvalkey%2Fvalkey",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libc-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libc6"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/valkey?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fvalkey%2Fvalkey",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libc-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libc6"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "glibc stack-guard bypass disputed upstream, not a vulnerability by itself"
+    }
+  ]
+}

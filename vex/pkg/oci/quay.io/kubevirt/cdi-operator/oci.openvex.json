@@ -1,0 +1,35 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/quay.io/kubevirt/cdi-operator",
+  "author": "Dependency-Track",
+  "role": "Automated export from Dependency-Track",
+  "timestamp": "2026-11-26T22:00:32Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56857"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/cdi-operator?repository_url=quay.io%2Fkubevirt%2Fcdi-operator",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/cdi-operator?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Fkubevirt%2Fcdi-operator",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Windows-only (os.Root junction); all images are Linux"
+    }
+  ]
+}
