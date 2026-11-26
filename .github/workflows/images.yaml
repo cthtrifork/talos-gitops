@@ -45,11 +45,15 @@ jobs:
         if: github.event_name != 'workflow_dispatch'
         uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
         with:
-          # the artifact is only rebuilt for these: each new one makes the vex-cache-refresh CronJob delete all reports
           files: |
             vex/**
-            k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
-            k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
+            images/vex-cache/**
+            scripts/ci/vex-*
+            scripts/ci/scan-*
+            scripts/vex-index.sh
+            .github/workflows/images.yaml
+            .github/workflows/update-trivy-db.yaml
+            .github/actions/**
       - name: Decide whether to build
         id: plan
         env:
