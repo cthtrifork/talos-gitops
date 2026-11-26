@@ -1,9 +1,9 @@
 {
   "@context": "https://openvex.dev/ns/v0.2.0",
-  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/zot.registry-system.svc.cluster.local:5000/ghcr-cache/cthtrifork/talos-gitops/claude-runner",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/cthtrifork/talos-gitops/claude-runner",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T15:24:20Z",
+  "timestamp": "2026-11-26T15:36:11Z",
   "version": 1,
   "statements": [
     {
@@ -11,6 +11,17 @@
         "name": "CVE-2019-1010022"
       },
       "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libc6@2.36-9%2Bdeb12u14?arch=amd64&distro=debian-12.15"
+            },
+            {
+              "@id": "pkg:deb/debian/libc-bin@2.36-9%2Bdeb12u14?arch=amd64&distro=debian-12.15"
+            }
+          ]
+        },
         {
           "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
           "subcomponents": [
@@ -31,6 +42,26 @@
         "name": "CVE-2026-56857"
       },
       "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib@v1.26.6"
+            },
+            {
+              "@id": "pkg:golang/stdlib@v1.27.1"
+            },
+            {
+              "@id": "pkg:golang/stdlib@v1.24.6"
+            },
+            {
+              "@id": "pkg:golang/stdlib@v1.26.3"
+            },
+            {
+              "@id": "pkg:golang/stdlib@v1.26.1"
+            }
+          ]
+        },
         {
           "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
           "subcomponents": [

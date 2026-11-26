@@ -1,17 +1,29 @@
 {
-  "updated_at": "2026-11-26T15:24:20Z",
+  "updated_at": "2026-11-26T15:36:11Z",
   "packages": [
     {
+      "id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+      "location": "pkg/oci/ghcr.io/cthtrifork/talos-gitops/claude-runner/oci.openvex.json"
+    },
+    {
       "id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
-      "location": "pkg/oci/zot.registry-system.svc.cluster.local:5000/ghcr-cache/cthtrifork/talos-gitops/claude-runner/oci.openvex.json"
+      "location": "pkg/oci/ghcr.io/cthtrifork/talos-gitops/claude-runner/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/cloudflared?repository_url=mirror.gcr.io%2Fcloudflare%2Fcloudflared",
+      "location": "pkg/oci/mirror.gcr.io/cloudflare/cloudflared/oci.openvex.json"
     },
     {
       "id": "pkg:oci/cloudflared?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fcloudflare%2Fcloudflared",
-      "location": "pkg/oci/zot.registry-system.svc.cluster.local:5000/docker-hub-cache/cloudflare/cloudflared/oci.openvex.json"
+      "location": "pkg/oci/mirror.gcr.io/cloudflare/cloudflared/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/postgresql?repository_url=ghcr.io%2Fcloudnative-pg%2Fpostgresql",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
     },
     {
       "id": "pkg:oci/postgresql?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcloudnative-pg%2Fpostgresql",
-      "location": "pkg/oci/zot.registry-system.svc.cluster.local:5000/ghcr-cache/cloudnative-pg/postgresql/oci.openvex.json"
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
     }
   ]
 }
