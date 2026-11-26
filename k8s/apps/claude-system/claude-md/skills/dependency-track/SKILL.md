@@ -16,6 +16,8 @@ description: Query and assess vulnerability findings in Dependency-Track with th
   Only after the owner agrees. `NOT_AFFECTED`, `FALSE_POSITIVE` and `RESOLVED` end up in the daily VEX export PR.
 - Assess from the data: DT severity and EPSS vs Trivy's, whether the vulnerable component (e.g. `sshd` vs a client-only package) is in the image, and whether a fix exists. Say what you did not verify.
 - Trivy in-cluster: `kubectl get vulnerabilityreports -A` (summary `criticalCount`; the same CVE repeats per package).
+- The Trivy report is already filtered (ignore policy, `trivyignore.yaml`, vendor `not_affected`/`will_not_fix`, VEX), DT is not: a DT project lists far more than its report. Diff them on `(vulnId, component name)`; DT findings missing from Trivy are not open findings, but the report does not say why one was dropped.
+- Only write an analysis when the reason is provable (vendor or VEX `not_affected`, fixed version already installed, component absent). Never mark one `NOT_AFFECTED` just because Trivy hides it: policy rules that rest on risk (`linux-libc-dev`, minor or cluster-mitigated findings in `ignore-policy.rego`) are not "not affected" and would reach the VEX export PR as such. Say what you could not prove instead.
 - Old versions stay in DT until the retire job removes them: take the live tag from the running pods (`kubectl get pods -A`). A project can also lag (no SBOM yet for the live tag): say so.
 - DT severity is NVD's. For distro packages (deb, apk) Debian and Alpine rate many CVEs lower and have no fix: compare with Trivy (`vulnerabilityreports`: `severity`, `fixedVersion`).
 - Conventions, in this order:
