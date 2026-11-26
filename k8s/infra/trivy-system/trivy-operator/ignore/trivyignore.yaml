@@ -4,3 +4,13 @@
 #   - id: CVE-2024-00000
 #     statement: why it is accepted
 #     expired_at: 2027-01-01
+vulnerabilities:
+  - id: CVE-2026-56857
+    statement: Windows-only (os.Root junction); all images are Linux
+    expired_at: 2027-05-26
+  - id: CVE-2026-4738
+    statement: gdal infback9 bug matched to zlib by mistake; gdal is not in any image
+    expired_at: 2027-05-26
+  - id: CVE-2019-1010022
+    statement: glibc stack-guard bypass disputed upstream, not a vulnerability by itself
+    expired_at: 2027-05-26
