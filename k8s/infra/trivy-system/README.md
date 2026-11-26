@@ -19,7 +19,7 @@ trivy server and the scan jobs:
   (`default`) and our `vex/` directory (`homelab-vexhub`). The data is in the `vex-cache` image (`images/vex-cache`, built
   by `.github/workflows/images.yaml` from the hub and `vex/`), which the scan jobs mount read-only at
   `<cache-dir>/vex`. `skip-vex-repo-update` keeps Trivy from downloading anything at scan time, so the URLs in the file
-  are not fetched. The image is rebuilt when `vex/` changes on `main` and when the workflow is run by hand; the Trivy VEX hub
+  are not fetched. The image is rebuilt when `vex/`, `trivyignore.yaml` or `ignore-policy.rego` change on `main` (the `changes` job of `images.yaml`, with `tj-actions/changed-files`) and when the workflow is run by hand; the Trivy VEX hub
   part only changes when it runs. It carries `homelab-built-at` (epoch seconds) and the hashes of the ignore file and policy. VEX statements mark CVEs as not exploitable in a product.
 - `trivy-operator/ignore/trivyignore.yaml` (`trivy-ignorefile`): CVEs that do not apply (no expiry) and accepted risk (with an expiry).
 - `trivy-operator/ignore/ignore-policy.rego` (`trivy-ignorepolicy`): a Rego policy, `ignore` is false by default. Rules that rest on the cluster setup ignore only LOW and MEDIUM.

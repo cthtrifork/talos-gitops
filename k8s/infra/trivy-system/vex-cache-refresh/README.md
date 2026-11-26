@@ -7,7 +7,7 @@ ignore file or ignore policy. The CronJob runs every 10 minutes in `trivy-system
 
 ```mermaid
 flowchart TB
-    change["Merge to main<br/>(vex/ or ignore files)"] --> ci["images.yaml builds and<br/>publishes vex-cache<br/>(vex/ change or run by hand)"]
+    change["Merge to main:<br/>vex/, trivyignore.yaml<br/>or ignore-policy.rego"] --> ci["images.yaml builds and<br/>publishes vex-cache"]
     change --> flux["Flux applies the ConfigMaps<br/>trivy-ignorefile, trivy-ignorepolicy<br/>(every 30 min)"]
     ci --> artifact[("vex-cache artifact<br/>homelab-built-at<br/>trivyignore.sha256<br/>ignore-policy.sha256")]
 
@@ -52,4 +52,4 @@ ConfigMaps hash to the same values. Otherwise it exits and checks again on the n
 
 - `kubectl -n trivy-system get cronjob,jobs`, then `kubectl -n trivy-system logs job/<name>` says why the last run deleted or waited.
 - `kubectl -n trivy-system get configmap vex-cache-state -o jsonpath='{.data.built-at}'` is the last artifact handled.
-- A new artifact by hand: run the `Images` workflow (`workflow_dispatch`); a rebuild also follows a change in `vex/` on `main`.
+- A new artifact by hand: run the `Images` workflow (`workflow_dispatch`); a rebuild also follows a change to `vex/`, `trivyignore.yaml` or `ignore-policy.rego` on `main`.

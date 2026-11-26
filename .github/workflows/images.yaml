@@ -54,6 +54,8 @@ jobs:
             .github/workflows/images.yaml
             .github/workflows/update-trivy-db.yaml
             .github/actions/**
+            k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
+            k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
       - name: Decide whether to build
         id: plan
         env:
