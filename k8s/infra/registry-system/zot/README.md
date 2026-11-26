@@ -30,9 +30,9 @@ flowchart LR
   `buildcache/**` has to be rerun. The ARC runners fall back to the origin registry if zot is unavailable.
 - **`downloadDir`**: the sync extension needs a local staging directory with S3 storage. It is on the zot volume.
 - **The zot volume** is `20Gi` and only holds the root directory and the sync staging area. `volumeClaimTemplates` are immutable, so
-  the shrink from the old `150Gi` fails the Helm upgrade until the StatefulSet is recreated. One time, by hand (data loss accepted):
-  `kubectl -n registry-system delete statefulset zot --cascade=orphan`, then delete the claim `zot-pvc-zot-0` (storage tier) and the
-  pod `zot-0` (ops tier), then `flux reconcile hr zot -n registry-system`. The StatefulSet is recreated with both claims at 20Gi.
+  the shrink from the old `150Gi` fails the first upgrade, and `upgrade.remediation.strategy: uninstall` in `helm-release.yaml`
+  reinstalls the release once (remove that line afterwards). The old claim keeps its size: after the reinstall delete
+  `zot-pvc-zot-0` (storage tier) and the pod `zot-0` (ops tier), and the StatefulSet recreates both at 20Gi.
 - **Valkey keys** start with the hash tag `{zot}` (`keyprefix` in `zot.json`). Do not remove the braces (see `valkeycluster.yaml`).
 - **The `garage-layout` Job** assigns the nodes and creates the bucket and key. Delete it to run it again.
 

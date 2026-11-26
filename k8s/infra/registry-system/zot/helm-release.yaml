@@ -25,6 +25,9 @@ spec:
     cleanupOnFail: true
     remediation:
       retries: 3
+      # One-time: the smaller volumeClaimTemplate is immutable, so the upgrade fails and the release is reinstalled.
+      # Remove in the follow-up PR (docs/helmrelease-conventions.md).
+      strategy: uninstall
   # https://github.com/project-zot/helm-charts/blob/main/charts/zot/values.yaml
   values:
     podAnnotations:
