@@ -35,5 +35,5 @@ while [ "$i" -lt "$n" ]; do
 done
 
 cd "$out"
-python3 -m zipfile -c /srv/bundle.zip ./*.yaml
+zip -q -j /srv/bundle.zip ./*.yaml
 echo "bundle with $((n + 1)) policies"
