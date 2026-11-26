@@ -34,7 +34,7 @@ spec:
       # the pod IP changes on a restart, the name does not
       preferredEndpointType: Hostname
   persistence:
-    size: 2Gi
+    size: 1Gi
     storageClassName: lvm-fast
   scheduling:
     tolerations:

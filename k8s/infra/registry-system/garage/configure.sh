@@ -3,7 +3,7 @@
 set -e
 
 SERVICE_DNS=garage-headless.registry-system.svc.cluster.local
-CAPACITY=100Gi
+CAPACITY=60Gi
 REPLICAS="0 1 2"
 
 # The node id of a pod, once its admin API answers
