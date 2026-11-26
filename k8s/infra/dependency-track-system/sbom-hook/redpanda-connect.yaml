@@ -35,6 +35,7 @@ pipeline:
             "projectVersion": $version,
             "autoCreate": true,
             "isActive": true, # a version that comes back after retirement is active again
+            "isLatest": true, # without it the first tag of an image is never latest (only clones are)
             "projectTags": [{"name": "kubernetes"}],
             "bom": this.report.components.format_json().encode("base64")
           }
