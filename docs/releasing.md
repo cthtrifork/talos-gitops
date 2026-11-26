@@ -33,3 +33,13 @@ prerelease, which compare numerically, so newer builds and newer tool versions s
 versions, so a bump produces a new tagged image and release on merge. The release name has a prefix. The notes list the
 commits that touched the image since the previous release of the same image, and a release is never marked as the
 repository's latest one. Deployments pin the tag plus digest, never `latest`.
+
+## Patched third-party images
+
+`images/patched/copa.yaml` lists upstream images that [Copacetic](https://project-copacetic.github.io/copacetic/) patches
+(OS packages, comprehensive update, `linux/amd64`). `.github/workflows/build-patched-images.yaml` runs on a change to that
+directory, weekly and by hand, and pushes `ghcr.io/cthtrifork/talos-gitops/patched/<name>:<tag>-patched`. A build of `main`
+signs it (cosign) and attests its provenance, so the `cthtrifork-images` policy admits it; the summary shows the fixable
+HIGH/CRITICAL findings before and after. A pull request from this repository pushes `<tag>-patched-pr<number>` (unsigned,
+so it cannot run in the cluster) and scans it; delete the test tags in GHCR when done. Manifests pin the digest of the
+patched image, and Renovate bumps it. See `images/patched/README.md`.

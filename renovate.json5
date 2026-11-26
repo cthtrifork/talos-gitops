@@ -333,6 +333,27 @@
   "customManagers": [
     {
       "customType": "regex",
+      "description": "Source image tags that Copa patches (images/patched/copa.yaml); the patched copies are not tracked here",
+      "managerFilePatterns": [
+        "/^images/patched/copa\\.yaml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\s+list:\\s+- \"(?<currentValue>[^\"]+)\""
+      ],
+      "pinDigests": false
+    },
+    {
+      "customType": "regex",
+      "description": "Copa release in the patched-images workflow",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/build-patched-images\\.yaml$/"
+      ],
+      "matchStrings": [
+        "COPA_VERSION: (?<currentValue>v\\S+) # renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)"
+      ]
+    },
+    {
+      "customType": "regex",
       "description": "Image references in env values (the images the KubeVirt and CDI operators start), pinned by tag and digest",
       "managerFilePatterns": [
         "/^k8s/infra/kubevirt/kustomization\\.yaml$/"
