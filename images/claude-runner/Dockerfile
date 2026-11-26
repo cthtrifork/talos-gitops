@@ -1,10 +1,9 @@
 # Claude Code self-hosted environment runner (https://code.claude.com/docs/en/self-hosted-environments-deploy).
 # Anthropic publishes no runner image, so this wraps the claude binary. Runs as non-root.
-ARG DEBIAN_IMAGE=debian:bookworm-slim@sha256:e67eeead736ff7bbe258ef088bff683635c561b1fcfefad0806c1df4ab49ce0e
-FROM ${DEBIAN_IMAGE}
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+ARG ALPINE_IMAGE=mirror.gcr.io/library/alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
+FROM ${ALPINE_IMAGE}
 
-# Renovate bumps the version. The linux-x64 checksum is read from the release manifest at build time
+# Renovate bumps the version. The linux-x64-musl checksum is read from the release manifest at build time
 # (https://downloads.claude.ai/claude-code-releases/<version>/manifest.json), so there is nothing to bump by hand.
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
 ARG CLAUDE_CODE_VERSION=2.1.330
@@ -37,13 +36,16 @@ ARG TALOSCTL_VERSION=1.14.7
 # renovate: datasource=github-releases depName=siderolabs/omni
 ARG OMNICTL_VERSION=1.14.0
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      git curl ca-certificates openssh-client jq python3 python3-pip shellcheck make librsvg2-bin \
- && rm -rf /var/lib/apt/lists/*
+# The GNU userland keeps the scripts and skills working as on Debian (BusyBox differs in flags); libgcc, libstdc++ and
+# ripgrep are what the musl build of claude needs (USE_BUILTIN_RIPGREP below).
+RUN apk add --no-cache \
+      bash git curl ca-certificates openssh-client-default jq python3 py3-pip shellcheck make rsvg-convert \
+      coreutils findutils grep sed gawk diffutils libgcc libstdc++ ripgrep
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN base="https://downloads.claude.ai/claude-code-releases/${CLAUDE_CODE_VERSION}" \
- && sha="$(curl -fsSL "${base}/manifest.json" | jq -er '.platforms."linux-x64".checksum')" \
- && curl -fsSL "${base}/linux-x64/claude" -o /usr/local/bin/claude \
+ && sha="$(curl -fsSL "${base}/manifest.json" | jq -er '.platforms."linux-x64-musl".checksum')" \
+ && curl -fsSL "${base}/linux-x64-musl/claude" -o /usr/local/bin/claude \
  && echo "${sha}  /usr/local/bin/claude" | sha256sum -c - \
  && chmod +x /usr/local/bin/claude
 
@@ -167,7 +169,7 @@ RUN base="https://github.com/siderolabs/omni/releases/download/v${OMNICTL_VERSIO
  && install -m 0755 omnictl-linux-amd64 /usr/local/bin/omnictl \
  && rm -f omnictl-linux-amd64
 
-# yamllint at the version CI pins; Debian's pip is externally managed, hence --break-system-packages
+# yamllint at the version CI pins; Alpine's pip is externally managed, hence --break-system-packages
 RUN pip install --no-cache-dir --break-system-packages "yamllint==${YAMLLINT_VERSION}"
 
 # GitHub access: a token mounted at /etc/github/token, handed to git only for github.com
@@ -178,9 +180,10 @@ RUN chmod +x /usr/local/bin/git-credential-github-token \
  && git config --system user.email "noreply@anthropic.com" \
  && git config --system --add safe.directory '*'
 
-RUN useradd --uid 65532 --create-home --home-dir /home/claude --shell /bin/bash claude \
+RUN addgroup -g 65532 claude \
+ && adduser -D -u 65532 -G claude -h /home/claude -s /bin/bash claude \
  && mkdir -p /workspace && chown claude:claude /workspace
 USER 65532
-ENV HOME=/home/claude
+ENV HOME=/home/claude USE_BUILTIN_RIPGREP=0
 WORKDIR /workspace
 ENTRYPOINT ["claude"]
