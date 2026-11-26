@@ -116,6 +116,7 @@
   th button:focus-visible { outline: 2px solid var(--env-rc); }
   .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 600; color: var(--c); border: 1px solid var(--c); }
   .pill.ok { --c: var(--ok); }
+  .stale { color: var(--sev-high); font-weight: 600; }
   a.ext { color: var(--env-rc); text-decoration: none; }
   a.ext:hover { text-decoration: underline; }
   .chip { all: unset; cursor: pointer; margin-left: 6px; padding: 0 8px; min-width: 2.6rem; text-align: center; box-sizing: border-box; border: 1px solid var(--ring); border-radius: 999px; font-size: 11px; line-height: 18px; color: var(--ink-2); vertical-align: 1px; }
@@ -221,6 +222,13 @@ const FINDINGS = [
   ["CVE-2022-0563", "low", 3.3, "util-linux", "2.38.1-5+deb12u3", "", "library/node:22-bookworm-slim", "claude-system", "os-pkgs", "2022-02-21", "util-linux: partial disclosure of arbitrary files in chfn and chsh"],
   ["GHSA-vc7p-xh2j-4h7p", "unknown", 0, "github.com/some/module", "1.2.3", "1.2.4", "oci/trivy-operator:0.24.1", "trivy-system", "lang-pkgs", "2025-09-01", "Advisory without a severity rating"],
 ];
+// Hours since each image was last scanned: now minus the VulnerabilityReport's creationTimestamp (the operator recreates the report on every rescan).
+// Proposed source: kube-state-metrics custom resource state, joined to the trivy series on namespace and name.
+const SCAN_AGE_H = { "library/node:22-bookworm-slim": 3, "oci/cilium-operator:v1.16.3": 5, "oci/hubble-relay:v1.16.3": 5, "oci/cert-manager-controller:v1.16.2": 8, "oci/external-secrets:v0.12.1": 11, "valkey/valkey:7.2": 2, "oci/trivy-operator:0.24.1": 9, "library/redis:7.4-alpine": 31, "ghcr.io/cthtrifork/claude-runner": 1, "oci/cert-manager-webhook:v1.16.2": 7 };
+// The operator rescans after scannerReportTTL (12h here); older than that plus slack means scanning has stalled.
+const REPORT_TTL_H = 12, STALE_H = 14;
+const ageText = (h) => (h < 1 ? "under 1h" : h < 48 ? Math.round(h) + "h" : Math.round(h / 24) + "d") + " ago";
+
 const SEVERITIES = [["critical", "Critical"], ["high", "High"], ["medium", "Medium"], ["low", "Low"], ["unknown", "Unknown"]];
 const sevVar = (s) => `var(--sev-${s})`;
 const RANK = Object.fromEntries(SEVERITIES.map(([k], i) => [k, i]));
@@ -239,7 +247,7 @@ const SevPill = (s) => html`<span class="pill" style="--c: ${sevVar(s)}">${s}</s
 // One row per image: findings per severity. Worst first: most critical, then high, medium, low, unknown.
 // Source: trivy_image_vulnerabilities{image_repository,image_tag,severity}
 const imageRows = () => Object.entries(Object.groupBy(FINDINGS, (r) => r[6]))
-  .map(([image, rs]) => ({ image, ns: rs[0][7], c: Object.fromEntries(SEVERITIES.map(([k]) => [k, rs.filter((r) => r[1] === k).length])) }))
+  .map(([image, rs]) => ({ image, ns: rs[0][7], age: SCAN_AGE_H[image] ?? 0, c: Object.fromEntries(SEVERITIES.map(([k]) => [k, rs.filter((r) => r[1] === k).length])) }))
   .sort((a, b) => SEVERITIES.reduce((d, [k]) => d || b.c[k] - a.c[k], 0));
 
 // One row per CVE. Worst severity first, then the most images.
@@ -266,7 +274,7 @@ const ImageList = (rows) => {
       return html`<li class="img">
         <span class="top"><strong>${shortImage(r.image)}</strong><span class="num">${r.c.critical ? html`<b style="color: var(--sev-critical)">${r.c.critical} critical</b> · ` : nothing}${r.c.high ? html`<b style="color: var(--sev-high)">${r.c.high} high</b> · ` : nothing}<span class="muted">${n} total</span></span></span>
         ${Bar(r.c, max)}
-        <span class="sub"><span class="muted">${r.ns}</span> · <a class="ext" href=${dtrackLink(r)} rel="noopener noreferrer" target="_blank">Dependency-Track ↗</a></span>
+        <span class="sub"><span class="muted">${r.ns} · </span><span class=${r.age > STALE_H ? "stale" : "muted"} title=${"Scanned " + ageText(r.age) + "; the operator rescans after " + REPORT_TTL_H + "h"}>scanned ${ageText(r.age)}${r.age > STALE_H ? " · overdue" : ""}</span><span class="muted"> · </span><a class="ext" href=${dtrackLink(r)} rel="noopener noreferrer" target="_blank">Dependency-Track ↗</a></span>
       </li>`;
     })}</ul>
   </section>`;
@@ -276,7 +284,7 @@ const ImageList = (rows) => {
 const CVE_COLS = [["title", "Title", "l"], ["id", "Vulnerability", "l"], ["sev", "Severity", "l"], ["images", "Images", ""]];
 const CVE_SORT = {
   title: (a, b) => a.title.localeCompare(b.title), id: (a, b) => a.id.localeCompare(b.id),
-  sev: (a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images, images: (a, b) => b.images - a.images || RANK[a.sev] - RANK[b.sev],
+  sev: (a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images, images: (a, b) => a.images - b.images || RANK[a.sev] - RANK[b.sev],
 };
 
 // A small chip that copies the id and says "Copied" for a moment. It changes its own label, so the page does not re-render.
@@ -289,8 +297,9 @@ const CopyChip = (text) => html`<button class="chip" aria-label=${"Copy " + text
 
 const CveTable = (ui, set) => {
   const rows = cveRows()
-      .sort((a, b) => (CVE_SORT[ui.sort](a, b)) * (ui.desc ? -1 : 1));
-  const head = ([k, name, cls]) => html`<th class=${cls || nothing} aria-sort=${ui.sort === k ? (ui.desc ? "descending" : "ascending") : "none"}><button @click=${() => set(ui.sort === k ? { desc: !ui.desc } : { sort: k, desc: false })}>${name}${ui.sort === k ? (ui.desc ? " ↓" : " ↑") : ""}</button></th>`;
+    .filter((r) => r.sev === "critical" || r.sev === "high")
+    .sort((a, b) => (CVE_SORT[ui.sort](a, b)) * (ui.desc ? -1 : 1));
+  const head = ([k, name, cls]) => html`<th class=${cls || nothing} aria-sort=${ui.sort === k ? (ui.desc ? "descending" : "ascending") : "none"}><button @click=${() => set(ui.sort === k ? { desc: !ui.desc } : { sort: k, desc: k === "images" })}>${name}${ui.sort === k ? (ui.desc ? " ↓" : " ↑") : ""}</button></th>`;
   return html`<section class="panel">
     <div class="panel-head"><h2>Vulnerabilities</h2><span class="src">trivy_vulnerability_id</span></div>
     <div class="scroll"><table class="grafana">
@@ -321,13 +330,13 @@ class TrivyApp extends LitElement {
       <p id="mock" role="note">Mockup with sample data. The real page reads the same series from Prometheus through a Redpanda Connect pod, like the usage page.</p>
       <header>
         <a class="back" href=${COCKPIT}>← Cockpit</a><h1>Trivy vulnerabilities</h1>
-        <div class="sub">${SEVERITIES.filter(([k]) => c[k]).map(([k, n]) => html`<span class="dot" style="background: ${sevVar(k)}"></span>${c[k]} ${n.toLowerCase()} `)}· from Prometheus · updated ${stamp}</div>
+        <div class="sub">${SEVERITIES.filter(([k]) => c[k]).map(([k, n]) => html`<span class="dot" style="background: ${sevVar(k)}"></span>${c[k]} ${n.toLowerCase()} `)}· oldest scan ${ageText(Math.max(...imageRows().map((r) => r.age)))} · from Prometheus · updated ${stamp}</div>
       </header>
       <div class="cols">
         ${ImageList(imageRows())}
         ${CveTable(this.ui, this.set)}
       </div>
-      <p class="sub">Worst first: by severity, then by count. Counts are per image digest. Dependency-Track tracks only some images.</p>
+      <p class="sub">Worst first: by severity, then by count. Counts are per image digest. Dependency-Track tracks only some images. Scan age is now minus the report's creation time (<code>kube_customresource_vulnerabilityreport_created</code>, to be added); the operator rescans every 12h.</p>
     </main>`;
   }
 }
