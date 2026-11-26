@@ -36,6 +36,10 @@ spec:
               env:
                 - name: HOME
                   value: /work
+                - name: JOB_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.labels['job-name']
               volumeMounts:
                 - name: scripts
                   mountPath: /scripts

@@ -4,6 +4,13 @@ set -euo pipefail
 art=/vex-cache
 ns=trivy-system
 
+# a run started by hand (Run jobs page, Job named <cronjob>-manual-<time>) always rescans; the stored timestamp stays as it is
+if [[ "${JOB_NAME:-}" == *-manual-* ]]; then
+  echo "manual run: deleting all VulnerabilityReports"
+  kubectl delete vulnerabilityreports.aquasecurity.github.io --all-namespaces --all --wait=false
+  exit 0
+fi
+
 built=$(cat "${art}/homelab-built-at")
 [[ "${built}" =~ ^[0-9]+$ ]] || { echo "bad timestamp in the artifact: ${built}"; exit 1; }
 last=$(kubectl -n "${ns}" get configmap vex-cache-state -o jsonpath='{.data.built-at}')
