@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/source.toolkit.fluxcd.io/ocirepository_v1beta2.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: coredns
+  namespace: kube-system
+spec:
+  interval: 12h
+  url: oci://${ZOT_MIRROR_GHCR:=ghcr.io}/coredns/charts/coredns
+  ref:
+    tag: 1.50.8
+    digest: sha256:0e61458f6ee07675e90a98604e7a4936e0d2a8195244351b8379de3367da8c7d
