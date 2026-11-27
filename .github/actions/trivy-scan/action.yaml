@@ -26,7 +26,7 @@ inputs:
 outputs:
   outcome:
     description: success or failure of the scan
-    value: ${{ (steps.scan.outcome == 'success' || steps.retry1.outcome == 'success' || steps.retry2.outcome == 'success' || steps.retry3.outcome == 'success') && 'success' || 'failure' }}
+    value: ${{ steps.scan.outcome }}
 runs:
   using: composite
   steps:
@@ -45,93 +45,6 @@ runs:
     # an empty TRIVY_VEX is ignored
     - name: Scan
       id: scan
-      continue-on-error: true
-      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-      with:
-        version: ${{ inputs.version }}
-        skip-setup-trivy: true
-        cache: ${{ inputs.skip-setup != 'true' }}
-        scan-type: image
-        image-ref: ${{ inputs.image }}
-        format: json
-        output: ${{ inputs.output }}
-        scanners: vuln
-        severity: ${{ inputs.severity }}
-        trivyignores: ${{ inputs.trivyignores }}
-        ignore-policy: ${{ inputs.ignore-policy }}
-        ignore-unfixed: false
-        hide-progress: true
-        trivy-config: ${{ runner.environment == 'self-hosted' && '.github/trivy-zot.yaml' || '' }}
-      env:
-        TRIVY_VEX: ${{ inputs.vex }}
-        TRIVY_SHOW_SUPPRESSED: ${{ inputs.vex != '' }}
-        TRIVY_IMAGE_SRC: ${{ runner.environment == 'self-hosted' && 'remote' || 'docker,containerd,podman,remote' }}
-    # zot's first sync of a large image can drop the pull; it keeps syncing, so the next try finds more of it
-    - name: Wait before retry 1
-      if: steps.scan.outcome == 'failure'
-      shell: bash
-      run: sleep 420
-    - name: Scan (retry 1)
-      id: retry1
-      if: steps.scan.outcome == 'failure'
-      continue-on-error: true
-      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-      with:
-        version: ${{ inputs.version }}
-        skip-setup-trivy: true
-        cache: ${{ inputs.skip-setup != 'true' }}
-        scan-type: image
-        image-ref: ${{ inputs.image }}
-        format: json
-        output: ${{ inputs.output }}
-        scanners: vuln
-        severity: ${{ inputs.severity }}
-        trivyignores: ${{ inputs.trivyignores }}
-        ignore-policy: ${{ inputs.ignore-policy }}
-        ignore-unfixed: false
-        hide-progress: true
-        trivy-config: ${{ runner.environment == 'self-hosted' && '.github/trivy-zot.yaml' || '' }}
-      env:
-        TRIVY_VEX: ${{ inputs.vex }}
-        TRIVY_SHOW_SUPPRESSED: ${{ inputs.vex != '' }}
-        TRIVY_IMAGE_SRC: ${{ runner.environment == 'self-hosted' && 'remote' || 'docker,containerd,podman,remote' }}
-    # zot's first sync of a large image can drop the pull; it keeps syncing, so the next try finds more of it
-    - name: Wait before retry 2
-      if: steps.scan.outcome == 'failure' && steps.retry1.outcome == 'failure'
-      shell: bash
-      run: sleep 420
-    - name: Scan (retry 2)
-      id: retry2
-      if: steps.scan.outcome == 'failure' && steps.retry1.outcome == 'failure'
-      continue-on-error: true
-      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-      with:
-        version: ${{ inputs.version }}
-        skip-setup-trivy: true
-        cache: ${{ inputs.skip-setup != 'true' }}
-        scan-type: image
-        image-ref: ${{ inputs.image }}
-        format: json
-        output: ${{ inputs.output }}
-        scanners: vuln
-        severity: ${{ inputs.severity }}
-        trivyignores: ${{ inputs.trivyignores }}
-        ignore-policy: ${{ inputs.ignore-policy }}
-        ignore-unfixed: false
-        hide-progress: true
-        trivy-config: ${{ runner.environment == 'self-hosted' && '.github/trivy-zot.yaml' || '' }}
-      env:
-        TRIVY_VEX: ${{ inputs.vex }}
-        TRIVY_SHOW_SUPPRESSED: ${{ inputs.vex != '' }}
-        TRIVY_IMAGE_SRC: ${{ runner.environment == 'self-hosted' && 'remote' || 'docker,containerd,podman,remote' }}
-    # zot's first sync of a large image can drop the pull; it keeps syncing, so the next try finds more of it
-    - name: Wait before retry 3
-      if: steps.scan.outcome == 'failure' && steps.retry1.outcome == 'failure' && steps.retry2.outcome == 'failure'
-      shell: bash
-      run: sleep 420
-    - name: Scan (retry 3)
-      id: retry3
-      if: steps.scan.outcome == 'failure' && steps.retry1.outcome == 'failure' && steps.retry2.outcome == 'failure'
       continue-on-error: true
       uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
       with:
