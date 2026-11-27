@@ -28,6 +28,14 @@ helm install cilium oci://quay.io/cilium/charts/cilium \
 kubectl --kubeconfig ./kubeconfig.yaml -n kube-system delete daemonset kube-proxy kube-flannel
 kubectl --kubeconfig ./kubeconfig.yaml -n kube-system delete configmap kube-flannel-cfg
 
+# Talos does not render CoreDNS (patches/23-coredns.yaml, applied in Omni first) and Flux needs DNS to fetch Git: install it from
+# the values of its HelmRelease; the release has the same name, so Flux then adopts it (docs/coredns.md)
+helm install coredns oci://ghcr.io/coredns/charts/coredns \
+  --version "$(yq '.spec.ref.tag' k8s/infra/coredns/helm-repository.yaml)" \
+  --namespace kube-system \
+  --values <(yq '.spec.values' k8s/infra/coredns/helm-release.yaml) \
+  --kubeconfig ./kubeconfig.yaml
+
 kubectl --kubeconfig ./kubeconfig.yaml apply -f \
   https://github.com/controlplaneio-fluxcd/flux-operator/releases/latest/download/install.yaml
 

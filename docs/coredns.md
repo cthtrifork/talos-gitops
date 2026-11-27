@@ -13,4 +13,7 @@ Talos tracks its CoreDNS objects in the `kube-system/talos-bootstrap-manifests-i
 
 ## Rebuild
 
-With Talos' CoreDNS off, a new cluster has no DNS until this release is installed, and Flux needs DNS to fetch it: install the chart once by hand (`helm install coredns` with the values of `helm-release.yaml`), Flux then adopts it.
+With Talos' CoreDNS off, a new cluster has no DNS until CoreDNS is installed, and Flux needs DNS to fetch Git. The readme's bootstrap installs the chart with `helm install coredns`, from the chart version and values of this directory, after Cilium and before Flux; the HelmRelease has the same name, so Flux adopts that release.
+
+- Apply `patches/23-coredns.yaml` before that step: `helm install` does not take over objects Talos already rendered and fails on them.
+- `service.clusterIP` must be the cluster DNS address Talos hands to kubelets (the 10th address of the service subnet); change it with the subnet.
