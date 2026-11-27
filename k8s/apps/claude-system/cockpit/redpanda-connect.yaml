@@ -498,7 +498,7 @@ processor_resources:
 
             trivy_images:
               request_map: |
-                meta path = "/api/v1/query?query=" + "count(count by (image_digest) (trivy_image_vulnerabilities))".escape_url_query()
+                meta path = "/api/v1/query?query=" + "count(count by (image_digest) (max by (namespace, image_repository, image_tag, image_digest, severity) (trivy_image_vulnerabilities)))".escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
