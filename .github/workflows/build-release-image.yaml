@@ -206,11 +206,17 @@ jobs:
           severity: CRITICAL,HIGH
           trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
           ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
+      - name: Resolve the released image
+        id: released
+        # zot serves a stale cached :latest whose manifests it can no longer read (the pull resets); the digest from ghcr.io is synced fresh
+        run: |
+          digest=$(crane digest "${IMAGE}:latest" 2>/dev/null || true)
+          echo "ref=${IMAGE}$([ -n "${digest}" ] && echo "@${digest}" || echo ":latest")" >> "$GITHUB_OUTPUT"
       - name: Scan the released image
         id: old
         uses: ./.github/actions/trivy-scan
         with:
-          image: ${{ env.IMAGE }}:latest
+          image: ${{ steps.released.outputs.ref }}
           output: out/old.json
           version: ${{ needs.trivy-db.outputs.version }}
           skip-setup: true
@@ -224,6 +230,7 @@ jobs:
           echo "new=$(scripts/ci/image-size.sh "${IMAGE}@${DIGEST}")" >> "$GITHUB_OUTPUT"
         env:
           DIGEST: ${{ needs.build.outputs.digest }}
+          OLD: ${{ steps.released.outputs.ref }}
       - name: Write the comment
         env:
           NEW_REF: ${{ env.IMAGE }}@${{ needs.build.outputs.digest }}
