@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/monitoring.coreos.com/prometheusrule_v1.json
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: shelly-mqtt
+  namespace: kube-prometheus-stack-system
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: shelly-mqtt
+      rules:
+        # readings expire from the exporter after 15m, so a silent sensor makes the series disappear
+        - alert: ShellyNoReadings
+          expr: absent(shelly_temperature_celsius)
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: No Shelly temperature reading for 20 minutes
+            description: The H&T reports every 5 minutes on USB power. Check its Wi-Fi (IoT network), the broker in shelly-mqtt and the client certificate (k8s/apps/shelly-mqtt/README.md).

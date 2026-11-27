@@ -33,6 +33,7 @@ resources:
   - app-harper-pad.yaml
   - app-juicefs-system.yaml
   - renovate.yaml
+  - app-shelly-mqtt.yaml
   - virtualmachines.yaml
 configMapGenerator:
   - name: cluster-vars

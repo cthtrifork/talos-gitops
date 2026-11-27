@@ -1,0 +1,26 @@
+---
+mqtt:
+  server: ssl://mosquitto.shelly-mqtt.svc:8883
+  topic_path: shelly/+/status/#
+  device_id_regex: shelly/(?P<deviceid>[^/]+)/status/.*
+  object_per_topic_config:
+    encoding: JSON
+  ca_cert: /certs/ca.crt
+  client_cert: /certs/tls.crt
+  client_key: /certs/tls.key
+# the H&T reports every 5 minutes on USB power; a silent sensor drops out of /metrics after 15
+cache:
+  timeout: 15m
+metrics:
+  - prom_name: shelly_temperature_celsius
+    mqtt_name: tC
+    type: gauge
+    help: Temperature
+  - prom_name: shelly_humidity_percent
+    mqtt_name: rh
+    type: gauge
+    help: Relative humidity
+  - prom_name: shelly_battery_percent
+    mqtt_name: battery.percent
+    type: gauge
+    help: Battery charge

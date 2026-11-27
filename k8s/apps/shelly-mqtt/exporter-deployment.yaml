@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/deployment-apps-v1.json
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt2prometheus
+  namespace: shelly-mqtt
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mqtt2prometheus
+  template:
+    metadata:
+      labels:
+        app: mqtt2prometheus
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: exporter
+          image: ghcr.io/hikhvar/mqtt2prometheus:v0.1.7@sha256:893b02eca9c6fb034adb55cc6f31719dfc57ffb5eaf4e32b40304a02eddfda6f
+          args:
+            - -config=/config/config.yaml
+          ports:
+            - name: metrics
+              containerPort: 9641
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            periodSeconds: 20
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            limits:
+              memory: 64Mi
+            requests:
+              memory: 64Mi
+              cpu: 10m
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true # one static binary, config from files, logs to stdout
+            allowPrivilegeEscalation: false
+            runAsUser: 65532
+            runAsGroup: 65532
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: mqtt2prometheus-config
+        - name: certs
+          secret:
+            secretName: mqtt-client-exporter
+            items: # the CA comes with the client certificate
+              - key: ca.crt
+                path: ca.crt
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
