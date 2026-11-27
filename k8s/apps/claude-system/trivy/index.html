@@ -342,6 +342,11 @@ class TrivyApp extends LitElement {
     const load = async () => {
       try {
         const [images, vulns] = await Promise.all([get("api/v1/images"), get("api/v1/vulnerabilities")]);
+        // A re-render rebuilds the DOM and drops a text selection (a long-press on a phone). So keep the page as it is when nothing changed or something is selected; the next tick tries again.
+        const raw = JSON.stringify([images, vulns]);
+        const sel = getSelection();
+        if (this.data && (raw === this._raw || (sel && !sel.isCollapsed && this.contains(sel.anchorNode)))) { this.error = null; return; }
+        this._raw = raw;
         this.data = { images: imageRows(images), cves: cveRows(vulns), cveTotal: vulns.cve_total ?? null };
         this.error = null;
         this.fetchedAt = new Date();
