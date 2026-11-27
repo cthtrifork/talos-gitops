@@ -28,7 +28,7 @@
   html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--page); color: var(--ink); font: var(--fs-lg)/1.5 var(--font);
          padding: 24px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); display: flex; justify-content: center; }
-  main { width: 100%; max-width: 1000px; }
+  main { width: 100%; max-width: 960px; }
   #cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; align-items: start; }
   .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
   .head h2 { margin: 0; }
@@ -70,7 +70,9 @@
   .hint:empty { display: none; }
   .hint.warn { color: var(--warn); }
   .timings { margin: 16px 0 0; color: var(--ink-2); font-size: var(--fs-md); }
-  .updated { margin: 12px 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
+  .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .stamp { color: var(--ink-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stamp:empty { display: none; }
   .empty { margin: 0; color: var(--ink-2); }
   button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
@@ -78,12 +80,11 @@
 </head>
 <body>
 <main>
-  <a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a>
+  <div class="topline"><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><span id="updated" class="stamp" role="status"></span></div>
   <h1>Update VMs</h1>
   <p class="sub">Runs <code>bootc upgrade --apply</code> on a VM. A VM that finds no new image does not reboot.</p>
   <p id="error" class="banner" role="alert"></p>
   <div id="cards"><p id="loading" class="empty">Loading status…</p></div>
-  <p id="updated" class="updated"></p>
 
   <p class="timings"><b>Timings:</b> the VM picks up a click within about 1 minute, then downloads the image (depends on its size) and reboots for a few minutes, but only if the image is new. A click expires after 10 minutes, and each VM updates at most once an hour.</p>
 </main>
@@ -202,7 +203,7 @@
     fetch('api/v1/status', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       document.getElementById('error').textContent = '';
       var loading = document.getElementById('loading'); if (loading) loading.remove();
-      document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       Object.keys(d.vms).forEach(function (name) { update(card(name), d.vms[name], d.now); });
       var need = Object.keys(cards).filter(function (n) { return cards[n].needs; }).length;
       document.title = need ? 'Update VMs (' + need + ' to update)' : 'Update VMs';

@@ -73,6 +73,9 @@
   code, .src { font-family: var(--mono); font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
 
 
+  .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .stamp { color: var(--ink-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stamp:empty { display: none; }
   .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
   .group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .seg { display: inline-flex; max-width: 100%; overflow-x: auto; scrollbar-width: none; background-color: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 2px; }
@@ -523,12 +526,13 @@ class UsageApp extends LitElement {
     const range = days?.length
       ? `${days[Math.max(0, days.length - (v.period === "30d" ? 30 : 7))].date} to ${days[days.length - 1].date} · UTC days · from Prometheus`
       : "UTC days · from Prometheus";
-    const stamp = this.fetchedAt ? ` · updated ${this.fetchedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "";
+    const stamp = this.fetchedAt ? `Updated ${this.fetchedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "";
 
     return html`<main>
       <p id="error" role="alert" ?hidden=${!error}>${error ? `Could not load usage: ${error}. Showing the last data received.` : nothing}</p>
+      <div class="topline"><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><span id="updated" class="stamp" role="status">${stamp}</span></div>
       <header class="bar">
-        <div><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><h1>Claude usage</h1><div class="sub" id="range">${range}${stamp}</div></div>
+        <div><h1>Claude usage</h1><div class="sub" id="range">${range}</div></div>
         <div class="group">
           ${Segmented({ label: "Environment", id: "envSeg", options: ["all", ...v.envs].map((e) => [e, e === "all" ? "All" : e]), value: v.env, onPick: this.pick("env") })}
           ${Segmented({ label: "Period", id: "periodSeg", options: PERIODS, value: ui.period, onPick: this.pick("period") })}

@@ -41,6 +41,9 @@
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
   .stack { display: grid; gap: 14px; align-content: start; }
   .mono { font-family: var(--mono); font-size: var(--fs-md); }
+  .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .stamp { color: var(--ink-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stamp:empty { display: none; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 
@@ -132,9 +135,9 @@
 </head>
 <body>
 <main>
+  <div class="topline"><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><span id="updated" class="stamp" role="status"></span></div>
   <header>
     <div>
-      <a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a>
       <h1>Elevate Claude</h1>
       <p class="sub">Gives Claude a short-lived token for a tier. The token expires by itself.</p>
     </div>
@@ -335,7 +338,7 @@
   function load() {
     return fetch("api/v1/status", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
-      .then(function (s) { s.grants = (s.grants || []).filter(function (g) { return Date.parse(g.expires_at) > Date.now(); }); status = s; clearStatusError(); buildMinutes(); render(); updateForm(); })
+      .then(function (s) { s.grants = (s.grants || []).filter(function (g) { return Date.parse(g.expires_at) > Date.now(); }); status = s; $("updated").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); clearStatusError(); buildMinutes(); render(); updateForm(); })
       .catch(function (e) { $("error").textContent = "Cannot read status: " + e.message; });
   }
 

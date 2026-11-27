@@ -37,7 +37,7 @@
   button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   body { margin: 0; background: var(--page); color: var(--ink); font: var(--fs-lg)/1.5 var(--font);
          padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(40px, calc(env(safe-area-inset-bottom) + 24px)) max(16px, env(safe-area-inset-left)); display: flex; justify-content: center; }
-  main { width: 100%; max-width: 640px; }
+  main { width: 100%; max-width: 760px; }
   .back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 2px; color: var(--accent); font-size: var(--fs-md); text-decoration: none; }
   .back:hover { text-decoration: underline; }
   .back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
@@ -48,6 +48,9 @@
   .card.waiting { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
   .card .err { margin: 10px 0 0; font-size: var(--fs-md); color: var(--bad); }
   .card .err:empty { display: none; }
+  .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .stamp { color: var(--ink-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stamp:empty { display: none; }
   .host { font-weight: 700; font-size: var(--fs-lg); overflow-wrap: anywhere; }
   .url { font-family: var(--mono); font-size: var(--fs-md); color: var(--ink-2); overflow-wrap: anywhere; margin: 4px 0 8px; }
   .meta { font-size: var(--fs-md); color: var(--ink-2); }
@@ -78,7 +81,7 @@
 </head>
 <body>
 <main>
-  <a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a>
+  <div class="topline"><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><span id="updated" class="stamp" role="status"></span></div>
   <h1>Share URLs</h1>
   <p class="sub">Claude asked for these pages. Approving fetches exactly the address shown, once, and keeps the page for 24 hours.</p>
   <h2>Waiting for you</h2>
@@ -220,6 +223,7 @@
       var rest = d.requests.filter(function (r) { return r.status !== 'pending'; });
       var stored = d.requests.filter(function (r) { return r.status === 'approved'; });
       cache = { requests: d.requests.length, pages: stored.length, bytes: stored.reduce(function (n, r) { return n + (r.size || 0); }, 0) };
+      document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       document.title = waiting.length ? 'Share URLs (' + waiting.length + ' waiting)' : 'Share URLs';
       fill('pending', waiting, d.now, 'Nothing is waiting.');
       fill('done', rest, d.now, 'Nothing yet.');
