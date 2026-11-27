@@ -1,0 +1,31 @@
+#!/bin/sh
+# Usage: image-files ls <image> [egrep-pattern]   list file paths in the image (capped at 500 lines)
+#        image-files cat <image> <path-in-image>   print one text file (capped at 256 KiB, or IMAGE_FILES_MAX bytes; binary files are refused)
+# Streams `crane export` through tar and writes nothing to disk. File content is only printed, never executed.
+set -eu
+[ $# -ge 2 ] || { echo "usage: image-files ls <image> [pattern] | image-files cat <image> <path>" >&2; exit 2; }
+cmd=$1
+image=$2
+case $cmd in
+  ls)
+    crane export "$image" - | tar -t | { grep -E -- "${3:-.}" || true; } | head -n 500
+    ;;
+  cat)
+    [ $# -eq 3 ] || { echo "usage: image-files cat <image> <path>" >&2; exit 2; }
+    path=${3#/}
+    data=$(crane export "$image" - | tar -xO "$path" | head -c "${IMAGE_FILES_MAX:-262144}" | LC_ALL=C tr -d '\000' || true)
+    if [ -z "$data" ]; then
+      echo "image-files: $path is empty, a symlink (use the target path) or not in the archive; a path through a symlinked directory (bin -> usr/bin) is stored under its target" >&2
+      exit 1
+    fi
+    if printf '%s' "$data" | tr -d '\t\r' | LC_ALL=C grep -q '[[:cntrl:]]'; then
+      echo "image-files: $path is not a text file" >&2
+      exit 1
+    fi
+    printf '%s\n' "$data"
+    ;;
+  *)
+    echo "usage: image-files ls <image> [pattern] | image-files cat <image> <path>" >&2
+    exit 2
+    ;;
+esac

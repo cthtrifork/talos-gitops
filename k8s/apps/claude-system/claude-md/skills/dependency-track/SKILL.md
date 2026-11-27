@@ -29,8 +29,16 @@ description: Query and assess vulnerability findings in Dependency-Track with th
   checked fact that stops it (a source line, a Dockerfile line, a policy rule, a govulncheck result), not one text copied to every row.
 - Ways to verify, in order: `govulncheck` (map CVE to GO id via `vuln.go.dev`; symbol absent is `CODE_NOT_PRESENT`; a GO id with no entry cannot be checked, so leave it open);
   the project's source at the live tag (`git clone --depth 1 --branch <tag>` into its own directory: image build flags such as `CGO_ENABLED`, `apk add` lines, `os/exec`, listeners, `grpc.NewServer`,
-  TLS use); the Kustomization or Helm values for the feature; then network policy. Delete the clone afterwards. Distro libraries (curl, expat, pcre2, zlib) a static Go binary does not load are
+  TLS use); `image-files` (see `image-inspect`) for what the image ships, e.g. whether a script imports the vulnerable package; the Kustomization or Helm values for the feature; then network policy. Delete the clone afterwards. Distro libraries (curl, expat, pcre2, zlib) a static Go binary does not load are
   reachable only through child processes: check which ones the code starts and whether this cluster triggers them.
+- Read every place the image's code runs a program, not a sample: `git grep -n -E 'exec\.Command|CommandContext|exec\.|mount\.New'` in `cmd/` and `pkg/` (startup code in `cmd/main.go` too, and library wrappers such as k8s mount-utils that run `mount`, `umount`, `findmnt`),
+  and the image's `ENTRYPOINT`. Read the condition before saying a path is "only for X" (an edition, a mode): a startup call has none. A wrong claim in a record is withdrawn or corrected the same turn.
+- Distro packages: read `/var/lib/dpkg/status` with `image-files` (`IMAGE_FILES_MAX=4194304`) and compute the `Depends` closure of the programs that run (plus what an interpreter loads for the imports the script makes: `ssl` loads libssl3, `gzip` loads zlib1g). A package outside the closure is never loaded:
+  `CODE_NOT_REACHABLE`, with the flaw from the DT description and the closure fact. A package inside the closure needs its own per-CVE analysis (what the flaw needs, whether the program does it), or stays open.
+- Read the launcher of an interpreted entrypoint with `image-files cat` (which interpreter `PATH` picks, its imports) before judging Python/Perl packages; Debian's `python3-*` packages are invisible to the slim image's `/usr/local/bin/python3`.
+- After a batch of `PUT /api/v1/analysis`, read a sample back (`GET /api/v1/analysis?project=&component=&vulnerability=`) and say so. Keep large JSON out of environment variables (`Argument list too long`): pipe it or ask `kubectl -o jsonpath` for the two fields needed.
+- Clone sources into the session scratchpad, not `/workspace`: a safety check blocks `rm -rf` of a `/workspace` directory, so the clone could not be deleted. Ask for `urlshare` approvals as soon as a page is needed, in the same turn as the other work.
+- Rules apply to every record already written: when a new rule or a mistake shows an earlier record broke it (a client-side flaw recorded on a policy basis), withdraw or fix it and say so.
 - Set `TMPDIR` to the session scratchpad when running `govulncheck-image` (it is unset and the script falls back to `/tmp`).
   4. Anything that needs a permission or a tool you lack: say which, do the rest, do not reach around it.
 - Exposure is more than the CiliumNetworkPolicy: also read the Services (`LoadBalancer`, `NodePort`), IngressRoutes and the pod's `hostNetwork`.
