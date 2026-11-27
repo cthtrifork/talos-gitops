@@ -100,6 +100,17 @@ pipeline:
                           verb: GET
                           timeout: 10s
                     result_map: 'root.image_counts = this.data.result'
+                # Distinct CVEs of every severity, for the all-severities total. The list above stays critical and high only.
+                - branch:
+                    request_map: |
+                      meta promql = "count(count by (vuln_id) (trivy_vulnerability_id))"
+                      root = ""
+                    processors:
+                      - http:
+                          url: '${PROM_URL:http://kube-prom-prometheus.kube-prometheus-stack-system.svc:9090}/api/v1/query?query=${! @promql.escape_url_query() }'
+                          verb: GET
+                          timeout: 10s
+                    result_map: 'root.cve_total = this.data.result'
                 # One CVE can carry a different title or score per package: the page keeps one row per id and severity
                 - mapping: |
                     root.generated = now().ts_format("2006-01-02T15:04:05Z", "UTC")
@@ -109,6 +120,7 @@ pipeline:
                       "score": x.metric.vuln_score.number().catch(0),
                       "title": x.metric.vuln_title.or("")
                     })
+                    root.cve_total = this.cve_total.index(0).value.index(1).number().round().catch(0)
                     root.images = this.image_counts.map_each(x -> {
                       "id": x.metric.vuln_id,
                       "severity": x.metric.severity.lowercase(),
