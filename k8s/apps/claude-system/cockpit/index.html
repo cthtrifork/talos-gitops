@@ -700,7 +700,7 @@ const TrivyPanel = (d) => {
     const r = (byImage[f.namespace + "|" + f.digest] ??= { image: f.image, registry: f.registry, ns: f.namespace, critical: 0, high: 0 });
     r[f.severity] = Math.max(r[f.severity], f.count);
   }
-  const worst = Object.values(byImage).sort((a, b) => b.critical - a.critical || b.high - a.high || compare(a.image, b.image)).slice(0, MAX_ROWS); // same order as the Trivy page
+  const worst = Object.values(byImage).filter((r) => r.critical || r.high).sort((a, b) => b.critical - a.critical || b.high - a.high || compare(a.image, b.image)).slice(0, MAX_ROWS); // same order as the Trivy page
   const images = d.trivy_images;
   return Panel({ title, state, text: c.critical ? c.critical + " critical" : c.high + " high", d }, html`
     <div class=${"big num score " + state}>${c.critical}<small> critical · ${c.high} high</small></div>
