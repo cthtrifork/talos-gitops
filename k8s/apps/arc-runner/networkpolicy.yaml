@@ -70,6 +70,7 @@ spec:
 
         - matchName: charts.fairwinds.com
         - matchName: kubernetes-sigs.github.io
+        - matchName: juicedata.github.io
         - matchName: charts.redpanda.com
         - matchName: aka.ms
         - matchName: packages.microsoft.com

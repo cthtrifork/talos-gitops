@@ -18,7 +18,7 @@ env:
 jobs:
   mirror-helm-charts:
     environment: dev
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write
