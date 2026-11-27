@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T13:59:50Z",
+  "updated_at": "2026-11-27T14:23:33Z",
   "packages": [
     {
       "id": "pkg:oci/apiserver?repository_url=mirror.gcr.io%2Fdependencytrack%2Fapiserver",
