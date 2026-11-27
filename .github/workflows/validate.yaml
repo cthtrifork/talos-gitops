@@ -11,7 +11,56 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    runs-on: ubuntu-slim
+    timeout-minutes: 3
+    outputs:
+      renovate: ${{ github.event_name == 'workflow_dispatch' || steps.renovate.outputs.any_changed == 'true' }}
+      lint: ${{ github.event_name == 'workflow_dispatch' || steps.lint.outputs.any_changed == 'true' }}
+      k8s: ${{ github.event_name == 'workflow_dispatch' || steps.k8s.outputs.any_changed == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Renovate config files
+        id: renovate
+        if: github.event_name != 'workflow_dispatch'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            renovate.json5
+            .github/workflows/validate.yaml
+      - name: Files the lint checks read
+        id: lint
+        if: github.event_name != 'workflow_dispatch'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            k8s/**
+            scripts/**
+            images/**
+            bootstrap.yaml
+            .github/**
+            .yamllint.yaml
+            mise.toml
+      - name: Manifest files
+        id: k8s
+        if: github.event_name != 'workflow_dispatch'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            k8s/**
+            scripts/validate.sh
+            scripts/ci/build-flux-paths.sh
+            .fluxschema.yml
+            mise.toml
+            .github/workflows/validate.yaml
+
   renovate:
+    needs: changes
+    if: needs.changes.outputs.renovate == 'true'
     runs-on: ubuntu-latest
     env:
       RENOVATE_VERSION: "44.262.2" # renovate: datasource=npm depName=renovate
@@ -24,6 +73,8 @@ jobs:
         run: npx --yes --package "renovate@${RENOVATE_VERSION}" -- renovate-config-validator --strict renovate.json5
 
   lint:
+    needs: changes
+    if: needs.changes.outputs.lint == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -50,6 +101,8 @@ jobs:
         run: ./scripts/ci/check-secrets-encrypted.sh k8s
 
   manifests:
+    needs: changes
+    if: needs.changes.outputs.k8s == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -64,6 +117,8 @@ jobs:
         run: ./scripts/validate.sh
 
   kustomize:
+    needs: changes
+    if: needs.changes.outputs.k8s == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -78,6 +133,8 @@ jobs:
         run: ./scripts/ci/build-flux-paths.sh k8s/clusters/homelab
 
   polaris:
+    needs: changes
+    if: needs.changes.outputs.k8s == 'true'
     # audits the PR's manifests with the dashboard's version and config; the in-cluster one only sees them after merge
     runs-on: ubuntu-latest
     steps:
