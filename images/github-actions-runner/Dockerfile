@@ -10,17 +10,12 @@ USER root
 COPY --chmod=0755 use-cache-server /usr/local/bin/use-cache-server
 RUN chown runner /home/runner/bin/Runner.Worker.dll
 
-ENV NONINTERACTIVE=1
-ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
-
+# Only what the jobs on these runners call: e2e.yaml (envsubst, skopeo; the other CLIs come from mise), and rootful or
+# rootless podman for the bootc ISO and disk image jobs. Their tools (kubectl, helm, ...) are installed per job.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
-  build-essential procps curl file git tree git wget \
-  podman uidmap fuse-overlayfs iptables buildah slirp4netns \
-  netavark dnsutils \
-  skopeo gettext rsync \
-  socat sqlite3 qemu-system-x86 qemu-utils \
-  imagemagick \
+  curl git procps gettext-base skopeo \
+  podman uidmap fuse-overlayfs iptables netavark slirp4netns \
   && rm -rf /var/lib/apt/lists/*
 
 # Rootful storage config – no userns
@@ -55,33 +50,5 @@ RUN mkdir -p /home/runner/.local/bin /home/runner/.cache /home/runner/.config /h
 
 # Ensure default docker config
 RUN echo "{ \"auths\": {} }" > /home/runner/.docker/config.json
-
-# Software list: https://github.com/actions/runner-images/blob/main/images/ubuntu-slim/ubuntu-slim-Readme.md
-## We use Homebrew as the primary package manager
-# Install Homebrew first
-RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
-  && echo >> /home/runner/.bashrc \
-  && echo "eval '$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)'" >> /home/runner/.bashrc
-
-COPY Brewfile Brewfile
-RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew bundle
-
-ENV HOME=/home/runner
-
-RUN mkdir -p "${HOME}/.cache/trivy/db" \
-	&& oras pull ghcr.io/aquasecurity/trivy-db:2 \
-  && tar -xzf db.tar.gz -C "${HOME}/.cache/trivy/db" \
-  && rm db.tar.gz
-
-RUN mkdir -p "${HOME}/.cache/trivy/java-db" \
-	&& oras pull ghcr.io/aquasecurity/trivy-java-db:1 \
-  && tar -xzf javadb.tar.gz -C "${HOME}/.cache/trivy/java-db" \
-  && rm javadb.tar.gz
-
-# Remove Haskell, android and dotnet
-RUN rm -rf /usr/share/dotnet || true
-RUN rm -rf /usr/local/lib/android || true
-RUN rm -rf /opt/ghc || true
-RUN rm -rf /usr/local/.ghcup || true
 
 WORKDIR /home/runner

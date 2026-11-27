@@ -70,7 +70,7 @@ jobs:
         timeout-minutes: 5
         uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
-          install_args: "yq github:fluxcd/flux-schema kustomize helm aqua:controlplaneio-fluxcd/flux-operator aqua:cilium/cilium-cli kind"
+          install_args: "yq github:fluxcd/flux-schema kustomize helm kubectl aqua:controlplaneio-fluxcd/flux-operator aqua:cilium/cilium-cli kind"
       - name: Verify the in-cluster cache was used
         timeout-minutes: 1
         env:
