@@ -46,6 +46,16 @@ spec:
           trust.portableinfo.cloud/public: "true"
       spec:
         # No runner is tied to a node (the cache server is not either): spread over the nodes when there is room
+        # tmp and var-tmp are on lvm-bulk, which talos-tba-msi does not have
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/hostname
+                      operator: NotIn
+                      values:
+                        - talos-tba-msi
         topologySpreadConstraints:
           - maxSkew: 1
             topologyKey: kubernetes.io/hostname
@@ -263,7 +273,7 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
-                  storageClassName: lvm-fast
+                  storageClassName: lvm-bulk
                   resources:
                     requests:
                       storage: 10Gi
@@ -283,10 +293,10 @@ spec:
                 spec:
                   accessModes:
                     - ReadWriteOnce
-                  storageClassName: lvm-fast
+                  storageClassName: lvm-bulk
                   resources:
                     requests:
-                      storage: 8Gi
+                      storage: 16Gi
           - name: container-rootless-storage
             ephemeral:
               volumeClaimTemplate:
