@@ -217,9 +217,18 @@ jobs:
           severity: CRITICAL,HIGH
           trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
           ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
+      - name: Image sizes
+        id: size
+        run: |
+          echo "old=$(scripts/ci/image-size.sh "${IMAGE}:latest")" >> "$GITHUB_OUTPUT"
+          echo "new=$(scripts/ci/image-size.sh "${IMAGE}@${DIGEST}")" >> "$GITHUB_OUTPUT"
+        env:
+          DIGEST: ${{ needs.build.outputs.digest }}
       - name: Write the comment
         env:
           NEW_REF: ${{ env.IMAGE }}@${{ needs.build.outputs.digest }}
+          OLD_SIZE: ${{ steps.size.outputs.old }}
+          NEW_SIZE: ${{ steps.size.outputs.new }}
           OLD_REF: ${{ env.IMAGE }}:latest
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -228,7 +237,7 @@ jobs:
           new=out/new.json old=out/old.json
           [ -s "${new}" ] || new=empty.json
           [ -s "${old}" ] || old=empty.json
-          jq -r --arg new_ref "${NEW_REF}" --arg old_ref "${OLD_REF}" --arg run_url "${RUN_URL}" --slurpfile o "${old}" -f scripts/ci/scan-comment.jq "${new}" > out/comment.md
+          jq -r --arg new_ref "${NEW_REF}" --arg old_ref "${OLD_REF}" --arg old_size "${OLD_SIZE}" --arg new_size "${NEW_SIZE}" --arg run_url "${RUN_URL}" --slurpfile o "${old}" -f scripts/ci/scan-comment.jq "${new}" > out/comment.md
           if [ -s out/new.json ]; then
             trivy convert --format template --template "@scripts/ci/vuln-list.tpl" out/new.json > list.md
             count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' out/new.json)
