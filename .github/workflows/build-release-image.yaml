@@ -108,6 +108,8 @@ jobs:
           provenance: ${{ env.PUBLISH == 'true' && 'mode=max' || 'false' }}
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
+            TRIVY_DB_REGISTRY=${{ runner.environment == 'self-hosted' && 'zot.registry-system.svc.cluster.local:5000/ghcr-cache' || 'ghcr.io' }}
+          secret-files: ${{ runner.environment == 'self-hosted' && 'ca=/etc/ssl/certs/ca-certificates.crt' || '' }}
 
       - name: Install cosign
         if: ${{ env.PUBLISH == 'true' }}
