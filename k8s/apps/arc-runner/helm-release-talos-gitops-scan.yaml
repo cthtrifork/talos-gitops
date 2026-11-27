@@ -286,7 +286,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 2Gi
+                      storage: 8Gi
           - name: container-rootless-storage
             ephemeral:
               volumeClaimTemplate:
