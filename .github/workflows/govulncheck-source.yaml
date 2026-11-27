@@ -119,6 +119,7 @@ jobs:
         env:
           MODULE: ${{ steps.info.outputs.module }}
           SRC_REF: ${{ steps.info.outputs.ref }}
+          TAGS: ${{ steps.info.outputs.tags }}
         run: |
           set -euo pipefail
           {
