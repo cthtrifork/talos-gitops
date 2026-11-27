@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliumnetworkpolicy_v2.json
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: shelly-mqtt-default-deny
+  namespace: shelly-mqtt
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: shelly-mqtt-allow-dns
+  namespace: shelly-mqtt
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: mosquitto
+  namespace: shelly-mqtt
+spec:
+  endpointSelector:
+    matchLabels:
+      app: mosquitto
+  ingress:
+    # the Shelly on the IoT network (UniFi VLAN 30)
+    - fromCIDR:
+        - 192.168.7.0/24
+      toPorts:
+        - ports:
+            - port: "8883"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            app: mqtt2prometheus
+      toPorts:
+        - ports:
+            - port: "8883"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: mqtt2prometheus
+  namespace: shelly-mqtt
+spec:
+  endpointSelector:
+    matchLabels:
+      app: mqtt2prometheus
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-prometheus-stack-system
+            k8s:app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "9641"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app: mosquitto
+      toPorts:
+        - ports:
+            - port: "8883"
+              protocol: TCP

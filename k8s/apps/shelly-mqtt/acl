@@ -1,0 +1,5 @@
+user shelly-ht
+topic readwrite shelly/ht-1/#
+
+user mqtt2prometheus
+topic read shelly/#
