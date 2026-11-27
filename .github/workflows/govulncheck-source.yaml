@@ -1,0 +1,114 @@
+name: govulncheck source scan
+
+# Reachability of Go vulnerabilities in a cluster image: reads the module and revision from the image's Go binary, checks out that
+# source and runs govulncheck in source mode (call traces). Binary mode only shows a symbol is linked, not that it is called.
+# The image is only pulled and a file copied out; neither the image nor the binary is run.
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Image to scan, e.g. mirror.gcr.io/juicedata/mount:ce-v1.4.2@sha256:...
+        required: true
+      binary:
+        description: Path of the Go binary in the image (default is the image entrypoint)
+        required: false
+      ref:
+        description: Source ref to check out (default is the revision, else the version, recorded in the binary)
+        required: false
+      apt-packages:
+        description: Extra apt packages for cgo headers, space separated
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  GOVULNCHECK_VERSION: v1.10.0 # renovate: datasource=go depName=golang.org/x/vuln
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      IMAGE: ${{ inputs.image }}
+      BINARY: ${{ inputs.binary }}
+      REF: ${{ inputs.ref }}
+      APT_PACKAGES: ${{ inputs.apt-packages }}
+    steps:
+      - name: Copy the binary out of the image
+        run: |
+          set -euo pipefail
+          docker pull --quiet "$IMAGE"
+          if [ -z "$BINARY" ]; then
+            BINARY=$(docker image inspect --format '{{if .Config.Entrypoint}}{{index .Config.Entrypoint 0}}{{end}}' "$IMAGE")
+            [ -n "$BINARY" ] || { echo "::error::the image has no entrypoint, set the binary input"; exit 1; }
+          fi
+          mkdir work
+          cid=$(docker create "$IMAGE" unused)
+          docker cp -L "$cid:$BINARY" work/binary
+          docker rm "$cid" > /dev/null
+          go version -m work/binary | tee work/buildinfo.txt
+
+      - name: Read the module, tags and revision from the binary
+        id: info
+        run: |
+          set -euo pipefail
+          module=$(awk '$1 == "mod" {print $2; exit}' work/buildinfo.txt)
+          version=$(awk '$1 == "mod" {print $3; exit}' work/buildinfo.txt)
+          revision=$(awk '$1 == "build" && $2 ~ /^vcs.revision=/ {sub("vcs.revision=", "", $2); print $2; exit}' work/buildinfo.txt)
+          tags=$(awk '$1 == "build" && $2 ~ /^-tags=/ {sub("-tags=", "", $2); print $2; exit}' work/buildinfo.txt)
+          ref=${REF:-${revision:-$version}}
+          case "$module" in github.com/*) ;; *) echo "::error::module '$module' is not on github.com"; exit 1 ;; esac
+          case "$ref" in ""|"(devel)") echo "::error::no revision or version in the binary, set the ref input"; exit 1 ;; esac
+          { echo "module=$module"; echo "tags=$tags"; echo "ref=$ref"; } | tee -a "$GITHUB_OUTPUT"
+
+      - name: Check out the source
+        env:
+          MODULE: ${{ steps.info.outputs.module }}
+          SRC_REF: ${{ steps.info.outputs.ref }}
+        run: |
+          set -euo pipefail
+          # the module path may end in /v2; the repository is the first three segments
+          repo=$(echo "$MODULE" | cut -d/ -f1-3)
+          git clone --quiet --filter=blob:none "https://$repo" src
+          git -C src checkout --quiet "$SRC_REF"
+          git -C src log -1 --format='source at %H'
+
+      - name: Install cgo headers
+        if: ${{ inputs.apt-packages != '' }}
+        run: |
+          read -ra packages <<< "$APT_PACKAGES"
+          sudo apt-get install --yes --no-install-recommends "${packages[@]}"
+
+      - name: Run govulncheck in source mode
+        env:
+          TAGS: ${{ steps.info.outputs.tags }}
+          GOTOOLCHAIN: auto
+        run: |
+          set -uo pipefail
+          GOBIN="$PWD/bin" go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
+          cd src
+          # exit 3 means vulnerabilities were found, anything else non-zero is an error
+          ../bin/govulncheck -tags "$TAGS" -format openvex ./... > ../openvex.json; rc=$?
+          [ "$rc" -eq 0 ] || [ "$rc" -eq 3 ] || { echo "::error::govulncheck failed ($rc)"; exit "$rc"; }
+          ../bin/govulncheck -tags "$TAGS" -show traces ./... > ../traces.txt || [ $? -eq 3 ]
+
+      - name: Report
+        env:
+          MODULE: ${{ steps.info.outputs.module }}
+          SRC_REF: ${{ steps.info.outputs.ref }}
+          TAGS: ${{ steps.info.outputs.tags }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## govulncheck source scan of \`$IMAGE\`"
+            echo
+            echo "Source: \`$MODULE\` at \`$SRC_REF\`, tags \`$TAGS\`."
+            echo
+            echo "| Vulnerability | Aliases | Status | Justification |"
+            echo "| --- | --- | --- | --- |"
+            jq -r '.statements[] | "| \(.vulnerability.name) | \((.vulnerability.aliases // []) | join(", ")) | \(.status) | \(.justification // "") |"' openvex.json
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "::group::call traces"
+          cat traces.txt
+          echo "::endgroup::"
