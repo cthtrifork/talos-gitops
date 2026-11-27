@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-slim
     timeout-minutes: 3
     outputs:
-      renovate: ${{ github.event_name == 'workflow_dispatch' || steps.renovate.outputs.any_changed == 'true' }}
-      lint: ${{ github.event_name == 'workflow_dispatch' || steps.lint.outputs.any_changed == 'true' }}
-      k8s: ${{ github.event_name == 'workflow_dispatch' || steps.k8s.outputs.any_changed == 'true' }}
+      renovate: ${{ github.event_name == 'workflow_dispatch' || steps.renovate.outputs.any_modified == 'true' }}
+      lint: ${{ github.event_name == 'workflow_dispatch' || steps.lint.outputs.any_modified == 'true' }}
+      k8s: ${{ github.event_name == 'workflow_dispatch' || steps.k8s.outputs.any_modified == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
