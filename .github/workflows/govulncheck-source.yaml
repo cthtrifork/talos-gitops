@@ -102,41 +102,30 @@ jobs:
         env:
           MODULE: ${{ steps.info.outputs.module }}
           TAGS: ${{ steps.info.outputs.tags }}
-          GOVERSION: ${{ steps.info.outputs.goversion }}
-          GOOS: ${{ steps.info.outputs.goos }}
-          GOARCH: ${{ steps.info.outputs.goarch }}
-          CGO_ENABLED: ${{ steps.info.outputs.cgo }}
-        run: |
-          set -uo pipefail
-          # the module root is the go.mod whose module line matches, not always the repository root
-          modroot=""
-          while IFS= read -r f; do
-            if [ "$(awk '$1 == "module" {gsub("\"", "", $2); print $2; exit}' "$f")" = "$MODULE" ]; then modroot=$(dirname "$f"); break; fi
-          done < <(find "$GITHUB_WORKSPACE/src" -name go.mod -not -path '*/vendor/*' -not -path '*/testdata/*')
-          [ -n "$modroot" ] || { echo "::error::no go.mod for module $MODULE in the checkout"; exit 1; }
-          cd "$modroot"
-          go version | grep -q " go$GOVERSION " || { echo "::error::cannot select go$GOVERSION"; go version; exit 1; }
-          # exit 3 means vulnerabilities were found, anything else non-zero is an error
-          "$GITHUB_WORKSPACE/bin/govulncheck" -tags "$TAGS" -format openvex ./... > "$GITHUB_WORKSPACE/openvex.json"; rc=$?
-          [ "$rc" -eq 0 ] || [ "$rc" -eq 3 ] || { echo "::error::govulncheck failed ($rc)"; exit "$rc"; }
-          "$GITHUB_WORKSPACE/bin/govulncheck" -tags "$TAGS" -show traces ./... > "$GITHUB_WORKSPACE/traces.txt"; rc=$?
-          [ "$rc" -eq 0 ] || [ "$rc" -eq 3 ] || { echo "::error::govulncheck failed ($rc)"; exit "$rc"; }
-
-      - name: Report
-        env:
-          MODULE: ${{ steps.info.outputs.module }}
-          SRC_REF: ${{ steps.info.outputs.ref }}
-          TAGS: ${{ steps.info.outputs.tags }}
-          GOVERSION: ${{ steps.info.outputs.goversion }}
           GOOS: ${{ steps.info.outputs.goos }}
           GOARCH: ${{ steps.info.outputs.goarch }}
           CGO_ENABLED: ${{ steps.info.outputs.cgo }}
         run: |
           set -euo pipefail
+          # the module root is the go.mod that declares the module, not always the repository root
+          gomod=$(grep -rlx --include=go.mod "module $MODULE" src | head -n 1)
+          [ -n "$gomod" ] || { echo "::error::no go.mod declares $MODULE"; exit 1; }
+          cd "$(dirname "$gomod")"
+          # govulncheck exits 3 when it finds vulnerabilities
+          scan() { "$GITHUB_WORKSPACE/bin/govulncheck" -tags "$TAGS" "$@" ./... || [ $? -eq 3 ]; }
+          scan -format openvex > "$GITHUB_WORKSPACE/openvex.json"
+          scan -show traces > "$GITHUB_WORKSPACE/traces.txt"
+
+      - name: Report
+        env:
+          MODULE: ${{ steps.info.outputs.module }}
+          SRC_REF: ${{ steps.info.outputs.ref }}
+        run: |
+          set -euo pipefail
           {
             echo "## govulncheck source scan of \`$IMAGE\`"
             echo
-            echo "Source: \`$MODULE\` at \`$SRC_REF\`, built with go${GOVERSION} ${GOOS}/${GOARCH} cgo=${CGO_ENABLED}, tags \`$TAGS\`."
+            echo "Source \`$MODULE\` at \`$SRC_REF\`."
             echo
             echo "| Vulnerability | Aliases | Status | Justification |"
             echo "| --- | --- | --- | --- |"
