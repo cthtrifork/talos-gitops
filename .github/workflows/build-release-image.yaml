@@ -172,7 +172,7 @@ jobs:
   scan:
     name: Scan ${{ inputs.name }}
     needs: [build, trivy-db]
-    runs-on: ${{ vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     env:
       TRIVY_SKIP_DB_UPDATE: true

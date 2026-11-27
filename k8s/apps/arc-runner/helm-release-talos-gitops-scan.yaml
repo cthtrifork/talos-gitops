@@ -1,7 +1,7 @@
 ---
 # Image scans and container jobs of cthtrifork/talos-gitops (public repo), selected by the repository variable PRIVATE_RUNNER.
-# Podman only, pulls go through the zot caches (ConfigMap podman-registries). Never for fork PRs: the workflows keep the
-# repository check. Needs the runner GitHub App installed on talos-gitops.
+# Podman only, pulls go through the zot caches (ConfigMap podman-registries). Needs the runner GitHub App installed on talos-gitops.
+# Fork PRs fall back to GitHub-hosted runners in the workflows (runs-on checks the head repository).
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
