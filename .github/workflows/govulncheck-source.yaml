@@ -57,10 +57,15 @@ jobs:
           version=$(awk '$1 == "mod" {print $3; exit}' work/buildinfo.txt)
           revision=$(awk '$1 == "build" && $2 ~ /^vcs.revision=/ {sub("vcs.revision=", "", $2); print $2; exit}' work/buildinfo.txt)
           tags=$(awk '$1 == "build" && $2 ~ /^-tags=/ {sub("-tags=", "", $2); print $2; exit}' work/buildinfo.txt)
+          goversion=$(awk 'NR == 1 {print $2}' work/buildinfo.txt)
+          setting() { awk -v k="$1=" '$1 == "build" && index($2, k) == 1 {sub(k, "", $2); print $2; exit}' work/buildinfo.txt; }
+          goos=$(setting GOOS); goarch=$(setting GOARCH); cgo=$(setting CGO_ENABLED)
+          case "$goversion" in go1.*) ;; *) echo "::error::no Go version in the binary"; exit 1 ;; esac
+          [ -n "$goos" ] && [ -n "$goarch" ] && [ -n "$cgo" ] || { echo "::error::the binary does not record GOOS, GOARCH and CGO_ENABLED, cannot reproduce its build"; exit 1; }
           ref=${REF:-${revision:-$version}}
           case "$module" in github.com/*) ;; *) echo "::error::module '$module' is not on github.com"; exit 1 ;; esac
           case "$ref" in ""|"(devel)") echo "::error::no revision or version in the binary, set the ref input"; exit 1 ;; esac
-          { echo "module=$module"; echo "tags=$tags"; echo "ref=$ref"; } | tee -a "$GITHUB_OUTPUT"
+          { echo "module=$module"; echo "tags=$tags"; echo "ref=$ref"; echo "goversion=$goversion"; echo "goos=$goos"; echo "goarch=$goarch"; echo "cgo=$cgo"; } | tee -a "$GITHUB_OUTPUT"
 
       - name: Check out the source
         env:
@@ -82,28 +87,46 @@ jobs:
 
       - name: Run govulncheck in source mode
         env:
+          MODULE: ${{ steps.info.outputs.module }}
           TAGS: ${{ steps.info.outputs.tags }}
-          GOTOOLCHAIN: auto
+          GOVERSION: ${{ steps.info.outputs.goversion }}
+          GOOS: ${{ steps.info.outputs.goos }}
+          GOARCH: ${{ steps.info.outputs.goarch }}
+          CGO_ENABLED: ${{ steps.info.outputs.cgo }}
         run: |
           set -uo pipefail
-          GOBIN="$PWD/bin" go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
-          cd src
+          # govulncheck is built with the runner's Go; the scans then use the Go version the binary was built with
+          GOBIN="$GITHUB_WORKSPACE/bin" go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}" || exit 1
+          # the module root is the go.mod whose module line matches, not always the repository root
+          modroot=""
+          while IFS= read -r f; do
+            if [ "$(awk '$1 == "module" {gsub("\"", "", $2); print $2; exit}' "$f")" = "$MODULE" ]; then modroot=$(dirname "$f"); break; fi
+          done < <(find "$GITHUB_WORKSPACE/src" -name go.mod -not -path '*/vendor/*' -not -path '*/testdata/*')
+          [ -n "$modroot" ] || { echo "::error::no go.mod for module $MODULE in the checkout"; exit 1; }
+          cd "$modroot"
+          export GOTOOLCHAIN="$GOVERSION"
+          go version | grep -q " $GOVERSION " || { echo "::error::cannot select $GOVERSION"; go version; exit 1; }
           # exit 3 means vulnerabilities were found, anything else non-zero is an error
-          ../bin/govulncheck -tags "$TAGS" -format openvex ./... > ../openvex.json; rc=$?
+          "$GITHUB_WORKSPACE/bin/govulncheck" -tags "$TAGS" -format openvex ./... > "$GITHUB_WORKSPACE/openvex.json"; rc=$?
           [ "$rc" -eq 0 ] || [ "$rc" -eq 3 ] || { echo "::error::govulncheck failed ($rc)"; exit "$rc"; }
-          ../bin/govulncheck -tags "$TAGS" -show traces ./... > ../traces.txt || [ $? -eq 3 ]
+          "$GITHUB_WORKSPACE/bin/govulncheck" -tags "$TAGS" -show traces ./... > "$GITHUB_WORKSPACE/traces.txt"; rc=$?
+          [ "$rc" -eq 0 ] || [ "$rc" -eq 3 ] || { echo "::error::govulncheck failed ($rc)"; exit "$rc"; }
 
       - name: Report
         env:
           MODULE: ${{ steps.info.outputs.module }}
           SRC_REF: ${{ steps.info.outputs.ref }}
           TAGS: ${{ steps.info.outputs.tags }}
+          GOVERSION: ${{ steps.info.outputs.goversion }}
+          GOOS: ${{ steps.info.outputs.goos }}
+          GOARCH: ${{ steps.info.outputs.goarch }}
+          CGO_ENABLED: ${{ steps.info.outputs.cgo }}
         run: |
           set -euo pipefail
           {
             echo "## govulncheck source scan of \`$IMAGE\`"
             echo
-            echo "Source: \`$MODULE\` at \`$SRC_REF\`, tags \`$TAGS\`."
+            echo "Source: \`$MODULE\` at \`$SRC_REF\`, built with ${GOVERSION} ${GOOS}/${GOARCH} cgo=${CGO_ENABLED}, tags \`$TAGS\`."
             echo
             echo "| Vulnerability | Aliases | Status | Justification |"
             echo "| --- | --- | --- | --- |"
