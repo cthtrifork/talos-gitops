@@ -407,6 +407,55 @@ processor_resources:
                   "points": r.values.map_each(v -> [v.index(0), v.index(1).number().catch(null)])
                 })
 
+            # Room (H&T) and rack (Pill) air and the room humidity from the shelly-mqtt exporter. Samples carry the message time, so an instant query sees a series
+            # for only 5 minutes after the last message: "current" and the trend look back 3h. The H&T selector skips the Pill's early messages under ht-1.
+            ambient_temperatures:
+              request_map: |
+                let range = "[" + @hardware_window + "]"
+                let room = "shelly_temperature_celsius{sensor=\"ht-1\",topic=~\".*:0\"}"
+                let rack = "shelly_temperature_celsius{sensor=\"pill-1\"}"
+                let humidity = "shelly_humidity_percent{sensor=\"ht-1\",topic=~\".*:0\"}"
+                let stats = [
+                  {"place": "room", "stat": "current", "expr": "max(last_over_time(" + $room + "[3h]))"},
+                  {"place": "room", "stat": "min", "expr": "min(min_over_time(" + $room + $range + "))"},
+                  {"place": "room", "stat": "max", "expr": "max(max_over_time(" + $room + $range + "))"},
+                  {"place": "rack", "stat": "current", "expr": "max(last_over_time(" + $rack + "[3h]))"},
+                  {"place": "rack", "stat": "min", "expr": "min(min_over_time(" + $rack + $range + "))"},
+                  {"place": "rack", "stat": "max", "expr": "max(max_over_time(" + $rack + $range + "))"},
+                  {"place": "humidity", "stat": "current", "expr": "max(last_over_time(" + $humidity + "[3h]))"},
+                  {"place": "humidity", "stat": "min", "expr": "min(min_over_time(" + $humidity + $range + "))"},
+                  {"place": "humidity", "stat": "max", "expr": "max(max_over_time(" + $humidity + $range + "))"}
+                ].map_each(s -> "label_replace(label_replace(" + s.expr + ", \"place\", \"" + s.place + "\", \"\", \"\"), \"stat\", \"" + s.stat + "\", \"\", \"\")")
+                meta path = "/api/v1/query?query=" + $stats.join(" or ").escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.ambient_temperatures = this.data.result.map_each(r -> {
+                  "place": r.metric.place,
+                  "stat": r.metric.stat,
+                  "value": r.value.index(1).number().catch(null)
+                })
+
+            ambient_trend:
+              request_map: |
+                let end = this.generated_at
+                let window = @hardware_window
+                let duration = if $window == "30d" { 2592000 } else if $window == "7d" { 604800 } else { 86400 }
+                let step = if $window == "30d" { 28800 } else if $window == "7d" { 7200 } else { 900 }
+                let room = "shelly_temperature_celsius{sensor=\"ht-1\",topic=~\".*:0\"}"
+                let rack = "shelly_temperature_celsius{sensor=\"pill-1\"}"
+                let query = [{"place": "room", "selector": $room}, {"place": "rack", "selector": $rack}].map_each(p -> "label_replace(max(last_over_time(" + p.selector + "[3h])), \"place\", \"" + p.place + "\", \"\", \"\")").join(" or ")
+                meta path = "/api/v1/query_range?query=" + $query.escape_url_query() + "&start=" + ($end - $duration).string() + "&end=" + $end.string() + "&step=" + $step.string()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                root.ambient_trend = this.data.result.map_each(r -> {
+                  "key": r.metric.place,
+                  "points": r.values.map_each(v -> [v.index(0), v.index(1).number().catch(null)])
+                })
+
             compute_trend:
               request_map: |
                 let end = this.generated_at
