@@ -32,7 +32,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: mosquitto
-          image: mirror.gcr.io/library/eclipse-mosquitto:2.0.23@sha256:6a332cc7a8dbe011cbc076180cbb76b37c6f0f55809682ea08e7980ef0112ad9
+          image: mirror.gcr.io/library/eclipse-mosquitto:2.1.4-alpine@sha256:fa12172a051310efe5bcb7a6a11b77bd5faacb82cbacd7742aa758bf024fd8e4
           ports:
             - name: mqtts
               containerPort: 8883
