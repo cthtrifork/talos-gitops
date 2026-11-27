@@ -194,7 +194,7 @@ spec:
       scanJobTTL: "5m" # raise to keep finished jobs for troubleshooting
       scanJobsRetryDelay: "${TRIVY_SCAN_RETRY_DELAY:=5s}" # also the wait at the concurrent limit: a scan takes ~10 s, the default 30 s idled the slots
       # nodes are control-plane nodes with ~5 GB RAM; client-mode scans use far less than their 4Gi limit
-      scanJobsConcurrentLimit: "${TRIVY_SCANNER_CONCURRENTLIMIT:=4}"
+      scanJobsConcurrentLimit: "${TRIVY_SCANNER_CONCURRENTLIMIT:=8}"
       sbomGenerationEnabled: true
       clusterComplianceEnabled: true
       infraAssessmentScannerEnabled: false # requires privileges that we do not like
