@@ -19,10 +19,10 @@ flowchart TB
         first -->|"no: first run"| record
         first -->|yes| newer{"artifact newer<br/>than the stored one?"}
         newer -->|no| done["Exit"]
-        newer -->|yes| guard{"live ConfigMap hashes ==<br/>hashes in the artifact?"}
+        newer -->|yes| scope{"ignore file or policy<br/>hash changed?"}
+        scope -->|yes| guard{"live ConfigMap hashes ==<br/>hashes in the artifact?"}
         guard -->|"no: Flux is behind,<br/>retry next run"| done
-        guard -->|yes| scope{"ignore file or policy<br/>hash changed?"}
-        scope -->|yes| delete["Delete all VulnerabilityReports"]
+        guard -->|yes| delete["Delete all VulnerabilityReports"]
         scope -->|"no: only VEX"| some["Delete the reports of images<br/>with a homelab-vexhub statement"]
         some --> record
         delete --> kind{"manual run?"}
@@ -42,7 +42,7 @@ flowchart TB
 CI and Flux are independent: the artifact can be published minutes before Flux applies the new ignore ConfigMaps, which the scan
 jobs read. Deleting then would rescan with the old rules and record the new timestamp as handled, so the change would never apply.
 The artifact therefore carries the sha256 of the ignore file and policy it was built from, and the job deletes only when the live
-ConfigMaps hash to the same values. Otherwise it exits and checks again on the next run. A change to `vex/` only passes at once.
+ConfigMaps hash to the same values. Otherwise it exits and checks again on the next run. The guard applies only when the ignore file or policy changed; a change to `vex/` only skips it, since those ConfigMaps are the same as in the last handled build.
 
 ## Scope of a rescan
 

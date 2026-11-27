@@ -27,16 +27,15 @@ record() {
 if [[ -z "${last}" ]]; then echo "first run, recording ${built}"; record; exit 0; fi
 if (( built <= last )); then echo "artifact ${built} is not newer than ${last}"; exit 0; fi
 
-# Flux may not have applied the ignore files of this build yet: wait for the next run
-live_ignore=$(kubectl -n "${ns}" get configmap trivy-ignorefile -o jsonpath='{.data.\.trivyignore\.yaml}' | sha256sum | cut -d' ' -f1)
-live_policy=$(kubectl -n "${ns}" get configmap trivy-ignorepolicy -o jsonpath='{.data.ignorePolicy}' | sha256sum | cut -d' ' -f1)
-if [[ "${live_ignore}" != "${art_ignore}" || "${live_policy}" != "${art_policy}" ]]; then
-  echo "the live ignore files differ from the artifact, retrying next run"
-  exit 0
-fi
-
 # a missing stored hash (state from before this check) counts as changed
 if [[ "$(state ignore-sha256)" != "${art_ignore}" || "$(state policy-sha256)" != "${art_policy}" ]]; then
+  # Flux may not have applied the ignore files of this build yet: wait for the next run
+  live_ignore=$(kubectl -n "${ns}" get configmap trivy-ignorefile -o jsonpath='{.data.\.trivyignore\.yaml}' | sha256sum | cut -d' ' -f1)
+  live_policy=$(kubectl -n "${ns}" get configmap trivy-ignorepolicy -o jsonpath='{.data.ignorePolicy}' | sha256sum | cut -d' ' -f1)
+  if [[ "${live_ignore}" != "${art_ignore}" || "${live_policy}" != "${art_policy}" ]]; then
+    echo "the live ignore files differ from the artifact, retrying next run"
+    exit 0
+  fi
   echo "artifact ${built} is newer than ${last} and the ignore file or policy changed: deleting all VulnerabilityReports"
   kubectl delete vulnerabilityreports.aquasecurity.github.io --all-namespaces --all --wait=false
   record
