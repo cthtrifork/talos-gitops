@@ -79,7 +79,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         startupProbe:
-          failureThreshold: 6
+          failureThreshold: 30
           httpGet:
             path: /results.json
             port: 8080
