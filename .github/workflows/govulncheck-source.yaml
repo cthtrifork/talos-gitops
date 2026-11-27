@@ -59,23 +59,20 @@ jobs:
           docker rm "$cid" > /dev/null
           go version -m work/binary | tee work/buildinfo.txt
 
-      - name: Read the module, tags and revision from the binary
+      - name: Read the build info of the binary
         id: info
         run: |
           set -euo pipefail
-          module=$(awk '$1 == "mod" {print $2; exit}' work/buildinfo.txt)
-          version=$(awk '$1 == "mod" {print $3; exit}' work/buildinfo.txt)
-          revision=$(awk '$1 == "build" && $2 ~ /^vcs.revision=/ {sub("vcs.revision=", "", $2); print $2; exit}' work/buildinfo.txt)
-          tags=$(awk '$1 == "build" && $2 ~ /^-tags=/ {sub("-tags=", "", $2); print $2; exit}' work/buildinfo.txt)
-          goversion=$(awk 'NR == 1 {sub("^go", "", $2); print $2}' work/buildinfo.txt)
-          setting() { awk -v k="$1=" '$1 == "build" && index($2, k) == 1 {sub(k, "", $2); print $2; exit}' work/buildinfo.txt; }
-          goos=$(setting GOOS); goarch=$(setting GOARCH); cgo=$(setting CGO_ENABLED)
-          case "$goversion" in 1.*) ;; *) echo "::error::no Go version in the binary"; exit 1 ;; esac
-          [ -n "$goos" ] && [ -n "$goarch" ] && [ -n "$cgo" ] || { echo "::error::the binary does not record GOOS, GOARCH and CGO_ENABLED, cannot reproduce its build"; exit 1; }
-          ref=${REF:-${revision:-$version}}
-          case "$module" in github.com/*) ;; *) echo "::error::module '$module' is not on github.com"; exit 1 ;; esac
-          case "$ref" in ""|"(devel)") echo "::error::no revision or version in the binary, set the ref input"; exit 1 ;; esac
-          { echo "module=$module"; echo "tags=$tags"; echo "ref=$ref"; echo "goversion=$goversion"; echo "goos=$goos"; echo "goarch=$goarch"; echo "cgo=$cgo"; } | tee -a "$GITHUB_OUTPUT"
+          setting() { awk -v k="$1=" '$1 == "build" && index($2, k) == 1 {print substr($2, length(k) + 1); exit}' work/buildinfo.txt; }
+          read -r module version < <(awk '$1 == "mod" {print $2, $3; exit}' work/buildinfo.txt)
+          goversion=$(awk 'NR == 1 {print substr($2, 3)}' work/buildinfo.txt)
+          goos=$(setting GOOS) goarch=$(setting GOARCH) cgo=$(setting CGO_ENABLED) tags=$(setting -tags)
+          ref=${REF:-$(setting vcs.revision)}; ref=${ref:-$version}
+          [[ $module == github.com/* ]] || { echo "::error::module '$module' is not on github.com"; exit 1; }
+          [[ $ref != "" && $ref != "(devel)" ]] || { echo "::error::no revision or version in the binary, set the ref input"; exit 1; }
+          [ -n "$goversion" ] && [ -n "$goos" ] && [ -n "$goarch" ] && [ -n "$cgo" ] ||
+            { echo "::error::the binary does not record its Go version, GOOS, GOARCH and CGO_ENABLED, cannot reproduce its build"; exit 1; }
+          printf '%s\n' "module=$module" "ref=$ref" "goversion=$goversion" "goos=$goos" "goarch=$goarch" "cgo=$cgo" "tags=$tags" | tee -a "$GITHUB_OUTPUT"
 
       - name: Check out the source
         env:
