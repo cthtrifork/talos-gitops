@@ -662,10 +662,11 @@ processor_resources:
               result_map: 'root.vm_images.homeserver = this'
 
             # Plan limits: the usage-poller container of claude-rc exports them, Prometheus keeps them. The last value of 24 hours,
-            # so a poller that stopped shows as an old received_at, not as missing data.
+            # so a poller that stopped shows as an old received_at, not as missing data. Only the pod with the newest poll counts:
+            # a recreated claude-rc leaves the old pod's series behind.
             usage_pct:
               request_map: |
-                meta path = "/api/v1/query?query=" + "last_over_time(claude_plan_used_percent[24h])".escape_url_query()
+                meta path = "/api/v1/query?query=" + "last_over_time(claude_plan_used_percent[24h]) and on(pod) topk(1, last_over_time(claude_plan_usage_polled_timestamp_seconds[24h]))".escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
@@ -678,7 +679,7 @@ processor_resources:
 
             usage_resets:
               request_map: |
-                meta path = "/api/v1/query?query=" + "last_over_time(claude_plan_resets_at_seconds[24h])".escape_url_query()
+                meta path = "/api/v1/query?query=" + "last_over_time(claude_plan_resets_at_seconds[24h]) and on(pod) topk(1, last_over_time(claude_plan_usage_polled_timestamp_seconds[24h]))".escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
@@ -691,7 +692,7 @@ processor_resources:
 
             usage_polled:
               request_map: |
-                meta path = "/api/v1/query?query=" + "last_over_time(claude_plan_usage_polled_timestamp_seconds[24h])".escape_url_query()
+                meta path = "/api/v1/query?query=" + "topk(1, last_over_time(claude_plan_usage_polled_timestamp_seconds[24h]))".escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get

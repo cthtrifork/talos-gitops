@@ -40,13 +40,15 @@ pipeline:
             meta token = deleted()
             map window {
               root.window = this.name
-              root.pct = this.w.utilization.number().catch(null)
-              root.resets_at = this.w.resets_at.ts_parse("2006-01-02T15:04:05Z07:00").ts_unix().catch(null)
+              root.pct = this.w.utilization.number()
+              root.resets_at = this.w.resets_at.ts_parse("2006-01-02T15:04:05Z07:00").ts_unix().catch(0)
             }
+            # both windows or nothing: a failed mapping updates no gauge, so the poll timestamp never covers an old value.
+            # A window that has not started has no reset time and exports 0.
             root = [
-              {"name": "five_hour", "w": this.five_hour.or({})}.apply("window"),
-              {"name": "seven_day", "w": this.seven_day.or({})}.apply("window"),
-            ].filter(x -> x.pct != null)
+              {"name": "five_hour", "w": this.five_hour}.apply("window"),
+              {"name": "seven_day", "w": this.seven_day}.apply("window"),
+            ]
         - unarchive:
             format: json_array
         - log:
@@ -58,15 +60,12 @@ pipeline:
             labels:
               window: '${! this.window }'
             value: '${! this.pct }'
-        - switch:
-            - check: this.resets_at != null
-              processors:
-                - metric:
-                    type: gauge
-                    name: claude_plan_resets_at_seconds
-                    labels:
-                      window: '${! this.window }'
-                    value: '${! this.resets_at }'
+        - metric:
+            type: gauge
+            name: claude_plan_resets_at_seconds
+            labels:
+              window: '${! this.window }'
+            value: '${! this.resets_at }'
         - metric:
             type: gauge
             name: claude_plan_usage_polled_timestamp_seconds
