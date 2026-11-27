@@ -344,7 +344,7 @@ function stripChips(d, hardwareWarning, environmentWarning) {
   }
   if (d.polaris) add(polarisState(d.polaris.score), `Polaris ${d.polaris.score}/100`, "p-polaris-score");
   const tv = trivyCounts(d);
-  if (tv) add(trivyState(tv), tv.critical ? `Trivy: ${tv.critical} critical` : tv.high ? `Trivy: ${tv.high} high` : "Trivy clean", "p-trivy-vulnerabilities");
+  if (tv) add(tv.critical ? "bad" : tv.high ? "none" : "ok", tv.critical ? `Trivy: ${tv.critical} critical` : tv.high ? `Trivy: ${tv.high} high` : "Trivy clean", "p-trivy-vulnerabilities");
   // The worst of the fullest volume and every node row (/var and the volume groups), linked to the panel it comes from.
   const vol = Math.max(0, ...(d.pvcs || []).map((n) => n.used_pct));
   const nodes = nodeRows(d);
@@ -354,9 +354,10 @@ function stripChips(d, hardwareWarning, environmentWarning) {
     add(usedState(m, 85), `Storage ${m}%`, slug(hot > vol ? "Node disks" : "Volumes"));
   }
   if (d.drops_total !== undefined) add(d.drops_total > 0 ? "warn" : "ok", `${d.drops_total} packets denied`, "p-dropped-traffic");
+  // Counts that are always there (high CVEs, open PRs) stay neutral: an amber chip is for something that needs a look today.
   if (d.github) {
     const o = d.github.other.count;
-    add(o ? "warn" : "ok", o + (o === 1 ? " open PR" : " open PRs"), "p-pull-requests");
+    add(o ? "none" : "ok", o + (o === 1 ? " open PR" : " open PRs"), "p-pull-requests");
   }
   const failed = d.renovate?.projects.filter(isFailed).length;
   if (failed) add("bad", `Renovate: ${failed} failed`, "p-renovate-runs");
@@ -455,7 +456,7 @@ const DropsPanel = (d) => {
     ${top.length > 0 ? Rows(top.map((t) => ({ title: `${t.source} → ${t.destination}`, right: html`<span class="num muted">${t.count}</span>` }))) : nothing}`);
 };
 
-const HARDWARE_WINDOWS = ["24h", "7d", "30d"];
+const HARDWARE_WINDOWS = ["1h", "24h", "7d"];
 const hardwareWindow = () => {
   const saved = localStorage.getItem("cockpit.hardware");
   return HARDWARE_WINDOWS.includes(saved) ? saved : "24h";
@@ -531,7 +532,7 @@ function environmentWarnings(rows, window) {
   return { state: worst.violation.state, text: worst.stat === "current" ? `${worst.name} at ${value} now` : `${worst.name} reached ${value} in ${window}` };
 }
 
-const TEMPERATURE_RANGES = { "24h": [86400, 900], "7d": [604800, 7200], "30d": [2592000, 28800] };
+const TEMPERATURE_RANGES = { "1h": [3600, 60], "24h": [86400, 900], "7d": [604800, 7200] };
 const TREND_COLORS = ["var(--accent)", "var(--suspend)", "var(--ok)"];
 const TREND_DASHES = ["none", "5 3", "2 3"];
 
@@ -591,7 +592,9 @@ const HardwarePanel = (d, nodes, warning, toggle) => {
         <thead><tr><th scope="col">Sensor</th><th scope="col" class="hardware-now">Current</th><th scope="col">Min</th><th scope="col">Max</th></tr></thead>
         ${nodes.map(({ node, rows }) => html`<tbody>
           <tr><th scope="rowgroup" colspan="4" class="mono hardware-node">${node}</th></tr>
-          ${rows.map(({ name, cells, partial }) => html`
+          ${rows.map(({ name, cells, partial }) => !cells.some(({ value }) => Number.isFinite(value))
+            ? html`<tr><th scope="row">${name}</th><td colspan="3" class="muted">not reported</td></tr>`
+            : html`
             <tr><th scope="row">${name}${partial ? html`<sup aria-label="Partial history">*</sup>` : nothing}</th>
             ${cells.map(({ stat, value, violation }) => Number.isFinite(value)
               ? html`<td class=${stat === "current" ? "hardware-now" : "hardware-history"}><span class=${"reading " + (violation?.state ?? "")} title=${violation?.text ?? nothing} aria-label=${violation ? `${value}°C, ${violation.text}` : nothing}>${violation ? html`<span aria-hidden="true">${violation.text.startsWith("Low") ? "↓" : "↑"}</span> ` : nothing}${temperatureText(value)}</span></td>`
@@ -703,7 +706,9 @@ const TrivyPanel = (d) => {
 
 const GIB = 2 ** 30;
 const sizeText = (bytes) => (bytes >= 1024 * GIB ? (bytes / (1024 * GIB)).toFixed(1) + " TiB" : Math.round(bytes / GIB) + " GiB");
-const UsedRow = (label, pct, detail) => html`<div class="limit-row"><span>${label}</span><span class="num"><strong>${Math.round(pct)}%</strong> ${detail}</span></div>${Bar({ label: `${label}, ${Math.round(pct)} percent`, parts: [{ pct, color: usedColor(pct, 85) }] })}`;
+// A long name keeps its start and its end (the end tells volumes apart); the full name is the tooltip.
+const middle = (text, max = 30) => (text.length > max ? text.slice(0, max - 13) + "…" + text.slice(-12) : text);
+const UsedRow = (label, pct, detail) => html`<div class="limit-row"><span title=${label.length > 30 ? label : nothing}>${middle(label)}</span><span class="num"><strong>${Math.round(pct)}%</strong> ${detail}</span></div>${Bar({ label: `${label}, ${Math.round(pct)} percent`, parts: [{ pct, color: usedColor(pct, 85) }] })}`;
 
 const VolumesPanel = (d) => {
   const title = "Volumes";
@@ -732,7 +737,7 @@ function nodeRows(d) {
   for (const x of d.var_size) if (avail.has(x.node)) row(x.node, "Ephemeral /var", avail.get(x.node), x.bytes);
   const free = new Map(d.vg_free.map((x) => [x.node + "/" + x.name, x.bytes]));
   for (const x of d.vg_total) if (free.has(x.node + "/" + x.name)) row(x.node, x.name, free.get(x.node + "/" + x.name), x.bytes);
-  return [...by].map(([node, rows]) => ({ node, rows, max: Math.max(...rows.map((r) => r.pct)) })).sort((a, b) => compare(a.node, b.node));
+  return [...by].map(([node, rows]) => ({ node, rows, max: Math.max(...rows.map((r) => r.pct)) })).sort((a, b) => b.max - a.max || compare(a.node, b.node));
 }
 
 const NodesPanel = (d) => {

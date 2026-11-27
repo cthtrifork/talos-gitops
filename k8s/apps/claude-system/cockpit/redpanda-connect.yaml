@@ -236,7 +236,7 @@ processor_resources:
     processors:
       - mapping: |
           meta drops_window = if @drops == "15m" { "15m" } else { "1h" }
-          meta hardware_window = if ["24h", "7d", "30d"].contains(@hardware) { @hardware } else { "24h" }
+          meta hardware_window = if ["1h", "24h", "7d"].contains(@hardware) { @hardware } else { "24h" }
           root = {"generated_at": now().ts_unix(), "drops_window": @drops_window, "hardware_window": @hardware_window}
       - workflow:
           branches:
@@ -332,7 +332,7 @@ processor_resources:
             hardware_temperatures:
               request_map: |
                 let window = @hardware_window
-                let samples = if $window == "30d" { 43200 } else if $window == "7d" { 10080 } else { 1440 }
+                let samples = if $window == "7d" { 10080 } else if $window == "1h" { 60 } else { 1440 }
                 let sensors = "node_hwmon_temp_celsius"
                 let range = "[" + $window + "]"
                 let drivers = "node_hwmon_chip_names{chip_name=~\"coretemp|nvme|spd5118\"}"
@@ -387,8 +387,8 @@ processor_resources:
               request_map: |
                 let end = this.generated_at
                 let window = @hardware_window
-                let duration = if $window == "30d" { 2592000 } else if $window == "7d" { 604800 } else { 86400 }
-                let step = if $window == "30d" { 28800 } else if $window == "7d" { 7200 } else { 900 }
+                let duration = if $window == "7d" { 604800 } else if $window == "1h" { 3600 } else { 86400 }
+                let step = if $window == "7d" { 7200 } else if $window == "1h" { 60 } else { 900 }
                 let query = """
                   max by (chip_name) (
                     (
@@ -441,8 +441,8 @@ processor_resources:
               request_map: |
                 let end = this.generated_at
                 let window = @hardware_window
-                let duration = if $window == "30d" { 2592000 } else if $window == "7d" { 604800 } else { 86400 }
-                let step = if $window == "30d" { 28800 } else if $window == "7d" { 7200 } else { 900 }
+                let duration = if $window == "7d" { 604800 } else if $window == "1h" { 3600 } else { 86400 }
+                let step = if $window == "7d" { 7200 } else if $window == "1h" { 60 } else { 900 }
                 let room = "shelly_temperature_celsius{sensor=\"ht-1\",topic=~\".*:0\"}"
                 let rack = "shelly_temperature_celsius{sensor=\"pill-1\"}"
                 let query = [{"place": "room", "selector": $room}, {"place": "rack", "selector": $rack}].map_each(p -> "label_replace(max(last_over_time(" + p.selector + "[3h])), \"place\", \"" + p.place + "\", \"\", \"\")").join(" or ")
