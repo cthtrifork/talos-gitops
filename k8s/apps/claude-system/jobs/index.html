@@ -34,44 +34,55 @@
   .sub { margin: 0 0 16px; color: var(--ink-2); font-size: var(--fs-md); }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px; }
   ul { list-style: none; margin: 0; padding: 0; }
-  li.job { display: grid; gap: 4px 12px; grid-template-columns: minmax(0, 1fr) auto; align-items: start; padding: 14px 0; border-top: 1px solid var(--line); }
+  li.job { display: grid; gap: 6px 12px; grid-template-columns: minmax(0, 1fr) auto; align-items: start; padding: 14px 0; border-top: 1px solid var(--line); }
   li.job:first-child { border-top: 0; }
-  .name { font-family: var(--mono); font-size: var(--fs-md); font-weight: 600; overflow-wrap: anywhere; }
-  .desc, .when, .sched, .last { margin: 0; color: var(--ink-2); font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
-  .when { color: var(--ink); font-weight: 600; }
-  .sched, .last { font-size: var(--fs-sm); }
-  .desc, .when, .sched, .last, .msg { grid-column: 1 / -1; }
-  .name + .desc { grid-column: 1; }
+  .id { grid-column: 1; min-width: 0; }
+  .ns { display: block; color: var(--ink-2); font-family: var(--mono); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+  .name { font-family: var(--mono); font-size: var(--fs-lg); font-weight: 600; overflow-wrap: anywhere; }
+  .desc { grid-column: 1 / -1; margin: 0; color: var(--ink-2); font-size: var(--fs-md); }
+  /* three labelled facts: when it runs next, its schedule, when it last ran */
+  .facts { grid-column: 1 / -1; display: grid; gap: 6px 24px; margin: 4px 0 0; grid-template-columns: 1fr; }
+  .fact { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); gap: 0 8px; align-items: baseline; font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
+  .fact .lbl { color: var(--ink-2); font-size: var(--fs-sm); }
+  .fact .val { overflow-wrap: anywhere; }
+  .fact .val small { display: block; color: var(--ink-2); font-size: var(--fs-sm); }
+  .when { font-weight: 600; }
+  .msg { grid-column: 1 / -1; }
+  @media (min-width: 640px) {
+    .facts { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 1fr); }
+    .fact { grid-template-columns: 1fr; gap: 1px; align-content: start; align-items: start; }
+  }
   .msg { margin: 4px 0 0; padding: 8px 12px; border-radius: 10px; font-size: var(--fs-md); font-weight: 600; white-space: pre-line; }
   .msg:empty { display: none; }
   .msg.ok { color: var(--ok); background: var(--ok-bg); }
   .msg.warn { color: var(--warn); background: var(--warn-bg); }
   .badge.run { background: var(--ok-bg); color: var(--ok); }
   .badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 600; background: var(--warn-bg); color: var(--warn); }
-  button { font: inherit; font-weight: 600; min-height: 44px; padding: 8px 18px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); cursor: pointer; grid-row: 1; grid-column: 2; }
+  button { font: inherit; font-weight: 600; min-height: 44px; padding: 8px 18px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); cursor: pointer; grid-row: 1; grid-column: 2; align-self: start; min-width: 8.5em; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   button.secondary { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
   button.confirm { background: var(--warn-bg); color: var(--warn); box-shadow: inset 0 0 0 2px var(--warn); }
   button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   button:disabled { opacity: .5; cursor: default; }
   .none { margin: 0; padding: 14px 0; color: var(--ink-2); font-size: var(--fs-md); }
-  .updated { margin: 12px 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
-  .err { margin: 12px 0 0; color: var(--warn); font-size: var(--fs-md); }
-  .err:empty { display: none; }
+  .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .stamp { color: var(--ink-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stamp:empty { display: none; }
+  .banner { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: var(--fs-md); white-space: pre-line; }
+  .banner:empty { display: none; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
-  <a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a>
+  <div class="topline"><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><span id="updated" class="stamp" role="status"></span></div>
   <h1>Run jobs</h1>
   <p class="sub">Scheduled CronJobs and when they run next. Run now starts one from its own template.</p>
+  <p id="error" class="banner" role="alert"></p>
   <section class="card" aria-label="CronJobs">
     <ul id="jobs"></ul>
-    <p id="loading" class="none">Loading jobs\u2026</p>
+    <p id="loading" class="none">Loading jobs&hellip;</p>
     <p id="none" class="none" hidden>No namespace allows running jobs.</p>
   </section>
-  <p id="error" class="err" role="alert"></p>
-  <p id="updated" class="updated"></p>
 </main>
 <script>
 (function () {
@@ -114,14 +125,13 @@
     return n;
   }
   function whenText(j) {
-    if (j.suspended) return "Suspended, nothing runs by itself";
+    if (j.suspended) return "Suspended";
     var n = nextOf(j);
-    return n ? "Next run in " + span(n - Date.now()) + " (" + new Date(n).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) + ")" : "Next run unknown";
+    return n ? "in " + span(n - Date.now()) + " (" + new Date(n).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) + ")" : "unknown";
   }
-  function schedText(j) { return cronWords(j.schedule) + " \u00b7 " + j.schedule + " (" + (j.time_zone || "UTC") + ")"; }
   function lastText(j) {
     var t = Date.parse(j.last_run);
-    return isNaN(t) ? "Never scheduled" : "Last scheduled " + span(Date.now() - t) + " ago";
+    return isNaN(t) ? "never" : span(Date.now() - t) + " ago";
   }
 
   // soonest next run first, suspended last, the same order as the cockpit panel
@@ -144,21 +154,29 @@
     jobs.forEach(function (j) {
       var li = el("li", undefined, "job");
       li.setAttribute("data-key", j.namespace + "/" + j.name);
-      var name = el("div", j.namespace + "/" + j.name, "name");
+      var id = el("div", undefined, "id");
+      id.appendChild(el("span", j.namespace, "ns"));
+      var name = el("div", j.name, "name");
       if (j.suspended) name.appendChild(el("span", "suspended", "badge"));
       var live = el("span", "running", "badge run");
       live.hidden = true;
       name.appendChild(live);
-      li.appendChild(name);
+      id.appendChild(name);
+      li.appendChild(id);
       var b = el("button", "Run now", j.suspended ? "secondary" : "");
       b.type = "button";
       var label = j.namespace + "/" + j.name;
       b.setAttribute("aria-label", "Run now: " + label);
       li.appendChild(b);
       li.appendChild(el("p", j.description || "No description. Add the annotation claude-jobs/description to the CronJob.", "desc"));
-      li.appendChild(el("p", "", "when"));
-      li.appendChild(el("p", "", "sched"));
-      li.appendChild(el("p", "", "last"));
+      var facts = el("div", undefined, "facts");
+      [["Next run", "when"], ["Schedule", "sched"], ["Last run", "last"]].forEach(function (f) {
+        var d = el("div", undefined, "fact");
+        d.appendChild(el("span", f[0], "lbl"));
+        d.appendChild(el("span", "", "val " + f[1]));
+        facts.appendChild(d);
+      });
+      li.appendChild(facts);
       var msg = el("p", "", "msg");
       msg.setAttribute("role", "status");
       li.appendChild(msg);
@@ -186,7 +204,9 @@
       var j = byKey[li.getAttribute("data-key")];
       if (!j) return;
       li.querySelector(".when").textContent = whenText(j);
-      li.querySelector(".sched").textContent = schedText(j);
+      var sc = li.querySelector(".sched"), words = cronWords(j.schedule), zone = j.time_zone || "UTC";
+      sc.textContent = words === j.schedule ? j.schedule + " (" + zone + ")" : words + " (" + zone + ")";
+      if (words !== j.schedule) { var raw = el("small", j.schedule); sc.appendChild(raw); }
       li.querySelector(".last").textContent = lastText(j);
       li.querySelector(".badge.run").hidden = !j.running;
     });
@@ -196,7 +216,7 @@
     return fetch("api/v1/status", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
       .then(function (s) { status = s; $("error").textContent = ""; $("loading").hidden = true; $("updated").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); build(); tick(); })
-      .catch(function (e) { $("error").textContent = "Cannot read status: " + e.message; });
+      .catch(function (e) { $("loading").hidden = !!status; $("loading").textContent = "Could not load jobs."; $("error").textContent = "Cannot read status: " + e.message + (status ? ". Showing the last data received." : ""); });
   }
 
   function run(j, b, msg) {

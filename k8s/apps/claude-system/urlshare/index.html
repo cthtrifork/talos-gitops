@@ -19,7 +19,7 @@
   :root {
     color-scheme: light dark;
     --page: #f4f4f1; --card: #ffffff; --ink: #141413; --ink-2: #4a4843; --line: #e3e2da;
-    --accent: #1f63b5; --on-accent: #ffffff; --ok: #1a7f4b; --warn: #8a5a00; --bad: #b3261e; --on-bad: #ffffff;
+    --accent: #1f63b5; --on-accent: #ffffff; --ok: #1a7f4b; --warn: #8a5a00; --bad: #b3261e; --on-bad: #ffffff; --warn-bg: #fff4d6;
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
     /* Shared with the cockpit: the type scale is small (labels, metadata), medium (body), large (titles), extra large (page title, headline numbers). */
@@ -28,7 +28,7 @@
   @media (prefers-color-scheme: dark) {
     :root {
       --page: #0d0d0d; --card: #1a1a19; --ink: #f0efec; --ink-2: #c9c7be; --line: #2c2c2a;
-      --accent: #3987e5; --ok: #3cc58a; --warn: #f2d98a; --bad: #ff8a80; --on-bad: #0d0d0d;
+      --accent: #3987e5; --ok: #3cc58a; --warn: #f2d98a; --bad: #ff8a80; --on-bad: #0d0d0d; --warn-bg: #3a2f10;
     }
   }
   * { box-sizing: border-box; }
@@ -37,7 +37,7 @@
   button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   body { margin: 0; background: var(--page); color: var(--ink); font: var(--fs-lg)/1.5 var(--font);
          padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(40px, calc(env(safe-area-inset-bottom) + 24px)) max(16px, env(safe-area-inset-left)); display: flex; justify-content: center; }
-  main { width: 100%; max-width: 640px; }
+  main { width: 100%; max-width: 760px; }
   .back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 2px; color: var(--accent); font-size: var(--fs-md); text-decoration: none; }
   .back:hover { text-decoration: underline; }
   .back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
@@ -45,6 +45,12 @@
   h2 { font-size: var(--fs-lg); margin: 22px 0 10px; }
   .sub { margin: 0 0 16px; color: var(--ink-2); }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  .card.waiting { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+  .card .err { margin: 10px 0 0; font-size: var(--fs-md); color: var(--bad); }
+  .card .err:empty { display: none; }
+  .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .stamp { color: var(--ink-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stamp:empty { display: none; }
   .host { font-weight: 700; font-size: var(--fs-lg); overflow-wrap: anywhere; }
   .url { font-family: var(--mono); font-size: var(--fs-md); color: var(--ink-2); overflow-wrap: anywhere; margin: 4px 0 8px; }
   .meta { font-size: var(--fs-md); color: var(--ink-2); }
@@ -58,13 +64,16 @@
   button:active { filter: brightness(0.9); }
   button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   button:disabled { opacity: .55; cursor: default; }
-  .hint { margin: 10px 0 0; font-size: var(--fs-md); color: var(--warn); min-height: 1.5em; }
+  .banner { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: var(--fs-md); white-space: pre-line; }
+  .banner:empty { display: none; }
   .empty { color: var(--ink-2); }
   /* Destructive actions: outlined red at rest; the confirm step is solid red so it cannot be mistaken for the harmless Cancel next to it. */
   button.danger { background: transparent; color: var(--bad); border: 1px solid var(--bad); }
   button.danger.solid { background: var(--bad); color: var(--on-bad); }
   .cache { margin-top: 24px; }
   .cache h2 { margin-top: 0; }
+  .cache .row:empty { display: none; }
+  .cache .note:empty { display: none; }
   .cache .stat { margin: 0; font-size: var(--fs-md); color: var(--ink-2); }
   .cache .stat strong { color: var(--ink); }
   .cache .ask { margin: 12px 0 0; font-size: var(--fs-md); color: var(--ink-2); }
@@ -73,26 +82,27 @@
 </head>
 <body>
 <main>
-  <a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a>
+  <div class="topline"><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><span id="updated" class="stamp" role="status"></span></div>
   <h1>Share URLs</h1>
   <p class="sub">Claude asked for these pages. Approving fetches exactly the address shown, once, and keeps the page for 24 hours.</p>
+  <p id="error" class="banner" role="alert"></p>
   <h2>Waiting for you</h2>
-  <div id="pending"></div>
+  <div id="pending"><p class="empty">Loading…</p></div>
   <h2>Answered</h2>
-  <div id="done"></div>
+  <div id="done"><p class="empty">Loading…</p></div>
   <section class="card cache" aria-labelledby="cache-h">
     <h2 id="cache-h">Cache</h2>
-    <p class="stat" id="cache-stat">Loading...</p>
+    <p class="stat" id="cache-stat">Loading…</p>
     <p class="ask" id="cache-ask" hidden>Deletes every stored page and the list of requests. Claude has to ask again.</p>
     <div class="row" id="cache-row"></div>
     <p id="cache-note" class="note" role="status"></p>
   </section>
-  <p id="error" class="hint" role="status"></p>
 </main>
 
 <script>
 (function () {
   var busy = {};   // id -> true while a click is in flight
+  var lastFailure = {};   // id -> why the last click on that request was refused, shown in its card
 
   function ago(t, now) {
     var s = Math.max(0, now - t);
@@ -100,18 +110,25 @@
   }
 
   function act(r, action, card) {
+    var failure = '';
     busy[r.id] = true;
     card.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
     fetch('api/v1/requests/' + r.id + '/' + action, { method: 'POST', headers: { 'X-Requested-With': 'urlshare-approval' } })
       .then(function (res) { return res.json().then(function (b) { return { ok: res.ok, body: b }; }); })
-      .then(function (x) { document.getElementById('error').textContent = x.ok ? '' : (x.body.error || 'The fetch failed.'); })
-      .catch(function () { document.getElementById('error').textContent = 'Could not reach the page.'; })
-      .then(function () { delete busy[r.id]; refresh(); });
+      .then(function (x) { failure = x.ok ? '' : (x.body.error || 'The fetch failed.'); })
+      .catch(function () { failure = 'Could not reach the page.'; })
+      .then(function () {
+        delete busy[r.id];
+        // the list is rebuilt on refresh, so the reason goes into the card that replaces this one
+        if (failure) lastFailure[r.id] = failure; else delete lastFailure[r.id];
+        document.getElementById('error').textContent = '';
+        refresh();
+      });
   }
 
   function card(r, now) {
     var el = document.createElement('section'), host = '', u = r.url;
-    el.className = 'card';
+    el.className = r.status === 'pending' ? 'card waiting' : 'card';
     try { host = new URL(u).host; } catch (e) { host = ''; }
     var h = document.createElement('div'); h.className = 'host'; h.textContent = host; el.appendChild(h);
     var p = document.createElement('div'); p.className = 'url'; p.textContent = u; el.appendChild(p);
@@ -123,6 +140,7 @@
     if (r.status === 'failed' && r.error) {
       var e = document.createElement('div'); e.className = 'meta bad'; e.textContent = r.error; el.appendChild(e);
     }
+    var cardErr = document.createElement('div'); cardErr.className = 'err'; cardErr.setAttribute('role', 'alert'); cardErr.textContent = lastFailure[r.id] || ''; el.appendChild(cardErr);
     if (r.status !== 'approved' && r.status !== 'fetching') {
       var row = document.createElement('div'); row.className = 'row';
       var yes = document.createElement('button'); yes.type = 'button';
@@ -174,7 +192,7 @@
       row.appendChild(button('Cancel', 'no', cancelClear));
       row.appendChild(button('Yes, delete ' + plural(cache.requests, 'request', 'requests'), 'danger solid', clearCache));
     } else {
-      var b = button(stage === 'clearing' ? 'Clearing...' : 'Clear cache', 'danger', askClear);
+      var b = button(stage === 'clearing' ? 'Clearing…' : 'Clear cache', 'danger', askClear);
       b.disabled = stage === 'clearing' || empty;
       row.appendChild(b);
     }
@@ -206,6 +224,8 @@
       var rest = d.requests.filter(function (r) { return r.status !== 'pending'; });
       var stored = d.requests.filter(function (r) { return r.status === 'approved'; });
       cache = { requests: d.requests.length, pages: stored.length, bytes: stored.reduce(function (n, r) { return n + (r.size || 0); }, 0) };
+      document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      document.title = waiting.length ? 'Share URLs (' + waiting.length + ' waiting)' : 'Share URLs';
       fill('pending', waiting, d.now, 'Nothing is waiting.');
       fill('done', rest, d.now, 'Nothing yet.');
       renderCache();
