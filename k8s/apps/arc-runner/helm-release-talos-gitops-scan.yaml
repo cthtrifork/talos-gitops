@@ -219,9 +219,6 @@ spec:
             volumeMounts:
               - name: work
                 mountPath: /home/runner/_work
-              # Without it the storage mount below leaves ~/.local root-owned and mise or sigstore cannot write there.
-              - name: local
-                mountPath: /home/runner/.local
               - name: container-rootless-storage
                 mountPath: /home/runner/.local/share/containers/storage
               - name: tmp
@@ -255,9 +252,6 @@ spec:
             emptyDir:
               medium: Memory
               sizeLimit: 256Mi # counts against the pod's memory
-          - name: local
-            emptyDir:
-              sizeLimit: 1Gi
           - name: dind-sock
             emptyDir: {}
           - name: dind-externals
