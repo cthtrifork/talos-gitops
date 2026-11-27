@@ -18,6 +18,11 @@ on:
         required: false
         default: ""
         type: string
+      scan-hosted:
+        description: "Scan on a GitHub-hosted runner: the image is too big for zot's first sync from the private runners"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -172,12 +177,14 @@ jobs:
     name: Trivy database
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
     uses: ./.github/workflows/update-trivy-db.yaml
+    with:
+      hosted: ${{ inputs.scan-hosted }}
 
   # the Renovate bump PR gets this comparison too (images.yaml), but only after the merge
   scan:
     name: Scan ${{ inputs.name }}
     needs: [build, trivy-db]
-    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
+    runs-on: ${{ !inputs.scan-hosted && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
     timeout-minutes: 20
     env:
       TRIVY_SKIP_DB_UPDATE: true

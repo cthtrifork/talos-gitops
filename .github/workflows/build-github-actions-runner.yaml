@@ -41,3 +41,4 @@ jobs:
       name: github-actions-runner
       tag-prefix: runner
       version-arg: RUNNER_VERSION
+      scan-hosted: true # 3 GB: zot's first sync stalls from the private runners

@@ -7,6 +7,11 @@ on:
     - cron: "17 3 * * *"
   workflow_dispatch:
   workflow_call:
+    inputs:
+      hosted:
+        description: Run on a GitHub-hosted runner, for callers whose scan job does
+        type: boolean
+        default: false
     outputs:
       version:
         description: The Trivy version to scan with
@@ -23,14 +28,14 @@ env:
 jobs:
   update:
     name: Update Trivy database
-    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
+    runs-on: ${{ !inputs.hosted && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
     timeout-minutes: 15
     outputs:
       version: ${{ env.TRIVY_VERSION }}
     env:
       # through the cluster zot on the private runner (not for fork PRs); empty keeps the defaults
-      TRIVY_DB_REPOSITORY: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'zot.registry-system.svc.cluster.local:5000/ghcr-cache/aquasecurity/trivy-db' || '' }}
-      TRIVY_JAVA_DB_REPOSITORY: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'zot.registry-system.svc.cluster.local:5000/ghcr-cache/aquasecurity/trivy-java-db' || '' }}
+      TRIVY_DB_REPOSITORY: ${{ !inputs.hosted && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'zot.registry-system.svc.cluster.local:5000/ghcr-cache/aquasecurity/trivy-db' || '' }}
+      TRIVY_JAVA_DB_REPOSITORY: ${{ !inputs.hosted && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'zot.registry-system.svc.cluster.local:5000/ghcr-cache/aquasecurity/trivy-java-db' || '' }}
     steps:
       - name: Date
         id: date
