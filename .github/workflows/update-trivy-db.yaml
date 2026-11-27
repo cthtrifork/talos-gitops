@@ -23,10 +23,14 @@ env:
 jobs:
   update:
     name: Update Trivy database
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
     timeout-minutes: 15
     outputs:
       version: ${{ env.TRIVY_VERSION }}
+    env:
+      # through the cluster zot on the private runner (not for fork PRs); empty keeps the defaults
+      TRIVY_DB_REPOSITORY: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'zot.registry-system.svc.cluster.local:5000/ghcr-cache/aquasecurity/trivy-db' || '' }}
+      TRIVY_JAVA_DB_REPOSITORY: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'zot.registry-system.svc.cluster.local:5000/ghcr-cache/aquasecurity/trivy-java-db' || '' }}
     steps:
       - name: Date
         id: date
@@ -37,9 +41,15 @@ jobs:
         with:
           path: ${{ github.workspace }}/.cache/trivy
           key: cache-trivy-${{ steps.date.outputs.date }}
-      - name: Setup Trivy
+      - name: Checkout the install action
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions/install-trivy
+          persist-credentials: false
+      - name: Install Trivy
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/install-trivy
         with:
           version: ${{ env.TRIVY_VERSION }}
       - name: Download databases

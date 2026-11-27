@@ -9,6 +9,8 @@ on:
       - images/tools/**
       - .github/workflows/build-tools.yaml
       - .github/workflows/build-release-image.yaml
+      - .github/actions/trivy-scan/**
+      - .github/actions/install-trivy/**
   pull_request:
     branches:
       - main
@@ -16,6 +18,8 @@ on:
       - images/tools/**
       - .github/workflows/build-tools.yaml
       - .github/workflows/build-release-image.yaml
+      - .github/actions/trivy-scan/**
+      - .github/actions/install-trivy/**
   schedule:
     - cron: "17 4 * * 0"
   workflow_dispatch:

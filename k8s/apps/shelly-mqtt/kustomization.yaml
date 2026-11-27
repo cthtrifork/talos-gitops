@@ -1,0 +1,26 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - certificate.yaml
+  - issuer.yaml
+  - mosquitto-deployment.yaml
+  - exporter-deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+  - podmonitor.yaml
+  - prometheusrule.yaml
+configMapGenerator:
+  - name: mosquitto-config
+    namespace: shelly-mqtt
+    files:
+      - mosquitto.conf
+      - acl
+  - name: mqtt2prometheus-config
+    namespace: shelly-mqtt
+    files:
+      - config.yaml=exporter-config.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true # the Deployments reload through Reloader

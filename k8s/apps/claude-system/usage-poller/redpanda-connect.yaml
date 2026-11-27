@@ -1,0 +1,79 @@
+---
+# Polls the plan limits of the login on claude-home and exports them as Prometheus gauges on :4195/metrics (PodMonitor claude-rc).
+# `claude remote-control` never runs a statusLine, so this asks the endpoint Claude Code's own /usage uses. It is undocumented
+# (the anthropic-beta header is an internal detail) and can change. The token is read from the mounted login, lives in metadata
+# for the one request and is dropped; Claude Code refreshes it in place, so while the login is expired the poll answers 401.
+http:
+  enabled: true
+  address: 0.0.0.0:4195
+  debug_endpoints: false
+
+cache_resources:
+  - label: login
+    file:
+      directory: /home/claude/.claude
+
+input:
+  generate:
+    interval: 5m
+    count: 0
+    mapping: 'root = ""'
+
+pipeline:
+  processors:
+    - try:
+        - cache:
+            resource: login
+            operator: get
+            key: .credentials.json
+        - mapping: |
+            meta token = content().parse_json().claudeAiOauth.accessToken
+            root = ""
+        - http:
+            url: https://api.anthropic.com/api/oauth/usage
+            verb: GET
+            headers:
+              Authorization: 'Bearer ${! @token }'
+              anthropic-beta: oauth-2025-04-20
+            timeout: 15s
+        - mapping: |
+            meta token = deleted()
+            map window {
+              root.window = this.name
+              root.pct = this.w.utilization.number()
+              root.resets_at = this.w.resets_at.ts_parse("2006-01-02T15:04:05Z07:00").ts_unix().catch(0)
+            }
+            # both windows or nothing: a failed mapping updates no gauge, so the poll timestamp never covers an old value.
+            # A window that has not started has no reset time and exports 0.
+            root = [
+              {"name": "five_hour", "w": this.five_hour}.apply("window"),
+              {"name": "seven_day", "w": this.seven_day}.apply("window"),
+            ]
+        - unarchive:
+            format: json_array
+        - log:
+            message: polled
+            fields_mapping: 'root = {"window": this.window, "used_percent": this.pct}'
+        - metric:
+            type: gauge
+            name: claude_plan_used_percent
+            labels:
+              window: '${! this.window }'
+            value: '${! this.pct }'
+        - metric:
+            type: gauge
+            name: claude_plan_resets_at_seconds
+            labels:
+              window: '${! this.window }'
+            value: '${! this.resets_at }'
+        - metric:
+            type: gauge
+            name: claude_plan_usage_polled_timestamp_seconds
+            value: '${! timestamp_unix() }'
+    - catch:
+        - log:
+            level: WARN
+            message: 'poll failed: ${! error() }'
+
+output:
+  drop: {}

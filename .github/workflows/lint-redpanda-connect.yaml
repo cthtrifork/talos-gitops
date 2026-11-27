@@ -15,10 +15,11 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint Connect pipelines
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  changes:
+    runs-on: ubuntu-slim
+    timeout-minutes: 3
+    outputs:
+      relevant: ${{ github.event_name == 'workflow_dispatch' || steps.changed.outputs.any_changed == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -32,18 +33,27 @@ jobs:
         with:
           files: |
             **/redpanda-connect.yaml
+            .github/workflows/lint-redpanda-connect.yaml
           files_ignore: |
             **/rendered/**
+
+  lint:
+    name: Lint Connect pipelines
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Lint all Redpanda Connect files
-        if: github.event_name == 'workflow_dispatch' || steps.changed.outputs.any_changed == 'true'
         run: |
           mapfile -t files < <(git ls-files '*/redpanda-connect.yaml' | grep -v '/rendered/')
           [ "${#files[@]}" -gt 0 ] || { echo "::error::no redpanda-connect.yaml found"; exit 1; }
           printf 'Linting %s\n' "${files[@]}"
           # the pipelines read /etc/connect/index.html with file(); an empty page stands in for it
           : > "${RUNNER_TEMP}/index.html"
-          docker run --rm --volume "${PWD}:/repo:ro" --volume "${RUNNER_TEMP}/index.html:/etc/connect/index.html:ro" --workdir /repo \
+          podman run --rm --volume "${PWD}:/repo:ro" --volume "${RUNNER_TEMP}/index.html:/etc/connect/index.html:ro" --workdir /repo \
             "mirror.gcr.io/redpandadata/connect:${CONNECT_VERSION}" lint --skip-env-var-check "${files[@]}"
-      - name: Nothing to lint
-        if: github.event_name == 'pull_request' && steps.changed.outputs.any_changed != 'true'
-        run: echo "No Redpanda Connect file changed in this PR."

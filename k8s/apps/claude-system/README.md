@@ -411,8 +411,7 @@ flowchart LR
   cockpit -->|"GET /api/v1/requests"| urlshare[claude-urlshare :8080]
   cockpit -->|"GET /api/v1/status"| vmup[claude-vm-upgrade]
   cockpit -->|"latest image digest"| ghcr[ghcr.io :443]
-  poller["claude-rc usage-poller"] -->|"POST /api/v1/usage<br/>5 h and 7 d usage"| ingest["claude-cockpit-ingest :8081<br/>claude-rc pod only"]
-  ingest --> cockpit
+  poller["claude-rc usage-poller :4195"] -->|"scraped (PodMonitor claude-rc)<br/>5 h and 7 d usage"| prom
 
   classDef new fill:#e4eefb,stroke:#2a78d6,stroke-width:2px,color:#0b0b0b
   class cockpit new
@@ -423,16 +422,13 @@ flowchart LR
 | Dropped traffic, firing alerts, disk | Prometheus (`hubble_drop_total`, `/api/v1/alerts`, `node_filesystem_*`). The Omni key, certificate and ExternalSecret alerts show under alerts |
 | Flux, Renovate runs | Kubernetes API (`claude-cockpit` ClusterRole: get and list on Kustomizations, HelmReleases and RenovateProjects) |
 | Polaris score | `polaris-dashboard` `/results.json` |
-| Trivy vulnerabilities | Prometheus, from the trivy-operator metrics (`trivy_image_vulnerabilities` for the counts per severity and the worst images, `trivy_vulnerability_id` for the critical findings with CVSS score and fixed version). The operator exports one series per container, so the queries take the `max` per `image_digest` first and an image run by several pods is counted once. Findings are per package, so one CVE in three packages counts three times. Critical is red, high amber, the rest only counted |
+| Trivy vulnerabilities | Prometheus, from the trivy-operator metrics (`trivy_image_vulnerabilities` for the counts per severity and the worst images, ranked most critical then high like the Trivy page, `trivy_vulnerability_id` for the critical findings with CVSS score and fixed version). The operator exports one series per container, so the queries take the `max` per `image_digest` first and an image run by several pods is counted once. Findings are per package, so one CVE in three packages counts three times. Critical is red, high amber, the rest only counted |
 | Pull requests, issues | GitHub search over all repositories of the owner the App is installed on (private ones included), with the cockpit's own one-hour read-only App token (`githubaccesstoken.yaml`, `externalsecret.yaml`) |
 | Running versions | `claude-vm-upgrade` `GET /api/v1/status`, compared with the digest of each VM's `latest` image in `ghcr.io`, read with the runner's `ghcr-pull` read:packages token (`homeserver-bootc` is a private package) |
 | Share URLs | `claude-urlshare` `GET /api/v1/requests` on the approval listener (read-only, never the page content): what waits for approval and what was decided in the last 24 hours. `CiliumNetworkPolicy/claude-urlshare` lets the cockpit pod in on `:8080` |
 | Elevate Claude | `claude-elevate` `GET /api/v1/status` on the page listener: the active grants (tier, namespace, expiry), nothing else; the status's csrf value is dropped in the mapping. `CiliumNetworkPolicy/claude-elevate` lets the cockpit pod in on `:8080` |
 | Scheduled jobs | `claude-jobs` `GET /api/v1/status` on the page listener: namespace, name, schedule, time zone, suspended, last run; the csrf value is dropped in the mapping. The next run is computed in the page. `CiliumNetworkPolicy/claude-jobs` lets the cockpit pod in on `:8080` |
-| Claude usage | Pushed every 5 minutes by the `usage-poller` container of `claude-rc` (see "Claude usage from the pod") to `POST /api/v1/usage` on `:8081`, one value kept in memory for 24 hours |
-
-The `:8081` listener has no token, like `vm-upgrade`: `CiliumNetworkPolicy/claude-cockpit` lets in the `app=claude-rc` pod only, through the ClusterIP Service
-`claude-cockpit-ingest`, so a spoofed sender could only change what the page shows.
+| Claude usage | Prometheus, from the `claude_plan_*` metrics the `usage-poller` container of `claude-rc` exports (see "Claude usage from the pod"): the last value of 24 hours, and `claude_plan_usage_polled_timestamp_seconds` for how old it is |
 
 ### On the iPhone Home Screen (cockpit and share URLs pages)
 
@@ -446,19 +442,21 @@ entry and add it again; iOS caches it.
 
 `claude remote-control` is a server without a terminal UI, so its sessions never run a `statusLine`. The `usage-poller` container of
 `claude-rc` instead asks `GET https://api.anthropic.com/api/oauth/usage`, the endpoint behind Claude Code's `/usage`, every 5 minutes (`POLL_INTERVAL`)
-with the login on `claude-home`, mounted read-only. It posts the two windows (percentage and reset time in epoch seconds) to
-`http://claude-cockpit-ingest.claude-system.svc:8081/api/v1/usage`. The script comes from the
-`claude-usage-poller` ConfigMap and only logs when a poll fails. `CiliumNetworkPolicy/claude-cockpit` lets only `app=claude-rc` in on `:8081`.
+with the login on `claude-home`, mounted read-only. It is a Redpanda Connect pipeline (`usage-poller/redpanda-connect.yaml`) that exports the windows as gauges
+on `:4195/metrics`, which Prometheus scrapes (`PodMonitor/claude-rc`, the `prometheus-scrape` label opens the port): `claude_plan_used_percent{window}`,
+`claude_plan_resets_at_seconds{window}` with `window` `five_hour` or `seven_day`, and `claude_plan_usage_polled_timestamp_seconds`. The cockpit reads them with
+PromQL, so every replica shows the same values, a restart loses nothing and Prometheus keeps the history. The pipeline logs the percentages of each poll; a
+failed poll logs the reason and the gauges keep the last values.
 
 Caveats: the endpoint is undocumented (its `anthropic-beta` header is an internal detail) and can change. A long-lived `claude setup-token` token answers
 403 there (tested), so only the login can be used. The poller never refreshes the token: Claude Code does that in place, so while the login is expired the
-poll logs `usage endpoint answered 401` and the panel goes stale after 6 hours. Check with `kubectl -n claude-system logs deploy/claude-rc -c usage-poller`.
+poll logs `poll failed: unexpected response code: 401` and the panel goes stale after 6 hours. Check with `kubectl -n claude-system logs deploy/claude-rc -c usage-poller`.
 
 Check after Flux applied it:
 
 ```sh
 kubectl -n claude-system get pods -l app=claude-cockpit
-kubectl -n claude-system logs deploy/claude-rc -c usage-poller --tail=3                 # "posted" every 5 minutes
+kubectl -n claude-system logs deploy/claude-rc -c usage-poller --tail=3                 # "polled" every 5 minutes
 kubectl -n claude-system port-forward deploy/claude-cockpit 8080:8080                # needs the debug tier
 curl -s localhost:8080/api/v1/status | jq 'keys, .meta'                               # meta.workflow.failed names a source that did not answer
 ```

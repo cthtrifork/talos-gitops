@@ -39,8 +39,9 @@ EOF
 RUN mkdir -p /var/lib/shared && \
   chmod -R a+rx /var/lib/shared
 
-RUN echo runner:10000:5000 | tee /etc/subuid; \
-  echo runner:10000:5000 | tee /etc/subgid;
+# 65536 IDs: rootless podman unpacks images with files owned by high IDs (65532, 10001)
+RUN echo runner:100000:65536 | tee /etc/subuid; \
+  echo runner:100000:65536 | tee /etc/subgid;
 
 USER runner
 ENV DOCKER_BUILDKIT=1
@@ -66,16 +67,6 @@ COPY Brewfile Brewfile
 RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew bundle
 
 ENV HOME=/home/runner
-
-RUN mkdir -p "${HOME}/.cache/trivy/db" \
-	&& oras pull ghcr.io/aquasecurity/trivy-db:2 \
-  && tar -xzf db.tar.gz -C "${HOME}/.cache/trivy/db" \
-  && rm db.tar.gz
-
-RUN mkdir -p "${HOME}/.cache/trivy/java-db" \
-	&& oras pull ghcr.io/aquasecurity/trivy-java-db:1 \
-  && tar -xzf javadb.tar.gz -C "${HOME}/.cache/trivy/java-db" \
-  && rm javadb.tar.gz
 
 # Remove Haskell, android and dotnet
 RUN rm -rf /usr/share/dotnet || true

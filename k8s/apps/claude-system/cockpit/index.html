@@ -57,7 +57,7 @@
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
-  main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+  main { max-width: 68rem; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
   h1 { font-size: var(--fs-xl); margin: 0; }
   h2 { font-size: var(--fs-sm); margin: 0 0 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
   h3 { font-size: var(--fs-lg); margin: 0; font-weight: 600; }
@@ -85,11 +85,18 @@
   .ok { color: var(--ok); }
   .none { color: var(--ink-2); }
   .info { color: var(--accent); }
-  /* Columns, not a grid or flex row: cards are packed top to bottom and the browser balances the columns, so a short card
-     (no alerts, a score) never sits in a row next to a tall list and never gets stretched into a mostly empty box.
-     Cards keep a fixed order. */
-  .band { column-width: 300px; column-gap: 12px; }
-  .panel { background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; break-inside: avoid; margin-bottom: 12px; }
+  /* A grid with fixed tracks, cards in a fixed order and top aligned: a card only ever changes height, it never changes place.
+     (CSS columns balance by height, so a refresh that lengthened one list made cards jump between columns.) */
+  /* Each section is a few fixed columns, and every panel has its own column, chosen so the columns end at about the same height.
+     A panel only ever changes height, never place. On a narrow screen the columns stack, left to right. */
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
+  .section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; margin-bottom: 10px; }
+  .section-head h2 { margin: 0; }
+  .window-pick { display: flex; align-items: center; gap: 12px; }
+  .window-pick .seg { margin: 0; }
+  .col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  @media (min-width: 900px) { .cols { grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); } }
+  .panel { background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; }
   .panel.compact { padding: 10px 16px; gap: 4px; }
   .panel:target { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   a.pill:focus-visible { outline-offset: 1px; border-radius: 999px; }
@@ -108,13 +115,8 @@
   /* The right-hand value (time, count, version) keeps its natural width and drops below the text as a whole when the row is tight.
      It only wraps when it is wider than the row itself. */
   ul.rows li > :not(.l) { flex: none; width: max-content; max-width: 100%; margin-left: auto; text-align: right; overflow-wrap: anywhere; }
-  .hardware-band { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
-  .hardware-band .panel { margin-bottom: 0; }
   .hardware-band .panel-head { flex-wrap: wrap; }
   .hardware-band .panel-head .pill { white-space: normal; }
-  @media (min-width: 900px) {
-    .hardware-band { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); }
-  }
   .machine-rack { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; }
   .machine {
     display: grid; grid-template-columns: 44px minmax(0, 1fr);
@@ -189,7 +191,7 @@
   .vm dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .vm dd .mono { font-weight: 400; color: var(--ink-2); }
   .banner.bad { background: var(--bad-bg); }
-  .banner { padding: 12px 14px; border-radius: 10px; font-size: var(--fs-md); }
+  .banner { padding: 10px 14px; border-radius: 10px; font-size: var(--fs-md); }
   cockpit-app { display: block; }
 </style>
 </head>
@@ -328,14 +330,15 @@ function usageBlock(s, now) {
 }
 
 // The chips of the strip: one per panel that has a verdict, worst first.
-function stripChips(d, hardwareWarning) {
+function stripChips(d, hardwareWarning, environmentWarning) {
   const chips = [];
   const add = (state, text, panel) => chips.push({ state, text, href: panel });
   if (d.alerts) {
     const n = d.alerts.length;
     add(n ? (d.alerts.some(isCritical) ? "bad" : "warn") : "ok", n ? `${n} ${n === 1 ? "alert" : "alerts"} firing` : "No alerts firing", "p-firing-alerts");
   }
-  if (hardwareWarning) add(hardwareWarning.state, hardwareWarning.text, "p-temperatures");
+  if (hardwareWarning) add(hardwareWarning.state, hardwareWarning.text, "p-node-temperatures");
+  if (environmentWarning) add(environmentWarning.state, environmentWarning.text, "p-environment");
   if (d.flux_ks || d.flux_hr) {
     const t = fluxTotals(d);
     if (t.failed) add("bad", `Flux: ${t.failed} failed`, "p-flux-reconciliation");
@@ -345,19 +348,20 @@ function stripChips(d, hardwareWarning) {
   }
   if (d.polaris) add(polarisState(d.polaris.score), `Polaris ${d.polaris.score}/100`, "p-polaris-score");
   const tv = trivyCounts(d);
-  if (tv) add(trivyState(tv), tv.critical ? `Trivy: ${tv.critical} critical` : tv.high ? `Trivy: ${tv.high} high` : "Trivy clean", "p-trivy-vulnerabilities");
+  if (tv) add(tv.critical ? "bad" : tv.high ? "none" : "ok", tv.critical ? `Trivy: ${tv.critical} critical` : tv.high ? `Trivy: ${tv.high} high` : "Trivy clean", "p-trivy-vulnerabilities");
   // The worst of the fullest volume and every node row (/var and the volume groups), linked to the panel it comes from.
   const vol = Math.max(0, ...(d.pvcs || []).map((n) => n.used_pct));
   const nodes = nodeRows(d);
   const hot = Math.max(0, ...(nodes || []).map((n) => n.max));
   if (d.pvcs?.length || nodes?.length) {
     const m = Math.round(Math.max(vol, hot));
-    add(usedState(m, 85), `Storage ${m}%`, slug(hot > vol ? "Nodes" : "Volumes"));
+    add(usedState(m, 85), `Storage ${m}%`, slug(hot > vol ? "Node disks" : "Volumes"));
   }
   if (d.drops_total !== undefined) add(d.drops_total > 0 ? "warn" : "ok", `${d.drops_total} packets denied`, "p-dropped-traffic");
+  // Counts that are always there (high CVEs, open PRs) stay neutral: an amber chip is for something that needs a look today.
   if (d.github) {
     const o = d.github.other.count;
-    add(o ? "warn" : "ok", o + (o === 1 ? " open PR" : " open PRs"), "p-pull-requests");
+    add(o ? "none" : "ok", o + (o === 1 ? " open PR" : " open PRs"), "p-pull-requests");
   }
   const failed = d.renovate?.projects.filter(isFailed).length;
   if (failed) add("bad", `Renovate: ${failed} failed`, "p-renovate-runs");
@@ -456,7 +460,7 @@ const DropsPanel = (d) => {
     ${top.length > 0 ? Rows(top.map((t) => ({ title: `${t.source} → ${t.destination}`, right: html`<span class="num muted">${t.count}</span>` }))) : nothing}`);
 };
 
-const HARDWARE_WINDOWS = ["24h", "7d", "30d"];
+const HARDWARE_WINDOWS = ["1h", "24h", "7d"];
 const hardwareWindow = () => {
   const saved = localStorage.getItem("cockpit.hardware");
   return HARDWARE_WINDOWS.includes(saved) ? saved : "24h";
@@ -501,7 +505,38 @@ function hardwareWarnings(nodes, window) {
   return { state: worst.violation.state, text: `${text} · ${worst.node}` };
 }
 
-const TEMPERATURE_RANGES = { "24h": [86400, 900], "7d": [604800, 7200], "30d": [2592000, 28800] };
+// Room (H&T) and rack (Pill) air and the room humidity from the shelly-mqtt exporter. Temperatures have no thresholds. Humidity warns
+// outside 30 to 60 % and is critical outside 20 to 70 % (mould and condensation above, static discharge below).
+const HUMIDITY = { lowBad: 20, lowWarn: 30, highWarn: 60, highBad: 70 };
+const humidityText = (value) => `${Number(value.toFixed(1))}%`;
+function humidityViolation(value, stat) {
+  if (!Number.isFinite(value)) return null;
+  if (stat !== "max" && value < HUMIDITY.lowBad) return { state: "bad", text: "Critical low humidity", dir: "low", margin: HUMIDITY.lowBad - value };
+  if (stat !== "max" && value < HUMIDITY.lowWarn) return { state: "warn", text: "Low humidity", dir: "low", margin: HUMIDITY.lowWarn - value };
+  if (stat !== "min" && value > HUMIDITY.highBad) return { state: "bad", text: "Critical high humidity", dir: "high", margin: value - HUMIDITY.highBad };
+  if (stat !== "min" && value > HUMIDITY.highWarn) return { state: "warn", text: "High humidity", dir: "high", margin: value - HUMIDITY.highWarn };
+  return null;
+}
+const AMBIENT = [{ place: "room", name: "Room" }, { place: "rack", name: "Rack" }];
+const AMBIENT_ROWS = [...AMBIENT, { place: "humidity", name: "Room humidity", format: humidityText, violation: humidityViolation }];
+function ambientRows(d) {
+  return AMBIENT_ROWS.map(({ place, name, format = temperatureText, violation }) => {
+    const stats = Object.fromEntries((d.ambient_temperatures || []).filter((s) => s.place === place).map((s) => [s.stat, s.value]));
+    return { name, cells: ["current", "min", "max"].map((stat) => ({ stat, value: stats[stat], format, violation: violation ? violation(stats[stat], stat) : null })) };
+  }).filter(({ cells }) => cells.some(({ value }) => Number.isFinite(value)));
+}
+function environmentWarnings(rows, window) {
+  const violations = rows.flatMap(({ name, cells }) => cells.filter((cell) => cell.violation).map((cell) => ({ name, ...cell })));
+  const worst = violations.sort((a, b) =>
+    Number(b.violation.state === "bad") - Number(a.violation.state === "bad")
+    || Number(b.stat === "current") - Number(a.stat === "current")
+    || b.violation.margin - a.violation.margin)[0];
+  if (!worst) return null;
+  const value = worst.format(worst.value);
+  return { state: worst.violation.state, text: worst.stat === "current" ? `${worst.name} at ${value} now` : `${worst.name} reached ${value} in ${window}` };
+}
+
+const TEMPERATURE_RANGES = { "1h": [3600, 60], "24h": [86400, 900], "7d": [604800, 7200] };
 const TREND_COLORS = ["var(--accent)", "var(--suspend)", "var(--ok)"];
 const TREND_DASHES = ["none", "5 3", "2 3"];
 
@@ -540,23 +575,31 @@ function Trend({ title, data, labels, end, duration, step, unit, window }) {
   </figure>`;
 }
 
-const HardwarePanel = (d, nodes, warning, pendingWindow, setWindow) => {
-  const title = "Temperatures";
+// The history window buttons, in the section heading: one setting for both temperature panels (Compute always shows the last hour).
+const WindowToggle = (d, pendingWindow, setWindow) => {
+  const win = d.hardware_window || hardwareWindow();
+  return html`<div class="window-pick">
+    <span class="hardware-note" role="status">${pendingWindow ? `Loading ${pendingWindow} · showing ${win}` : "Temperature history"}</span>
+    <div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((pendingWindow || win) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>
+  </div>`;
+};
+
+const HardwarePanel = (d, nodes, warning) => {
+  const title = "Node temperatures";
   if (!d.hardware_temperatures) return Unavailable({ title, source: "Prometheus · node hardware temperature metrics", d });
   const win = d.hardware_window || hardwareWindow();
   const [duration, step] = TEMPERATURE_RANGES[win] || TEMPERATURE_RANGES["24h"];
-  const toggle = html`<div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((pendingWindow || win) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>`;
   const partial = nodes.some(({ rows }) => rows.some((row) => row.partial));
   return Panel({ title, state: warning?.state ?? "ok", text: warning?.text, d }, html`
-    ${toggle}
-    <span class="hardware-note" role="status" ?hidden=${!pendingWindow}>${pendingWindow ? `Loading ${pendingWindow} · showing ${win}` : ""}</span>
     ${Trend({ title: "Hottest sensor at each sample, across nodes", data: d.temperature_trend, labels: HARDWARE_COMPONENTS.map(({ driver, name }) => [driver, name]), end: d.generated_at, duration, step, unit: "°C", window: win })}
     ${nodes.length ? html`
       <table class="hardware-table" aria-label="Temperatures by node and sensor">
         <thead><tr><th scope="col">Sensor</th><th scope="col" class="hardware-now">Current</th><th scope="col">Min</th><th scope="col">Max</th></tr></thead>
         ${nodes.map(({ node, rows }) => html`<tbody>
           <tr><th scope="rowgroup" colspan="4" class="mono hardware-node">${node}</th></tr>
-          ${rows.map(({ name, cells, partial }) => html`
+          ${rows.map(({ name, cells, partial }) => !cells.some(({ value }) => Number.isFinite(value))
+            ? html`<tr><th scope="row">${name}</th><td colspan="3" class="muted">not reported</td></tr>`
+            : html`
             <tr><th scope="row">${name}${partial ? html`<sup aria-label="Partial history">*</sup>` : nothing}</th>
             ${cells.map(({ stat, value, violation }) => Number.isFinite(value)
               ? html`<td class=${stat === "current" ? "hardware-now" : "hardware-history"}><span class=${"reading " + (violation?.state ?? "")} title=${violation?.text ?? nothing} aria-label=${violation ? `${value}°C, ${violation.text}` : nothing}>${violation ? html`<span aria-hidden="true">${violation.text.startsWith("Low") ? "↓" : "↑"}</span> ` : nothing}${temperatureText(value)}</span></td>`
@@ -565,6 +608,28 @@ const HardwarePanel = (d, nodes, warning, pendingWindow, setWindow) => {
         </tbody>`)}
       </table>` : Muted(d.hardware_temperatures ? "No nodes reported by Prometheus." : "Temperature data unavailable.")}
     ${partial ? html`<span class="hardware-note">* Partial history. Min and max use available samples.</span>` : nothing}
+  `);
+};
+
+const EnvironmentPanel = (d, rows, warning) => {
+  const title = "Environment";
+  if (!d.ambient_temperatures) return Unavailable({ title, source: "Prometheus · Shelly sensor metrics", d });
+  const win = d.hardware_window || hardwareWindow();
+  const [duration, step] = TEMPERATURE_RANGES[win] || TEMPERATURE_RANGES["24h"];
+  return Panel({ title, state: warning?.state ?? "ok", text: warning?.text, d }, html`
+    ${d.ambient_trend?.length ? Trend({ title: "Room and rack air", data: d.ambient_trend, labels: AMBIENT.map(({ place, name }) => [place, name]), end: d.generated_at, duration, step, unit: "°C", window: win }) : nothing}
+    ${rows.length ? html`
+      <table class="hardware-table" aria-label="Room and rack readings">
+        <thead><tr><th scope="col">Sensor</th><th scope="col" class="hardware-now">Current</th><th scope="col">Min</th><th scope="col">Max</th></tr></thead>
+        <tbody>
+          ${rows.map(({ name, cells }) => html`
+            <tr><th scope="row">${name}</th>
+            ${cells.map(({ stat, value, format, violation }) => Number.isFinite(value)
+              ? html`<td class=${stat === "current" ? "hardware-now" : "hardware-history"}><span class=${"reading " + (violation?.state ?? "")} title=${violation?.text ?? nothing} aria-label=${violation ? `${format(value)}, ${violation.text}` : nothing}>${violation ? html`<span aria-hidden="true">${violation.dir === "low" ? "↓" : "↑"}</span> ` : nothing}${format(value)}</span></td>`
+              : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`)}
+            </tr>`)}
+        </tbody>
+      </table>` : Muted("No readings from the room and rack sensors.")}
   `);
 };
 
@@ -630,8 +695,12 @@ const TrivyPanel = (d) => {
   const state = trivyState(c);
   const crit = d.trivy_critical?.items || [];
   const critMore = (d.trivy_critical?.total || 0) - crit.length;
-  const worst = d.trivy_worst || [];
-  const findings = (image, severity) => (d.trivy_findings || []).find((f) => f.image === image && f.severity === severity)?.count || 0;
+  const byImage = {};
+  for (const f of d.trivy_findings || []) { // one row per image and namespace, aliases of one digest count once, as on the Trivy page
+    const r = (byImage[f.namespace + "|" + f.digest] ??= { image: f.image, registry: f.registry, ns: f.namespace, critical: 0, high: 0 });
+    r[f.severity] = Math.max(r[f.severity], f.count);
+  }
+  const worst = Object.values(byImage).filter((r) => r.critical || r.high).sort((a, b) => b.critical - a.critical || b.high - a.high || compare(a.image, b.image)).slice(0, MAX_ROWS); // same order as the Trivy page
   const images = d.trivy_images;
   return Panel({ title, state, text: c.critical ? c.critical + " critical" : c.high + " high", d }, html`
     <div class=${"big num score " + state}>${c.critical}<small> critical · ${c.high} high</small></div>
@@ -639,13 +708,15 @@ const TrivyPanel = (d) => {
     <div class="legend">${TRIVY_SEVERITIES.map(([k, name, color]) => html`<span class=${c[k] ? nothing : "muted"}><span class="dot" style="background: ${color}; opacity: ${c[k] ? 1 : 0.35}"></span>${c[k]} ${name.toLowerCase()}</span>`)}</div>
     ${crit.length ? Rows(crit.map((f) => ({ title: f.id, sub: `${f.image} · ${f.fixed ? "fixed in " + f.fixed : "no fix yet"}`, right: Pill("bad", f.score ? "CVSS " + f.score : "critical") }))) : nothing}
     ${critMore > 0 ? Muted(`and ${critMore} more critical not listed`) : nothing}
-    ${worst.length ? html`${Muted("Most critical and high CVEs per image")}${Rows(worst.map((w) => ({ title: w.image, sub: `${findings(w.image, "critical")} critical · ${findings(w.image, "high")} high findings`, right: html`<span class="num muted">${w.cves} CVEs</span>` })))}` : nothing}
+    ${worst.length ? html`${Muted("Most critical and high findings per image")}${Rows(worst.map((w) => ({ title: w.image.replace(/^(oci|library)\//, ""), sub: `${w.registry ? w.registry + " · " : ""}${w.ns}`, right: html`<span class="num muted">${w.critical} critical · ${w.high} high</span>` })))}` : nothing}
     ${Muted(`${images === undefined ? "Images" : images + " images scanned"}; findings are per package, counted once per image digest`)}`);
 };
 
 const GIB = 2 ** 30;
 const sizeText = (bytes) => (bytes >= 1024 * GIB ? (bytes / (1024 * GIB)).toFixed(1) + " TiB" : Math.round(bytes / GIB) + " GiB");
-const UsedRow = (label, pct, detail) => html`<div class="limit-row"><span>${label}</span><span class="num"><strong>${Math.round(pct)}%</strong> ${detail}</span></div>${Bar({ label: `${label}, ${Math.round(pct)} percent`, parts: [{ pct, color: usedColor(pct, 85) }] })}`;
+// A long name keeps its start and its end (the end tells volumes apart); the full name is the tooltip.
+const middle = (text, max = 30) => (text.length > max ? text.slice(0, max - 13) + "…" + text.slice(-12) : text);
+const UsedRow = (label, pct, detail) => html`<div class="limit-row"><span title=${label.length > 30 ? label : nothing}>${middle(label)}</span><span class="num"><strong>${Math.round(pct)}%</strong> ${detail}</span></div>${Bar({ label: `${label}, ${Math.round(pct)} percent`, parts: [{ pct, color: usedColor(pct, 85) }] })}`;
 
 const VolumesPanel = (d) => {
   const title = "Volumes";
@@ -674,11 +745,11 @@ function nodeRows(d) {
   for (const x of d.var_size) if (avail.has(x.node)) row(x.node, "Ephemeral /var", avail.get(x.node), x.bytes);
   const free = new Map(d.vg_free.map((x) => [x.node + "/" + x.name, x.bytes]));
   for (const x of d.vg_total) if (free.has(x.node + "/" + x.name)) row(x.node, x.name, free.get(x.node + "/" + x.name), x.bytes);
-  return [...by].map(([node, rows]) => ({ node, rows, max: Math.max(...rows.map((r) => r.pct)) })).sort((a, b) => compare(a.node, b.node));
+  return [...by].map(([node, rows]) => ({ node, rows, max: Math.max(...rows.map((r) => r.pct)) })).sort((a, b) => b.max - a.max || compare(a.node, b.node));
 }
 
 const NodesPanel = (d) => {
-  const title = "Nodes";
+  const title = "Node disks";
   const nodes = nodeRows(d);
   if (!nodes) return Unavailable({ title, source: "Prometheus · node_filesystem_*, lvm_vg_*", d });
   const max = Math.max(0, ...nodes.map((n) => n.max));
@@ -806,7 +877,7 @@ const UsageBlock = (b, now) => {
 };
 const UsagePanel = (d) => {
   const title = "Claude usage";
-  if (!d.usage) return Unavailable({ title, source: "usage-poller → cockpit", d });
+  if (!d.usage) return Unavailable({ title, source: "Prometheus (claude_plan_*)", d });
   const s = usageSession(d);
   if (!s) {
     return Panel({ title, state: "none", text: "no data", d }, Muted("Nothing received in the last 24 hours. The usage-poller container of claude-rc sends it every 5 minutes."));
@@ -883,15 +954,16 @@ const JobsPanel = (d) => {
 const Chip = ({ state, text, href }) =>
   href ? html`<a class=${"pill " + state} href=${"#" + href}>${text}</a>` : html`<span class=${"pill " + state}>${text}</span>`;
 
-const Strip = (d, hardwareWarning) => {
-  const shown = stripChips(d, hardwareWarning).filter((c) => c.state !== "ok");
+const Strip = (d, hardwareWarning, environmentWarning) => {
+  const shown = stripChips(d, hardwareWarning, environmentWarning).filter((c) => c.state !== "ok");
   // Healthy chips stay hidden; "All healthy" only keeps the strip from being empty when nothing needs a look.
   return html`<nav class="strip" aria-label="Overall status, each item jumps to its panel">${shown.length ? shown.map(Chip) : Chip({ state: "ok", text: "All healthy" })}</nav>`;
 };
 
-const Section = ({ id, title, layout = "band" }, children) => html`<section aria-labelledby=${"h-" + id}>
-  <h2 id=${"h-" + id}>${title}</h2>
-  <div class=${layout}>${children}</div>
+// `columns` is a list of lists of panels, one list per column.
+const Section = ({ id, title, layout = "cols", action }, columns) => html`<section aria-labelledby=${"h-" + id}>
+  <div class="section-head"><h2 id=${"h-" + id}>${title}</h2>${action ?? nothing}</div>
+  <div class=${layout} style=${"--n: " + columns.length}>${columns.map((panels) => html`<div class="col">${panels}</div>`)}</div>
 </section>`;
 
 // Rack positions and hardware are from the Talos patches and docs/hardware.md. RAM is shown as installed capacity.
@@ -1005,6 +1077,10 @@ class CockpitApp extends LitElement {
     const { d, loadedAt, error } = this;
     const hardware = d ? hardwareRows(d) : [];
     const hardwareWarning = hardwareWarnings(hardware, d?.hardware_window || "24h");
+    const environment = d ? ambientRows(d) : [];
+    const environmentWarning = environmentWarnings(environment, d?.hardware_window || "24h");
+    // One history window for both temperature panels: its buttons sit at the top of the first of them that has data.
+    const toggle = d ? WindowToggle(d, this.pendingHardwareWindow, (v) => this.setHardwareWindow(v)) : null;
     const failedSources = Object.keys(d?.meta?.workflow?.failed || {});
     const banner = error
       ? `The cockpit could not be reached (${error}). Showing the last data, if any.`
@@ -1021,12 +1097,27 @@ class CockpitApp extends LitElement {
         <div class="hdr-r">${updated}<button type="button" id="refresh" @click=${this.load}>Refresh</button></div>
       </header>
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
-      ${d ? html`${Strip(d, hardwareWarning)}
-        ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${JobsPanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
-        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}`)}
-        ${Section({ id: "hardware", title: "Cluster hardware", layout: "hardware-band" }, html`${HardwarePanel(d, hardware, hardwareWarning, this.pendingHardwareWindow, (v) => this.setHardwareWindow(v))}${ComputePanel(d)}${NodesPanel(d)}`)}
-        ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}
-        ${Machines()}` : nothing}
+      ${d ? html`${Strip(d, hardwareWarning, environmentWarning)}
+        ${Section({ id: "home", title: "Homelab" }, [
+          [SharePanel(d)],
+          [VersionsPanel(d), UsagePanel(d)],
+          [JobsPanel(d), ElevatePanel(d)],
+        ])}
+        ${Section({ id: "cluster", title: "Cluster" }, [
+          [AlertsPanel(d), FluxPanel(d), PolarisPanel(d)],
+          [DropsPanel(d), VolumesPanel(d)],
+          [TrivyPanel(d)],
+        ])}
+        ${Section({ id: "hardware", title: "Cluster hardware", layout: "cols hardware-band", action: toggle }, [
+          [ComputePanel(d), EnvironmentPanel(d, environment, environmentWarning)],
+          [NodesPanel(d)],
+          [HardwarePanel(d, hardware, hardwareWarning)],
+        ])}
+        ${Machines()}
+        ${Section({ id: "gh", title: "GitHub" }, [
+          [PrsPanel(d), RenovatePrsPanel(d)],
+          [IssuesPanel(d), RenovateRunsPanel(d)],
+        ])}` : nothing}
     </main>`;
   }
 }

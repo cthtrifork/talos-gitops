@@ -172,8 +172,9 @@
           ],
           "onDemand": true,
           "tlsVerify": true,
-          "maxRetries": 1,
-          "retryDelay": "5s"
+          "maxRetries": 5,
+          "retryDelay": "5s",
+          "disableHTTP2": true
         },
         {
           "urls": ["https://ghcr.io"],
@@ -185,8 +186,9 @@
           ],
           "onDemand": true,
           "tlsVerify": true,
-          "maxRetries": 1,
-          "retryDelay": "5s"
+          "maxRetries": 5,
+          "retryDelay": "5s",
+          "disableHTTP2": true
         },
         {
           "urls": ["https://gcr.io"],

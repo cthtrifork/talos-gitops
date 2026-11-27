@@ -73,6 +73,9 @@
   code, .src { font-family: var(--mono); font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
 
 
+  .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .stamp { color: var(--ink-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stamp:empty { display: none; }
   .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
   .group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .seg { display: inline-flex; max-width: 100%; overflow-x: auto; scrollbar-width: none; background-color: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 2px; }
@@ -90,7 +93,9 @@
   .tile .v { font-size: var(--fs-xl); font-weight: 650; letter-spacing: -0.02em; margin: 2px 0; }
   .tile.hero .v { font-size: calc(var(--fs-xl) * 1.4); }
   .tile .s { color: var(--muted); font-size: var(--fs-sm); }
-  .tile .src { display: block; margin-top: 6px; }
+  .tile .src { display: block; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* eight tiles: four to a row on a wide screen, so the last row is never two orphans */
+  @media (min-width: 60rem) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
   .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-sm); color: var(--ink-2); }
   .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
@@ -144,7 +149,7 @@
   details summary { cursor: pointer; color: var(--ink-2); font-size: var(--fs-sm); margin-top: 10px; }
   details summary:focus-visible { outline: 2px solid var(--env-rc); }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-  #error { position: sticky; top: 0; z-index: 6; background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 12px; font-size: var(--fs-sm); }
+  #error { position: sticky; top: 0; z-index: 6; background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 10px 14px; font-size: var(--fs-md); }
   .empty { color: var(--muted); padding: 12px 0; }
   svg g.col, .track .seg-b { touch-action: pan-y; }
   .chart { min-width: 0; }
@@ -157,7 +162,7 @@
     .bar { display: contents; }
     .group { position: sticky; top: 0; z-index: 4; background: var(--page); padding: 8px 0; margin: -8px 0; box-shadow: 0 1px 0 var(--grid); }
     .tile .src { display: none; }
-    .tile.hero { grid-column: 1 / -1; }
+    .tile.hero, .tile:last-child:nth-child(even) { grid-column: 1 / -1; }
   }
 </style>
 </head>
@@ -521,17 +526,18 @@ class UsageApp extends LitElement {
     const range = days?.length
       ? `${days[Math.max(0, days.length - (v.period === "30d" ? 30 : 7))].date} to ${days[days.length - 1].date} · UTC days · from Prometheus`
       : "UTC days · from Prometheus";
-    const stamp = this.fetchedAt ? ` · updated ${this.fetchedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "";
+    const stamp = this.fetchedAt ? `Updated ${this.fetchedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "";
 
     return html`<main>
-      <p id="error" role="alert" ?hidden=${!error}>${error ? `Could not load usage: ${error}. Showing the last data received.` : nothing}</p>
+      <div class="topline"><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><span id="updated" class="stamp" role="status">${stamp}</span></div>
       <header class="bar">
-        <div><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><h1>Claude usage</h1><div class="sub" id="range">${range}${stamp}</div></div>
+        <div><h1>Claude usage</h1><div class="sub" id="range">${range}</div></div>
         <div class="group">
           ${Segmented({ label: "Environment", id: "envSeg", options: ["all", ...v.envs].map((e) => [e, e === "all" ? "All" : e]), value: v.env, onPick: this.pick("env") })}
           ${Segmented({ label: "Period", id: "periodSeg", options: PERIODS, value: ui.period, onPick: this.pick("period") })}
         </div>
       </header>
+      <p id="error" role="alert" ?hidden=${!error}>${error ? `Could not load usage: ${error}.${data.summary ? " Showing the last data received." : ""}` : nothing}</p>
 
       ${Tiles(v)}
       ${PerDay({ data, v, metric: ui.metric, setMetric: this.pick("metric"), width: this.chartW })}

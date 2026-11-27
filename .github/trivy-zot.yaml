@@ -1,0 +1,9 @@
+# Trivy on the private runners: images come through the zot caches (the origin is the fallback), as in podman-registries.
+registry:
+  mirrors:
+    mirror.gcr.io: [zot.registry-system.svc.cluster.local:5000/docker-hub-cache]
+    index.docker.io: [zot.registry-system.svc.cluster.local:5000/docker-hub-cache]
+    ghcr.io: [zot.registry-system.svc.cluster.local:5000/ghcr-cache]
+    quay.io: [zot.registry-system.svc.cluster.local:5000/quay-cache]
+    gcr.io: [zot.registry-system.svc.cluster.local:5000/gcr-cache]
+    registry.k8s.io: [zot.registry-system.svc.cluster.local:5000/k8s-cache]

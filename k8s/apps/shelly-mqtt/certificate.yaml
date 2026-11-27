@@ -1,0 +1,80 @@
+# MQTT PKI: no passwords. Mosquitto requires a client certificate and takes the username from its CN (see mosquitto.conf).
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: shelly-mqtt-ca
+  namespace: shelly-mqtt
+spec:
+  isCA: true
+  commonName: shelly-mqtt-ca
+  secretName: shelly-mqtt-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: portableinfo-pmx01-root-ca-bootstrap
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mosquitto-server
+  namespace: shelly-mqtt
+spec:
+  secretName: mosquitto-server
+  usages:
+    - server auth
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  dnsNames:
+    - mosquitto
+    - mosquitto.shelly-mqtt
+    - mosquitto.shelly-mqtt.svc
+  ipAddresses:
+    - 192.168.1.241
+  issuerRef:
+    name: shelly-mqtt-ca
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mqtt-client-exporter
+  namespace: shelly-mqtt
+spec:
+  secretName: mqtt-client-exporter
+  commonName: mqtt2prometheus
+  usages:
+    - client auth
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: shelly-mqtt-ca
+    kind: Issuer
+    group: cert-manager.io
+---
+# Copied by hand onto the Shelly (README); the device cannot renew it, hence the long duration.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mqtt-client-shelly-ht
+  namespace: shelly-mqtt
+spec:
+  secretName: mqtt-client-shelly-ht
+  commonName: shelly-ht
+  duration: 17520h
+  renewBefore: 720h
+  usages:
+    - client auth
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: shelly-mqtt-ca
+    kind: Issuer
+    group: cert-manager.io

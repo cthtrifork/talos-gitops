@@ -54,6 +54,7 @@ spec:
         - matchName: registry-1.docker.io
         - matchName: auth.docker.io
         - matchName: production.cloudflare.docker.com
+        - matchName: production.cloudfront.docker.com
         - matchName: mcr.microsoft.com
         - matchName: registry.access.redhat.com
         # Sigstore
@@ -70,6 +71,7 @@ spec:
 
         - matchName: charts.fairwinds.com
         - matchName: kubernetes-sigs.github.io
+        - matchName: juicedata.github.io
         - matchName: charts.redpanda.com
         - matchName: aka.ms
         - matchName: packages.microsoft.com
@@ -77,6 +79,21 @@ spec:
         - matchName: json.schemastore.org
         - matchName: downloads.claude.ai
         - matchName: storage.googleapis.com
+
+        # govulncheck-source workflow: Go toolchain, modules and the vulnerability database
+        - matchName: go.dev
+        - matchName: dl.google.com
+        - matchName: proxy.golang.org
+        - matchName: sum.golang.org
+        - matchName: vuln.go.dev
+
+        # image builds: apk and pip in images/tools and images/claude-runner
+        - matchName: dl-cdn.alpinelinux.org
+        - matchName: pypi.org
+        - matchName: files.pythonhosted.org
+
+        # copa checks the end-of-life date of the base OS
+        - matchName: endoflife.date
 
         - matchName: registry.npmjs.org
         - matchName: cdn.playwright.dev
@@ -113,6 +130,9 @@ spec:
         - matchName: security.ubuntu.com
         - matchName: ports.ubuntu.com
         - matchName: ppa.launchpadcontent.net
+        # Debian images patched by copa (images/patched)
+        - matchName: deb.debian.org
+        - matchName: security.debian.org
       toPorts:
         - ports:
             - port: "80"

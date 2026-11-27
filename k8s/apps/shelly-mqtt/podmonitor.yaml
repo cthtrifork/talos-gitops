@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/monitoring.coreos.com/podmonitor_v1.json
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: mqtt2prometheus
+  namespace: shelly-mqtt
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: mqtt2prometheus
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics

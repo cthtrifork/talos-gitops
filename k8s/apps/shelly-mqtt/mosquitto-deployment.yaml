@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/deployment-apps-v1.json
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosquitto
+  namespace: shelly-mqtt
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mosquitto
+  template:
+    metadata:
+      labels:
+        app: mosquitto
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1883
+        runAsGroup: 1883
+        fsGroup: 1883
+        seccompProfile:
+          type: RuntimeDefault
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: mosquitto
+          image: mirror.gcr.io/library/eclipse-mosquitto:2.1.4-alpine@sha256:fa12172a051310efe5bcb7a6a11b77bd5faacb82cbacd7742aa758bf024fd8e4
+          ports:
+            - name: mqtts
+              containerPort: 8883
+          readinessProbe:
+            tcpSocket:
+              port: mqtts
+            periodSeconds: 20
+          livenessProbe:
+            tcpSocket:
+              port: mqtts
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            limits:
+              memory: 64Mi
+            requests:
+              memory: 64Mi
+              cpu: 10m
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true # persistence is off, logs go to stderr
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            # subPath, not the directory: Mosquitto opens the ACL file with O_NOFOLLOW and a ConfigMap directory holds symlinks
+            - name: config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+              readOnly: true
+            - name: config
+              mountPath: /mosquitto/config/acl
+              subPath: acl
+              readOnly: true
+            - name: certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: mosquitto-config
+            defaultMode: 0440
+        - name: certs
+          secret:
+            secretName: mosquitto-server
