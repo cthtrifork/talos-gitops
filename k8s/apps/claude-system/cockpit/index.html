@@ -695,8 +695,9 @@ const TrivyPanel = (d) => {
   const state = trivyState(c);
   const crit = d.trivy_critical?.items || [];
   const critMore = (d.trivy_critical?.total || 0) - crit.length;
-  const worst = d.trivy_worst || [];
-  const findings = (image, severity) => (d.trivy_findings || []).find((f) => f.image === image && f.severity === severity)?.count || 0;
+  const byImage = {};
+  for (const f of d.trivy_findings || []) (byImage[f.image] ??= { image: f.image, critical: 0, high: 0 })[f.severity] = f.count;
+  const worst = Object.values(byImage).sort((a, b) => b.critical - a.critical || b.high - a.high || compare(a.image, b.image)).slice(0, MAX_ROWS); // same order as the Trivy page
   const images = d.trivy_images;
   return Panel({ title, state, text: c.critical ? c.critical + " critical" : c.high + " high", d }, html`
     <div class=${"big num score " + state}>${c.critical}<small> critical · ${c.high} high</small></div>
@@ -704,7 +705,7 @@ const TrivyPanel = (d) => {
     <div class="legend">${TRIVY_SEVERITIES.map(([k, name, color]) => html`<span class=${c[k] ? nothing : "muted"}><span class="dot" style="background: ${color}; opacity: ${c[k] ? 1 : 0.35}"></span>${c[k]} ${name.toLowerCase()}</span>`)}</div>
     ${crit.length ? Rows(crit.map((f) => ({ title: f.id, sub: `${f.image} · ${f.fixed ? "fixed in " + f.fixed : "no fix yet"}`, right: Pill("bad", f.score ? "CVSS " + f.score : "critical") }))) : nothing}
     ${critMore > 0 ? Muted(`and ${critMore} more critical not listed`) : nothing}
-    ${worst.length ? html`${Muted("Most critical and high CVEs per image")}${Rows(worst.map((w) => ({ title: w.image, sub: `${findings(w.image, "critical")} critical · ${findings(w.image, "high")} high findings`, right: html`<span class="num muted">${w.cves} CVEs</span>` })))}` : nothing}
+    ${worst.length ? html`${Muted("Most critical and high findings per image")}${Rows(worst.map((w) => ({ title: w.image, right: html`<span class="num muted">${w.critical} critical · ${w.high} high</span>` })))}` : nothing}
     ${Muted(`${images === undefined ? "Images" : images + " images scanned"}; findings are per package, counted once per image digest`)}`);
 };
 
