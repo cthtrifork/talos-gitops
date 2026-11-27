@@ -784,7 +784,6 @@ data:
         - arc-ubuntu
         - arc-iso-bootc
         - arc-e2e-talos-gitops
-        - arc-scan-talos-gitops
         namespace: arc-runners-system
         rules:
         - runAsPrivileged
@@ -793,7 +792,6 @@ data:
       - controllerNames:
         - arc-ubuntu
         - arc-e2e-talos-gitops
-        - arc-scan-talos-gitops
         namespace: arc-runners-system
         rules:
         - runAsRootAllowed
@@ -808,7 +806,6 @@ data:
         - arc-iso-bootc
         - arc-files-bootc
         - arc-e2e-talos-gitops
-        - arc-scan-talos-gitops
         namespace: arc-runners-system
         rules:
         - notReadOnlyRootFilesystem

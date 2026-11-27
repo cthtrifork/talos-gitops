@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - helm-release.yaml
   - helm-release-talos-gitops-e2e.yaml
-  - helm-release-talos-gitops-scan.yaml
   - helm-release-bootc-files.yaml
   - helm-release-bootc-iso.yaml
   - configmap.yaml

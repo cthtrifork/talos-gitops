@@ -1,4 +1,3 @@
 self-hosted-runner:
   labels:
     - arc-e2e-talos-gitops
-    - arc-scan-talos-gitops
