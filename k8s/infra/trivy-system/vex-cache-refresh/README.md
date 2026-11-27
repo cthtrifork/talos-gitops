@@ -6,35 +6,32 @@ ignore file or ignore policy. The CronJob runs every 10 minutes in `trivy-system
 ## Flow
 
 ```mermaid
-flowchart TB
-    change["Merge to main:<br/>vex/, trivyignore.yaml<br/>or ignore-policy.rego"] --> ci["images.yaml builds and<br/>publishes vex-cache"]
-    change --> flux["Flux applies the ConfigMaps<br/>trivy-ignorefile, trivy-ignorepolicy<br/>(every 30 min)"]
-    ci --> artifact[("vex-cache artifact<br/>homelab-built-at<br/>trivyignore.sha256<br/>ignore-policy.sha256")]
-
-    subgraph job["CronJob vex-cache-refresh (every 10 min)"]
-        start["Job starts"] --> manual{"manual run?<br/>job name has -manual-"}
-        manual -->|yes| delete
-        manual -->|no| read["Read homelab-built-at from the<br/>artifact (image volume)"]
-        read --> first{"vex-cache-state<br/>has a timestamp?"}
-        first -->|"no: first run"| record
-        first -->|yes| newer{"artifact newer<br/>than the stored one?"}
-        newer -->|no| done["Exit"]
-        newer -->|yes| scope{"ignore file or policy<br/>hash changed?"}
-        scope -->|yes| guard{"live ConfigMap hashes ==<br/>hashes in the artifact?"}
-        guard -->|"no: Flux is behind,<br/>retry next run"| done
-        guard -->|yes| delete["Delete all VulnerabilityReports"]
-        scope -->|"no: only VEX"| some["Delete the reports of images<br/>with a homelab-vexhub statement"]
-        some --> record
-        delete --> kind{"manual run?"}
-        kind -->|no| record["Store the timestamp in<br/>ConfigMap vex-cache-state"]
-        kind -->|yes| done
-    end
-
-    artifact -.->|"image volume"| read
-    flux -.->|"hash of the live data"| guard
-    delete --> operator["trivy-operator scans the<br/>deleted workloads again"]
-    some --> operator
+flowchart LR
+    change["Merge to main:<br/>vex/, trivyignore.yaml<br/>or ignore-policy.rego"] --> ci["images.yaml publishes<br/>the vex-cache artifact"]
+    change --> flux["Flux applies the ConfigMaps<br/>trivy-ignorefile, trivy-ignorepolicy"]
+    ci --> job["CronJob vex-cache-refresh<br/>(every 10 min)"]
+    flux -.->|"guard: live hashes"| job
+    job -->|"deletes reports"| operator["trivy-operator scans<br/>those workloads again"]
     operator --> reports["New VulnerabilityReports,<br/>sent to Dependency-Track by sbom-hook"]
+```
+
+## What one run does
+
+A run started from the Run jobs page skips all of this and deletes all reports.
+
+```mermaid
+flowchart TB
+    start["Read homelab-built-at<br/>from the artifact"] --> first{"vex-cache-state<br/>has a timestamp?"}
+    first -->|"no: first run"| record
+    first -->|yes| newer{"artifact newer than<br/>the stored one?"}
+    newer -->|no| done["Exit"]
+    newer -->|yes| scope{"ignore file or policy<br/>hash changed?"}
+    scope -->|"no: only VEX"| some["Delete the reports of images<br/>with a homelab-vexhub statement"]
+    scope -->|yes| guard{"live ConfigMap hashes ==<br/>hashes in the artifact?"}
+    guard -->|"no: Flux is behind,<br/>retry next run"| done
+    guard -->|yes| all["Delete all VulnerabilityReports"]
+    some --> record["Store timestamp and hashes in<br/>ConfigMap vex-cache-state"]
+    all --> record
 ```
 
 ## Why the guard
