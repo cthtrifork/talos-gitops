@@ -1,0 +1,809 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/renovatebot/renovate",
+  "author": "Dependency-Track",
+  "role": "Automated export from Dependency-Track",
+  "timestamp": "2026-11-27T04:50:08Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107364"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107708"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107778"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107884"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112314"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112315"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112316"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112317"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112318"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112319"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112320"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112321"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112322"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112323"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-118380"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-119079"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56857"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Windows-only (os.Root junction); all images are Linux"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-71199"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-71200"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/renovate?repository_url=ghcr.io%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/renovate?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Frenovatebot%2Frenovate",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    }
+  ]
+}

@@ -3,8 +3,8 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/fluxcd/helm-controller",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T22:00:31Z",
-  "version": 1,
+  "timestamp": "2026-11-27T04:50:09Z",
+  "version": 2,
   "statements": [
     {
       "vulnerability": {
@@ -30,6 +30,31 @@
       ],
       "status": "not_affected",
       "impact_statement": "gdal infback9 bug matched to zlib by mistake; gdal is not in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56854"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/helm-controller?repository_url=ghcr.io%2Ffluxcd%2Fhelm-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/helm-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fhelm-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
     },
     {
       "vulnerability": {

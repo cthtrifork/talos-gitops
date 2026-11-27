@@ -1,0 +1,60 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/quay.io/fairwinds/polaris",
+  "author": "Dependency-Track",
+  "role": "Automated export from Dependency-Track",
+  "timestamp": "2026-11-27T04:50:09Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-4738"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/polaris?repository_url=quay.io%2Ffairwinds%2Fpolaris",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/zlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/polaris?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Ffairwinds%2Fpolaris",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/zlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "gdal infback9 bug matched to zlib by mistake; gdal is not in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56857"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/polaris?repository_url=quay.io%2Ffairwinds%2Fpolaris",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/polaris?repository_url=zot.registry-system.svc.cluster.local:5000%2Fquay-cache%2Ffairwinds%2Fpolaris",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Windows-only (os.Root junction); all images are Linux"
+    }
+  ]
+}

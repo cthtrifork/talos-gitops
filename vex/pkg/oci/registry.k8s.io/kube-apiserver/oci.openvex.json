@@ -1,0 +1,35 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/registry.k8s.io/kube-apiserver",
+  "author": "Dependency-Track",
+  "role": "Automated export from Dependency-Track",
+  "timestamp": "2026-11-27T04:50:09Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56854"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kube-apiserver?repository_url=registry.k8s.io%2Fkube-apiserver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kube-apiserver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fk8s-cache%2Fkube-apiserver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    }
+  ]
+}
