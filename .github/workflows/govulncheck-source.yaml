@@ -15,8 +15,8 @@ on:
       ref:
         description: Source ref to check out (default is the revision, else the version, recorded in the binary)
         required: false
-      apt-packages:
-        description: Extra apt packages for cgo headers, space separated
+      omit-tags:
+        description: Build tags to leave out of the scan, comma separated, for cgo features whose C headers the runner lacks
         required: false
 
 permissions:
@@ -37,7 +37,7 @@ jobs:
       IMAGE: ${{ inputs.image }}
       BINARY: ${{ inputs.binary }}
       REF: ${{ inputs.ref }}
-      APT_PACKAGES: ${{ inputs.apt-packages }}
+      OMIT_TAGS: ${{ inputs.omit-tags }}
     steps:
       - name: Set up Go
         uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
@@ -85,12 +85,6 @@ jobs:
           git -C src checkout --quiet "$SRC_REF"
           git -C src log -1 --format='source at %H'
 
-      - name: Install cgo headers
-        if: ${{ inputs.apt-packages != '' }}
-        run: |
-          read -ra packages <<< "$APT_PACKAGES"
-          sudo apt-get install --yes --no-install-recommends "${packages[@]}"
-
       - name: Build govulncheck
         run: GOBIN="$GITHUB_WORKSPACE/bin" go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
 
@@ -116,7 +110,8 @@ jobs:
           cd "$(dirname "$gomod")"
           # only the package the binary was built from is an entry point, not every package of the module
           # govulncheck exits 3 when it finds vulnerabilities
-          scan() { "$GITHUB_WORKSPACE/bin/govulncheck" -tags "$TAGS" "$@" "$PKG" || [ $? -eq 3 ]; }
+          tags=$(tr ',' '\n' <<< "$TAGS" | grep -vxF -f <(tr ',' '\n' <<< "$OMIT_TAGS") | paste -sd, - || true)
+          scan() { "$GITHUB_WORKSPACE/bin/govulncheck" -tags "$tags" "$@" "$PKG" || [ $? -eq 3 ]; }
           scan -format openvex > "$GITHUB_WORKSPACE/openvex.json"
           scan -show traces > "$GITHUB_WORKSPACE/traces.txt"
 
@@ -124,12 +119,13 @@ jobs:
         env:
           MODULE: ${{ steps.info.outputs.module }}
           SRC_REF: ${{ steps.info.outputs.ref }}
+          TAGS: ${{ steps.info.outputs.tags }}
         run: |
           set -euo pipefail
           {
             echo "## govulncheck source scan of \`$IMAGE\`"
             echo
-            echo "Source \`$MODULE\` at \`$SRC_REF\`."
+            echo "Source \`$MODULE\` at \`$SRC_REF\`, build tags \`$TAGS\`, left out: \`${OMIT_TAGS:-none}\`."
             echo
             echo "| Vulnerability | Aliases | Status | Justification |"
             echo "| --- | --- | --- | --- |"
