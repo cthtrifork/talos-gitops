@@ -65,12 +65,13 @@ jobs:
           set -euo pipefail
           setting() { awk -v k="$1=" '$1 == "build" && index($2, k) == 1 {print substr($2, length(k) + 1); exit}' work/buildinfo.txt; }
           read -r module version < <(awk '$1 == "mod" {print $2, $3; exit}' work/buildinfo.txt)
+          pkg=$(awk '$1 == "path" {print $2; exit}' work/buildinfo.txt)
           goversion=$(awk 'NR == 1 {print substr($2, 3)}' work/buildinfo.txt)
           goos=$(setting GOOS) goarch=$(setting GOARCH) cgo=$(setting CGO_ENABLED) tags=$(setting -tags)
           ref=${REF:-$(setting vcs.revision)}; ref=${ref:-$version}
           [ -n "$goversion" ] || { echo "::error::no Go version in the binary"; exit 1; }
           [ "$(setting vcs.modified)" != true ] || { echo "::error::binary was built from a modified working tree; the recorded revision cannot reproduce its source"; exit 1; }
-          printf '%s\n' "module=$module" "ref=$ref" "goversion=$goversion" "goos=$goos" "goarch=$goarch" "cgo=$cgo" "tags=$tags" | tee -a "$GITHUB_OUTPUT"
+          printf '%s\n' "module=$module" "ref=$ref" "goversion=$goversion" "goos=$goos" "goarch=$goarch" "cgo=$cgo" "tags=$tags" "pkg=$pkg" | tee -a "$GITHUB_OUTPUT"
 
       - name: Check out the source
         env:
@@ -102,6 +103,7 @@ jobs:
       - name: Run govulncheck in source mode
         env:
           MODULE: ${{ steps.info.outputs.module }}
+          PKG: ${{ steps.info.outputs.pkg }}
           TAGS: ${{ steps.info.outputs.tags }}
           GOOS: ${{ steps.info.outputs.goos }}
           GOARCH: ${{ steps.info.outputs.goarch }}
@@ -112,8 +114,9 @@ jobs:
           gomod=$(grep -rlx --include=go.mod "module $MODULE" src | head -n 1)
           [ -n "$gomod" ] || { echo "::error::no go.mod declares $MODULE"; exit 1; }
           cd "$(dirname "$gomod")"
+          # only the package the binary was built from is an entry point, not every package of the module
           # govulncheck exits 3 when it finds vulnerabilities
-          scan() { "$GITHUB_WORKSPACE/bin/govulncheck" -tags "$TAGS" "$@" ./... || [ $? -eq 3 ]; }
+          scan() { "$GITHUB_WORKSPACE/bin/govulncheck" -tags "$TAGS" "$@" "$PKG" || [ $? -eq 3 ]; }
           scan -format openvex > "$GITHUB_WORKSPACE/openvex.json"
           scan -show traces > "$GITHUB_WORKSPACE/traces.txt"
 
