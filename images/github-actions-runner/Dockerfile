@@ -11,6 +11,7 @@ COPY --chmod=0755 use-cache-server /usr/local/bin/use-cache-server
 RUN chown runner /home/runner/bin/Runner.Worker.dll
 
 ENV NONINTERACTIVE=1
+ENV HOMEBREW_NO_ANALYTICS=1
 ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 
 RUN apt-get update \
