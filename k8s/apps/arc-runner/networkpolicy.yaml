@@ -86,6 +86,11 @@ spec:
         - matchName: sum.golang.org
         - matchName: vuln.go.dev
 
+        # image builds: apk and pip in images/tools and images/claude-runner
+        - matchName: dl-cdn.alpinelinux.org
+        - matchName: pypi.org
+        - matchName: files.pythonhosted.org
+
         - matchName: registry.npmjs.org
         - matchName: cdn.playwright.dev
         - matchName: playwright.download.prss.microsoft.com
