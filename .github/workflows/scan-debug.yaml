@@ -1,0 +1,64 @@
+name: Scan one image (debug)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Image reference, e.g. mirror.gcr.io/valkey/valkey@sha256:...
+        required: true
+      vex:
+        description: OpenVEX document in the checked-out ref (empty for none)
+        default: ""
+      cve:
+        description: CVE to print with its package identifiers (empty for none)
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-db:
+    name: Trivy database
+    uses: ./.github/workflows/update-trivy-db.yaml
+
+  scan:
+    name: Scan ${{ inputs.image }}
+    needs: trivy-db
+    runs-on: arc-scan-talos-gitops
+    timeout-minutes: 20
+    env:
+      TRIVY_SKIP_DB_UPDATE: true
+      TRIVY_SKIP_JAVA_DB_UPDATE: true
+      TRIVY_SKIP_VERSION_CHECK: true
+      TRIVY_DISABLE_TELEMETRY: true
+    permissions:
+      contents: read
+      packages: read # pull ghcr.io/cthtrifork/* images
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Scan
+        id: scan
+        uses: ./.github/actions/trivy-scan
+        with:
+          image: ${{ inputs.image }}
+          output: scan.trivy.json
+          version: ${{ needs.trivy-db.outputs.version }}
+          vex: ${{ inputs.vex }}
+      - name: Show the findings with the suppressed ones
+        run: trivy convert --format table --show-suppressed --output scan.txt scan.trivy.json && cat scan.txt
+      - name: Show the CVE
+        if: inputs.cve != ''
+        env:
+          CVE: ${{ inputs.cve }}
+        run: |
+          jq --arg c "${CVE}" '[.Results[]? | (.Vulnerabilities[]? | select(.VulnerabilityID == $c) | {state: "present", PkgName, PkgIdentifier, InstalledVersion, Status}),
+            (.ExperimentalModifiedFindings[]? | select(.Finding.VulnerabilityID == $c) | {state: "suppressed", Status, Statement, Source, PkgName: .Finding.PkgName, PkgIdentifier: .Finding.PkgIdentifier})]' scan.trivy.json
+      - name: Upload the report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: scan.trivy.json
+          archive: false
+          retention-days: 14
