@@ -9,6 +9,8 @@ description: Query and assess vulnerability findings in Dependency-Track with th
 `-H "X-Api-Key: $DT_API_KEY"`. Check with `[ -n "$DT_API_KEY" ] && echo set`. Unset: the config CronJob has not made the key yet or the pod needs a restart; ask.
 
 - Permissions: view portfolio and vulnerabilities, read/create/update analysis. No BOM upload, no admin.
+- Call the API with `curl`, not Python `urllib`: `$DT_URL` is a short service name that `curl` resolves and Python does not. Generate JSON bodies with `jq` or Python and send them with `curl -d @file`.
+- Go reachability from source mode (call traces) comes from the `govulncheck` skill's workflow; cite its run URL, tool version and source revision in `analysisDetails`.
 - Projects are workload containers (name `namespace/repository`, version = image tag; a new tag is cloned from the previous version with its audit history): `curl -s -H "$H" "$DT_URL/api/v1/project?pageSize=100&pageNumber=1"`. Lists and findings return 100 rows per page (`X-Total-Count` has the total): loop over `pageNumber`, `limit` is ignored. Only some images are tracked, so a CVE in Trivy can be absent here: say so.
 - A CVE: `GET /api/v1/vulnerability/source/NVD/vuln/<id>` (severity, CVSS, EPSS) and `.../projects` for the affected projects.
 - Findings of a project: `GET /api/v1/finding/project/<uuid>?pageSize=100&pageNumber=N` (project `metrics.critical` matches the findings once paged). `searchText` on `/api/v1/finding` does not filter by CVE; do not trust it.
