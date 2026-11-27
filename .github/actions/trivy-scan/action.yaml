@@ -26,7 +26,7 @@ inputs:
 outputs:
   outcome:
     description: success or failure of the scan
-    value: ${{ steps.pull.outcome == 'failure' && 'failure' || steps.scan.outcome }}
+    value: ${{ steps.scan.outcome }}
 runs:
   using: composite
   steps:
@@ -42,28 +42,9 @@ runs:
       uses: ./.github/actions/install-trivy
       with:
         version: ${{ inputs.version }}
-    # Trivy looks for the socket at ${XDG_RUNTIME_DIR}/podman/podman.sock
-    # The private runners pull through zot with the mirrors of podman-registries, so the report keeps the original reference
-    - name: Pull through podman
-      id: pull
-      if: runner.environment == 'self-hosted'
-      # a failed pull is reported through the outcome output, like a failed scan
-      continue-on-error: true
-      shell: bash
-      env:
-        IMAGE: ${{ inputs.image }}
-      run: |
-        podman pull --quiet "${IMAGE}"
-        sock="${XDG_RUNTIME_DIR}/podman/podman.sock"
-        mkdir -p "$(dirname "${sock}")"
-        if [[ ! -S "${sock}" ]]; then
-          nohup podman system service --time=0 "unix://${sock}" > /dev/null 2>&1 &
-          for _ in {1..20}; do [[ -S "${sock}" ]] && break; sleep 0.5; done
-        fi
     # an empty TRIVY_VEX is ignored
     - name: Scan
       id: scan
-      if: steps.pull.outcome != 'failure'
       continue-on-error: true
       uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
       with:
@@ -80,7 +61,8 @@ runs:
         ignore-policy: ${{ inputs.ignore-policy }}
         ignore-unfixed: false
         hide-progress: true
+        trivy-config: ${{ runner.environment == 'self-hosted' && '.github/trivy-zot.yaml' || '' }}
       env:
         TRIVY_VEX: ${{ inputs.vex }}
         TRIVY_SHOW_SUPPRESSED: ${{ inputs.vex != '' }}
-        TRIVY_IMAGE_SRC: ${{ runner.environment == 'self-hosted' && 'podman' || 'docker,containerd,podman,remote' }}
+        TRIVY_IMAGE_SRC: ${{ runner.environment == 'self-hosted' && 'remote' || 'docker,containerd,podman,remote' }}
