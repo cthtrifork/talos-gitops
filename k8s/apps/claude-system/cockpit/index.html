@@ -1086,11 +1086,11 @@ class CockpitApp extends LitElement {
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
       ${d ? html`${Strip(d, hardwareWarning, environmentWarning)}
         ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${JobsPanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
-        ${Section({ id: "cluster", title: "Cluster" }, html`${DropsPanel(d)}${AlertsPanel(d)}${FluxPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}${VolumesPanel(d)}`)}
+        ${Section({ id: "cluster", title: "Cluster" }, html`${AlertsPanel(d)}${FluxPanel(d)}${VolumesPanel(d)}${DropsPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}`)}
         ${Section({ id: "hardware", title: "Cluster hardware", layout: "hardware-band" }, html`${ComputePanel(d)}${NodesPanel(d)}
           <div class="hardware-col">${EnvironmentPanel(d, environment, environmentWarning, d.ambient_temperatures ? toggle : null)}${HardwarePanel(d, hardware, hardwareWarning, d.ambient_temperatures ? null : toggle)}</div>`)}
-        ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}
-        ${Machines()}` : nothing}
+        ${Machines()}
+        ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
     </main>`;
   }
 }
