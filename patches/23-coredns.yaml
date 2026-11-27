@@ -1,5 +1,0 @@
-# CoreDNS is a Flux HelmRelease (k8s/infra/coredns). Apply only after the handover in docs/coredns.md.
----
-apiVersion: v1alpha1
-kind: KubeCoreDNSConfig
-enabled: false
