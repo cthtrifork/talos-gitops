@@ -211,9 +211,12 @@ jobs:
         # zot serves a stale cached :latest whose manifests it can no longer read (the pull resets); the digest from ghcr.io is synced fresh
         run: |
           digest=$(crane digest "${IMAGE}:latest" 2>/dev/null || true)
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
           echo "ref=${IMAGE}$([ -n "${digest}" ] && echo "@${digest}" || echo ":latest")" >> "$GITHUB_OUTPUT"
       - name: Scan the released image
         id: old
+        # nothing to compare on the first release
+        if: steps.released.outputs.digest != ''
         uses: ./.github/actions/trivy-scan
         with:
           image: ${{ steps.released.outputs.ref }}
@@ -261,9 +264,9 @@ jobs:
           comment: out/comment.md
           report: out/*.trivy.json
           header: scan-images ${{ inputs.name }}
-      - name: Fail if the new scan failed
-        # findings never fail the job; a scan that could not run does (usually transient: re-run)
-        if: steps.new.outputs.outcome == 'failure'
+      - name: Fail if a scan failed
+        # findings never fail the job; a scan that could not run does, so does a missing comparison (usually transient: re-run)
+        if: steps.new.outputs.outcome == 'failure' || steps.old.outputs.outcome == 'failure'
         run: |
-          echo "::error::The Trivy scan failed (see the scan step above); re-run the job"
+          echo "::error::A Trivy scan failed (see the scan steps above); re-run the job"
           exit 1
