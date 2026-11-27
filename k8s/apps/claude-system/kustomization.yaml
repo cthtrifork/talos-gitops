@@ -20,6 +20,7 @@ resources:
   - claude-cloudflare.enc.yaml
   - omni-service-account.enc.yaml
   - prometheusrule.yaml
+  - usage-poller/podmonitor.yaml
   - usage/deployment.yaml
   - usage/service.yaml
   - usage/podmonitor.yaml
@@ -52,7 +53,6 @@ resources:
   - cockpit/deployment.yaml
   - cockpit/pdb.yaml
   - cockpit/service.yaml
-  - cockpit/service-ingest.yaml
   - cockpit/podmonitor.yaml
 configMapGenerator:
   - name: claude-usage-connect-config

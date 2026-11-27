@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Polls the plan limits of the login on the claude-home volume and posts them to the cockpit page ("Claude usage" panel).
+# Polls the plan limits of the login on the claude-home volume and serves them as Prometheus metrics on :9102/metrics.txt (PodMonitor claude-rc);
+# the cockpit "Claude usage" panel reads them back from Prometheus.
 # `claude remote-control` never runs a statusLine, so this asks the endpoint Claude Code's own /usage uses. It is undocumented
-# (the anthropic-beta header is an internal detail) and can change; a failed poll only logs, and the panel goes stale after 6 hours.
+# (the anthropic-beta header is an internal detail) and can change; a failed poll only logs and keeps the last values, and the panel goes stale after 6 hours.
 # The access token is read here, handed to curl on stdin and never printed or logged. Only the percentages and reset times leave the pod.
 # Claude Code refreshes the token in place; this never refreshes it, so while the login is expired the poll answers 401 until claude runs.
 set -u
@@ -9,7 +10,7 @@ set -u
 creds="$HOME/.claude/.credentials.json"
 interval="${POLL_INTERVAL:-300}"
 usage_url=https://api.anthropic.com/api/oauth/usage
-cockpit_url="${COCKPIT_URL:-http://claude-cockpit-ingest.claude-system.svc:8081/api/v1/usage}"
+dir="${METRICS_DIR:-/var/run/usage-metrics}"
 
 poll() {
     local tok reply code body payload
@@ -21,19 +22,31 @@ poll() {
     code="${reply##*$'\n'}"
     body="${reply%$'\n'*}"
     [ "$code" = 200 ] || { echo "usage endpoint answered $code"; return 1; }
-    # ISO reset times to epoch seconds, the shape the cockpit stores; the fields the endpoint does not have stay empty
-    payload="$(jq -c '
-        def epoch: if . == null then null else (sub("\\.[0-9]+"; "") | sub("\\+00:00$"; "Z") | fromdateiso8601) end;
-        def win(w): {used_percentage: w.utilization, resets_at: (w.resets_at | epoch)};
-        {rate_limits: {five_hour: win(.five_hour // {}), seven_day: win(.seven_day // {})}}' <<<"$body" 2>/dev/null)" \
+    # one line per series; a field the endpoint does not have is left out. ISO reset times become epoch seconds.
+    payload="$(jq -r '
+        def epoch: sub("\\.[0-9]+"; "") | sub("\\+00:00$"; "Z") | fromdateiso8601;
+        def lines(n; w): (.[n] // {}) as $x | (
+            (select($x.utilization != null) | "claude_plan_used_percent{window=\"\(w)\"} \($x.utilization)"),
+            (select($x.resets_at != null) | "claude_plan_resets_at_seconds{window=\"\(w)\"} \($x.resets_at | epoch)"));
+        "# TYPE claude_plan_used_percent gauge",
+        "# TYPE claude_plan_resets_at_seconds gauge",
+        lines("five_hour"; "five_hour"), lines("seven_day"; "seven_day")' <<<"$body" 2>/dev/null)" \
         || { echo "unexpected usage answer"; return 1; }
-    curl --silent --fail --max-time 5 --request POST --header 'Content-Type: application/json' --data "$payload" "$cockpit_url" >/dev/null \
-        || { echo "cockpit did not accept the post"; return 1; }
-    echo "posted"
+    grep -q '^claude_plan_used_percent' <<<"$payload" || { echo "usage answer has no limits"; return 1; }
+    printf '%s\n# TYPE claude_plan_usage_polled_timestamp_seconds gauge\nclaude_plan_usage_polled_timestamp_seconds %s\n' "$payload" "$(date +%s)" >"$dir/metrics.tmp" \
+        && mv "$dir/metrics.tmp" "$dir/metrics.txt"
+    echo "polled: $(grep '^claude_plan_used_percent' <<<"$payload" | sed 's/claude_plan_used_percent//' | tr '\n' ' ')"
 }
 
+# serves the file; .txt gives it the text/plain Prometheus wants, and the handler does not log every scrape
+python3 -I -c '
+import functools, http.server, sys
+class H(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a): pass
+http.server.ThreadingHTTPServer(("", 9102), functools.partial(H, directory=sys.argv[1])).serve_forever()' "$dir" &
+
 # sleep in the background so a TERM from the kubelet is handled at once
-trap 'exit 0' TERM INT
+trap 'kill 0; exit 0' TERM INT
 while true; do
     poll || true
     sleep "$interval" & wait $! || true
