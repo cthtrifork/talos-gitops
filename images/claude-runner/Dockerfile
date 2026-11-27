@@ -85,6 +85,8 @@ RUN base="https://github.com/google/go-containerregistry/releases/download/v${CR
 # govulncheck (scripts: govulncheck-image): reads a Go binary pulled out of a cluster image and lists the vulnerable symbols in it
 COPY --from=govulncheck /out/govulncheck /usr/local/bin/govulncheck
 COPY govulncheck-image /usr/local/bin/govulncheck-image
+# image-files: lists the files of a cluster image and prints one text file (nothing written to disk)
+COPY image-files /usr/local/bin/image-files
 
 # yq (mikefarah, the one the repo's CI scripts use), checksum verified against the release's checksums file. Its
 # columns follow checksums_hashes_order; SHA-256 is the 18th hash, so field 19.

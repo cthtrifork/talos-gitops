@@ -29,7 +29,7 @@ description: Query and assess vulnerability findings in Dependency-Track with th
   checked fact that stops it (a source line, a Dockerfile line, a policy rule, a govulncheck result), not one text copied to every row.
 - Ways to verify, in order: `govulncheck` (map CVE to GO id via `vuln.go.dev`; symbol absent is `CODE_NOT_PRESENT`; a GO id with no entry cannot be checked, so leave it open);
   the project's source at the live tag (`git clone --depth 1 --branch <tag>` into its own directory: image build flags such as `CGO_ENABLED`, `apk add` lines, `os/exec`, listeners, `grpc.NewServer`,
-  TLS use); the Kustomization or Helm values for the feature; then network policy. Delete the clone afterwards. Distro libraries (curl, expat, pcre2, zlib) a static Go binary does not load are
+  TLS use); `image-files` (see `image-inspect`) for what the image ships, e.g. whether a script imports the vulnerable package; the Kustomization or Helm values for the feature; then network policy. Delete the clone afterwards. Distro libraries (curl, expat, pcre2, zlib) a static Go binary does not load are
   reachable only through child processes: check which ones the code starts and whether this cluster triggers them.
 - Set `TMPDIR` to the session scratchpad when running `govulncheck-image` (it is unset and the script falls back to `/tmp`).
   4. Anything that needs a permission or a tool you lack: say which, do the rest, do not reach around it.
