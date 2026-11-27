@@ -35,10 +35,17 @@ spec:
     rbac:
       enabled: true
     dashboard:
-      replicas: 1
+      replicas: 2
       pdb:
-        # one replica: maxUnavailable 1 allows eviction anyway
-        enable: false
+        enable: true
+      # nodes have no zone label, and the chart default only prefers separate hosts
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              component: dashboard
       service:
         annotations:
           omni-kube-service-exposer.sidero.dev/icon: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iIzdjM2FlZCIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDRsMi40IDUgNS42LjctNC4xIDMuOCAxLjEgNS41TDEyIDE2LjMgNyAxOWwxLjEtNS41TDQgOS43IDkuNiA5eiIvPjwvZz48L3N2Zz4=
@@ -48,9 +55,10 @@ spec:
       resources:
         requests:
           cpu: 25m
-          memory: 32Mi
+          memory: 192Mi
         limits:
-          memory: 256Mi
+          # the first-request audit spiked past 256Mi (OOMKilled)
+          memory: 512Mi
       containerSecurityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -1089,3 +1097,29 @@ spec:
             patch: |
               - op: remove
                 path: /metadata/labels/app.kubernetes.io~1version
+          - target:
+              kind: Deployment
+              name: polaris-dashboard
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: polaris-dashboard
+                namespace: policy-system
+              spec:
+                strategy:
+                  rollingUpdate:
+                    maxSurge: 1
+                    maxUnavailable: 0
+                template:
+                  spec:
+                    containers:
+                      - name: dashboard
+                        # Ready only after the first-request audit, so the old pod serves until then
+                        startupProbe:
+                          httpGet:
+                            path: /results.json
+                            port: 8080
+                          timeoutSeconds: 120
+                          periodSeconds: 10
+                          failureThreshold: 30

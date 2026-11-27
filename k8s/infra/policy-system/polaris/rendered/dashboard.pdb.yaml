@@ -1,0 +1,22 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    app: polaris
+    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/instance: polaris
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: polaris
+    app.kubernetes.io/part-of: polaris
+    component: dashboard
+    helm.sh/chart: polaris-6.0.1
+  name: polaris-dashboard
+  namespace: policy-system
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: polaris
+      app.kubernetes.io/instance: polaris
+      app.kubernetes.io/name: polaris
+      component: dashboard
