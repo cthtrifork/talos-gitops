@@ -3,8 +3,8 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-27T04:50:09Z",
-  "version": 2,
+  "timestamp": "2026-11-27T06:00:25Z",
+  "version": 3,
   "statements": [
     {
       "vulnerability": {
@@ -126,6 +126,32 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2023-6879"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libaom3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libaom3"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2023-6879 in libaom3 3.6.0-1+deb12u3: Increasing the resolution of video frames, while performing a multi-threaded encode, can result in a heap overflow in av1_loop_restoration_dealloc(). Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libaom3. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2024-26458"
       },
       "products": [
@@ -209,6 +235,110 @@
       ],
       "status": "not_affected",
       "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-56406"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/perl-base"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/perl-base"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2024-56406 in perl-base 5.36.0-7+deb12u1: A heap buffer overflow vulnerability was discovered in Perl. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain perl-base. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-6345"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/setuptools"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/setuptools"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "setuptools package_index download functions allow code injection: needs setuptools to download packages, which nothing in the image does at run time. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. pip and setuptools belong to the slim base's Python 3.9; the script imports neither, nothing in the driver runs pip, and distutils-precedence.pth only loads the distutils shim, not the vulnerable code."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-15467"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libssl3"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-15467 in libssl3: Issue summary: Parsing CMS AuthEnvelopedData or EnvelopedData message with maliciously crafted AEAD parameters can trigger a stack buffer overflow. Read with image-files from the pinned image (sha256:1b5e3667). Needs CMS (Auth)EnvelopedData parsing. Symbol check of every ELF file in the image: the importers of CMS_/PKCS7_ functions are the openssl command, Debian's python3-cryptography, systemctl, systemd-repart, libsystemd-shared and libkmod2, none of which runs; the loaded libssl3 users (Python _ssl and _hashlib, libglusterfs/libgfrpc, librados2) import none."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-15467"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/openssl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/openssl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-15467 in openssl 3.0.15-1~deb12u1: Issue summary: Parsing CMS AuthEnvelopedData or EnvelopedData message with maliciously crafted AEAD parameters can trigger a stack buffer overflow. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain openssl. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
     },
     {
       "vulnerability": {
@@ -327,6 +457,162 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "pam_namespace symlink/race privilege escalation by a local user at PAM login or session setup. Nothing in the container opens a PAM session: ENTRYPOINT is tini then the driver, and the driver's exec calls are juicefs, umount, rm, sh and bash only (grep of pkg/ and cmd/ at v0.34.0; no login, su, sudo or sshd). Local vector (AV:L)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-6965"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-6965 in libsqlite3-0 3.40.1-2+deb12u1: There exists a vulnerability in SQLite versions before 3.50.2 where the number of aggregate terms could exceed the number of columns available. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libsqlite3-0. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-0799"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libpcap0.8"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libpcap0.8"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-0799 in libpcap0.8 1.10.3-1: In BPF instructions that load/store a value from/to a scratch memory register the register index is an unsigned 32-bit integer and must not exceed 15, but libpcap BPF interpreter does not validate the value. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libpcap0.8. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-102267"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-jwt"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-jwt"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PyJWT PyJWKClient follows redirects from a JWKS endpoint: needs an app using PyJWKClient. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. Its launcher takes python3 from PATH, which starts with /usr/local/bin in the image Env, so it runs /usr/local/bin/python3 (Python 3.9, slim base), not Debian's /usr/bin/python3.11. The Debian package lives in /usr/lib/python3/dist-packages, and no .pth file or sitecustomize in the image adds that directory to the 3.9 interpreter (its site-packages holds only distutils-precedence.pth)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-102268"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-jwt"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-jwt"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PyJWT algorithm confusion: needs an app calling PyJWT decode with HMAC and asymmetric algorithms and a PEM public key. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. Its launcher takes python3 from PATH, which starts with /usr/local/bin in the image Env, so it runs /usr/local/bin/python3 (Python 3.9, slim base), not Debian's /usr/bin/python3.11. The Debian package lives in /usr/lib/python3/dist-packages, and no .pth file or sitecustomize in the image adds that directory to the 3.9 interpreter (its site-packages holds only distutils-precedence.pth)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-102271"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-jwt"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-jwt"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PyJWT HMAC key guard misses DER-encoded asymmetric keys: needs an app mixing HMAC and asymmetric algorithms. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. Its launcher takes python3 from PATH, which starts with /usr/local/bin in the image Env, so it runs /usr/local/bin/python3 (Python 3.9, slim base), not Debian's /usr/bin/python3.11. The Debian package lives in /usr/lib/python3/dist-packages, and no .pth file or sitecustomize in the image adds that directory to the 3.9 interpreter (its site-packages holds only distutils-precedence.pth)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-105840"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/lrzsz"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/lrzsz"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-105840 in lrzsz 0.12.21-10+b1: lrzsz before 0.13.0 contains a path traversal vulnerability in the lrz receive utility's restricted mode that allows malicious ZMODEM senders to write files outside the current directory using absolute pathnames. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain lrzsz. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
     },
     {
       "vulnerability": {
@@ -499,6 +785,84 @@
       ],
       "status": "not_affected",
       "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-108472"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/xfsprogs"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/xfsprogs"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-108472 in xfsprogs 6.1.0-1: A flaw was found in the xfs_admin utility in xfsprogs. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain xfsprogs. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-109518"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/apt"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/apt"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-109518 in apt 2.6.1: On Debian, Ubuntu, and derivative Linux distributions, an on-path attacker who can manipulate the HTTP traffic (including a malicious mirror or proxy) between an APT client and an archive server triggered by a package install can trick the client into installi Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain apt. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-109518"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libapt-pkg6.0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libapt-pkg6.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-109518 in libapt-pkg6.0 2.6.1: On Debian, Ubuntu, and derivative Linux distributions, an on-path attacker who can manipulate the HTTP traffic (including a malicious mirror or proxy) between an APT client and an archive server triggered by a package install can trick the client into installi Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libapt-pkg6.0. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
     },
     {
       "vulnerability": {
@@ -975,6 +1339,84 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-115506"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libexpat1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libexpat1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-115506 in libexpat1 2.5.0-1+deb12u5: libexpat through 2.9.0 contains a denial of service vulnerability because billion laughs protection in accountingDiffTolerated() in xmlparse.c detects entity amplification too late. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libexpat1. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-11822"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-11822 in libsqlite3-0 3.40.1-2+deb12u1: SQLite before 3.53.2 contains an out-of-bounds read vulnerability in the FTS5 full-text search extension that allows attackers to crash the process by supplying a crafted database with a malformed FTS5 leaf page. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libsqlite3-0. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-11824"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-11824 in libsqlite3-0 3.40.1-2+deb12u1: SQLite before 3.53.2 contains a heap-based buffer overflow vulnerability in the FTS5 full-text search extension that allows attackers to cause a crash or execute arbitrary code by supplying a crafted database with malicious continuation page metadata specifyin Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libsqlite3-0. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-118380"
       },
       "products": [
@@ -1061,6 +1503,32 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-118669"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-oauthlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-oauthlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "OAuthLib server grant handlers: needs an app running an OAuth server. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. Its launcher takes python3 from PATH, which starts with /usr/local/bin in the image Env, so it runs /usr/local/bin/python3 (Python 3.9, slim base), not Debian's /usr/bin/python3.11. The Debian package lives in /usr/lib/python3/dist-packages, and no .pth file or sitecustomize in the image adds that directory to the 3.9 interpreter (its site-packages holds only distutils-precedence.pth)."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-119079"
       },
       "products": [
@@ -1104,6 +1572,84 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-119373"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-119373 in libsqlite3-0 3.40.1-2+deb12u1: SQLite before 3.54.0 built with FTS5 contains a heap buffer overflow in fts5MergeRowidLists() that undersizes the output buffer when merging detail=none prefix doclists. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libsqlite3-0. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-119374"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-119374 in libsqlite3-0 3.40.1-2+deb12u1: SQLite before 3.54.0 built with FTS5 contains a heap buffer overflow in fts5DoSecureDelete() that allows attackers to write past the leaf page buffer via crafted footer key offsets. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libsqlite3-0. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-119379"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-119379 in libsqlite3-0 3.40.1-2+deb12u1: SQLite before 3.54.0 built with the session extension contains a heap buffer overflow vulnerability in sqlite3changeset_apply() that allows attackers to corrupt heap memory by supplying crafted changesets. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libsqlite3-0. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-12064"
       },
       "products": [
@@ -1137,8 +1683,86 @@
         }
       ],
       "status": "not_affected",
+      "justification": "inline_mitigations_already_exist",
+      "impact_statement": "Needs curl/libcurl to open an sftp or scp (SSH) connection with a schemeless URL. Policy juicefs-csi allows egress only to garage:3900 (S3), juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Port 22 and every other host are dropped, so no SSH connection can be made by any process in the pod."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-124851"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libzstd1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libzstd1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "curl tool with a schemeless URL and --proto-default sftp/scp: needs SSH on port 22. The driver never runs curl or loads libcurl (its exec calls are juicefs, umount, rm, sh and bash; grep of pkg/ and cmd/ at v0.34.0; curl is used only in the Dockerfile build). Pods' egress (CiliumNetworkPolicy juicefs-csi) allows only garage:3900, juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Only the EE CLI path /usr/bin/juicefs (a script) is outside this: it is run only for Enterprise-edition secrets, and this cluster mounts with the CE mount image juicedata/mount:ce-v1.4.2."
+      "impact_statement": "CVE-2026-124851 in libzstd1: An information disclosure vulnerability in Zstandard versions 1.5.1 through 1.5.7 allows specially crafted compressed data to expose the contents of an internal buffer through decompressed output. Read with image-files from the pinned image (sha256:1b5e3667). Needs a program that zstd-decompresses attacker-supplied data and returns the output to the attacker. Symbol check: the loaded importers of ZSTD decompression are libboost_iostreams (pulled in by librados2, used for Ceph compression) and libsystemd0 (journal files). Ceph is unreachable (egress allows only garage:3900, Postgres:5432, kubelet:10250, the kube-apiserver and DNS) and nothing in the pod reads systemd journals; dpkg-deb, libapt, libcurl, libtiff, libkmod2 and libxmlb are not loaded."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-125704"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgstreamer1.0-0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgstreamer1.0-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-125704 in libgstreamer1.0-0 1.22.0-2+deb12u1: A use-after-free flaw was found in GStreamer core buffer value deserialization. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libgstreamer1.0-0. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-12912"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libtiff6"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libtiff6"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-12912 in libtiff6 4.5.0-6+deb12u4: A flaw was found in libtiff. A remote attacker could exploit this vulnerability by providing a specially crafted PixarLog-compressed TIFF image. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libtiff6. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
     },
     {
       "vulnerability": {
@@ -1236,6 +1860,32 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-26007"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-cryptography"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-cryptography"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "cryptography accepts invalid EC public keys: needs an app loading attacker-supplied EC public keys. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. Its launcher takes python3 from PATH, which starts with /usr/local/bin in the image Env, so it runs /usr/local/bin/python3 (Python 3.9, slim base), not Debian's /usr/bin/python3.11. The Debian package lives in /usr/lib/python3/dist-packages, and no .pth file or sitecustomize in the image adds that directory to the 3.9 interpreter (its site-packages holds only distutils-precedence.pth)."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-26017"
       },
       "products": [
@@ -1311,6 +1961,84 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "x/net/html Parse then Render yields an unexpected tree, an XSS risk only when parsed HTML is re-rendered to a browser. The invoked juicefs subcommands output no HTML and start no web server. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-32882"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-32882 in libheif1 1.15.1-1+deb12u1: libheif is a HEIF and AVIF file format decoder and encoder. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libheif1. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-33845"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgnutls30"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgnutls30"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-33845 in libgnutls30 3.7.9-2+deb12u4: A flaw in GnuTLS DTLS handshake parsing allows malformed fragments with zero length and non-zero offset, leading to an integer underflow during reassembly and resulting in an out-of-bounds read. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libgnutls30. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-33846"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgnutls30"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgnutls30"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-33846 in libgnutls30 3.7.9-2+deb12u4: A heap buffer overflow vulnerability exists in the DTLS handshake fragment reassembly logic of GnuTLS. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libgnutls30. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
     },
     {
       "vulnerability": {
@@ -1571,6 +2299,84 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-42009"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgnutls30"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgnutls30"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-42009 in libgnutls30 3.7.9-2+deb12u4: A flaw was found in gnutls. A remote attacker could exploit an issue in the Datagram Transport Layer Security (DTLS) packet reordering logic. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libgnutls30. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42010"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgnutls30"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgnutls30"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-42010 in libgnutls30 3.7.9-2+deb12u4: A flaw was found in gnutls. Servers configured with RSA-PSK (Rivest–Shamir–Adleman – Pre-Shared Key) wrongfully matched usernames containing a NUL character with truncated usernames. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libgnutls30. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42496"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/perl-base"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/perl-base"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-42496 in perl-base 5.36.0-7+deb12u1: Archive::Tar versions before 3.08 for Perl extract symlinks with attacker controlled targets outside the extraction directory. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain perl-base. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-42508"
       },
       "products": [
@@ -1593,6 +2399,58 @@
       ],
       "status": "not_affected",
       "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-45447"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libssl3"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-45447 in libssl3: Issue summary: A specially crafted PKCS#7 or S/MIME signed message could trigger a use-after-free during PKCS#7 signature verification. Read with image-files from the pinned image (sha256:1b5e3667). Needs PKCS7_verify on a crafted signed message. Symbol check of every ELF file in the image: PKCS7_verify is imported only by systemctl and libsystemd-shared (not loaded); the loaded libssl3 users import no PKCS7_ or CMS_ function."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-45447"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/openssl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/openssl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-45447 in openssl 3.0.15-1~deb12u1: Issue summary: A specially crafted PKCS#7 or S/MIME signed message could trigger a use-after-free during PKCS#7 signature verification. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain openssl. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
     },
     {
       "vulnerability": {
@@ -1646,6 +2504,84 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-48526"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-jwt"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-jwt"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PyJWT accepts a JWK as HMAC secret: needs an app decoding JWTs with both algorithm families. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. Its launcher takes python3 from PATH, which starts with /usr/local/bin in the image Env, so it runs /usr/local/bin/python3 (Python 3.9, slim base), not Debian's /usr/bin/python3.11. The Debian package lives in /usr/lib/python3/dist-packages, and no .pth file or sitecustomize in the image adds that directory to the 3.9 interpreter (its site-packages holds only distutils-precedence.pth)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-48962"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/perl-base"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/perl-base"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-48962 in perl-base 5.36.0-7+deb12u1: IO::Compress versions before 2.220 for Perl can execute arbitrary code in File::GlobMapper via an attacker-controlled output glob. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain perl-base. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-49272"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-oauthlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-oauthlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "OAuthLib RFC 8628 device-code validation: needs an app running an OAuth device-flow server. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. Its launcher takes python3 from PATH, which starts with /usr/local/bin in the image Env, so it runs /usr/local/bin/python3 (Python 3.9, slim base), not Debian's /usr/bin/python3.11. The Debian package lives in /usr/lib/python3/dist-packages, and no .pth file or sitecustomize in the image adds that directory to the 3.9 interpreter (its site-packages holds only distutils-precedence.pth)."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-50152"
       },
       "products": [
@@ -1677,6 +2613,552 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-52490"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libtiff6"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libtiff6"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-52490 in libtiff6 4.5.0-6+deb12u4: An issue in libtiff 85f2ac8e0b01cb7db2bbecf4a3b891bdbef67938 allows an attacker to execute arbitrary code via the process_command_opts() function in tools/tiffcrop.c Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libtiff6. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53613"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/bsdutils"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/bsdutils"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53613 in bsdutils 1:2.38.1-5+deb12u3: util-linux is a random collection of Linux utilities. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain bsdutils. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53613"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libblkid1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libblkid1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53613 in libblkid1: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). Needs a non-root user allowed by an fstab user/users entry to race the mount source path. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53613"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libfdisk1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libfdisk1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53613 in libfdisk1 2.38.1-5+deb12u3: util-linux is a random collection of Linux utilities. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libfdisk1. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53613"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libmount1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libmount1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53613 in libmount1: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). Needs a non-root user allowed by an fstab user/users entry to race the mount source path. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53613"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsmartcols1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsmartcols1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53613 in libsmartcols1: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). Needs a non-root user allowed by an fstab user/users entry to race the mount source path. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53613"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libuuid1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libuuid1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53613 in libuuid1: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). Needs a non-root user allowed by an fstab user/users entry to race the mount source path. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53613"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/mount"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/mount"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53613 in mount: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). Needs a non-root user allowed by an fstab user/users entry to race the mount source path. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53613"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux-extra"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux-extra"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53613 in util-linux-extra: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). Needs a non-root user allowed by an fstab user/users entry to race the mount source path. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53613"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53613 in util-linux: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). Needs a non-root user allowed by an fstab user/users entry to race the mount source path. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53613"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/uuid-dev"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/uuid-dev"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53613 in uuid-dev 2.38.1-5+deb12u3: util-linux is a random collection of Linux utilities. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain uuid-dev. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53615"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/bsdutils"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/bsdutils"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53615 in bsdutils 1:2.38.1-5+deb12u3: util-linux is a random collection of Linux utilities. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain bsdutils. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53615"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libblkid1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libblkid1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53615 in libblkid1: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). libblkid partition parsing runs only when libmount probes a block device or disk image (libmount imports blkid_probe_enable_partitions for filesystem-type guessing). Every mount the driver issues is a directory bind mount, Mount(source, target, \"none\", [\"bind\"]) (pkg/juicefs/juicefs.go:196, pkg/controller/pod_driver.go:873), and the only other call (process_mount.go:157) is the process-mount mode, which is off (no --by-process flag). A bind mount guesses no filesystem type and its source is a directory, so no partition table is read; findmnt only lists mounts."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53615"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libfdisk1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libfdisk1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53615 in libfdisk1 2.38.1-5+deb12u3: util-linux is a random collection of Linux utilities. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libfdisk1. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53615"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libmount1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libmount1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53615 in libmount1: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). libblkid partition parsing runs only when libmount probes a block device or disk image (libmount imports blkid_probe_enable_partitions for filesystem-type guessing). Every mount the driver issues is a directory bind mount, Mount(source, target, \"none\", [\"bind\"]) (pkg/juicefs/juicefs.go:196, pkg/controller/pod_driver.go:873), and the only other call (process_mount.go:157) is the process-mount mode, which is off (no --by-process flag). A bind mount guesses no filesystem type and its source is a directory, so no partition table is read; findmnt only lists mounts."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53615"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsmartcols1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsmartcols1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53615 in libsmartcols1: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). libblkid partition parsing runs only when libmount probes a block device or disk image (libmount imports blkid_probe_enable_partitions for filesystem-type guessing). Every mount the driver issues is a directory bind mount, Mount(source, target, \"none\", [\"bind\"]) (pkg/juicefs/juicefs.go:196, pkg/controller/pod_driver.go:873), and the only other call (process_mount.go:157) is the process-mount mode, which is off (no --by-process flag). A bind mount guesses no filesystem type and its source is a directory, so no partition table is read; findmnt only lists mounts."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53615"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libuuid1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libuuid1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53615 in libuuid1: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). libblkid partition parsing runs only when libmount probes a block device or disk image (libmount imports blkid_probe_enable_partitions for filesystem-type guessing). Every mount the driver issues is a directory bind mount, Mount(source, target, \"none\", [\"bind\"]) (pkg/juicefs/juicefs.go:196, pkg/controller/pod_driver.go:873), and the only other call (process_mount.go:157) is the process-mount mode, which is off (no --by-process flag). A bind mount guesses no filesystem type and its source is a directory, so no partition table is read; findmnt only lists mounts."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53615"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/mount"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/mount"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53615 in mount: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). libblkid partition parsing runs only when libmount probes a block device or disk image (libmount imports blkid_probe_enable_partitions for filesystem-type guessing). Every mount the driver issues is a directory bind mount, Mount(source, target, \"none\", [\"bind\"]) (pkg/juicefs/juicefs.go:196, pkg/controller/pod_driver.go:873), and the only other call (process_mount.go:157) is the process-mount mode, which is off (no --by-process flag). A bind mount guesses no filesystem type and its source is a directory, so no partition table is read; findmnt only lists mounts."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53615"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux-extra"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux-extra"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53615 in util-linux-extra: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). libblkid partition parsing runs only when libmount probes a block device or disk image (libmount imports blkid_probe_enable_partitions for filesystem-type guessing). Every mount the driver issues is a directory bind mount, Mount(source, target, \"none\", [\"bind\"]) (pkg/juicefs/juicefs.go:196, pkg/controller/pod_driver.go:873), and the only other call (process_mount.go:157) is the process-mount mode, which is off (no --by-process flag). A bind mount guesses no filesystem type and its source is a directory, so no partition table is read; findmnt only lists mounts."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53615"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53615 in util-linux: util-linux is a random collection of Linux utilities. Read with image-files from the pinned image (sha256:1b5e3667). libblkid partition parsing runs only when libmount probes a block device or disk image (libmount imports blkid_probe_enable_partitions for filesystem-type guessing). Every mount the driver issues is a directory bind mount, Mount(source, target, \"none\", [\"bind\"]) (pkg/juicefs/juicefs.go:196, pkg/controller/pod_driver.go:873), and the only other call (process_mount.go:157) is the process-mount mode, which is off (no --by-process flag). A bind mount guesses no filesystem type and its source is a directory, so no partition table is read; findmnt only lists mounts."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53615"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/uuid-dev"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/uuid-dev"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-53615 in uuid-dev 2.38.1-5+deb12u3: util-linux is a random collection of Linux utilities. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain uuid-dev. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-54330"
       },
       "products": [
@@ -1705,6 +3187,58 @@
       ],
       "status": "not_affected",
       "impact_statement": "Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-54369"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libacl1-dev"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libacl1-dev"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-54369 in libacl1-dev 2.3.1-3: acl before version 2.4.0 contains a symlink traversal vulnerability in the libacl pathname-based functions acl_get_file(), acl_set_file(), acl_extended_file(), and acl_delete_def_file() that allows local attackers to escalate privileges by replacing any pathna Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libacl1-dev. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-54369"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libacl1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libacl1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-54369 in libacl1: acl before version 2.4.0 contains a symlink traversal vulnerability in the libacl pathname-based functions acl_get_file(), acl_set_file(), acl_extended_file(), and acl_delete_def_file() that allows local attackers to escalate privileges by replacing any pathname component with a symbolic link. Read with image-files from the pinned image (sha256:1b5e3667). Needs a privileged program calling acl_get_file, acl_set_file, acl_extended_file or acl_delete_def_file on an attacker-influenced path. Symbol check of every ELF file in the image: the importers are cp, install, mv, sed, tar, the glusterfs posix translator, libsystemd-shared and systemd-tmpfiles; none of them is among the programs the driver runs (cp runs only in the mount pods, a different image), and mount, umount, findmnt, rm, bash, dash and juicefs import no acl_* function."
     },
     {
       "vulnerability": {
@@ -1755,6 +3289,162 @@
       ],
       "status": "not_affected",
       "impact_statement": "Windows-only (os.Root junction); all images are Linux"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-57433"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/perl-base"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/perl-base"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-57433 in perl-base 5.36.0-7+deb12u1: Storable versions before 3.41 for Perl have a signed integer overflow when deserializing a crafted SX_HOOK record. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain perl-base. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-58016"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libglib2.0-0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libglib2.0-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-58016 in libglib2.0-0 2.74.6-2+deb12u9: A flaw was found in GLib. A state confusion issue exists in g_dbus_node_info_new_for_xml() in the gio/gdbusintrospection.c file when processing malformed D-Bus introspection XML, specifically with a `node` element nested within other elements like `method`, `s Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libglib2.0-0. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-58016"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libglib2.0-bin"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libglib2.0-bin"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-58016 in libglib2.0-bin 2.74.6-2+deb12u9: A flaw was found in GLib. A state confusion issue exists in g_dbus_node_info_new_for_xml() in the gio/gdbusintrospection.c file when processing malformed D-Bus introspection XML, specifically with a `node` element nested within other elements like `method`, `s Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libglib2.0-bin. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-58016"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libglib2.0-data"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libglib2.0-data"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-58016 in libglib2.0-data 2.74.6-2+deb12u9: A flaw was found in GLib. A state confusion issue exists in g_dbus_node_info_new_for_xml() in the gio/gdbusintrospection.c file when processing malformed D-Bus introspection XML, specifically with a `node` element nested within other elements like `method`, `s Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libglib2.0-data. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-6554"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libpcap0.8"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libpcap0.8"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-6554 in libpcap0.8 1.10.3-1: libpcap BPF interpreter treats the offset in the 'ja L' BPF instruction as a signed integer to implement looping via backward jumps, but it does not limit the number of loop iterations. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libpcap0.8. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-69249"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-cryptography"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-cryptography"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "cryptography recursion on duplicate self-signed certificates: needs an app building certificate chains. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. Its launcher takes python3 from PATH, which starts with /usr/local/bin in the image Env, so it runs /usr/local/bin/python3 (Python 3.9, slim base), not Debian's /usr/bin/python3.11. The Debian package lives in /usr/lib/python3/dist-packages, and no .pth file or sitecustomize in the image adds that directory to the 3.9 interpreter (its site-packages holds only distutils-precedence.pth)."
     },
     {
       "vulnerability": {
@@ -1844,6 +3534,292 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-74860"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libxml2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libxml2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-74860 in libxml2 2.9.14+dfsg-1.3~deb12u6: A flaw was found in libxml2 with Python bindings enabled. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libxml2. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78410"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/bsdutils"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/bsdutils"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-78410 in bsdutils 1:2.38.1-5+deb12u3: A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain bsdutils. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78410"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libblkid1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libblkid1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-78410 in libblkid1: A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. Read with image-files from the pinned image (sha256:1b5e3667). Needs a restricted bind mount authorized by an fstab entry for an unprivileged user. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78410"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libfdisk1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libfdisk1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-78410 in libfdisk1 2.38.1-5+deb12u3: A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libfdisk1. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78410"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libmount1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libmount1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-78410 in libmount1: A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. Read with image-files from the pinned image (sha256:1b5e3667). Needs a restricted bind mount authorized by an fstab entry for an unprivileged user. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78410"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsmartcols1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsmartcols1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-78410 in libsmartcols1: A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. Read with image-files from the pinned image (sha256:1b5e3667). Needs a restricted bind mount authorized by an fstab entry for an unprivileged user. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78410"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libuuid1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libuuid1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-78410 in libuuid1: A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. Read with image-files from the pinned image (sha256:1b5e3667). Needs a restricted bind mount authorized by an fstab entry for an unprivileged user. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78410"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/mount"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/mount"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-78410 in mount: A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. Read with image-files from the pinned image (sha256:1b5e3667). Needs a restricted bind mount authorized by an fstab entry for an unprivileged user. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78410"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux-extra"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux-extra"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-78410 in util-linux-extra: A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. Read with image-files from the pinned image (sha256:1b5e3667). Needs a restricted bind mount authorized by an fstab entry for an unprivileged user. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78410"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-78410 in util-linux: A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. Read with image-files from the pinned image (sha256:1b5e3667). Needs a restricted bind mount authorized by an fstab entry for an unprivileged user. /etc/fstab holds only the comment '# UNCONFIGURED FSTAB FOR BASE SYSTEM' (no user or users entries), and the driver containers run privileged as root (securityContext privileged, runAsNonRoot false), so no unprivileged user mounts through mount."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78410"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/uuid-dev"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/uuid-dev"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-78410 in uuid-dev 2.38.1-5+deb12u3: A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain uuid-dev. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-78661"
       },
       "products": [
@@ -1893,6 +3869,38 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "net/http Range handling in FileServer/ServeContent/ServeFile. No FileServer, ServeContent or ServeFile in the driver's cmd/ or pkg/; the metrics mux serves promhttp only. juicefs file serving (pkg/fs/http.go) is not started by the invoked subcommands. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78669"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            },
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            },
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "inline_mitigations_already_exist",
+      "impact_statement": "GO-2026-6611: HTTP/2 SETTINGS flood from a hostile peer burns CPU in an HTTP/2 client or server; the symbol is linked (govulncheck on juicefs-csi-driver and juicefs, sha256:1b5e3667). Server side: no HTTP/2 server exists. juicefs-csi-driver (static, CGO_ENABLED=0) listens only on plain HTTP: controller-runtime metrics on :8082 (BindAddress, no SecureServing), promhttp metrics, and pprof on localhost; no ServeTLS, tls.Listen or h2c in cmd/ or pkg/ (v0.34.0). The juicefs subcommands the driver runs (format, status, config, quota, rmr, version) start no server; juicefs main.go has only a plain-HTTP debug agent on 127.0.0.1. Client side: the pods' peers are fixed by CiliumNetworkPolicy juicefs-csi: garage:3900 (S3), the juicefs-meta Postgres:5432 (not HTTP), kubelet:10250, the kube-apiserver and DNS; no other host is reachable. Impact is CPU use of one process."
     },
     {
       "vulnerability": {
@@ -1955,8 +3963,8 @@
         }
       ],
       "status": "not_affected",
-      "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "libcurl connection reuse across STARTTLS transfers (SMTP/IMAP/POP3/FTP). The driver never runs curl or loads libcurl (its exec calls are juicefs, umount, rm, sh and bash; grep of pkg/ and cmd/ at v0.34.0; curl is used only in the Dockerfile build). Pods' egress (CiliumNetworkPolicy juicefs-csi) allows only garage:3900, juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Only the EE CLI path /usr/bin/juicefs (a script) is outside this: it is run only for Enterprise-edition secrets, and this cluster mounts with the CE mount image juicedata/mount:ce-v1.4.2."
+      "justification": "inline_mitigations_already_exist",
+      "impact_statement": "Needs libcurl to reuse a connection across STARTTLS transfers (SMTP, IMAP, POP3, FTP). Policy juicefs-csi allows egress only to garage:3900 (S3), juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Those services are unreachable from the pod, so no STARTTLS transfer can happen."
     },
     {
       "vulnerability": {
@@ -1986,6 +3994,32 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-84384"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-84384 in libheif1 1.15.1-1+deb12u1: libheif is a HEIF and AVIF file format decoder and encoder. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libheif1. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-84445"
       },
       "products": [
@@ -2012,6 +4046,32 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-84447"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-84447 in libheif1 1.15.1-1+deb12u1: libheif is a HEIF and AVIF file format decoder and encoder. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libheif1. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-8458"
       },
       "products": [
@@ -2020,10 +4080,56 @@
           "subcomponents": [
             {
               "@id": "pkg:deb/debian/curl"
-            },
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/curl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-8458 in curl 7.88.1-10+deb12u15: libcurl might in some circumstances reuse the wrong connection when asked to do Negotiate-authenticated ones, even when they are set to use different \"services\". Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain curl. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8458"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
             {
               "@id": "pkg:deb/debian/libcurl3-gnutls"
-            },
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-8458 in libcurl3-gnutls 7.88.1-10+deb12u15: libcurl might in some circumstances reuse the wrong connection when asked to do Negotiate-authenticated ones, even when they are set to use different \"services\". Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libcurl3-gnutls. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8458"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
             {
               "@id": "pkg:deb/debian/libcurl4"
             }
@@ -2033,12 +4139,6 @@
           "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/curl"
-            },
-            {
-              "@id": "pkg:deb/debian/libcurl3-gnutls"
-            },
-            {
               "@id": "pkg:deb/debian/libcurl4"
             }
           ]
@@ -2046,7 +4146,85 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "libcurl connection reuse for Negotiate (Kerberos/SPNEGO) authenticated connections. The driver never runs curl or loads libcurl (its exec calls are juicefs, umount, rm, sh and bash; grep of pkg/ and cmd/ at v0.34.0; curl is used only in the Dockerfile build). Pods' egress (CiliumNetworkPolicy juicefs-csi) allows only garage:3900, juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Only the EE CLI path /usr/bin/juicefs (a script) is outside this: it is run only for Enterprise-edition secrets, and this cluster mounts with the CE mount image juicedata/mount:ce-v1.4.2."
+      "impact_statement": "CVE-2026-8458 in libcurl4 7.88.1-10+deb12u15: libcurl might in some circumstances reuse the wrong connection when asked to do Negotiate-authenticated ones, even when they are set to use different \"services\". Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libcurl4. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84782"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libssl3"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-84782 in libssl3: Issue summary: The DTLS retransmission logic does not correctly handle a handshake message write that is suspended part-way through. Read with image-files from the pinned image (sha256:1b5e3667). Needs a DTLS connection. Symbol check of every ELF file in the image: the only importer of DTLS_ methods is Debian's python3-cryptography (never run); Python's _ssl and the other loaded libssl3 users import none, so only TLS is used."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84782"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/openssl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/openssl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-84782 in openssl 3.0.15-1~deb12u1: Issue summary: The DTLS retransmission logic does not correctly handle a handshake message write that is suspended part-way through. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain openssl. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-85091"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/zlib1g"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/zlib1g"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-85091 in zlib1g: zlib 1.2.11 through 1.3.2 contains a heap buffer overflow: after an underlying write() fails, gz_write() returns without resetting strm.next_in, leaving it pointed at the caller's buffer. Read with image-files from the pinned image (sha256:1b5e3667). Needs a program writing through zlib's gzFile API after a failed write. Symbol check: gzwrite is imported only by dpkg-deb, libapt-pkg6.0, wget and libxml2; none is loaded by the programs the driver runs, and Python's zlib module and the other loaded zlib1g users do not import it."
     },
     {
       "vulnerability": {
@@ -2073,6 +4251,110 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "CoreDNS DoH/DoH3/DoQ/gRPC listeners unpack without the accept policy: needs a CoreDNS server listener. juicefs starts none. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-86140"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libxml2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libxml2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-86140 in libxml2 2.9.14+dfsg-1.3~deb12u6: In libxml2 before 2.15.4, xmlSnprintfElements in valid.c has a strcat stack-based buffer overflow. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libxml2. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8643"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/pip"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:pypi/pip"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "pip installs console_scripts outside the install directory: only when pip installs a package, which nothing in the image does at run time. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. pip and setuptools belong to the slim base's Python 3.9; the script imports neither, nothing in the driver runs pip, and distutils-precedence.pth only loads the distutils shim, not the vulnerable code."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-88806"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libx11-6"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libx11-6"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-88806 in libx11-6 2:1.8.4-2+deb12u2: A malicious X server could exploit a buffer overflow in libX11 before 1.8.14 during handling of XkbGetMap overflowing the key_sym_map. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libx11-6. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-88806"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libx11-data"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libx11-data"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-88806 in libx11-data 2:1.8.4-2+deb12u2: A malicious X server could exploit a buffer overflow in libX11 before 1.8.14 during handling of XkbGetMap overflowing the key_sym_map. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain libx11-data. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
     },
     {
       "vulnerability": {
@@ -2109,8 +4391,34 @@
         }
       ],
       "status": "not_affected",
+      "justification": "inline_mitigations_already_exist",
+      "impact_statement": "Needs libcurl transfers through environment-configured proxies with Digest proxy auth. The driver container sets no proxy variables (env: CSI_ENDPOINT, POD_NAME, NODE_NAME, JUICEFS_*, SSL_CERT_FILE, NODE_EXTRA_CA_CERTS, DRIVER_NAME, PROVISION_WORKER_THREADS), and Policy juicefs-csi allows egress only to garage:3900 (S3), juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. No proxy is reachable."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-9538"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/perl-base"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/perl-base"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "libcurl proxy-auth state across transfers with environment proxies: the pods set no proxy variables (env: CSI_ENDPOINT, POD_NAME, NODE_NAME, JUICEFS_*, SSL_CERT_FILE, NODE_EXTRA_CA_CERTS...). The driver never runs curl or loads libcurl (its exec calls are juicefs, umount, rm, sh and bash; grep of pkg/ and cmd/ at v0.34.0; curl is used only in the Dockerfile build). Pods' egress (CiliumNetworkPolicy juicefs-csi) allows only garage:3900, juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Only the EE CLI path /usr/bin/juicefs (a script) is outside this: it is run only for Enterprise-edition secrets, and this cluster mounts with the CE mount image juicedata/mount:ce-v1.4.2."
+      "impact_statement": "CVE-2026-9538 in perl-base 5.36.0-7+deb12u1: Archive::Tar versions before 3.10 for Perl allow memory exhaustion via attacker controlled entry size field in tar header. Evidence read with image-files from the pinned image (sha256:1b5e3667). Programs the driver runs and what they link (ELF DT_NEEDED): juicefs-csi-driver and jfsmount are static; /usr/local/bin/juicefs links libfdb_c (foundationdb-clients), librados2 and libgfapi0; mount, umount, findmnt, bash, dash, rm, cp and tini link only libc, libmount, libblkid, libsmartcols, libudev, libselinux, libacl, libattr and libtinfo; the startup Python 3.9 script loads libssl3 and zlib1g (_ssl, _hashlib, zlib). The Depends closure of those packages in /var/lib/dpkg/status has 73 of 315 packages and does not contain perl-base. The driver's exec calls are juicefs, mount/umount, rm, sh and bash (source grep of cmd/ and pkg/ at v0.34.0, including mount-utils), plus the startup juicefs script. The package is installed but no process in the pod loads or runs it."
     },
     {
       "vulnerability": {
@@ -2137,6 +4445,58 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "crypto/tls ECH memory exhaustion affects a TLS server. juicefs-csi-driver (CGO_ENABLED=0) listeners are plain HTTP: metrics on :8082 (controller-runtime, no SecureServing), promhttp metrics and pprof on localhost; no ServeTLS/tls.Listen in cmd/ or pkg/. juicefs starts no server in the invoked subcommands (only a 127.0.0.1 debug agent). Other TLS code in juicefs (pkg/fs/http.go) is not an entry point of those subcommands."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-97687"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-urllib3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-urllib3"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "urllib3 mixes proxy and target TLS settings: needs an app making HTTP requests through urllib3 with those options. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. Its launcher takes python3 from PATH, which starts with /usr/local/bin in the image Env, so it runs /usr/local/bin/python3 (Python 3.9, slim base), not Debian's /usr/bin/python3.11. The Debian package lives in /usr/lib/python3/dist-packages, and no .pth file or sitecustomize in the image adds that directory to the 3.9 interpreter (its site-packages holds only distutils-precedence.pth)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-97689"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-urllib3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/python3-urllib3"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "urllib3 unbounded memory in chunked streaming: needs an app reading responses through urllib3. Checked on the pinned image (sha256:1b5e3667, read with image-files): the only Python the driver runs is /usr/bin/juicefs 'version' at startup (cmd/main.go:141). That script imports only the standard library (datetime, gzip, io, optparse, os, platform, re, subprocess, sys, syslog, threading, time, types, urllib, http.client, email.utils, functools) and nothing named in this finding. Its launcher takes python3 from PATH, which starts with /usr/local/bin in the image Env, so it runs /usr/local/bin/python3 (Python 3.9, slim base), not Debian's /usr/bin/python3.11. The Debian package lives in /usr/lib/python3/dist-packages, and no .pth file or sitecustomize in the image adds that directory to the 3.9 interpreter (its site-packages holds only distutils-precedence.pth)."
     },
     {
       "vulnerability": {
