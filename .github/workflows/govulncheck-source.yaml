@@ -34,14 +34,21 @@ env:
 
 jobs:
   scan:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     env:
       IMAGE: ${{ inputs.image }}
       BINARY: ${{ inputs.binary }}
       REF: ${{ inputs.ref }}
       OMIT_TAGS: ${{ inputs.omit-tags }}
+      REGISTRY_MIRROR: ${{ vars.REGISTRY_MIRROR }}
     steps:
+      - name: Checkout the helper scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: scripts/ci/mirror-ref.sh
+          persist-credentials: false
+
       - name: Set up Go
         uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
@@ -51,6 +58,7 @@ jobs:
       - name: Copy the binary out of the image
         run: |
           set -euo pipefail
+          IMAGE=$(scripts/ci/mirror-ref.sh "$IMAGE")
           docker pull --quiet "$IMAGE"
           if [ -z "$BINARY" ]; then
             BINARY=$(docker image inspect --format '{{if .Config.Entrypoint}}{{index .Config.Entrypoint 0}}{{end}}' "$IMAGE")

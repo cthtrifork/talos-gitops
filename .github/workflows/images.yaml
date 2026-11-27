@@ -146,7 +146,7 @@ jobs:
   scan-k8s:
     name: Scan ${{ matrix.image.ref }}
     needs: [changes, trivy-db-k8s]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -157,6 +157,7 @@ jobs:
       TRIVY_SKIP_JAVA_DB_UPDATE: true
       TRIVY_SKIP_VERSION_CHECK: true
       TRIVY_DISABLE_TELEMETRY: true
+      REGISTRY_MIRROR: ${{ vars.REGISTRY_MIRROR }}
       # as in the trivy-operator scans
       TRIVY_IGNORE_STATUS: not_affected,will_not_fix
     permissions:
@@ -258,7 +259,7 @@ jobs:
   scan-vex:
     name: Scan ${{ matrix.image.ref }} (VEX)
     needs: [lint, changes, trivy-db-vex]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -269,6 +270,7 @@ jobs:
       TRIVY_SKIP_JAVA_DB_UPDATE: true
       TRIVY_SKIP_VERSION_CHECK: true
       TRIVY_DISABLE_TELEMETRY: true
+      REGISTRY_MIRROR: ${{ vars.REGISTRY_MIRROR }}
     permissions:
       contents: read
       packages: read # pull ghcr.io/cthtrifork/* images
@@ -317,7 +319,7 @@ jobs:
     name: Build and publish (vex-cache)
     needs: [changes, lint]
     if: ${{ needs.changes.outputs.build == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 15
     permissions:
       contents: read

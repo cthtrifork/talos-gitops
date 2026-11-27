@@ -23,10 +23,14 @@ env:
 jobs:
   update:
     name: Update Trivy database
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 15
     outputs:
       version: ${{ env.TRIVY_VERSION }}
+    env:
+      # through the cluster zot when set; empty keeps the defaults
+      TRIVY_DB_REPOSITORY: ${{ vars.REGISTRY_MIRROR && format('{0}/ghcr-cache/aquasecurity/trivy-db', vars.REGISTRY_MIRROR) || '' }}
+      TRIVY_JAVA_DB_REPOSITORY: ${{ vars.REGISTRY_MIRROR && format('{0}/ghcr-cache/aquasecurity/trivy-java-db', vars.REGISTRY_MIRROR) || '' }}
     steps:
       - name: Date
         id: date

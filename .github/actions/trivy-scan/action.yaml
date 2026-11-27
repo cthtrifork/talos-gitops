@@ -37,6 +37,13 @@ runs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ github.token }}
+    - name: Resolve the image
+      id: ref
+      shell: bash
+      # REGISTRY_MIRROR (job env) pulls through the cluster zot; the report keeps the zot reference
+      env:
+        IMAGE: ${{ inputs.image }}
+      run: echo "ref=$(${GITHUB_ACTION_PATH}/../../../scripts/ci/mirror-ref.sh "${IMAGE}")" >> "${GITHUB_OUTPUT}"
     # an empty TRIVY_VEX is ignored
     - name: Scan
       id: scan
@@ -47,7 +54,7 @@ runs:
         skip-setup-trivy: ${{ inputs.skip-setup == 'true' }}
         cache: ${{ inputs.skip-setup != 'true' }}
         scan-type: image
-        image-ref: ${{ inputs.image }}
+        image-ref: ${{ steps.ref.outputs.ref }}
         format: json
         output: ${{ inputs.output }}
         scanners: vuln

@@ -17,7 +17,7 @@ permissions:
 jobs:
   lint:
     name: Lint Connect pipelines
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -36,6 +36,8 @@ jobs:
             **/rendered/**
       - name: Lint all Redpanda Connect files
         if: github.event_name == 'workflow_dispatch' || steps.changed.outputs.any_changed == 'true'
+        env:
+          REGISTRY_MIRROR: ${{ vars.REGISTRY_MIRROR }}
         run: |
           mapfile -t files < <(git ls-files '*/redpanda-connect.yaml' | grep -v '/rendered/')
           [ "${#files[@]}" -gt 0 ] || { echo "::error::no redpanda-connect.yaml found"; exit 1; }
@@ -43,7 +45,7 @@ jobs:
           # the pipelines read /etc/connect/index.html with file(); an empty page stands in for it
           : > "${RUNNER_TEMP}/index.html"
           docker run --rm --volume "${PWD}:/repo:ro" --volume "${RUNNER_TEMP}/index.html:/etc/connect/index.html:ro" --workdir /repo \
-            "mirror.gcr.io/redpandadata/connect:${CONNECT_VERSION}" lint --skip-env-var-check "${files[@]}"
+            "$(scripts/ci/mirror-ref.sh "mirror.gcr.io/redpandadata/connect:${CONNECT_VERSION}")" lint --skip-env-var-check "${files[@]}"
       - name: Nothing to lint
         if: github.event_name == 'pull_request' && steps.changed.outputs.any_changed != 'true'
         run: echo "No Redpanda Connect file changed in this PR."

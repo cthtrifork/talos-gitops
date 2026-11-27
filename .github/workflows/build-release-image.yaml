@@ -172,13 +172,14 @@ jobs:
   scan:
     name: Scan ${{ inputs.name }}
     needs: [build, trivy-db]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     env:
       TRIVY_SKIP_DB_UPDATE: true
       TRIVY_SKIP_JAVA_DB_UPDATE: true
       TRIVY_SKIP_VERSION_CHECK: true
       TRIVY_DISABLE_TELEMETRY: true
+      REGISTRY_MIRROR: ${{ vars.REGISTRY_MIRROR }}
       # as in the trivy-operator scans
       TRIVY_IGNORE_STATUS: not_affected,will_not_fix
     permissions:
