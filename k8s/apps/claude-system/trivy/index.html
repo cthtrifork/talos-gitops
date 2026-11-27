@@ -154,6 +154,8 @@
   ul.rows li.img { display: block; }
   /* A long-press on iOS selected a block spanning several rows. The image name is the thing to copy, so one press selects exactly it. */
   .img .name { -webkit-user-select: all; user-select: all; overflow-wrap: anywhere; }
+  .nm { display: inline-flex; align-items: flex-start; gap: 4px; min-width: 0; }
+  .nm .chip { flex: none; margin-top: -4px; }
   .img .top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
   h3 { font-size: var(--fs-sm); font-weight: 650; text-transform: uppercase; letter-spacing: .04em; margin: 16px 0 4px; }
   h3:first-of-type { margin-top: 0; }
@@ -222,6 +224,8 @@ const COCKPIT = "https://claudecockpit-portableinfo.workload.eu-central-1.omni.s
 
 const sum = (a) => a.reduce((x, y) => x + y, 0);
 const shortImage = (i) => i.replace(/^(oci|library)\//, "");
+// The pullable reference: registry, repository and tag. The registry is empty when the pipeline predates it.
+const fullImage = (r) => (r.registry ? r.registry + "/" : "") + r.image;
 const idLink = (id) => (id.startsWith("CVE-") ? "https://avd.aquasec.com/nvd/" + id.toLowerCase() : "https://github.com/advisories/" + id);
 const SevPill = (s) => html`<span class="pill" style="--c: ${sevVar(s)}">${s}</span>`;
 
@@ -235,7 +239,7 @@ const imageRows = (d) => {
   const rows = {};
   for (const x of d.counts) {
     const k = x.namespace + "|" + x.digest;
-    rows[k] ??= { image: x.image, ns: x.namespace, digest: x.digest, age: age[k] ?? null, c: Object.fromEntries(SEVERITIES.map(([s]) => [s, 0])) };
+    rows[k] ??= { image: x.image, registry: x.registry || "", ns: x.namespace, digest: x.digest, age: age[k] ?? null, c: Object.fromEntries(SEVERITIES.map(([s]) => [s, 0])) };
     if (x.severity in rows[k].c) rows[k].c[x.severity] = Math.max(rows[k].c[x.severity], x.count); // aliases of one digest (:latest and a tag) are the same findings
   }
   return Object.values(rows).sort((a, b) => SEVERITIES.reduce((n, [k]) => n || b.c[k] - a.c[k], 0) || a.image.localeCompare(b.image));
@@ -282,9 +286,9 @@ const ImageList = (all, cves, cveTotal, ui, set) => {
     <ul class="rows">${rows.map((r) => {
       const n = sum(Object.values(r.c));
       return html`<li class="img">
-        <span class="top"><strong class="name">${shortImage(r.image)}</strong><span class="num">${r.c.critical ? html`<b style="color: var(--sev-critical)">${r.c.critical} critical</b> · ` : nothing}${r.c.high ? html`<b style="color: var(--sev-high)">${r.c.high} high</b> · ` : nothing}<span class="muted">${n} total</span></span></span>
+        <span class="top"><span class="nm"><strong class="name">${shortImage(r.image)}</strong>${CopyChip(fullImage(r))}</span><span class="num">${r.c.critical ? html`<b style="color: var(--sev-critical)">${r.c.critical} critical</b> · ` : nothing}${r.c.high ? html`<b style="color: var(--sev-high)">${r.c.high} high</b> · ` : nothing}<span class="muted">${n} total</span></span></span>
         ${Bar(r.c, max)}
-        <span class="sub"><span class="muted">${r.ns} · </span>${r.age === null ? html`<span class="muted">scan time unknown</span>` : html`<span class=${r.age > STALE_H ? "stale" : "muted"} title=${"Scanned " + ageText(r.age) + "; the operator rescans after " + REPORT_TTL_H + "h"}>scanned ${ageText(r.age)}${r.age > STALE_H ? " · overdue" : ""}</span>`}<span class="muted"> · </span><a class="ext" href=${dtrackLink(r)} rel="noopener noreferrer" target="_blank">Dependency-Track ↗</a></span>
+        <span class="sub"><span class="muted">${r.registry ? r.registry + " · " : ""}${r.ns} · </span>${r.age === null ? html`<span class="muted">scan time unknown</span>` : html`<span class=${r.age > STALE_H ? "stale" : "muted"} title=${"Scanned " + ageText(r.age) + "; the operator rescans after " + REPORT_TTL_H + "h"}>scanned ${ageText(r.age)}${r.age > STALE_H ? " · overdue" : ""}</span>`}<span class="muted"> · </span><a class="ext" href=${dtrackLink(r)} rel="noopener noreferrer" target="_blank">Dependency-Track ↗</a></span>
       </li>`;
     })}</ul>
   </section>`;
