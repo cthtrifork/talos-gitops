@@ -11,9 +11,9 @@ spec:
   groups:
     - name: shelly-mqtt
       rules:
-        # readings expire from the exporter after 3h, so a silent sensor makes its series disappear
+        # Samples carry the message time, so an instant query sees a series for only 5 minutes after the last message; look back 3h instead
         - alert: ShellyHtNoReadings
-          expr: absent(shelly_temperature_celsius{sensor="ht-1"})
+          expr: absent(last_over_time(shelly_temperature_celsius{sensor="ht-1",topic=~".*:0"}[3h]))
           for: 5m
           labels:
             severity: warning
@@ -21,7 +21,7 @@ spec:
             summary: No temperature reading from the room sensor (H&T) for 3 hours
             description: The H&T reports every 5 minutes on USB power. Check its Wi-Fi (IoT network), the broker in shelly-mqtt and the client certificate (k8s/apps/shelly-mqtt/README.md).
         - alert: ShellyPillNoReadings
-          expr: absent(shelly_temperature_celsius{sensor="pill-1"})
+          expr: absent(last_over_time(shelly_temperature_celsius{sensor="pill-1"}[3h]))
           for: 5m
           labels:
             severity: warning
