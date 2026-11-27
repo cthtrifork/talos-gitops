@@ -28,9 +28,9 @@ jobs:
     outputs:
       version: ${{ env.TRIVY_VERSION }}
     env:
-      # through the cluster zot when set; empty keeps the defaults
-      TRIVY_DB_REPOSITORY: ${{ vars.REGISTRY_MIRROR && format('{0}/ghcr-cache/aquasecurity/trivy-db', vars.REGISTRY_MIRROR) || '' }}
-      TRIVY_JAVA_DB_REPOSITORY: ${{ vars.REGISTRY_MIRROR && format('{0}/ghcr-cache/aquasecurity/trivy-java-db', vars.REGISTRY_MIRROR) || '' }}
+      # through the cluster zot on the private runner; empty keeps the defaults
+      TRIVY_DB_REPOSITORY: ${{ vars.PRIVATE_RUNNER && 'zot.registry-system.svc.cluster.local:5000/ghcr-cache/aquasecurity/trivy-db' || '' }}
+      TRIVY_JAVA_DB_REPOSITORY: ${{ vars.PRIVATE_RUNNER && 'zot.registry-system.svc.cluster.local:5000/ghcr-cache/aquasecurity/trivy-java-db' || '' }}
     steps:
       - name: Date
         id: date

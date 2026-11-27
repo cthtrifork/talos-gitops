@@ -37,13 +37,20 @@ runs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ github.token }}
-    - name: Resolve the image
-      id: ref
+    # The private runners pull through zot with the mirrors of podman-registries, so the report keeps the original reference
+    - name: Pull through podman
+      if: runner.environment == 'self-hosted'
       shell: bash
-      # REGISTRY_MIRROR (job env) pulls through the cluster zot; the report keeps the zot reference
       env:
         IMAGE: ${{ inputs.image }}
-      run: echo "ref=$(${GITHUB_ACTION_PATH}/../../../scripts/ci/mirror-ref.sh "${IMAGE}")" >> "${GITHUB_OUTPUT}"
+      run: |
+        podman pull --quiet "${IMAGE}"
+        sock="${XDG_RUNTIME_DIR}/podman/podman.sock"
+        if [[ ! -S "${sock}" ]]; then
+          nohup podman system service --time=0 "unix://${sock}" > /dev/null 2>&1 &
+          for _ in {1..20}; do [[ -S "${sock}" ]] && break; sleep 0.5; done
+        fi
+        echo "TRIVY_PODMAN_HOST=unix://${sock}" >> "${GITHUB_ENV}"
     # an empty TRIVY_VEX is ignored
     - name: Scan
       id: scan
@@ -54,7 +61,7 @@ runs:
         skip-setup-trivy: ${{ inputs.skip-setup == 'true' }}
         cache: ${{ inputs.skip-setup != 'true' }}
         scan-type: image
-        image-ref: ${{ steps.ref.outputs.ref }}
+        image-ref: ${{ inputs.image }}
         format: json
         output: ${{ inputs.output }}
         scanners: vuln
@@ -66,3 +73,4 @@ runs:
       env:
         TRIVY_VEX: ${{ inputs.vex }}
         TRIVY_SHOW_SUPPRESSED: ${{ inputs.vex != '' }}
+        TRIVY_IMAGE_SRC: ${{ runner.environment == 'self-hosted' && 'podman' || 'docker,containerd,podman,remote' }}

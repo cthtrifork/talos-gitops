@@ -68,7 +68,7 @@ jobs:
     name: Patch ${{ matrix.image.name }}:${{ matrix.image.tag }}
     needs: [plan, trivy-db]
     if: ${{ !cancelled() && needs.plan.result == 'success' && needs.trivy-db.result == 'success' && needs.plan.outputs.count != '0' }}
-    runs-on: ${{ vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -90,7 +90,6 @@ jobs:
       TRIVY_SKIP_JAVA_DB_UPDATE: true
       TRIVY_SKIP_VERSION_CHECK: true
       TRIVY_DISABLE_TELEMETRY: true
-      REGISTRY_MIRROR: ${{ vars.REGISTRY_MIRROR }}
       TRIVY_IGNORE_STATUS: not_affected,will_not_fix
       PATCHED_TAG: ${{ github.event_name == 'pull_request' && format('{0}-patched-pr{1}', matrix.image.tag, github.event.pull_request.number) || format('{0}-patched', matrix.image.tag) }}
     steps:

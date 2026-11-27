@@ -25,3 +25,21 @@ data:
     location = "gcr.io"
     [[registry.mirror]]
     location = "zot.registry-system.svc.cluster.local:5000/gcr-cache"
+
+    [[registry]]
+    prefix = "mirror.gcr.io"
+    location = "mirror.gcr.io"
+    [[registry.mirror]]
+    location = "zot.registry-system.svc.cluster.local:5000/docker-hub-cache"
+
+    [[registry]]
+    prefix = "docker.io"
+    location = "docker.io"
+    [[registry.mirror]]
+    location = "zot.registry-system.svc.cluster.local:5000/docker-hub-cache"
+
+    [[registry]]
+    prefix = "registry.k8s.io"
+    location = "registry.k8s.io"
+    [[registry.mirror]]
+    location = "zot.registry-system.svc.cluster.local:5000/k8s-cache"
