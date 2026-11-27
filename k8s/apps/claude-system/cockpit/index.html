@@ -87,7 +87,11 @@
   .info { color: var(--accent); }
   /* A grid with fixed tracks, cards in a fixed order and top aligned: a card only ever changes height, it never changes place.
      (CSS columns balance by height, so a refresh that lengthened one list made cards jump between columns.) */
-  .band { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); align-items: start; gap: 12px; }
+  /* Each section is a few fixed columns, and every panel has its own column, chosen so the columns end at about the same height.
+     A panel only ever changes height, never place. On a narrow screen the columns stack, left to right. */
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
+  .col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  @media (min-width: 900px) { .cols { grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); } }
   .panel { background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; }
   .panel.compact { padding: 10px 16px; gap: 4px; }
   .panel:target { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
@@ -107,13 +111,8 @@
   /* The right-hand value (time, count, version) keeps its natural width and drops below the text as a whole when the row is tight.
      It only wraps when it is wider than the row itself. */
   ul.rows li > :not(.l) { flex: none; width: max-content; max-width: 100%; margin-left: auto; text-align: right; overflow-wrap: anywhere; }
-  .hardware-band { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
-  .hardware-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   .hardware-band .panel-head { flex-wrap: wrap; }
   .hardware-band .panel-head .pill { white-space: normal; }
-  @media (min-width: 900px) {
-    .hardware-band { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  }
   .machine-rack { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; }
   .machine {
     display: grid; grid-template-columns: 44px minmax(0, 1fr);
@@ -948,9 +947,10 @@ const Strip = (d, hardwareWarning, environmentWarning) => {
   return html`<nav class="strip" aria-label="Overall status, each item jumps to its panel">${shown.length ? shown.map(Chip) : Chip({ state: "ok", text: "All healthy" })}</nav>`;
 };
 
-const Section = ({ id, title, layout = "band" }, children) => html`<section aria-labelledby=${"h-" + id}>
+// `columns` is a list of lists of panels, one list per column.
+const Section = ({ id, title, layout = "cols" }, columns) => html`<section aria-labelledby=${"h-" + id}>
   <h2 id=${"h-" + id}>${title}</h2>
-  <div class=${layout}>${children}</div>
+  <div class=${layout} style=${"--n: " + columns.length}>${columns.map((panels) => html`<div class="col">${panels}</div>`)}</div>
 </section>`;
 
 // Rack positions and hardware are from the Talos patches and docs/hardware.md. RAM is shown as installed capacity.
@@ -1085,12 +1085,26 @@ class CockpitApp extends LitElement {
       </header>
       <div id="banner" class="banner bad" role="alert" ?hidden=${!banner}>${banner}</div>
       ${d ? html`${Strip(d, hardwareWarning, environmentWarning)}
-        ${Section({ id: "home", title: "Homelab" }, html`${SharePanel(d)}${ElevatePanel(d)}${JobsPanel(d)}${VersionsPanel(d)}${UsagePanel(d)}`)}
-        ${Section({ id: "cluster", title: "Cluster" }, html`${AlertsPanel(d)}${FluxPanel(d)}${VolumesPanel(d)}${DropsPanel(d)}${PolarisPanel(d)}${TrivyPanel(d)}`)}
-        ${Section({ id: "hardware", title: "Cluster hardware", layout: "hardware-band" }, html`${ComputePanel(d)}${NodesPanel(d)}
-          <div class="hardware-col">${EnvironmentPanel(d, environment, environmentWarning, d.ambient_temperatures ? toggle : null)}${HardwarePanel(d, hardware, hardwareWarning, d.ambient_temperatures ? null : toggle)}</div>`)}
+        ${Section({ id: "home", title: "Homelab" }, [
+          [SharePanel(d)],
+          [VersionsPanel(d), UsagePanel(d)],
+          [JobsPanel(d), ElevatePanel(d)],
+        ])}
+        ${Section({ id: "cluster", title: "Cluster" }, [
+          [AlertsPanel(d), FluxPanel(d), PolarisPanel(d)],
+          [DropsPanel(d), VolumesPanel(d)],
+          [TrivyPanel(d)],
+        ])}
+        ${Section({ id: "hardware", title: "Cluster hardware", layout: "cols hardware-band" }, [
+          [ComputePanel(d), EnvironmentPanel(d, environment, environmentWarning, d.ambient_temperatures ? toggle : null)],
+          [NodesPanel(d)],
+          [HardwarePanel(d, hardware, hardwareWarning, d.ambient_temperatures ? null : toggle)],
+        ])}
         ${Machines()}
-        ${Section({ id: "gh", title: "GitHub" }, html`${PrsPanel(d)}${RenovatePrsPanel(d)}${IssuesPanel(d)}${RenovateRunsPanel(d)}`)}` : nothing}
+        ${Section({ id: "gh", title: "GitHub" }, [
+          [PrsPanel(d), RenovatePrsPanel(d)],
+          [IssuesPanel(d), RenovateRunsPanel(d)],
+        ])}` : nothing}
     </main>`;
   }
 }
