@@ -92,6 +92,8 @@ spec:
         - matchName: formulae.brew.sh
         # Fedora and RPM Fusion repos. The Containerfiles pin repos to these hosts, so metalink mirrors need no entry.
         - matchName: mirrors.dotsrc.org
+        # claude-vm.containerfile pulls from Fedora's own host: mirrors.dotsrc.org refused connections during image builds
+        - matchName: dl.fedoraproject.org
         - matchName: mirrors.fedoraproject.org
         - matchName: codecs.fedoraproject.org
         - matchName: download1.rpmfusion.org
