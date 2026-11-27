@@ -874,13 +874,14 @@ spec:
             - spegel
           rules:
             - hostPathSet
-        # ARC runner scale sets (own namespace): the runner and the dind sidecar are privileged by design; the e2e runner keeps
+        # ARC runner scale sets (own namespace): the runner and the dind sidecar are privileged by design; the e2e and scan runners keep
         # privilege escalation and default capabilities so workflows can use sudo
         - namespace: arc-runners-system
           controllerNames:
             - arc-ubuntu
             - arc-iso-bootc
             - arc-e2e-talos-gitops
+            - arc-scan-talos-gitops
           rules:
             - runAsPrivileged
             - privilegeEscalationAllowed
@@ -890,6 +891,7 @@ spec:
           controllerNames:
             - arc-ubuntu
             - arc-e2e-talos-gitops
+            - arc-scan-talos-gitops
           rules:
             - runAsRootAllowed
         # host /dev and /run/udev for loopback partitions in bootc installs
@@ -906,6 +908,7 @@ spec:
             - arc-iso-bootc
             - arc-files-bootc
             - arc-e2e-talos-gitops
+            - arc-scan-talos-gitops
           rules:
             - notReadOnlyRootFilesystem
             - readinessProbeMissing

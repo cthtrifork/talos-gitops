@@ -1,0 +1,10 @@
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/issuer_v1.json
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: shelly-mqtt-ca
+  namespace: shelly-mqtt
+spec:
+  ca:
+    secretName: shelly-mqtt-ca

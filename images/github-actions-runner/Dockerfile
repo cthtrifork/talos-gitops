@@ -39,8 +39,9 @@ EOF
 RUN mkdir -p /var/lib/shared && \
   chmod -R a+rx /var/lib/shared
 
-RUN echo runner:10000:5000 | tee /etc/subuid; \
-  echo runner:10000:5000 | tee /etc/subgid;
+# 65536 IDs: rootless podman unpacks images with files owned by high IDs (65532, 10001)
+RUN echo runner:100000:65536 | tee /etc/subuid; \
+  echo runner:100000:65536 | tee /etc/subgid;
 
 USER runner
 ENV DOCKER_BUILDKIT=1
