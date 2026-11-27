@@ -24,6 +24,7 @@ spec:
         runAsNonRoot: true
         runAsUser: 1883
         runAsGroup: 1883
+        fsGroup: 1883
         seccompProfile:
           type: RuntimeDefault
       tolerations:
@@ -58,8 +59,14 @@ spec:
             readOnlyRootFilesystem: true # persistence is off, logs go to stderr
             allowPrivilegeEscalation: false
           volumeMounts:
+            # subPath, not the directory: Mosquitto opens the ACL file with O_NOFOLLOW and a ConfigMap directory holds symlinks
             - name: config
-              mountPath: /mosquitto/config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+              readOnly: true
+            - name: config
+              mountPath: /mosquitto/config/acl
+              subPath: acl
               readOnly: true
             - name: certs
               mountPath: /certs
@@ -68,6 +75,7 @@ spec:
         - name: config
           configMap:
             name: mosquitto-config
+            defaultMode: 0440
         - name: certs
           secret:
             secretName: mosquitto-server
