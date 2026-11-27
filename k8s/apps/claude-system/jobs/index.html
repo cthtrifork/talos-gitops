@@ -36,7 +36,8 @@
   ul { list-style: none; margin: 0; padding: 0; }
   li.job { display: grid; gap: 4px 12px; grid-template-columns: minmax(0, 1fr) auto; align-items: start; padding: 14px 0; border-top: 1px solid var(--line); }
   li.job:first-child { border-top: 0; }
-  .name { font-family: var(--mono); font-size: var(--fs-md); font-weight: 600; overflow-wrap: anywhere; }
+  /* user-select: all makes one long-press on iOS select exactly the name, not a block spanning several rows. */
+  .name { font-family: var(--mono); font-size: var(--fs-md); font-weight: 600; overflow-wrap: anywhere; -webkit-user-select: all; user-select: all; }
   .desc, .when, .sched, .last { margin: 0; color: var(--ink-2); font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
   .when { color: var(--ink); font-weight: 600; }
   .sched, .last { font-size: var(--fs-sm); }

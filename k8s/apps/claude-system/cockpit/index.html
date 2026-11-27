@@ -105,6 +105,8 @@
   .big + ul.rows { margin-top: 14px; }
   .run-st { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: var(--fs-md); }
   ul.rows .l { flex: 1 1 12em; min-width: 0; overflow-wrap: anywhere; }
+  /* A long-press on iOS selects a block spanning several rows. The title is an alert, Flux or cron job name worth copying, so one press selects exactly it. */
+  ul.rows .l > strong, .vm-head > strong { -webkit-user-select: all; user-select: all; }
   /* The right-hand value (time, count, version) keeps its natural width and drops below the text as a whole when the row is tight.
      It only wraps when it is wider than the row itself. */
   ul.rows li > :not(.l) { flex: none; width: max-content; max-width: 100%; margin-left: auto; text-align: right; overflow-wrap: anywhere; }

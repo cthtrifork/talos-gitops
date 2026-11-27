@@ -40,7 +40,7 @@ pipeline:
             - try:
                 - branch:
                     request_map: |
-                      meta promql = "max by (namespace, image_repository, image_tag, image_digest, severity) (trivy_image_vulnerabilities)"
+                      meta promql = "max by (namespace, image_registry, image_repository, image_tag, image_digest, severity) (trivy_image_vulnerabilities)"
                       root = ""
                     processors:
                       - http:
@@ -64,6 +64,7 @@ pipeline:
                     root.generated = now().ts_format("2006-01-02T15:04:05Z", "UTC")
                     root.counts = this.counts.map_each(x -> {
                       "namespace": x.metric.namespace,
+                      "registry": x.metric.image_registry.or(""),
                       "image": x.metric.image_repository + (":" + x.metric.image_tag).catch(""),
                       "digest": x.metric.image_digest,
                       "severity": x.metric.severity.lowercase(),
