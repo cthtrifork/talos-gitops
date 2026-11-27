@@ -79,6 +79,11 @@
   .cols { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
   @media (min-width: 60rem) { .cols { grid-template-columns: 4fr 5fr; } }
 
+  .stack { display: grid; gap: 16px; min-width: 0; }
+  .counts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+  .counts > div { background: var(--page); border-radius: 8px; padding: 10px 12px; }
+  .counts .k { display: block; color: var(--ink-2); font-size: var(--fs-sm); }
+  .counts .n { display: block; font-size: var(--fs-xl); line-height: 1.2; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 12px; }
   .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 14px 16px; min-width: 0; }
   .tile .k { color: var(--ink-2); font-size: var(--fs-sm); }
@@ -111,7 +116,7 @@
   th { color: var(--muted); font-weight: 500; font-size: var(--fs-sm); }
   td.l, th.l { text-align: left; }
   td small { display: block; color: var(--muted); font-size: var(--fs-sm); }
-  td.t { white-space: normal; min-width: 14rem; max-width: 26rem; text-align: left; }
+  td.t { white-space: normal; min-width: 12rem; text-align: left; }
   th button { all: unset; cursor: pointer; }
   th button:focus-visible { outline: 2px solid var(--env-rc); }
   .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 600; color: var(--c); border: 1px solid var(--c); }
@@ -119,10 +124,18 @@
   .stale { color: var(--sev-high); font-weight: 600; }
   a.ext { color: var(--env-rc); text-decoration: none; }
   a.ext:hover { text-decoration: underline; }
-  .chip { all: unset; cursor: pointer; margin-left: 6px; padding: 0 8px; min-width: 2.6rem; text-align: center; box-sizing: border-box; border: 1px solid var(--ring); border-radius: 999px; font-size: 11px; line-height: 18px; color: var(--ink-2); vertical-align: 1px; }
+  .cvecell { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .cvecell a.cve { min-width: 14ch; }
+  .chip { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; color: var(--muted); }
+  .chip svg { grid-area: 1 / 1; width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .chip .ok { display: none; }
+  .chip.done { color: var(--ok); }
+  .chip.done .ok { display: block; }
+  .chip.done .cp { display: none; }
   .chip:hover { background: var(--page); color: var(--ink); }
+  .chip.done:hover { color: var(--ok); }
   .chip:focus-visible { outline: 2px solid var(--env-rc); outline-offset: 1px; }
-  @media (pointer: coarse) { .chip { padding: 6px 10px; line-height: 16px; } }
+  @media (pointer: coarse) { .chip { width: 36px; height: 36px; } }
   a.cve { color: var(--env-rc); text-decoration: none; font-family: var(--mono); font-size: var(--fs-sm); }
   a.cve:hover { text-decoration: underline; }
   .muted { color: var(--muted); }
@@ -146,7 +159,6 @@
   details.fold > summary::before { content: "▸ "; color: var(--muted); }
   details.fold[open] > summary::before { content: "▾ "; }
   table.grafana th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
-  table.grafana td.title { max-width: 12rem; overflow: hidden; text-overflow: ellipsis; }
   .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .tools input { flex: 1 1 14rem; }
 
@@ -158,8 +170,16 @@
 
   @media (pointer: coarse) { .seg button { display: inline-flex; align-items: center; min-height: 40px; } }
   @media (max-width: 40rem) {
-    table.grafana th:first-child, table.grafana td.title { display: none; }
-    table.grafana th, table.grafana td { padding: 6px 5px; }
+      /* Phone: each CVE is a card. Title on its own line, then the id with Copy on the left and the image count on the right. */
+      table.grafana, table.grafana tbody { display: block; }
+      table.grafana thead, table.grafana thead tr { display: block; }
+      table.grafana thead tr { display: flex; gap: 4px 16px; padding-bottom: 6px; border-bottom: 1px solid var(--grid); }
+      table.grafana th { padding: 0; border: 0; }
+      table.grafana tbody tr { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--grid); }
+      table.grafana td { padding: 0; border: 0; }
+      table.grafana td.t { grid-column: 1 / -1; min-width: 0; }
+      table.grafana tbody td:last-child::after { content: " images"; color: var(--muted); font-size: var(--fs-sm); font-weight: 400; }
+      table.grafana tbody td[colspan] { display: block; grid-column: 1 / -1; }
     .bar { display: contents; }
     .group { position: sticky; top: 0; z-index: 4; background: var(--page); padding: 8px 0; margin: -8px 0; box-shadow: 0 1px 0 var(--grid); }
     .tile .src { display: none; }
@@ -213,7 +233,7 @@ const imageRows = (d) => {
   const rows = {};
   for (const x of d.counts) {
     const k = x.namespace + "|" + x.digest;
-    rows[k] ??= { image: x.image, ns: x.namespace, age: age[k] ?? null, c: Object.fromEntries(SEVERITIES.map(([s]) => [s, 0])) };
+    rows[k] ??= { image: x.image, ns: x.namespace, digest: x.digest, age: age[k] ?? null, c: Object.fromEntries(SEVERITIES.map(([s]) => [s, 0])) };
     if (x.severity in rows[k].c) rows[k].c[x.severity] = Math.max(rows[k].c[x.severity], x.count); // aliases of one digest (:latest and a tag) are the same findings
   }
   return Object.values(rows).sort((a, b) => SEVERITIES.reduce((n, [k]) => n || b.c[k] - a.c[k], 0) || a.image.localeCompare(b.image));
@@ -243,10 +263,20 @@ const Bar = (c, max) => html`<div class="sevbar" role="img" aria-label=${SEVERIT
 const DTRACK = "https://dtrack.portableinfo.cloud/projects?searchText=";
 const dtrackLink = (r) => DTRACK + encodeURIComponent(r.ns + "/" + r.image.replace(/:[^:/]+$/, "").replace(/^[^/]+\.[^/]+\//, ""));
 
-const ImageList = (rows) => {
-  const max = Math.max(...rows.map((r) => sum(Object.values(r.c))));
+// Scope of the Images panel: which severities the summary numbers, per-image totals and bars count. Every image is always listed.
+const SCOPES = [["all", "All severities", SEVERITIES.map(([k]) => k)], ["ch", "Critical and high", ["critical", "high"]]];
+
+const ImageList = (all, cves, cveTotal, ui, set) => {
+  const sevs = SCOPES.find(([k]) => k === ui.scope)[2];
+  const rows = all.map((r) => ({ ...r, c: Object.fromEntries(SEVERITIES.map(([k]) => [k, sevs.includes(k) ? r.c[k] : 0])) }));
+  const max = Math.max(1, ...rows.map((r) => sum(Object.values(r.c))));
+  // /api/v1/vulnerabilities lists only critical and high CVEs, so the all-severities total comes from its own count (null when the pipeline predates it).
+  const nCves = ui.scope === "all" ? cveTotal : new Set(cves.filter((r) => sevs.includes(r.sev)).map((r) => r.id)).size;
   return html`<section class="panel">
-    <div class="panel-head"><h2>Images</h2><span class="src">trivy_image_vulnerabilities</span></div>
+    <div class="panel-head"><h2>Images</h2>
+      <div class="seg" role="group" aria-label="Severity scope">${SCOPES.map(([k, name]) => html`<button aria-pressed=${ui.scope === k} @click=${() => set({ scope: k })}>${name}</button>`)}</div>
+    </div>
+    <div class="counts"><div><span class="k">Images</span><span class="n">${new Set(rows.map((r) => r.digest)).size}</span></div><div><span class="k">CVEs</span><span class="n">${nCves ?? "–"}</span></div></div>
     <ul class="rows">${rows.map((r) => {
       const n = sum(Object.values(r.c));
       return html`<li class="img">
@@ -259,7 +289,7 @@ const ImageList = (rows) => {
 };
 
 // Like the Grafana "Top vulnerabilities" table: title, linked id, severity as coloured text, count. Headers sort. Every critical and high one is listed; medium and below are left out.
-const CVE_COLS = [["title", "Title", "l"], ["id", "Vulnerability", "l"], ["sev", "Severity", "l"], ["images", "Images", ""]];
+const CVE_COLS = [["title", "Title", "l"], ["id", "Vulnerability", "l"], ["images", "Images", ""]];
 const CVE_SORT = {
   title: (a, b) => a.title.localeCompare(b.title), id: (a, b) => a.id.localeCompare(b.id),
   sev: (a, b) => RANK[a.sev] - RANK[b.sev] || b.images - a.images, images: (a, b) => a.images - b.images || RANK[a.sev] - RANK[b.sev],
@@ -268,28 +298,30 @@ const CVE_SORT = {
 // A small chip that copies the id and says "Copied" for a moment. It changes its own label, so the page does not re-render.
 const copy = async (ev, text) => {
   const b = ev.currentTarget;
-  try { await navigator.clipboard.writeText(text); b.textContent = "Copied"; } catch { b.textContent = "Failed"; }
-  setTimeout(() => { b.textContent = "Copy"; }, 1500);
+  try { await navigator.clipboard.writeText(text); b.classList.add("done"); b.title = "Copied"; } catch { b.title = "Copy failed"; }
+  setTimeout(() => { b.classList.remove("done"); b.title = "Copy " + text; }, 1500);
 };
-const CopyChip = (text) => html`<button class="chip" aria-label=${"Copy " + text} @click=${(ev) => copy(ev, text)}>Copy</button>`;
+const CopyChip = (text) => html`<button class="chip" title=${"Copy " + text} aria-label=${"Copy " + text} @click=${(ev) => copy(ev, text)}><svg class="cp" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg><svg class="ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>`;
 
-const CveTable = (ui, set, all) => {
+const CveTable = (ui, set, all, sev, images) => {
   const rows = all
-    .filter((r) => r.sev === "critical" || r.sev === "high")
-    .sort((a, b) => (CVE_SORT[ui.sort](a, b)) * (ui.desc ? -1 : 1));
+    .filter((r) => r.sev === sev)
+    .sort((a, b) => (CVE_SORT[ui.sort](a, b)) * (ui.desc ? -1 : 1) || b.score - a.score);
   const head = ([k, name, cls]) => html`<th class=${cls || nothing} aria-sort=${ui.sort === k ? (ui.desc ? "descending" : "ascending") : "none"}><button @click=${() => set(ui.sort === k ? { desc: !ui.desc } : { sort: k, desc: k === "images" })}>${name}${ui.sort === k ? (ui.desc ? " ↓" : " ↑") : ""}</button></th>`;
+  const nImages = new Set(images.filter((r) => r.c[sev] > 0).map((r) => r.digest)).size;
+  const label = sev[0].toUpperCase() + sev.slice(1);
   return html`<section class="panel">
-    <div class="panel-head"><h2>Vulnerabilities</h2><span class="src">trivy_vulnerability_id</span></div>
+    <div class="panel-head"><h2 style="color: ${sevVar(sev)}">${label} vulnerabilities</h2></div>
+    <div class="counts"><div><span class="k">CVEs</span><span class="n" style="color: ${sevVar(sev)}">${rows.length}</span></div><div><span class="k">Images affected</span><span class="n">${nImages}</span></div></div>
     <div class="scroll"><table class="grafana">
       <thead><tr>${CVE_COLS.map(head)}</tr></thead>
       <tbody>${rows.length ? rows.map((r) => html`<tr>
-        <td class="l title" title=${r.title}>${r.title}</td>
-        <td class="l"><a class="cve" href=${idLink(r.id)} rel="noopener noreferrer" target="_blank">${r.id}</a> ${CopyChip(r.id)}</td>
-        <td class="l" style="color: ${sevVar(r.sev)}; font-weight: 600">${r.sev[0].toUpperCase() + r.sev.slice(1)}</td>
+        <td class="t">${r.title}</td>
+        <td class="l"><span class="cvecell"><a class="cve" href=${idLink(r.id)} rel="noopener noreferrer" target="_blank">${r.id}</a>${CopyChip(r.id)}</span></td>
         <td><strong>${r.images}</strong></td>
-      </tr>`) : html`<tr><td colspan="4" class="l muted">No vulnerabilities match.</td></tr>`}</tbody>
+      </tr>`) : html`<tr><td colspan="3" class="l muted">No vulnerabilities match.</td></tr>`}</tbody>
     </table></div>
-    <div class="sub" style="margin-top:8px">Critical and high only · Images = number of images the vulnerability is found in</div>
+    <div class="sub" style="margin-top:8px">Images = number of images the CVE is found in</div>
   </section>`;
 };
 
@@ -301,7 +333,7 @@ async function get(path) {
 
 class TrivyApp extends LitElement {
   static properties = { data: { state: true }, error: { state: true }, fetchedAt: { state: true }, ui: { state: true } };
-  constructor() { super(); this.data = null; this.error = null; this.fetchedAt = null; this.ui = { sort: "sev", desc: false }; }
+  constructor() { super(); this.data = null; this.error = null; this.fetchedAt = null; this.ui = { sort: "images", desc: true, scope: "ch" }; }
   set = (patch) => { this.ui = { ...this.ui, ...patch }; };
   createRenderRoot() { return this; }
   // A failed load keeps the last data and shows the error.
@@ -310,7 +342,7 @@ class TrivyApp extends LitElement {
     const load = async () => {
       try {
         const [images, vulns] = await Promise.all([get("api/v1/images"), get("api/v1/vulnerabilities")]);
-        this.data = { images: imageRows(images), cves: cveRows(vulns) };
+        this.data = { images: imageRows(images), cves: cveRows(vulns), cveTotal: vulns.cve_total ?? null };
         this.error = null;
         this.fetchedAt = new Date();
       } catch (e) { this.error = e.message; }
@@ -334,8 +366,8 @@ class TrivyApp extends LitElement {
         <div class="sub">${SEVERITIES.filter(([k]) => c[k]).map(([k, n]) => html`<span class="dot" style="background: ${sevVar(k)}"></span>${c[k]} ${n.toLowerCase()} `)}${ages.length ? "· oldest scan " + ageText(Math.max(...ages)) + " " : ""}· from Prometheus · updated ${stamp}</div>
       </header>
       <div class="cols">
-        ${ImageList(data.images)}
-        ${CveTable(this.ui, this.set, data.cves)}
+        ${ImageList(data.images, data.cves, data.cveTotal, this.ui, this.set)}
+        <div class="stack">${CveTable(this.ui, this.set, data.cves, "critical", data.images)}${CveTable(this.ui, this.set, data.cves, "high", data.images)}</div>
       </div>
       <p class="sub">Worst first: by severity, then by count. Counts are per image digest. Dependency-Track tracks only some images. Scan age is now minus the report's creation time (<code>kube_customresource_vulnerabilityreport_created</code>); the operator rescans every 12h.</p>
     </main>`;
