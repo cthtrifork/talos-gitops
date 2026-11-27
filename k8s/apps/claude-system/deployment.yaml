@@ -268,6 +268,8 @@ spec:
                 path: urlshare/SKILL.md
               - key: dependency-track.md
                 path: dependency-track/SKILL.md
+              - key: govulncheck.md
+                path: govulncheck/SKILL.md
               - key: svg-to-png.md
                 path: svg-to-png/SKILL.md
         # 50Gi lvm-fast, expandable online: clean up old clones
