@@ -14,8 +14,9 @@ spec:
   driftDetection:
     mode: enabled
   install:
-    remediation:
-      retries: 3
+    # install remediation uninstalls the release, which would delete the adopted CoreDNS objects
+    strategy:
+      name: RetryOnFailure
   upgrade:
     remediation:
       retries: 3
