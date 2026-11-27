@@ -42,7 +42,7 @@ ConfigMaps hash to the same values. Otherwise it exits and checks again on the n
 
 ## State and permissions
 
-- `vex-cache-state` (`configmap-state.yaml`): `data.built-at` is written by the job; the manifest has no data, so Flux leaves it alone.
+- `vex-cache-state` (`configmap-state.yaml`): `data.built-at` is written by the job. The annotation `kustomize.toolkit.fluxcd.io/ssa: IfNotPresent` makes Flux create it once and never apply it again: without it each Flux reconcile removed `data.built-at`, so the job recorded "first run" and never rescanned.
 - Run it now: the Run jobs page in the cockpit lists it (namespace label `claude-jobs/run`, annotation `claude-jobs/description` in `cronjob.yaml`); a manual run skips the checks and always deletes all reports.
 - `rbac.yaml`: list and delete `vulnerabilityreports` cluster-wide; get and patch only the three ConfigMaps above in `trivy-system`.
 - The first run records the timestamp and deletes nothing.

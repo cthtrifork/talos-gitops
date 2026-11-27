@@ -1,7 +1,10 @@
-# The last artifact timestamp handled; the CronJob writes data.built-at (no data here, so Flux leaves it alone).
+# The last artifact timestamp handled; the CronJob writes data.built-at. Flux creates it once and never touches it again (IfNotPresent),
+# otherwise every reconcile removes the field the CronJob patched and the next run records instead of rescanning.
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: vex-cache-state
   namespace: trivy-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
