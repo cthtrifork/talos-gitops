@@ -86,6 +86,7 @@ spec:
         - mountOptions:
             - cache-size=5120
             - free-space-ratio=0.2
+            - no-usage-report
           resources:
             requests:
               cpu: 50m
