@@ -56,7 +56,7 @@ spec:
                   - |
                     # rolling: the old pod serves the stale report until the new one is Ready
                     kubectl rollout restart deployment/polaris-dashboard -n policy-system
-                    kubectl rollout status deployment/polaris-dashboard -n policy-system --timeout=180s
+                    kubectl rollout status deployment/polaris-dashboard -n policy-system --timeout=300s
                     # the new pod audits on its first request
                     curl -fsS -o /dev/null --max-time 120 --retry 10 --retry-all-errors --retry-delay 3 http://polaris-dashboard.policy-system.svc.cluster.local/results.json
                 securityContext:
