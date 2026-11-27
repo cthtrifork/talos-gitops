@@ -34,7 +34,7 @@ env:
 
 jobs:
   scan:
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
     timeout-minutes: 30
     env:
       IMAGE: ${{ inputs.image }}

@@ -1,7 +1,7 @@
 ---
-# Image scans and container jobs of cthtrifork/talos-gitops (public repo), selected by the repository variable PRIVATE_RUNNER.
-# Podman only, pulls go through the zot caches (ConfigMap podman-registries). Needs the runner GitHub App installed on talos-gitops.
-# Fork PRs fall back to GitHub-hosted runners in the workflows (runs-on checks the head repository).
+# Image scans, builds and container jobs of cthtrifork/talos-gitops (public repo): the default runner of its workflows.
+# Docker (dind sidecar) and rootless podman; podman pulls go through the zot caches (ConfigMap podman-registries). Needs the
+# runner GitHub App installed on talos-gitops. The workflows run fork PRs on GitHub-hosted runners (runs-on checks the head repository).
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -38,7 +38,7 @@ spec:
     minRunners: 0
 
     githubConfigSecret: github-auth
-    containerMode: {} # no dind, no kubernetes mode
+    containerMode: {} # dind runs as a sidecar below, not through the chart
     template:
       metadata:
         annotations:
@@ -102,6 +102,70 @@ spec:
                 mountPath: /volumes/work
               - name: xdg-runtime
                 mountPath: /volumes/xdg-runtime
+          - name: init-dind-externals
+            # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261126.41@sha256:bc132de2ece52acbc8eba892135d7db79163975955c353cdb51bf4ad32afd563
+            imagePullPolicy: IfNotPresent
+            command:
+              - "cp"
+              - "-r"
+              - "/home/runner/externals/."
+              - "/home/runner/tmpDir/"
+            volumeMounts:
+              - name: dind-externals
+                mountPath: /home/runner/tmpDir
+            resources:
+              limits:
+                memory: 1Gi
+              requests:
+                cpu: 25m
+                memory: 128Mi
+            securityContext:
+              runAsUser: 1001
+              runAsGroup: 1001
+              runAsNonRoot: true
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                  - ALL
+          - name: dind
+            # renovate: datasource=docker depName=mirror.gcr.io/library/docker versioning=docker
+            image: mirror.gcr.io/library/docker:29.10.1-dind@sha256:fbbc96e0af32cdc190aff92ba97a1281a115351a723afe21af78879cc55126b0
+            imagePullPolicy: IfNotPresent
+            args:
+              - dockerd
+              - --host=unix:///var/run/docker.sock
+              - --group=$(DOCKER_GROUP_GID)
+            env:
+              - name: DOCKER_GROUP_GID
+                value: "123"
+            resources:
+              requests:
+                cpu: 250m
+                memory: 1Gi
+              limits:
+                memory: 6Gi
+            securityContext:
+              privileged: true
+            restartPolicy: Always
+            startupProbe:
+              exec:
+                command:
+                  - docker
+                  - info
+              initialDelaySeconds: 0
+              failureThreshold: 24
+              periodSeconds: 5
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+              - name: dind-sock
+                mountPath: /var/run
+              - name: dind-externals
+                mountPath: /home/runner/externals
+              - name: docker-lib
+                mountPath: /var/lib/docker
         containers:
           - name: runner
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
@@ -134,6 +198,10 @@ spec:
               - name: STORAGE_DRIVER
                 value: overlay
 
+              - name: DOCKER_HOST
+                value: unix:///var/run/docker.sock
+              - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+                value: "120"
               # The trailing slash is required.
               - name: ACTIONS_RESULTS_URL
                 value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
@@ -155,6 +223,8 @@ spec:
 
               - name: xdg-runtime
                 mountPath: /tmp/xdg
+              - name: dind-sock
+                mountPath: /var/run
 
         imagePullSecrets:
           - name: github-auth
@@ -172,6 +242,21 @@ spec:
             emptyDir:
               medium: Memory
               sizeLimit: 256Mi # counts against the pod's memory
+          - name: dind-sock
+            emptyDir: {}
+          - name: dind-externals
+            emptyDir:
+              sizeLimit: 2Gi
+          - name: docker-lib
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 20Gi
           - name: var-tmp
             emptyDir:
               sizeLimit: 4Gi

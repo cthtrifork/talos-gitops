@@ -146,7 +146,7 @@ jobs:
   scan-k8s:
     name: Scan ${{ matrix.image.ref }}
     needs: [changes, trivy-db-k8s]
-    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -258,7 +258,7 @@ jobs:
   scan-vex:
     name: Scan ${{ matrix.image.ref }} (VEX)
     needs: [lint, changes, trivy-db-vex]
-    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.PRIVATE_RUNNER || 'ubuntu-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -317,7 +317,7 @@ jobs:
     name: Build and publish (vex-cache)
     needs: [changes, lint]
     if: ${{ needs.changes.outputs.build == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
     timeout-minutes: 15
     permissions:
       contents: read

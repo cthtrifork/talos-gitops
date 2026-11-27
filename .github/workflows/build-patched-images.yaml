@@ -68,7 +68,7 @@ jobs:
     name: Patch ${{ matrix.image.name }}:${{ matrix.image.tag }}
     needs: [plan, trivy-db]
     if: ${{ !cancelled() && needs.plan.result == 'success' && needs.trivy-db.result == 'success' && needs.plan.outputs.count != '0' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
