@@ -38,6 +38,14 @@ spec:
       replicas: 2
       pdb:
         enable: true
+      # nodes have no zone label, and the chart default only prefers separate hosts
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              component: dashboard
       service:
         annotations:
           omni-kube-service-exposer.sidero.dev/icon: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iIzdjM2FlZCIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDRsMi40IDUgNS42LjctNC4xIDMuOCAxLjEgNS41TDEyIDE2LjMgNyAxOWwxLjEtNS41TDQgOS43IDkuNiA5eiIvPjwvZz48L3N2Zz4=
