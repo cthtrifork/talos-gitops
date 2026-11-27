@@ -367,16 +367,6 @@
     },
     {
       "customType": "regex",
-      "description": "Go and govulncheck versions in the govulncheck source scan workflow",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/govulncheck-source\\.yaml$/"
-      ],
-      "matchStrings": [
-        "(?:GO|GOVULNCHECK)_VERSION: \"?(?<currentValue>[^\\s\"]+)\"? # renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)"
-      ]
-    },
-    {
-      "customType": "regex",
       "description": "Image references in env values (the images the KubeVirt and CDI operators start), pinned by tag and digest",
       "managerFilePatterns": [
         "/^k8s/infra/kubevirt/kustomization\\.yaml$/"
