@@ -1,0 +1,20 @@
+name: Install Trivy
+description: Installs a Trivy release with the job token; the install script of setup-trivy is rate limited from the runners.
+inputs:
+  version:
+    description: Trivy version, e.g. v0.76.2
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        dir="$(mktemp -d)"
+        gh release download "${VERSION}" --repo aquasecurity/trivy --pattern '*_Linux-64bit.tar.gz' --pattern '*_checksums.txt' --dir "${dir}"
+        (cd "${dir}" && sha256sum --check --ignore-missing ./*_checksums.txt)
+        mkdir -p "${HOME}/.local/bin"
+        tar -xzf "${dir}"/*_Linux-64bit.tar.gz -C "${HOME}/.local/bin" trivy
+        echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
