@@ -1,4 +1,4 @@
-# Rescans everything when a new vex-cache artifact (VEX documents, ignore file or ignore policy changed) was published.
+# Rescans when a new vex-cache artifact (VEX documents, ignore file or ignore policy changed) was published.
 # The artifact is mounted as an image volume, like in the scan jobs (trivy-operator/helm-release.yaml).
 ---
 apiVersion: batch/v1
@@ -7,7 +7,7 @@ metadata:
   name: vex-cache-refresh
   namespace: trivy-system
   annotations:
-    claude-jobs/description: Deletes all Trivy VulnerabilityReports when a newer vex-cache artifact is published, so they are scanned again with the new VEX, ignore file and policy.
+    claude-jobs/description: Deletes Trivy VulnerabilityReports when a newer vex-cache artifact is published (only those of images with VEX statements if just the VEX changed, otherwise all), so they are scanned again.
 spec:
   schedule: "*/10 * * * *"
   concurrencyPolicy: Forbid
