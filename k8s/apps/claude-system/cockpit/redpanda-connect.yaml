@@ -1,6 +1,5 @@
 ---
 # Cockpit page and read-only status API; architecture in the README.
-# The ingest listener (:8081) has no authentication: the NetworkPolicy admits claude-rc only.
 http:
   enabled: true
   address: 0.0.0.0:4195
@@ -18,11 +17,6 @@ cache_resources:
     file:
       directory: /etc/registry-auth
 
-  - label: state
-    memory:
-      default_ttl: 24h
-      compaction_interval: 5m
-
 input:
   broker:
     inputs:
@@ -38,31 +32,10 @@ input:
             headers:
               Content-Type: '${! @content_type.or("application/json") }'
               Cache-Control: no-store
-        processors:
-          - mapping: 'meta listener = "ui"'
-
-      - label: ingest
-        http_server:
-          address: 0.0.0.0:8081
-          path: /
-          allowed_verbs:
-            - GET
-            - POST
-          sync_response:
-            status: '${! @status.or("200") }'
-            headers:
-              Content-Type: '${! @content_type.or("application/json") }'
-              Cache-Control: no-store
-        processors:
-          - mapping: 'meta listener = "ingest"'
 
 pipeline:
   processors:
     - switch:
-        - check: '@listener == "ingest"'
-          processors:
-            - resource: ingest_api
-
         - check: '@http_server_request_path == "/" || @http_server_request_path == "/index.html"'
           processors:
             - mapping: |
@@ -88,47 +61,6 @@ output:
   sync_response: {}
 
 processor_resources:
-  - label: ingest_api
-    switch:
-      - check: '@http_server_request_path == "/healthz"'
-        processors:
-          - mapping: |
-              meta content_type = "text/plain"
-              root = "ok"
-
-      # Plan limits, posted by the usage-poller container of claude-rc.
-      - check: '@http_server_verb == "POST" && @http_server_request_path == "/api/v1/usage"'
-        processors:
-          - mapping: |
-              map pct {
-                let n = this.number().catch(-1)
-                root = if $n < 0 { null } else if $n > 100 { 100 } else { $n.round() }
-              }
-              map secs {
-                let n = this.number().catch(0)
-                root = if $n > 0 { $n.round() } else { null }
-              }
-              let b = content().parse_json().catch({})
-              meta usage = {
-                "five_hour": {"used_pct": $b.rate_limits.five_hour.used_percentage.apply("pct"), "resets_at": $b.rate_limits.five_hour.resets_at.apply("secs")},
-                "seven_day": {"used_pct": $b.rate_limits.seven_day.used_percentage.apply("pct"), "resets_at": $b.rate_limits.seven_day.resets_at.apply("secs")},
-                "received_at": now().ts_unix()
-              }
-          - branch:
-              request_map: 'root = @usage'
-              processors:
-                - cache:
-                    resource: state
-                    operator: set
-                    key: usage
-                    value: '${! content() }'
-          - mapping: 'root = {"ok": true}'
-
-      - processors:
-          - mapping: |
-              meta status = "404"
-              root = {"error": "not found"}
-
   - label: login
     branch:
       request_map: 'root = ""'
@@ -729,16 +661,42 @@ processor_resources:
                 - resource: image_digest
               result_map: 'root.vm_images.homeserver = this'
 
-            usage:
-              request_map: 'root = ""'
+            # Plan limits: the usage-poller container of claude-rc exports them, Prometheus keeps them. The last value of 24 hours,
+            # so a poller that stopped shows as an old received_at, not as missing data. Only the pod with the newest poll counts:
+            # a recreated claude-rc leaves the old pod's series behind.
+            usage_pct:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "last_over_time(claude_plan_used_percent[24h]) and on(pod) topk(1, last_over_time(claude_plan_usage_polled_timestamp_seconds[24h]))".escape_url_query()
+                root = ""
               processors:
-                - cache:
-                    resource: state
-                    operator: get
-                    key: usage
-                - catch:
-                    - mapping: 'root = {}'
-              result_map: 'root.usage = this'
+                - resource: prom_get
+              result_map: |
+                let r = this.data.result.catch([])
+                let five_hour = $r.filter(x -> x.metric.window == "five_hour").index(0).value.index(1).number().catch(null)
+                root.usage.five_hour.used_pct = if $five_hour == null { null } else { [[$five_hour, 0].max(), 100].min().round() }
+                let seven_day = $r.filter(x -> x.metric.window == "seven_day").index(0).value.index(1).number().catch(null)
+                root.usage.seven_day.used_pct = if $seven_day == null { null } else { [[$seven_day, 0].max(), 100].min().round() }
+
+            usage_resets:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "last_over_time(claude_plan_resets_at_seconds[24h]) and on(pod) topk(1, last_over_time(claude_plan_usage_polled_timestamp_seconds[24h]))".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: |
+                let r = this.data.result.catch([])
+                let five_hour = $r.filter(x -> x.metric.window == "five_hour").index(0).value.index(1).number().catch(null)
+                root.usage.five_hour.resets_at = if $five_hour == null || $five_hour <= 0 { null } else { $five_hour.round() }
+                let seven_day = $r.filter(x -> x.metric.window == "seven_day").index(0).value.index(1).number().catch(null)
+                root.usage.seven_day.resets_at = if $seven_day == null || $seven_day <= 0 { null } else { $seven_day.round() }
+
+            usage_polled:
+              request_map: |
+                meta path = "/api/v1/query?query=" + "topk(1, last_over_time(claude_plan_usage_polled_timestamp_seconds[24h]))".escape_url_query()
+                root = ""
+              processors:
+                - resource: prom_get
+              result_map: 'root.usage.received_at = this.data.result.index(0).value.index(1).number().round().catch(null)'
 
             renovate:
               request_map: |

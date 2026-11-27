@@ -873,7 +873,7 @@ const UsageBlock = (b, now) => {
 };
 const UsagePanel = (d) => {
   const title = "Claude usage";
-  if (!d.usage) return Unavailable({ title, source: "usage-poller → cockpit", d });
+  if (!d.usage) return Unavailable({ title, source: "Prometheus (claude_plan_*)", d });
   const s = usageSession(d);
   if (!s) {
     return Panel({ title, state: "none", text: "no data", d }, Muted("Nothing received in the last 24 hours. The usage-poller container of claude-rc sends it every 5 minutes."));
