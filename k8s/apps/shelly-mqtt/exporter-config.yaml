@@ -8,7 +8,7 @@ mqtt:
   ca_cert: /certs/ca.crt
   client_cert: /certs/tls.crt
   client_key: /certs/tls.key
-# the H&T reports every 5 minutes on USB power; a silent sensor drops out of /metrics after 15
+# a silent sensor drops out of /metrics after 15 minutes
 cache:
   timeout: 15m
 metrics:
@@ -20,7 +20,3 @@ metrics:
     mqtt_name: rh
     type: gauge
     help: Relative humidity
-  - prom_name: shelly_battery_percent
-    mqtt_name: battery.percent
-    type: gauge
-    help: Battery charge
