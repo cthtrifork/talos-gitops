@@ -3,9 +3,389 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/fluxcd/kustomize-controller",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T22:00:31Z",
-  "version": 1,
+  "timestamp": "2026-11-27T04:50:09Z",
+  "version": 2,
   "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-103111"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pcre2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pcre2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PCRE2 flaw needs an attacker-controlled pattern or subject; PCRE2 is only loaded by git (grep) which is not run. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-105437"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/git"
+            },
+            {
+              "@id": "pkg:apk/alpine/git-init-template"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/git"
+            },
+            {
+              "@id": "pkg:apk/alpine/git-init-template"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Git three-way merge overflow needs git to merge an attacker-controlled repository. The controller never runs git merge and git is not run at all here. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107891"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/musl"
+            },
+            {
+              "@id": "pkg:apk/alpine/musl-utils"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/musl"
+            },
+            {
+              "@id": "pkg:apk/alpine/musl-utils"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "musl regcomp overflow needs an untrusted regular expression passed to regcomp; the Go binary does not use musl regcomp (Go regexp). Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-111497"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/brotli-libs"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/brotli-libs"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Brotli decoder overflow needs a program decoding attacker-supplied brotli. libbrotli is only loaded by libcurl inside a git child process. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-111760"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/git"
+            },
+            {
+              "@id": "pkg:apk/alpine/git-init-template"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/git"
+            },
+            {
+              "@id": "pkg:apk/alpine/git-init-template"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Needs git clone --recurse-submodules of an attacker-hosted repository. Remote bases do not use submodules and none are used here, so git is not run. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-11352"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Needs a malicious HTTP/3 (QUIC, UDP) server for a libcurl client. Egress allows no UDP except DNS. libcurl is only loaded by git-remote-http, which is not run. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-114466"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/git"
+            },
+            {
+              "@id": "pkg:apk/alpine/git-init-template"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/git"
+            },
+            {
+              "@id": "pkg:apk/alpine/git-init-template"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Local-vector (AV:L) git fast-import/fast-export flaw; the controller never runs those commands and git is not run at all here. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-115506"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "libexpat flaw on crafted XML; libexpat is loaded only by git (http-push) and the controller does not parse XML with it. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-11586"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Needs a libcurl WebSocket session with a hostile server. libcurl is only loaded by git-remote-http, which is not run, and egress is limited to GitHub, GHCR, Quay. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-12064"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Needs the curl tool with a schemeless URL and --proto-default sftp/scp. No curl command is run and port 22 egress is dropped. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-123158"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/openssh-client-common"
+            },
+            {
+              "@id": "pkg:apk/alpine/openssh-client-default"
+            },
+            {
+              "@id": "pkg:apk/alpine/openssh-keygen"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/openssh-client-common"
+            },
+            {
+              "@id": "pkg:apk/alpine/openssh-client-default"
+            },
+            {
+              "@id": "pkg:apk/alpine/openssh-keygen"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Flaw is in sshd. Dockerfile installs only openssh-client (the flagged packages are client-common, client-default, keygen); no openssh-server, and nothing listens on port 22 (only 8080 and 9440). Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-14456"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            },
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            },
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "OpenSSL QUIC server flaw (unbounded queue for QUIC Initial packets) needs a QUIC/UDP listener. None exists and policy allows no UDP ingress; libssl is not linked into the Go binary. Policy: only TCP 8080/9440 listen; ingress only from kube-apiserver, same-namespace pods and cluster on 8080; egress only DNS, kube-apiserver, same-namespace pods and TCP 443 to github.com, *.githubusercontent.com, ghcr.io, quay.io. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39821"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "GO-2026-5026: idna.ToASCII is linked, but the flaw only matters to code that authorizes on an ASCII hostname and later uses its Unicode form. The controller imports no x/net/idna and does no hostname-based authorization; idna is used only inside net/http name handling for the fixed peers (kube-apiserver, github.com, ghcr.io, quay.io). Policy: only TCP 8080/9440 listen; ingress only from kube-apiserver, same-namespace pods and cluster on 8080; egress only DNS, kube-apiserver, same-namespace pods and TCP 443 to github.com, *.githubusercontent.com, ghcr.io, quay.io."
+    },
     {
       "vulnerability": {
         "name": "CVE-2026-4738"
@@ -30,6 +410,57 @@
       ],
       "status": "not_affected",
       "impact_statement": "gdal infback9 bug matched to zlib by mistake; gdal is not in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56851"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "govulncheck on usr/local/bin/kustomize-controller (v1.9.5, sha256:a3a955eb) lists GO-2026-6629 (alias CVE-2026-56851) only under Module Results: x/text v0.39.0 is present but no vulnerable symbol or package is in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56854"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
     },
     {
       "vulnerability": {
@@ -58,6 +489,84 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-66046"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "libexpat flaw on crafted XML; libexpat is loaded only by git (http-push) and the controller does not parse XML with it. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-76641"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "libexpat flaw on crafted XML; libexpat is loaded only by git (http-push) and the controller does not parse XML with it. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-77214"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "libexpat flaw on crafted XML; libexpat is loaded only by git (http-push) and the controller does not parse XML with it. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-78661"
       },
       "products": [
@@ -81,6 +590,428 @@
       "status": "not_affected",
       "justification": "inline_mitigations_already_exist",
       "impact_statement": "CVE-2026-78661 is in x/net/html parsing. Not verified whether the binary links it. No untrusted HTML reaches this workload: default-deny CiliumNetworkPolicy, ingress only from kube-apiserver/node/cluster, egress only to named hosts (GitHub, ghcr, quay, Let's Encrypt, Cloudflare API). Fix: x/net v0.62.0 via Renovate."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78667"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "govulncheck on usr/local/bin/kustomize-controller lists GO-2026-6609 (alias CVE-2026-78667, net/http Range handling in FileServer/ServeContent) only under Package Results: the package is imported but no vulnerable symbol is in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78669"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            },
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            },
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "inline_mitigations_already_exist",
+      "impact_statement": "GO-2026-6611: HTTP/2 SETTINGS flood from a malicious peer; symbol is linked. As a server: the listeners are plain HTTP (no TLS) and no h2c handler exists in the controller source, so no HTTP/2 server. As a client: the only peers are the kube-apiserver and github.com/ghcr.io/quay.io over 443 and in-namespace pods. Policy: only TCP 8080/9440 listen; ingress only from kube-apiserver, same-namespace pods and cluster on 8080; egress only DNS, kube-apiserver, same-namespace pods and TCP 443 to github.com, *.githubusercontent.com, ghcr.io, quay.io."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8286"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Needs a libcurl STARTTLS (SMTP/IMAP/POP3/FTP) transfer. Those ports are dropped by egress and libcurl is not used. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84304"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "grpc-go flaws (GO-2026-6348, GO-2026-6443, GO-2026-6061) are in the gRPC server transport and xDS server RBAC. The controller starts no gRPC server (no grpc.NewServer or xds.NewGRPCServer in main.go, internal/, fluxcd/pkg; the SOPS key service is an in-process local client, not a listener) and the listeners are plain HTTP on 8080 and 9440. As a gRPC client it could only reach the allowed hosts, which do not serve gRPC. Policy: only TCP 8080/9440 listen; ingress only from kube-apiserver, same-namespace pods and cluster on 8080; egress only DNS, kube-apiserver, same-namespace pods and TCP 443 to github.com, *.githubusercontent.com, ghcr.io, quay.io."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84445"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "grpc-go flaws (GO-2026-6348, GO-2026-6443, GO-2026-6061) are in the gRPC server transport and xDS server RBAC. The controller starts no gRPC server (no grpc.NewServer or xds.NewGRPCServer in main.go, internal/, fluxcd/pkg; the SOPS key service is an in-process local client, not a listener) and the listeners are plain HTTP on 8080 and 9440. As a gRPC client it could only reach the allowed hosts, which do not serve gRPC. Policy: only TCP 8080/9440 listen; ingress only from kube-apiserver, same-namespace pods and cluster on 8080; egress only DNS, kube-apiserver, same-namespace pods and TCP 443 to github.com, *.githubusercontent.com, ghcr.io, quay.io."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8458"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Needs libcurl Negotiate-authenticated connections; libcurl is only loaded by git-remote-http, which is not run, and no Kerberos is configured. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-85091"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/zlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/zlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "zlib gz_write overflow needs a program using gzFile writes; the Go binary uses Go's compress/flate, not libz. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-86145"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pcre2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pcre2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PCRE2 flaw needs an attacker-controlled pattern or subject; PCRE2 is only loaded by git (grep) which is not run. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-89161"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pcre2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pcre2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PCRE2 flaw needs an attacker-controlled pattern or subject; PCRE2 is only loaded by git (grep) which is not run. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8925"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "GSASL double free in curl SASL (mail/LDAP-style protocols) needs those protocols; egress only allows TCP 443 and libcurl is not used. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8927"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Needs libcurl handle reuse with env proxies and Digest proxy auth. The deployment sets no proxy variables (env: RUNTIME_NAMESPACE, GOMEMLIMIT) and libcurl is not used. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-92392"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Use after free in curl HTTP/2 uploads; libcurl is only loaded by git-remote-http, which is not run. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-93990"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "libexpat flaw on crafted XML; libexpat is loaded only by git (http-push) and the controller does not parse XML with it. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-9547"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcurl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Needs an SCP/SFTP transfer with SSH key callback; port 22 egress is dropped and libcurl is not used. Checked in the v1.9.5 source and image build: the controller is a static Go binary (Dockerfile CGO_ENABLED=0) so it loads no system libraries; it has no os/exec in main.go, internal/ or fluxcd/pkg/kustomize v1.35.6 and kustomize plugins are disabled (DisabledPluginConfig). The only child process is git for kustomize remote bases (enabled, no --no-remote-bases), and no Kustomization uses one: every Kustomization sources the GitRepository talos-gitops and k8s/ on main has no remote resource URL. Holds while no remote base is added."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-97031"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "GO-2026-6607: crypto/tls ECH symbol is linked, but it only affects a TLS server. The controller's listeners are plain HTTP (metrics :8080 via controller-runtime without SecureServing, health :9440) and no ListenAndServeTLS or tls.Listen exists in main.go, internal/ or fluxcd/pkg. Policy: only TCP 8080/9440 listen; ingress only from kube-apiserver, same-namespace pods and cluster on 8080; egress only DNS, kube-apiserver, same-namespace pods and TCP 443 to github.com, *.githubusercontent.com, ghcr.io, quay.io."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-hrxh-6v49-42gf"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=ghcr.io%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/kustomize-controller?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Ffluxcd%2Fkustomize-controller",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "grpc-go flaws (GO-2026-6348, GO-2026-6443, GO-2026-6061) are in the gRPC server transport and xDS server RBAC. The controller starts no gRPC server (no grpc.NewServer or xds.NewGRPCServer in main.go, internal/, fluxcd/pkg; the SOPS key service is an in-process local client, not a listener) and the listeners are plain HTTP on 8080 and 9440. As a gRPC client it could only reach the allowed hosts, which do not serve gRPC. Policy: only TCP 8080/9440 listen; ingress only from kube-apiserver, same-namespace pods and cluster on 8080; egress only DNS, kube-apiserver, same-namespace pods and TCP 443 to github.com, *.githubusercontent.com, ghcr.io, quay.io."
     }
   ]
 }

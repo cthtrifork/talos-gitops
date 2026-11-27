@@ -3,9 +3,1634 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/mirror.gcr.io/juicedata/mount",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T22:00:31Z",
-  "version": 1,
+  "timestamp": "2026-11-27T04:50:09Z",
+  "version": 2,
   "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2018-5709"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2019-1010022"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libc-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libc-dev-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libc-devtools"
+            },
+            {
+              "@id": "pkg:deb/debian/libc6"
+            },
+            {
+              "@id": "pkg:deb/debian/libc6-dev"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libc-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libc-dev-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libc-devtools"
+            },
+            {
+              "@id": "pkg:deb/debian/libc6"
+            },
+            {
+              "@id": "pkg:deb/debian/libc6-dev"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "glibc stack-guard bypass disputed upstream, not a vulnerability by itself"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-26458"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-26461"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-30156"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107364"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107708"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107778"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107884"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-111423"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112314"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112315"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112316"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112317"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112318"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112319"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112320"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112321"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112322"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112323"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-118380"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-11850"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-119079"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39828"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39829"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39830"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39831"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39832"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39833"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39834"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39835"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39944"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42508"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-46595"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-46597"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-50152"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-54330"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56854"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56857"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Windows-only (os.Root junction); all images are Linux"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-71199"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-71200"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/krb5-locales"
+            },
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
     {
       "vulnerability": {
         "name": "CVE-2026-78661"

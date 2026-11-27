@@ -3,9 +3,1845 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T22:00:31Z",
-  "version": 1,
+  "timestamp": "2026-11-27T04:50:09Z",
+  "version": 2,
   "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2018-5709"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2019-1010022"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libc-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libc-dev-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libc-devtools"
+            },
+            {
+              "@id": "pkg:deb/debian/libc6"
+            },
+            {
+              "@id": "pkg:deb/debian/libc6-dev"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libc-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libc-dev-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libc-devtools"
+            },
+            {
+              "@id": "pkg:deb/debian/libc6"
+            },
+            {
+              "@id": "pkg:deb/debian/libc6-dev"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "glibc stack-guard bypass disputed upstream, not a vulnerability by itself"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2023-28452"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CoreDNS v1.4.0 resolver flaw: a forged DNS response against the source port of CoreDNS's resolver. coredns is only an indirect dependency (go.mod) and juicefs starts no CoreDNS resolver or server. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-26458"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-26461"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-30156"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-3576"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-6020"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libpam-modules"
+            },
+            {
+              "@id": "pkg:deb/debian/libpam-modules-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libpam-runtime"
+            },
+            {
+              "@id": "pkg:deb/debian/libpam0g"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libpam-modules"
+            },
+            {
+              "@id": "pkg:deb/debian/libpam-modules-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libpam-runtime"
+            },
+            {
+              "@id": "pkg:deb/debian/libpam0g"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "pam_namespace symlink/race privilege escalation by a local user at PAM login or session setup. Nothing in the container opens a PAM session: ENTRYPOINT is tini then the driver, and the driver's exec calls are juicefs, umount, rm, sh and bash only (grep of pkg/ and cmd/ at v0.34.0; no login, su, sudo or sshd). Local vector (AV:L)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107364"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107708"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107778"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107884"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-111423"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112314"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112315"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112316"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112317"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112318"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112319"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112320"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112321"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112322"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112323"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-118380"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-11850"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-119079"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-12064"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/curl"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl4"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/curl"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl4"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "curl tool with a schemeless URL and --proto-default sftp/scp: needs SSH on port 22. The driver never runs curl or loads libcurl (its exec calls are juicefs, umount, rm, sh and bash; grep of pkg/ and cmd/ at v0.34.0; curl is used only in the Dockerfile build). Pods' egress (CiliumNetworkPolicy juicefs-csi) allows only garage:3900, juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Only the EE CLI path /usr/bin/juicefs (a script) is outside this: it is run only for Enterprise-edition secrets, and this cluster mounts with the CE mount image juicedata/mount:ce-v1.4.2."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-16742"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libnss-systemd"
+            },
+            {
+              "@id": "pkg:deb/debian/libpam-systemd"
+            },
+            {
+              "@id": "pkg:deb/debian/libsystemd-shared"
+            },
+            {
+              "@id": "pkg:deb/debian/libsystemd0"
+            },
+            {
+              "@id": "pkg:deb/debian/libudev1"
+            },
+            {
+              "@id": "pkg:deb/debian/systemd"
+            },
+            {
+              "@id": "pkg:deb/debian/systemd-sysv"
+            },
+            {
+              "@id": "pkg:deb/debian/systemd-timesyncd"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libnss-systemd"
+            },
+            {
+              "@id": "pkg:deb/debian/libpam-systemd"
+            },
+            {
+              "@id": "pkg:deb/debian/libsystemd-shared"
+            },
+            {
+              "@id": "pkg:deb/debian/libsystemd0"
+            },
+            {
+              "@id": "pkg:deb/debian/libudev1"
+            },
+            {
+              "@id": "pkg:deb/debian/systemd"
+            },
+            {
+              "@id": "pkg:deb/debian/systemd-sysv"
+            },
+            {
+              "@id": "pkg:deb/debian/systemd-timesyncd"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Flaw is in systemd-homed (local privilege escalation of a logged-in homed user). Image ENTRYPOINT is /tini -g -- juicefs-csi-driver (crane config), so systemd is not PID 1 and homed never runs; the driver's exec calls are juicefs, umount, rm, sh and bash only (grep of pkg/ and cmd/ at v0.34.0). Local vector (AV:L); nobody logs in to the container."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-25681"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "x/net/html Parse then Render yields an unexpected tree, an XSS risk only when parsed HTML is re-rendered to a browser. The invoked juicefs subcommands output no HTML and start no web server. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-26017"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CoreDNS ACL bypass through plugin order (acl before rewrite): needs a CoreDNS server with plugins configured. juicefs starts none. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-26018"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CoreDNS loop plugin crash by crafted queries: needs a running CoreDNS server. juicefs starts none. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-27136"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "x/net/html Parse then Render yields an unexpected tree, an XSS risk only when parsed HTML is re-rendered to a browser. The invoked juicefs subcommands output no HTML and start no web server. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-35579"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CoreDNS TSIG not verified on gRPC/QUIC/DoH transports: needs a CoreDNS server listening on those transports. juicefs starts none. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39828"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39829"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39830"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39831"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39832"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39833"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39834"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39835"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39944"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42508"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-46595"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-46597"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-50152"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-54330"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/librados-dev"
+            },
+            {
+              "@id": "pkg:deb/debian/librados2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Ceph is not used in any image (JuiceFS stores blocks in Garage over S3); librados is only linked into the juicefs images"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56854"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/crypto"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "x/crypto ssh code, no SSH client, server or agent is used in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56857"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Windows-only (os.Root junction); all images are Linux"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-71199"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-71200"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "impact_statement": "Kerberos/GSSAPI is not used in any image; the krb5 libraries are only transitive dependencies"
+    },
     {
       "vulnerability": {
         "name": "CVE-2026-78661"
@@ -31,6 +1867,302 @@
       "status": "not_affected",
       "justification": "inline_mitigations_already_exist",
       "impact_statement": "CVE-2026-78661 is in x/net/html parsing. Not verified whether the binary links it. No untrusted HTML reaches this workload: default-deny CiliumNetworkPolicy, ingress only from kube-apiserver/node/cluster, egress only to named hosts (GitHub, ghcr, quay, Let's Encrypt, Cloudflare API). Fix: x/net v0.62.0 via Renovate."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78667"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "net/http Range handling in FileServer/ServeContent/ServeFile. No FileServer, ServeContent or ServeFile in the driver's cmd/ or pkg/; the metrics mux serves promhttp only. juicefs file serving (pkg/fs/http.go) is not started by the invoked subcommands. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-82399"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CoreDNS DoH/DoH3/DoQ/gRPC request paths unpack attacker DNS messages: needs a CoreDNS server listener. juicefs starts none. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8286"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/curl"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl4"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/curl"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl4"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "libcurl connection reuse across STARTTLS transfers (SMTP/IMAP/POP3/FTP). The driver never runs curl or loads libcurl (its exec calls are juicefs, umount, rm, sh and bash; grep of pkg/ and cmd/ at v0.34.0; curl is used only in the Dockerfile build). Pods' egress (CiliumNetworkPolicy juicefs-csi) allows only garage:3900, juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Only the EE CLI path /usr/bin/juicefs (a script) is outside this: it is run only for Enterprise-edition secrets, and this cluster mounts with the CE mount image juicedata/mount:ce-v1.4.2."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84304"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "gRPC-Go flaw in the server transport/xDS server. Needs a gRPC server in the process; the invoked juicefs subcommands start none. As a client the process can only reach garage:3900 (S3) and Postgres:5432, neither is gRPC. Pods' egress (CiliumNetworkPolicy juicefs-csi) allows only garage:3900, juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84445"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "gRPC-Go xds.NewGRPCServer accepts RPCs without :authority. Needs an xDS gRPC server; none is started. Pods' egress (CiliumNetworkPolicy juicefs-csi) allows only garage:3900, juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8458"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/curl"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl4"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/curl"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl4"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "libcurl connection reuse for Negotiate (Kerberos/SPNEGO) authenticated connections. The driver never runs curl or loads libcurl (its exec calls are juicefs, umount, rm, sh and bash; grep of pkg/ and cmd/ at v0.34.0; curl is used only in the Dockerfile build). Pods' egress (CiliumNetworkPolicy juicefs-csi) allows only garage:3900, juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Only the EE CLI path /usr/bin/juicefs (a script) is outside this: it is run only for Enterprise-edition secrets, and this cluster mounts with the CE mount image juicedata/mount:ce-v1.4.2."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-86003"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/coredns/coredns"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CoreDNS DoH/DoH3/DoQ/gRPC listeners unpack without the accept policy: needs a CoreDNS server listener. juicefs starts none. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8927"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/curl"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl4"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/curl"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl4"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "libcurl proxy-auth state across transfers with environment proxies: the pods set no proxy variables (env: CSI_ENDPOINT, POD_NAME, NODE_NAME, JUICEFS_*, SSL_CERT_FILE, NODE_EXTRA_CA_CERTS...). The driver never runs curl or loads libcurl (its exec calls are juicefs, umount, rm, sh and bash; grep of pkg/ and cmd/ at v0.34.0; curl is used only in the Dockerfile build). Pods' egress (CiliumNetworkPolicy juicefs-csi) allows only garage:3900, juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Only the EE CLI path /usr/bin/juicefs (a script) is outside this: it is run only for Enterprise-edition secrets, and this cluster mounts with the CE mount image juicedata/mount:ce-v1.4.2."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-97031"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "crypto/tls ECH memory exhaustion affects a TLS server. juicefs-csi-driver (CGO_ENABLED=0) listeners are plain HTTP: metrics on :8082 (controller-runtime, no SecureServing), promhttp metrics and pprof on localhost; no ServeTLS/tls.Listen in cmd/ or pkg/. juicefs starts no server in the invoked subcommands (only a 127.0.0.1 debug agent). Other TLS code in juicefs (pkg/fs/http.go) is not an entry point of those subcommands."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-hrxh-6v49-42gf"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=mirror.gcr.io%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/juicefs-csi-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fjuicefs-csi-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "gRPC-Go xDS RBAC engine and HTTP/2 server transport flaws. Needs a gRPC server with xDS RBAC; none is started. Pods' egress (CiliumNetworkPolicy juicefs-csi) allows only garage:3900, juicefs-meta Postgres:5432, kubelet:10250, the kube-apiserver and DNS. Checked: the driver (v0.34.0 pkg/, cmd/) runs only 'juicefs' subcommands format, status, config, quota set, rmr and version from /usr/local/bin/juicefs; none of cmd/format.go, status.go, config.go, quota.go, rmr.go, version.go starts a server, and the only listener in juicefs cmd/main.go is a debug agent on 127.0.0.1:6060+. Checked at juicefs commit 23d2a456, the last main commit before the image was created (2026-11-20; the Dockerfile builds juicefs from main). The govulncheck result for usr/local/bin/juicefs (digest sha256:1b5e3667) lists the symbol as linked only as a dependency of the binary, so the code is present but no entry path runs it."
     }
   ]
 }
