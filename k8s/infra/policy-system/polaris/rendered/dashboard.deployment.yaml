@@ -13,13 +13,17 @@ metadata:
   name: polaris-dashboard
   namespace: policy-system
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: polaris
       app.kubernetes.io/instance: polaris
       app.kubernetes.io/name: polaris
       component: dashboard
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       annotations:
@@ -60,10 +64,10 @@ spec:
           periodSeconds: 20
         resources:
           limits:
-            memory: 256Mi
+            memory: 512Mi
           requests:
             cpu: 25m
-            memory: 32Mi
+            memory: 192Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -74,6 +78,13 @@ spec:
           runAsNonRoot: true
           seccompProfile:
             type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /results.json
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 120
         volumeMounts:
         - mountPath: /opt/app/config.yaml
           name: config
@@ -87,14 +98,8 @@ spec:
           matchLabels:
             component: dashboard
         maxSkew: 1
-        topologyKey: topology.kubernetes.io/zone
-        whenUnsatisfiable: ScheduleAnyway
-      - labelSelector:
-          matchLabels:
-            component: dashboard
-        maxSkew: 1
         topologyKey: kubernetes.io/hostname
-        whenUnsatisfiable: ScheduleAnyway
+        whenUnsatisfiable: DoNotSchedule
       volumes:
       - configMap:
           name: polaris
