@@ -92,6 +92,9 @@ spec:
         - matchName: pypi.org
         - matchName: files.pythonhosted.org
 
+        # copa checks the end-of-life date of the base OS
+        - matchName: endoflife.date
+
         - matchName: registry.npmjs.org
         - matchName: cdn.playwright.dev
         - matchName: playwright.download.prss.microsoft.com
@@ -127,6 +130,9 @@ spec:
         - matchName: security.ubuntu.com
         - matchName: ports.ubuntu.com
         - matchName: ppa.launchpadcontent.net
+        # Debian images patched by copa (images/patched)
+        - matchName: deb.debian.org
+        - matchName: security.debian.org
       toPorts:
         - ports:
             - port: "80"
