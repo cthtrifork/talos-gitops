@@ -6,7 +6,7 @@ The device sleeps with Wi-Fi off between wakes, so it cannot be scraped; it push
 - Network: the Shelly is on the UniFi `IoT` network (VLAN 30, 192.168.7.0/24, Isolate Network on). A policy `IoT to MQTT broker`
   allows TCP 8883 to 192.168.1.241 only. The Cilium policy admits the same CIDR.
 - Auth: client certificate, CN = MQTT username (`shelly-ht`, `mqtt2prometheus`); topics are limited in `acl`.
-- Topics: the device prefix is `shelly/ht-1`, status on `shelly/ht-1/status/<component>:<id>`.
+- Topics: one prefix per device, `shelly/ht-1` (H&T) and `shelly/pill-1` (Pill), status on `<prefix>/status/<component>:<id>`. Both share the `shelly-ht` client certificate; the ACL limits it to those two prefixes.
 
 ## Device setup (manual, once)
 
