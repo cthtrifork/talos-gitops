@@ -1,3 +1,4 @@
+---
 mqtt:
   server: ssl://mosquitto.shelly-mqtt.svc:8883
   topic_path: shelly/+/status/#
