@@ -1,6 +1,6 @@
 # vex-cache-refresh
 
-Rescans every workload when a new `vex-cache` artifact is published, so the reports follow a changed VEX document,
+Rescans workloads when a new `vex-cache` artifact is published, so the reports follow a changed VEX document,
 ignore file or ignore policy. The CronJob runs every 10 minutes in `trivy-system` (`cronjob.yaml`, script in `refresh.sh`).
 
 ## Flow
@@ -21,7 +21,10 @@ flowchart TB
         newer -->|no| done["Exit"]
         newer -->|yes| guard{"live ConfigMap hashes ==<br/>hashes in the artifact?"}
         guard -->|"no: Flux is behind,<br/>retry next run"| done
-        guard -->|yes| delete["Delete all VulnerabilityReports"]
+        guard -->|yes| scope{"ignore file or policy<br/>hash changed?"}
+        scope -->|yes| delete["Delete all VulnerabilityReports"]
+        scope -->|"no: only VEX"| some["Delete the reports of images<br/>with a homelab-vexhub statement"]
+        some --> record
         delete --> kind{"manual run?"}
         kind -->|no| record["Store the timestamp in<br/>ConfigMap vex-cache-state"]
         kind -->|yes| done
@@ -29,7 +32,8 @@ flowchart TB
 
     artifact -.->|"image volume"| read
     flux -.->|"hash of the live data"| guard
-    delete --> operator["trivy-operator scans every<br/>workload again"]
+    delete --> operator["trivy-operator scans the<br/>deleted workloads again"]
+    some --> operator
     operator --> reports["New VulnerabilityReports,<br/>sent to Dependency-Track by sbom-hook"]
 ```
 
@@ -40,9 +44,17 @@ jobs read. Deleting then would rescan with the old rules and record the new time
 The artifact therefore carries the sha256 of the ignore file and policy it was built from, and the job deletes only when the live
 ConfigMaps hash to the same values. Otherwise it exits and checks again on the next run. A change to `vex/` only passes at once.
 
+## Scope of a rescan
+
+An ignore file or policy change can affect any report, so it deletes all of them. When only the hashes in the state match, the
+change is in `vex/`: the job deletes the reports whose `<registry>/<repository>` is a `repository_url` in the `homelab-vexhub`
+index of the artifact (the same index lists the zot mirror names). A missing stored hash counts as changed. Statements from the
+upstream VEX Hub are not matched by image name, so a Hub-only update does not trigger a scoped delete; those reports follow
+`scannerReportTTL` or a manual run.
+
 ## State and permissions
 
-- `vex-cache-state` (`configmap-state.yaml`): `data.built-at` is written by the job. The annotation `kustomize.toolkit.fluxcd.io/ssa: IfNotPresent` makes Flux create it once and never apply it again: without it each Flux reconcile removed `data.built-at`, so the job recorded "first run" and never rescanned.
+- `vex-cache-state` (`configmap-state.yaml`): `data.built-at`, `data.ignore-sha256` and `data.policy-sha256` are written by the job. The annotation `kustomize.toolkit.fluxcd.io/ssa: IfNotPresent` makes Flux create it once and never apply it again: without it each Flux reconcile removed `data.built-at`, so the job recorded "first run" and never rescanned.
 - Run it now: the Run jobs page in the cockpit lists it (namespace label `claude-jobs/run`, annotation `claude-jobs/description` in `cronjob.yaml`); a manual run skips the checks and always deletes all reports.
 - `rbac.yaml`: list and delete `vulnerabilityreports` cluster-wide; get and patch only the three ConfigMaps above in `trivy-system`.
 - The first run records the timestamp and deletes nothing.
