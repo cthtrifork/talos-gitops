@@ -147,7 +147,7 @@ jobs:
             echo
             echo "| Vulnerability | Aliases | Status | Justification |"
             echo "| --- | --- | --- | --- |"
-            jq -r '.statements[] | "| \(.vulnerability.name) | \((.vulnerability.aliases // []) | join(", ")) | \(.status) | \(.justification // "") |"' openvex.json
+            jq -r '(.statements // [])[] | "| \(.vulnerability.name) | \((.vulnerability.aliases // []) | join(", ")) | \(.status) | \(.justification // "") |"' openvex.json
           } | tee -a "$GITHUB_STEP_SUMMARY"
           echo "::group::call traces"
           cat traces.txt
