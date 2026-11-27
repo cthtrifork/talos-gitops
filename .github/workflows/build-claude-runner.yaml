@@ -9,6 +9,8 @@ on:
       - images/claude-runner/**
       - .github/workflows/build-claude-runner.yaml
       - .github/workflows/build-release-image.yaml
+      - .github/actions/trivy-scan/**
+      - .github/actions/install-trivy/**
   pull_request:
     branches:
       - main
@@ -16,6 +18,8 @@ on:
       - images/claude-runner/**
       - .github/workflows/build-claude-runner.yaml
       - .github/workflows/build-release-image.yaml
+      - .github/actions/trivy-scan/**
+      - .github/actions/install-trivy/**
   schedule:
     - cron: "41 3 * * 0"
   workflow_dispatch:
