@@ -68,10 +68,7 @@ jobs:
           goversion=$(awk 'NR == 1 {print substr($2, 3)}' work/buildinfo.txt)
           goos=$(setting GOOS) goarch=$(setting GOARCH) cgo=$(setting CGO_ENABLED) tags=$(setting -tags)
           ref=${REF:-$(setting vcs.revision)}; ref=${ref:-$version}
-          [[ $module == github.com/* ]] || { echo "::error::module '$module' is not on github.com"; exit 1; }
-          [[ $ref != "" && $ref != "(devel)" ]] || { echo "::error::no revision or version in the binary, set the ref input"; exit 1; }
-          [ -n "$goversion" ] && [ -n "$goos" ] && [ -n "$goarch" ] && [ -n "$cgo" ] ||
-            { echo "::error::the binary does not record its Go version, GOOS, GOARCH and CGO_ENABLED, cannot reproduce its build"; exit 1; }
+          [ -n "$goversion" ] || { echo "::error::no Go version in the binary"; exit 1; }
           printf '%s\n' "module=$module" "ref=$ref" "goversion=$goversion" "goos=$goos" "goarch=$goarch" "cgo=$cgo" "tags=$tags" | tee -a "$GITHUB_OUTPUT"
 
       - name: Check out the source
