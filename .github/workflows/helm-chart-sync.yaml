@@ -16,7 +16,29 @@ env:
   SYNC_FROM_DATE: "2026-06-01"
 
 jobs:
+  changes:
+    runs-on: ubuntu-slim
+    timeout-minutes: 3
+    outputs:
+      relevant: ${{ steps.changed.outputs.any_changed == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Get changed files
+        id: changed
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            scripts/ci/helm/**
+            .github/workflows/helm-chart-sync.yaml
+
   mirror-helm-charts:
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     environment: dev
     runs-on: ubuntu-latest
     permissions:
