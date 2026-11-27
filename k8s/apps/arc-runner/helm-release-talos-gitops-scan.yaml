@@ -207,6 +207,9 @@ spec:
                 value: /tmp/xdg/runtime
               - name: STORAGE_DRIVER
                 value: overlay
+              # The storage mount leaves ~/.local root-owned, so mise cannot create its data dir there.
+              - name: MISE_DATA_DIR
+                value: /home/runner/.mise
 
               - name: DOCKER_HOST
                 value: unix:///var/run/docker.sock
