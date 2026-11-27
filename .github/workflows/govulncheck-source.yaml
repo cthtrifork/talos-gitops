@@ -71,7 +71,10 @@ jobs:
           pkg=$(awk '$1 == "path" {print $2; exit}' work/buildinfo.txt)
           goversion=$(awk 'NR == 1 {print substr($2, 3)}' work/buildinfo.txt)
           goos=$(setting GOOS) goarch=$(setting GOARCH) cgo=$(setting CGO_ENABLED) tags=$(setting -tags)
-          ref=${REF:-$(setting vcs.revision)}; ref=${ref:-$version}
+          # the binary's revision, else the image's OCI revision label (images built without .git), else the module version
+          ref=${REF:-$(setting vcs.revision)}
+          ref=${ref:-$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$IMAGE")}
+          ref=${ref:-$version}
           [ -n "$goversion" ] || { echo "::error::no Go version in the binary"; exit 1; }
           [ "$(setting vcs.modified)" != true ] || { echo "::error::binary was built from a modified working tree; the recorded revision cannot reproduce its source"; exit 1; }
           printf '%s\n' "module=$module" "ref=$ref" "goversion=$goversion" "goos=$goos" "goarch=$goarch" "cgo=$cgo" "tags=$tags" "pkg=$pkg" | tee -a "$GITHUB_OUTPUT"
