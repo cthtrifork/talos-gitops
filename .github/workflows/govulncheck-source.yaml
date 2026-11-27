@@ -58,7 +58,7 @@ jobs:
           fi
           mkdir work
           cid=$(podman create "$IMAGE" unused)
-          podman cp -L "$cid:$BINARY" work/binary
+          podman cp "$cid:$BINARY" work/binary
           podman rm "$cid" > /dev/null
           go version -m work/binary | tee work/buildinfo.txt
 

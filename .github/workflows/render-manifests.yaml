@@ -105,7 +105,8 @@ jobs:
 
       - name: Pull the charts through zot
         # the same ZOT_MIRROR_* as the cluster, so the OCIRepository urls resolve to the zot caches
-        run: grep '^ZOT_MIRROR_' k8s/clusters/homelab/cluster-vars.env >> "${GITHUB_ENV}"
+        # no match (the variables are commented out for a bootstrap) renders from upstream
+        run: grep '^ZOT_MIRROR_' k8s/clusters/homelab/cluster-vars.env >> "${GITHUB_ENV}" || [[ $? -eq 1 ]]
 
       - name: Render manifests
         if: ${{ steps.select.outputs.none != 'true' }}
