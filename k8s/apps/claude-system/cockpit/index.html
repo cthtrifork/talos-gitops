@@ -90,6 +90,10 @@
   /* Each section is a few fixed columns, and every panel has its own column, chosen so the columns end at about the same height.
      A panel only ever changes height, never place. On a narrow screen the columns stack, left to right. */
   .cols { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
+  .section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; margin-bottom: 10px; }
+  .section-head h2 { margin: 0; }
+  .window-pick { display: flex; align-items: center; gap: 12px; }
+  .window-pick .seg { margin: 0; }
   .col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   @media (min-width: 900px) { .cols { grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); } }
   .panel { background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; }
@@ -571,21 +575,22 @@ function Trend({ title, data, labels, end, duration, step, unit, window }) {
   </figure>`;
 }
 
-// The history window buttons: one control above both temperature panels, since they share one setting.
+// The history window buttons, in the section heading: one setting for both temperature panels (Compute always shows the last hour).
 const WindowToggle = (d, pendingWindow, setWindow) => {
   const win = d.hardware_window || hardwareWindow();
-  return html`<div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((pendingWindow || win) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>
-  <span class="hardware-note" role="status" ?hidden=${!pendingWindow}>${pendingWindow ? `Loading ${pendingWindow} · showing ${win}` : ""}</span>`;
+  return html`<div class="window-pick">
+    <span class="hardware-note" role="status">${pendingWindow ? `Loading ${pendingWindow} · showing ${win}` : "Temperature history"}</span>
+    <div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((pendingWindow || win) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>
+  </div>`;
 };
 
-const HardwarePanel = (d, nodes, warning, toggle) => {
+const HardwarePanel = (d, nodes, warning) => {
   const title = "Node temperatures";
   if (!d.hardware_temperatures) return Unavailable({ title, source: "Prometheus · node hardware temperature metrics", d });
   const win = d.hardware_window || hardwareWindow();
   const [duration, step] = TEMPERATURE_RANGES[win] || TEMPERATURE_RANGES["24h"];
   const partial = nodes.some(({ rows }) => rows.some((row) => row.partial));
   return Panel({ title, state: warning?.state ?? "ok", text: warning?.text, d }, html`
-    ${toggle ?? nothing}
     ${Trend({ title: "Hottest sensor at each sample, across nodes", data: d.temperature_trend, labels: HARDWARE_COMPONENTS.map(({ driver, name }) => [driver, name]), end: d.generated_at, duration, step, unit: "°C", window: win })}
     ${nodes.length ? html`
       <table class="hardware-table" aria-label="Temperatures by node and sensor">
@@ -606,13 +611,12 @@ const HardwarePanel = (d, nodes, warning, toggle) => {
   `);
 };
 
-const EnvironmentPanel = (d, rows, warning, toggle) => {
+const EnvironmentPanel = (d, rows, warning) => {
   const title = "Environment";
   if (!d.ambient_temperatures) return Unavailable({ title, source: "Prometheus · Shelly sensor metrics", d });
   const win = d.hardware_window || hardwareWindow();
   const [duration, step] = TEMPERATURE_RANGES[win] || TEMPERATURE_RANGES["24h"];
   return Panel({ title, state: warning?.state ?? "ok", text: warning?.text, d }, html`
-    ${toggle ?? nothing}
     ${d.ambient_trend?.length ? Trend({ title: "Room and rack air", data: d.ambient_trend, labels: AMBIENT.map(({ place, name }) => [place, name]), end: d.generated_at, duration, step, unit: "°C", window: win }) : nothing}
     ${rows.length ? html`
       <table class="hardware-table" aria-label="Room and rack readings">
@@ -953,8 +957,8 @@ const Strip = (d, hardwareWarning, environmentWarning) => {
 };
 
 // `columns` is a list of lists of panels, one list per column.
-const Section = ({ id, title, layout = "cols" }, columns) => html`<section aria-labelledby=${"h-" + id}>
-  <h2 id=${"h-" + id}>${title}</h2>
+const Section = ({ id, title, layout = "cols", action }, columns) => html`<section aria-labelledby=${"h-" + id}>
+  <div class="section-head"><h2 id=${"h-" + id}>${title}</h2>${action ?? nothing}</div>
   <div class=${layout} style=${"--n: " + columns.length}>${columns.map((panels) => html`<div class="col">${panels}</div>`)}</div>
 </section>`;
 
@@ -1100,10 +1104,10 @@ class CockpitApp extends LitElement {
           [DropsPanel(d), VolumesPanel(d)],
           [TrivyPanel(d)],
         ])}
-        ${Section({ id: "hardware", title: "Cluster hardware", layout: "cols hardware-band" }, [
-          [ComputePanel(d), EnvironmentPanel(d, environment, environmentWarning, d.ambient_temperatures ? toggle : null)],
+        ${Section({ id: "hardware", title: "Cluster hardware", layout: "cols hardware-band", action: toggle }, [
+          [ComputePanel(d), EnvironmentPanel(d, environment, environmentWarning)],
           [NodesPanel(d)],
-          [HardwarePanel(d, hardware, hardwareWarning, d.ambient_temperatures ? null : toggle)],
+          [HardwarePanel(d, hardware, hardwareWarning)],
         ])}
         ${Machines()}
         ${Section({ id: "gh", title: "GitHub" }, [
