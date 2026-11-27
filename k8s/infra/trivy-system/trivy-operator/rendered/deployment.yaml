@@ -22,7 +22,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 5a264d7b5c618a9139a5f2076733b679b05299004bf4b98867ca9ec4472a6847
+        checksum/config: 554f95b4b703e5e9ee1be810f51e0177ac9c2f9cf1b66def970bc93cc72468b9
       labels:
         app.kubernetes.io/instance: trivy-operator
         app.kubernetes.io/name: trivy-operator
