@@ -68,23 +68,6 @@ RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew bundle
 
 ENV HOME=/home/runner
 
-# the private runners pull the databases through zot and pass their CA bundle as the secret "ca"
-ARG TRIVY_DB_REGISTRY=ghcr.io
-
-RUN --mount=type=secret,id=ca,required=false,mode=0444 \
-  if [ -f /run/secrets/ca ]; then export SSL_CERT_FILE=/run/secrets/ca; fi \
-  && mkdir -p "${HOME}/.cache/trivy/db" \
-  && oras pull "${TRIVY_DB_REGISTRY}/aquasecurity/trivy-db:2" \
-  && tar -xzf db.tar.gz -C "${HOME}/.cache/trivy/db" \
-  && rm db.tar.gz
-
-RUN --mount=type=secret,id=ca,required=false,mode=0444 \
-  if [ -f /run/secrets/ca ]; then export SSL_CERT_FILE=/run/secrets/ca; fi \
-  && mkdir -p "${HOME}/.cache/trivy/java-db" \
-  && oras pull "${TRIVY_DB_REGISTRY}/aquasecurity/trivy-java-db:1" \
-  && tar -xzf javadb.tar.gz -C "${HOME}/.cache/trivy/java-db" \
-  && rm javadb.tar.gz
-
 # Remove Haskell, android and dotnet
 RUN rm -rf /usr/share/dotnet || true
 RUN rm -rf /usr/local/lib/android || true
