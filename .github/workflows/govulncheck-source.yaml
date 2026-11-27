@@ -23,7 +23,11 @@ permissions:
   contents: read
 
 env:
+  # Go that builds govulncheck and reads the binary; the scans use the Go version recorded in the binary
+  GO_VERSION: "1.27.2" # renovate: datasource=golang-version depName=go
   GOVULNCHECK_VERSION: v1.10.0 # renovate: datasource=go depName=golang.org/x/vuln
+  # never download another toolchain: a version that cannot be selected fails the scan
+  GOTOOLCHAIN: local
 
 jobs:
   scan:
@@ -35,6 +39,12 @@ jobs:
       REF: ${{ inputs.ref }}
       APT_PACKAGES: ${{ inputs.apt-packages }}
     steps:
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
       - name: Copy the binary out of the image
         run: |
           set -euo pipefail
@@ -57,10 +67,10 @@ jobs:
           version=$(awk '$1 == "mod" {print $3; exit}' work/buildinfo.txt)
           revision=$(awk '$1 == "build" && $2 ~ /^vcs.revision=/ {sub("vcs.revision=", "", $2); print $2; exit}' work/buildinfo.txt)
           tags=$(awk '$1 == "build" && $2 ~ /^-tags=/ {sub("-tags=", "", $2); print $2; exit}' work/buildinfo.txt)
-          goversion=$(awk 'NR == 1 {print $2}' work/buildinfo.txt)
+          goversion=$(awk 'NR == 1 {sub("^go", "", $2); print $2}' work/buildinfo.txt)
           setting() { awk -v k="$1=" '$1 == "build" && index($2, k) == 1 {sub(k, "", $2); print $2; exit}' work/buildinfo.txt; }
           goos=$(setting GOOS); goarch=$(setting GOARCH); cgo=$(setting CGO_ENABLED)
-          case "$goversion" in go1.*) ;; *) echo "::error::no Go version in the binary"; exit 1 ;; esac
+          case "$goversion" in 1.*) ;; *) echo "::error::no Go version in the binary"; exit 1 ;; esac
           [ -n "$goos" ] && [ -n "$goarch" ] && [ -n "$cgo" ] || { echo "::error::the binary does not record GOOS, GOARCH and CGO_ENABLED, cannot reproduce its build"; exit 1; }
           ref=${REF:-${revision:-$version}}
           case "$module" in github.com/*) ;; *) echo "::error::module '$module' is not on github.com"; exit 1 ;; esac
@@ -85,6 +95,15 @@ jobs:
           read -ra packages <<< "$APT_PACKAGES"
           sudo apt-get install --yes --no-install-recommends "${packages[@]}"
 
+      - name: Build govulncheck
+        run: GOBIN="$GITHUB_WORKSPACE/bin" go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
+
+      - name: Set up the Go version of the binary
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ steps.info.outputs.goversion }}
+          cache: false
+
       - name: Run govulncheck in source mode
         env:
           MODULE: ${{ steps.info.outputs.module }}
@@ -95,8 +114,6 @@ jobs:
           CGO_ENABLED: ${{ steps.info.outputs.cgo }}
         run: |
           set -uo pipefail
-          # govulncheck is built with the runner's Go; the scans then use the Go version the binary was built with
-          GOBIN="$GITHUB_WORKSPACE/bin" go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}" || exit 1
           # the module root is the go.mod whose module line matches, not always the repository root
           modroot=""
           while IFS= read -r f; do
@@ -104,8 +121,7 @@ jobs:
           done < <(find "$GITHUB_WORKSPACE/src" -name go.mod -not -path '*/vendor/*' -not -path '*/testdata/*')
           [ -n "$modroot" ] || { echo "::error::no go.mod for module $MODULE in the checkout"; exit 1; }
           cd "$modroot"
-          export GOTOOLCHAIN="$GOVERSION"
-          go version | grep -q " $GOVERSION " || { echo "::error::cannot select $GOVERSION"; go version; exit 1; }
+          go version | grep -q " go$GOVERSION " || { echo "::error::cannot select go$GOVERSION"; go version; exit 1; }
           # exit 3 means vulnerabilities were found, anything else non-zero is an error
           "$GITHUB_WORKSPACE/bin/govulncheck" -tags "$TAGS" -format openvex ./... > "$GITHUB_WORKSPACE/openvex.json"; rc=$?
           [ "$rc" -eq 0 ] || [ "$rc" -eq 3 ] || { echo "::error::govulncheck failed ($rc)"; exit "$rc"; }
@@ -126,7 +142,7 @@ jobs:
           {
             echo "## govulncheck source scan of \`$IMAGE\`"
             echo
-            echo "Source: \`$MODULE\` at \`$SRC_REF\`, built with ${GOVERSION} ${GOOS}/${GOARCH} cgo=${CGO_ENABLED}, tags \`$TAGS\`."
+            echo "Source: \`$MODULE\` at \`$SRC_REF\`, built with go${GOVERSION} ${GOOS}/${GOARCH} cgo=${CGO_ENABLED}, tags \`$TAGS\`."
             echo
             echo "| Vulnerability | Aliases | Status | Justification |"
             echo "| --- | --- | --- | --- |"
