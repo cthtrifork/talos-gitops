@@ -379,6 +379,19 @@ class TrivyApp extends LitElement {
   }
 }
 customElements.define("trivy-app", TrivyApp);
+
+// ?debug: an on-screen log of selection and scroll events, to find what moves the page while a selection handle is dragged on a phone.
+if (new URLSearchParams(location.search).has("debug")) {
+  const box = document.body.appendChild(document.createElement("pre"));
+  box.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:99;margin:0;padding:4px 6px;font:10px/1.25 ui-monospace,monospace;background:#000c;color:#0f0;pointer-events:none;user-select:none;-webkit-user-select:none;max-height:40vh;overflow:hidden";
+  const lines = [], t0 = Date.now();
+  const el = (n) => (n.nodeType === 3 ? n.parentElement : n);
+  const where = (n, o) => n ? el(n).tagName + "." + (el(n).className || "") + ":" + o + " \"" + (n.textContent || "").slice(0, 14).replace(/\s+/g, " ") + "\"" : "-";
+  const log = (m) => { lines.push(((Date.now() - t0) / 1000).toFixed(1) + " " + m); if (lines.length > 14) lines.shift(); box.textContent = lines.join("\n"); };
+  document.addEventListener("selectionchange", () => { const s = getSelection(); log("sel y=" + Math.round(scrollY) + " len=" + s.toString().length + " A=" + where(s.anchorNode, s.anchorOffset) + " F=" + where(s.focusNode, s.focusOffset)); });
+  addEventListener("scroll", () => log("scroll y=" + Math.round(scrollY)), { passive: true });
+  document.addEventListener("touchmove", (e) => log("touch y=" + Math.round(e.touches[0].clientY)), { passive: true });
+}
 </script>
 </body>
 </html>
