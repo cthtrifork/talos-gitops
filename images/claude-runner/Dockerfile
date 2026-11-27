@@ -39,7 +39,7 @@ ARG YAMLLINT_VERSION=1.38.0
 # renovate: datasource=github-releases depName=siderolabs/talos
 ARG TALOSCTL_VERSION=1.14.7
 # renovate: datasource=github-releases depName=siderolabs/omni
-ARG OMNICTL_VERSION=1.14.0
+ARG OMNICTL_VERSION=1.14.1
 
 # The GNU userland keeps the scripts and skills working as on Debian (BusyBox differs in flags); libgcc, libstdc++ and
 # ripgrep are what the musl build of claude needs (USE_BUILTIN_RIPGREP below); font-dejavu is for rsvg-convert text.
