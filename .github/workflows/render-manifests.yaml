@@ -21,7 +21,7 @@ jobs:
   render-manifests:
     # a fork's token is read-only
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: ubuntu-latest
+    runs-on: arc-scan-talos-gitops # the job already skips fork PRs
     env:
       REGISTRY: ghcr.io
       # Renovate PRs and manual runs get the render commit; any other PR must already contain its rendered manifests
@@ -102,6 +102,11 @@ jobs:
         uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
           install_args: "yq helm kustomize flux2"
+
+      - name: Pull the charts through zot
+        # the same ZOT_MIRROR_* as the cluster, so the OCIRepository urls resolve to the zot caches
+        # no match (the variables are commented out for a bootstrap) renders from upstream
+        run: grep '^ZOT_MIRROR_' k8s/clusters/homelab/cluster-vars.env >> "${GITHUB_ENV}" || [[ $? -eq 1 ]]
 
       - name: Render manifests
         if: ${{ steps.select.outputs.none != 'true' }}

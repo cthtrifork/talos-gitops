@@ -41,7 +41,7 @@ jobs:
     name: Lint Connect pipelines
     needs: changes
     if: needs.changes.outputs.relevant == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -55,5 +55,5 @@ jobs:
           printf 'Linting %s\n' "${files[@]}"
           # the pipelines read /etc/connect/index.html with file(); an empty page stands in for it
           : > "${RUNNER_TEMP}/index.html"
-          docker run --rm --volume "${PWD}:/repo:ro" --volume "${RUNNER_TEMP}/index.html:/etc/connect/index.html:ro" --workdir /repo \
+          podman run --rm --volume "${PWD}:/repo:ro" --volume "${RUNNER_TEMP}/index.html:/etc/connect/index.html:ro" --workdir /repo \
             "mirror.gcr.io/redpandadata/connect:${CONNECT_VERSION}" lint --skip-env-var-check "${files[@]}"

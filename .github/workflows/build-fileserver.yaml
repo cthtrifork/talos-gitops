@@ -9,6 +9,8 @@ on:
       - images/fileserver/**
       - .github/workflows/build-fileserver.yaml
       - .github/workflows/build-release-image.yaml
+      - .github/actions/trivy-scan/**
+      - .github/actions/install-trivy/**
   pull_request:
     branches:
       - main
@@ -16,6 +18,8 @@ on:
       - images/fileserver/**
       - .github/workflows/build-fileserver.yaml
       - .github/workflows/build-release-image.yaml
+      - .github/actions/trivy-scan/**
+      - .github/actions/install-trivy/**
   workflow_dispatch:
 
 concurrency:

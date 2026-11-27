@@ -4,7 +4,7 @@
 FROM ghcr.io/aquasecurity/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb AS trivy
 
 # python: the trivy image has no httpd
-FROM python:3.15-alpine@sha256:0f9552bb28711333da16915ec146f5e6bb44a7fdac9ced15dc17c2e0206346dd AS build
+FROM mirror.gcr.io/library/python:3.15-alpine@sha256:0f9552bb28711333da16915ec146f5e6bb44a7fdac9ced15dc17c2e0206346dd AS build
 COPY --from=trivy /usr/local/bin/trivy /usr/local/bin/trivy
 ENV HOME=/root
 COPY images/vex-cache/repository.yaml /root/.trivy/vex/repository.yaml

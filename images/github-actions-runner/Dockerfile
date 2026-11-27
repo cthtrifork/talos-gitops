@@ -68,16 +68,6 @@ RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew bundle
 
 ENV HOME=/home/runner
 
-RUN mkdir -p "${HOME}/.cache/trivy/db" \
-	&& oras pull ghcr.io/aquasecurity/trivy-db:2 \
-  && tar -xzf db.tar.gz -C "${HOME}/.cache/trivy/db" \
-  && rm db.tar.gz
-
-RUN mkdir -p "${HOME}/.cache/trivy/java-db" \
-	&& oras pull ghcr.io/aquasecurity/trivy-java-db:1 \
-  && tar -xzf javadb.tar.gz -C "${HOME}/.cache/trivy/java-db" \
-  && rm javadb.tar.gz
-
 # Remove Haskell, android and dotnet
 RUN rm -rf /usr/share/dotnet || true
 RUN rm -rf /usr/local/lib/android || true

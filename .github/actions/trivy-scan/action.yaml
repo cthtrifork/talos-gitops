@@ -37,6 +37,11 @@ runs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ github.token }}
+    - name: Install Trivy
+      if: inputs.skip-setup != 'true'
+      uses: ./.github/actions/install-trivy
+      with:
+        version: ${{ inputs.version }}
     # an empty TRIVY_VEX is ignored
     - name: Scan
       id: scan
@@ -44,7 +49,7 @@ runs:
       uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
       with:
         version: ${{ inputs.version }}
-        skip-setup-trivy: ${{ inputs.skip-setup == 'true' }}
+        skip-setup-trivy: true
         cache: ${{ inputs.skip-setup != 'true' }}
         scan-type: image
         image-ref: ${{ inputs.image }}
@@ -56,6 +61,8 @@ runs:
         ignore-policy: ${{ inputs.ignore-policy }}
         ignore-unfixed: false
         hide-progress: true
+        trivy-config: ${{ runner.environment == 'self-hosted' && '.github/trivy-zot.yaml' || '' }}
       env:
         TRIVY_VEX: ${{ inputs.vex }}
         TRIVY_SHOW_SUPPRESSED: ${{ inputs.vex != '' }}
+        TRIVY_IMAGE_SRC: ${{ runner.environment == 'self-hosted' && 'remote' || 'docker,containerd,podman,remote' }}

@@ -34,7 +34,7 @@ env:
 
 jobs:
   scan:
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
     timeout-minutes: 30
     env:
       IMAGE: ${{ inputs.image }}
@@ -51,15 +51,15 @@ jobs:
       - name: Copy the binary out of the image
         run: |
           set -euo pipefail
-          docker pull --quiet "$IMAGE"
+          podman pull --quiet "$IMAGE"
           if [ -z "$BINARY" ]; then
-            BINARY=$(docker image inspect --format '{{if .Config.Entrypoint}}{{index .Config.Entrypoint 0}}{{end}}' "$IMAGE")
+            BINARY=$(podman image inspect --format '{{if .Config.Entrypoint}}{{index .Config.Entrypoint 0}}{{end}}' "$IMAGE")
             [ -n "$BINARY" ] || { echo "::error::the image has no entrypoint, set the binary input"; exit 1; }
           fi
           mkdir work
-          cid=$(docker create "$IMAGE" unused)
-          docker cp -L "$cid:$BINARY" work/binary
-          docker rm "$cid" > /dev/null
+          cid=$(podman create "$IMAGE" unused)
+          podman cp "$cid:$BINARY" work/binary
+          podman rm "$cid" > /dev/null
           go version -m work/binary | tee work/buildinfo.txt
 
       - name: Read the build info of the binary
@@ -73,7 +73,7 @@ jobs:
           goos=$(setting GOOS) goarch=$(setting GOARCH) cgo=$(setting CGO_ENABLED) tags=$(setting -tags)
           # the binary's revision, else the image's OCI revision label (images built without .git), else the module version
           ref=${REF:-$(setting vcs.revision)}
-          ref=${ref:-$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$IMAGE")}
+          ref=${ref:-$(podman image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$IMAGE")}
           ref=${ref:-$version}
           [ -n "$goversion" ] || { echo "::error::no Go version in the binary"; exit 1; }
           [ "$(setting vcs.modified)" != true ] || { echo "::error::binary was built from a modified working tree; the recorded revision cannot reproduce its source"; exit 1; }
