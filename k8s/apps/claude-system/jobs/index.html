@@ -48,7 +48,7 @@
   .msg.warn { color: var(--warn); background: var(--warn-bg); }
   .badge.run { background: var(--ok-bg); color: var(--ok); }
   .badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 600; background: var(--warn-bg); color: var(--warn); }
-  button { font: inherit; font-weight: 600; min-height: 44px; padding: 8px 18px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); cursor: pointer; grid-row: 1; grid-column: 2; }
+  button { font: inherit; font-weight: 600; min-height: 44px; padding: 8px 18px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); cursor: pointer; grid-row: 1; grid-column: 2; min-width: 8.5em; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   button.secondary { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
   button.confirm { background: var(--warn-bg); color: var(--warn); box-shadow: inset 0 0 0 2px var(--warn); }
   button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -67,7 +67,7 @@
   <p class="sub">Scheduled CronJobs and when they run next. Run now starts one from its own template.</p>
   <section class="card" aria-label="CronJobs">
     <ul id="jobs"></ul>
-    <p id="loading" class="none">Loading jobs\u2026</p>
+    <p id="loading" class="none">Loading jobs&hellip;</p>
     <p id="none" class="none" hidden>No namespace allows running jobs.</p>
   </section>
   <p id="error" class="err" role="alert"></p>
@@ -118,7 +118,10 @@
     var n = nextOf(j);
     return n ? "Next run in " + span(n - Date.now()) + " (" + new Date(n).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) + ")" : "Next run unknown";
   }
-  function schedText(j) { return cronWords(j.schedule) + " \u00b7 " + j.schedule + " (" + (j.time_zone || "UTC") + ")"; }
+  function schedText(j) {
+    var words = cronWords(j.schedule), zone = " (" + (j.time_zone || "UTC") + ")";
+    return (words === j.schedule ? j.schedule : words + " \u00b7 " + j.schedule) + zone;
+  }
   function lastText(j) {
     var t = Date.parse(j.last_run);
     return isNaN(t) ? "Never scheduled" : "Last scheduled " + span(Date.now() - t) + " ago";
@@ -196,7 +199,7 @@
     return fetch("api/v1/status", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
       .then(function (s) { status = s; $("error").textContent = ""; $("loading").hidden = true; $("updated").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); build(); tick(); })
-      .catch(function (e) { $("error").textContent = "Cannot read status: " + e.message; });
+      .catch(function (e) { $("loading").hidden = !!status; $("loading").textContent = "Could not load jobs."; $("error").textContent = "Cannot read status: " + e.message + (status ? ". Showing the last data received." : ""); });
   }
 
   function run(j, b, msg) {

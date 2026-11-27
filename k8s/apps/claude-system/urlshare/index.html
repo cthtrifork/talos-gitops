@@ -45,6 +45,9 @@
   h2 { font-size: var(--fs-lg); margin: 22px 0 10px; }
   .sub { margin: 0 0 16px; color: var(--ink-2); }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  .card.waiting { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+  .card .err { margin: 10px 0 0; font-size: var(--fs-md); color: var(--bad); }
+  .card .err:empty { display: none; }
   .host { font-weight: 700; font-size: var(--fs-lg); overflow-wrap: anywhere; }
   .url { font-family: var(--mono); font-size: var(--fs-md); color: var(--ink-2); overflow-wrap: anywhere; margin: 4px 0 8px; }
   .meta { font-size: var(--fs-md); color: var(--ink-2); }
@@ -65,6 +68,8 @@
   button.danger.solid { background: var(--bad); color: var(--on-bad); }
   .cache { margin-top: 24px; }
   .cache h2 { margin-top: 0; }
+  .cache .row:empty { display: none; }
+  .cache .note:empty { display: none; }
   .cache .stat { margin: 0; font-size: var(--fs-md); color: var(--ink-2); }
   .cache .stat strong { color: var(--ink); }
   .cache .ask { margin: 12px 0 0; font-size: var(--fs-md); color: var(--ink-2); }
@@ -77,12 +82,12 @@
   <h1>Share URLs</h1>
   <p class="sub">Claude asked for these pages. Approving fetches exactly the address shown, once, and keeps the page for 24 hours.</p>
   <h2>Waiting for you</h2>
-  <div id="pending"></div>
+  <div id="pending"><p class="empty">Loading…</p></div>
   <h2>Answered</h2>
-  <div id="done"></div>
+  <div id="done"><p class="empty">Loading…</p></div>
   <section class="card cache" aria-labelledby="cache-h">
     <h2 id="cache-h">Cache</h2>
-    <p class="stat" id="cache-stat">Loading...</p>
+    <p class="stat" id="cache-stat">Loading…</p>
     <p class="ask" id="cache-ask" hidden>Deletes every stored page and the list of requests. Claude has to ask again.</p>
     <div class="row" id="cache-row"></div>
     <p id="cache-note" class="note" role="status"></p>
@@ -93,6 +98,7 @@
 <script>
 (function () {
   var busy = {};   // id -> true while a click is in flight
+  var lastFailure = {};   // id -> why the last click on that request was refused, shown in its card
 
   function ago(t, now) {
     var s = Math.max(0, now - t);
@@ -100,18 +106,25 @@
   }
 
   function act(r, action, card) {
+    var failure = '';
     busy[r.id] = true;
     card.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
     fetch('api/v1/requests/' + r.id + '/' + action, { method: 'POST', headers: { 'X-Requested-With': 'urlshare-approval' } })
       .then(function (res) { return res.json().then(function (b) { return { ok: res.ok, body: b }; }); })
-      .then(function (x) { document.getElementById('error').textContent = x.ok ? '' : (x.body.error || 'The fetch failed.'); })
-      .catch(function () { document.getElementById('error').textContent = 'Could not reach the page.'; })
-      .then(function () { delete busy[r.id]; refresh(); });
+      .then(function (x) { failure = x.ok ? '' : (x.body.error || 'The fetch failed.'); })
+      .catch(function () { failure = 'Could not reach the page.'; })
+      .then(function () {
+        delete busy[r.id];
+        // the list is rebuilt on refresh, so the reason goes into the card that replaces this one
+        if (failure) lastFailure[r.id] = failure; else delete lastFailure[r.id];
+        document.getElementById('error').textContent = '';
+        refresh();
+      });
   }
 
   function card(r, now) {
     var el = document.createElement('section'), host = '', u = r.url;
-    el.className = 'card';
+    el.className = r.status === 'pending' ? 'card waiting' : 'card';
     try { host = new URL(u).host; } catch (e) { host = ''; }
     var h = document.createElement('div'); h.className = 'host'; h.textContent = host; el.appendChild(h);
     var p = document.createElement('div'); p.className = 'url'; p.textContent = u; el.appendChild(p);
@@ -123,6 +136,7 @@
     if (r.status === 'failed' && r.error) {
       var e = document.createElement('div'); e.className = 'meta bad'; e.textContent = r.error; el.appendChild(e);
     }
+    var cardErr = document.createElement('div'); cardErr.className = 'err'; cardErr.setAttribute('role', 'alert'); cardErr.textContent = lastFailure[r.id] || ''; el.appendChild(cardErr);
     if (r.status !== 'approved' && r.status !== 'fetching') {
       var row = document.createElement('div'); row.className = 'row';
       var yes = document.createElement('button'); yes.type = 'button';
@@ -174,7 +188,7 @@
       row.appendChild(button('Cancel', 'no', cancelClear));
       row.appendChild(button('Yes, delete ' + plural(cache.requests, 'request', 'requests'), 'danger solid', clearCache));
     } else {
-      var b = button(stage === 'clearing' ? 'Clearing...' : 'Clear cache', 'danger', askClear);
+      var b = button(stage === 'clearing' ? 'Clearing…' : 'Clear cache', 'danger', askClear);
       b.disabled = stage === 'clearing' || empty;
       row.appendChild(b);
     }
@@ -206,6 +220,7 @@
       var rest = d.requests.filter(function (r) { return r.status !== 'pending'; });
       var stored = d.requests.filter(function (r) { return r.status === 'approved'; });
       cache = { requests: d.requests.length, pages: stored.length, bytes: stored.reduce(function (n, r) { return n + (r.size || 0); }, 0) };
+      document.title = waiting.length ? 'Share URLs (' + waiting.length + ' waiting)' : 'Share URLs';
       fill('pending', waiting, d.now, 'Nothing is waiting.');
       fill('done', rest, d.now, 'Nothing yet.');
       renderCache();

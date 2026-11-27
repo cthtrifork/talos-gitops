@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Run bootc upgrade on the Claude VM or the home server.">
 <title>Update VMs</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23c4623f'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='5' width='16' height='11' rx='2'/%3E%3Cpath d='M9 20h6M12 16v4'/%3E%3Cpath d='M12 13V8.5M10 10.5l2-2 2 2'/%3E%3C/g%3E%3C/svg%3E">
 <style>
@@ -23,10 +25,11 @@
     }
   }
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--page); color: var(--ink); font: var(--fs-lg)/1.5 var(--font);
          padding: 24px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); display: flex; justify-content: center; }
   main { width: 100%; max-width: 1000px; }
-  #cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+  #cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; align-items: start; }
   .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
   .head h2 { margin: 0; }
   .badge { font-size: var(--fs-md); font-weight: 600; padding: 2px 10px; border-radius: 999px; color: var(--warn); background: var(--warn-bg); white-space: nowrap; }
@@ -67,6 +70,9 @@
   .hint:empty { display: none; }
   .hint.warn { color: var(--warn); }
   .timings { margin: 16px 0 0; color: var(--ink-2); font-size: var(--fs-md); }
+  .updated { margin: 12px 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
+  .empty { margin: 0; color: var(--ink-2); }
+  button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -75,8 +81,9 @@
   <a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a>
   <h1>Update VMs</h1>
   <p class="sub">Runs <code>bootc upgrade --apply</code> on a VM. A VM that finds no new image does not reboot.</p>
-  <p id="error" class="banner" role="status"></p>
-  <div id="cards"></div>
+  <p id="error" class="banner" role="alert"></p>
+  <div id="cards"><p id="loading" class="empty">Loading status…</p></div>
+  <p id="updated" class="updated"></p>
 
   <p class="timings"><b>Timings:</b> the VM picks up a click within about 1 minute, then downloads the image (depends on its size) and reboots for a few minutes, but only if the image is new. A click expires after 10 minutes, and each VM updates at most once an hour.</p>
 </main>
@@ -194,8 +201,12 @@
   function refresh() {
     fetch('api/v1/status', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       document.getElementById('error').textContent = '';
+      var loading = document.getElementById('loading'); if (loading) loading.remove();
+      document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       Object.keys(d.vms).forEach(function (name) { update(card(name), d.vms[name], d.now); });
-    }).catch(function () { document.getElementById('error').textContent = 'Status unavailable: the cards show the last data received.'; });
+      var need = Object.keys(cards).filter(function (n) { return cards[n].needs; }).length;
+      document.title = need ? 'Update VMs (' + need + ' to update)' : 'Update VMs';
+    }).catch(function () { var l = document.getElementById('loading'); if (l) l.textContent = 'Status unavailable.'; document.getElementById('error').textContent = Object.keys(cards).length ? 'Status unavailable: the cards show the last data received.' : 'Status unavailable.'; });
   }
 
   refresh();
