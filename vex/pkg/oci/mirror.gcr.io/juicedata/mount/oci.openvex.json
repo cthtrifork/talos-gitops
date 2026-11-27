@@ -3,8 +3,8 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/mirror.gcr.io/juicedata/mount",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-27T09:34:29Z",
-  "version": 3,
+  "timestamp": "2026-11-27T10:14:18Z",
+  "version": 4,
   "statements": [
     {
       "vulnerability": {
@@ -6508,6 +6508,84 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-116585"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/go-jose/go-jose/v4"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/go-jose/go-jose/v4"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-116585 in github.com/go-jose/go-jose/v4 v4.1.4: decrypting untrusted JWE ciphertext with A128CBC-HS256, A192CBC-HS384 or A256CBC-HS512 can pass an empty buffer to the CBC-HMAC unpadding. Checked with the govulncheck source scan workflow (go list -deps with the binary's tags, Go 1.25.14, linux/amd64) on github.com/juicedata/juicefs at 46af7afa9f81, the clean revision recorded in /usr/local/bin/juicefs of the pinned image (sha256:4177c77b). The build links only go-jose/v4, v4/cipher and v4/json (run https://github.com/cthtrifork/talos-gitops/actions/runs/45976951325), imported only by go-spiffe v2.6.0 bundle/jwtbundle and bundle/spiffebundle (run .../45977569798), which use go-jose for nothing but JSONWebKey and JSONWebKeySet parsing (read at the tag); their only importers are grpc's SPIFFE credentials (credentials/tls/certprovider, internal/credentials/spiffe, internal/xds/bootstrap/tlscreds). go-spiffe never parses or decrypts a JWE (no ParseEncrypted or Decrypt call in the linked packages); it only unmarshals JSON Web Key Sets, so the decryption code of go-jose is not called."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-116586"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/go-jose/go-jose/v4"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/go-jose/go-jose/v4"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "CVE-2026-116586 in github.com/go-jose/go-jose/v4 v4.1.4: parsing attacker-controlled JSON with deeply nested arrays or objects through go-jose overflows the stack. Checked with the govulncheck source scan workflow (go list -deps with the binary's tags, Go 1.25.14, linux/amd64) on github.com/juicedata/juicefs at 46af7afa9f81, the clean revision recorded in /usr/local/bin/juicefs of the pinned image (sha256:4177c77b). The build links only go-jose/v4, v4/cipher and v4/json (run https://github.com/cthtrifork/talos-gitops/actions/runs/45976951325), imported only by go-spiffe v2.6.0 bundle/jwtbundle and bundle/spiffebundle (run .../45977569798), which use go-jose for nothing but JSONWebKey and JSONWebKeySet parsing (read at the tag); their only importers are grpc's SPIFFE credentials (credentials/tls/certprovider, internal/credentials/spiffe, internal/xds/bootstrap/tlscreds). Those grpc credentials run only when an xDS bootstrap or SPIFFE credential is configured on a gRPC connection, and a gRPC connection exists only with an etcd client (the metadata URL is postgres:// and the storage is s3 in k8s/apps/juicefs-system/external-secrets.yaml); the pod has no GRPC_XDS_BOOTSTRAP variable. No attacker-supplied key set is parsed in this pod."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-116587"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/go-jose/go-jose/v4"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/go-jose/go-jose/v4"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "CVE-2026-116587 in github.com/go-jose/go-jose/v4 v4.1.4: go-jose parses attacker-controlled RSA modulus and prime values from JWKs without size and consistency bounds before crypto/rsa.PrivateKey.Validate. Checked with the govulncheck source scan workflow (go list -deps with the binary's tags, Go 1.25.14, linux/amd64) on github.com/juicedata/juicefs at 46af7afa9f81, the clean revision recorded in /usr/local/bin/juicefs of the pinned image (sha256:4177c77b). The build links only go-jose/v4, v4/cipher and v4/json (run https://github.com/cthtrifork/talos-gitops/actions/runs/45976951325), imported only by go-spiffe v2.6.0 bundle/jwtbundle and bundle/spiffebundle (run .../45977569798), which use go-jose for nothing but JSONWebKey and JSONWebKeySet parsing (read at the tag); their only importers are grpc's SPIFFE credentials (credentials/tls/certprovider, internal/credentials/spiffe, internal/xds/bootstrap/tlscreds). Those grpc credentials run only when an xDS bootstrap or SPIFFE credential is configured on a gRPC connection, and a gRPC connection exists only with an etcd client (the metadata URL is postgres:// and the storage is s3 in k8s/apps/juicefs-system/external-secrets.yaml); the pod has no GRPC_XDS_BOOTSTRAP variable. No attacker-supplied JWK is parsed in this pod."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-11822"
       },
       "products": [
@@ -9593,6 +9671,32 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-39821"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "CVE-2026-39821 in golang.org/x/net v0.52.0: idna ToASCII and ToUnicode accept Punycode labels that decode to an ASCII-only label, which can defeat a privilege check made on the ASCII host name. Checked with the govulncheck source scan workflow (go list -deps with the binary's tags, Go 1.25.14, linux/amd64) on github.com/juicedata/juicefs at 46af7afa9f81, the clean revision recorded in /usr/local/bin/juicefs of the pinned image (sha256:4177c77b); package graphs from runs https://github.com/cthtrifork/talos-gitops/actions/runs/45977727635 and .../45978215733. The only callers of golang.org/x/net/idna in this binary's flagged paths are httpproxy (host and NO_PROXY canonicalisation, active only when HTTP_PROXY, HTTPS_PROXY or NO_PROXY is set; the mount pod's environment has none of them), http2 authorityAddr (only on an HTTP/2 connection; the S3 endpoint is plain http://garage.juicefs-system.svc:3900 and Postgres is not HTTP) and the minio init getEnvValueFromHTTP (only for an environment value starting with env://; none is set). The host names are fixed in configuration (k8s/apps/juicefs-system/external-secrets.yaml); no attacker-chosen host name reaches idna."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-39824"
       },
       "products": [
@@ -11339,6 +11443,58 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-56851"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-56851 in golang.org/x/text v0.35.0: the PRECIS Nickname profile panics with an out-of-bounds slice when transforming crafted input into a short destination buffer. Checked with the govulncheck source scan workflow (go list -deps with the binary's tags, Go 1.25.14, linux/amd64) on github.com/juicedata/juicefs at 46af7afa9f81, the clean revision recorded in /usr/local/bin/juicefs of the pinned image (sha256:4177c77b). The build links golang.org/x/text/secure/precis, imported only by github.com/jackc/pgx/v5/pgconn (run https://github.com/cthtrifork/talos-gitops/actions/runs/45977727635). pgx v5.9.2 uses exactly one profile, precis.OpaqueString for the SCRAM password (pgconn/auth_scram.go:197); precis.Nickname is referenced nowhere in pgx or in any other importer, so the Nickname profile is never used."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56852"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "CVE-2026-56852 in golang.org/x/text v0.35.0: a norm.Iter loops forever on input with invalid UTF-8 bytes. Checked with the govulncheck source scan workflow (go list -deps with the binary's tags, Go 1.25.14, linux/amd64) on github.com/juicedata/juicefs at 46af7afa9f81, the clean revision recorded in /usr/local/bin/juicefs of the pinned image (sha256:4177c77b); package graphs from runs https://github.com/cthtrifork/talos-gitops/actions/runs/45977727635 and .../45978215733. The build's callers of unicode/norm are idna, secure/precis and cases, and cases is imported only by precis. precis is imported only by pgx/pgconn, which calls it (OpaqueString) only to prepare a SCRAM password; the juicefs database role has disablePassword: true and a 'hostssl juicefs juicefs all cert' pg_hba rule before the default SCRAM rule (k8s/apps/juicefs-system/postgres-cluster.yaml), and the metadata URL carries no password, so the server never starts SCRAM. idna is reached only as follows. The only callers of golang.org/x/net/idna in this binary's flagged paths are httpproxy (host and NO_PROXY canonicalisation, active only when HTTP_PROXY, HTTPS_PROXY or NO_PROXY is set; the mount pod's environment has none of them), http2 authorityAddr (only on an HTTP/2 connection; the S3 endpoint is plain http://garage.juicefs-system.svc:3900 and Postgres is not HTTP) and the minio init getEnvValueFromHTTP (only for an environment value starting with env://; none is set). The host names are fixed in configuration (k8s/apps/juicefs-system/external-secrets.yaml); no attacker-chosen host name reaches idna. Invalid UTF-8 would have to come from an operator-set host name."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-56854"
       },
       "products": [
@@ -12270,6 +12426,32 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "CVE-2026-6276 in libcurl4 7.88.1-10+deb12u15: Using libcurl, when a custom `Host:` header is first set for an HTTP request and a second request is subsequently done using the same *easy handle* but without the custom `Host:` header set, the second request would use stale information and pass on cookies meant for the first host in the second request. Leak them. Evidence read with image-files from the pinned image (sha256:4177c77b). The mount pod runs 'sh -c' (dash) with /usr/local/bin/juicefs format and then exec /bin/mount.juicefs (symlink to juicefs); the image has no ENTRYPOINT and a bash CMD that the pod command replaces; the other programs the image's jobs and hooks start are fusermount, umount, rm and rmdir (source: juicefs v1.4.2 cmd/ and pkg/ exec calls; csi-driver v0.34.0 pkg/juicefs/mount/builder command strings). ELF DT_NEEDED: juicefs links libfdb_c (foundationdb-clients), librados2, libgfapi0 and libc; dash and fusermount3 link libc only; umount links libmount1 and libc. The Depends closure of those packages in /var/lib/dpkg/status has 65 of 287 packages and does not contain libcurl4. The package is installed but no process in the mount pod or its jobs loads or runs it."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-63209"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/mount?repository_url=mirror.gcr.io%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/klauspost/compress"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/mount?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fjuicedata%2Fmount",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/github.com/klauspost/compress"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-63209 in github.com/klauspost/compress v1.18.0: a signed integer overflow in s2.NewDict lets a crafted dictionary (a uvarint repeat value above MaxInt64) bypass the repeat index check, and a later Dict.Encode reads out of bounds through unsafe.Pointer arithmetic. Checked with the govulncheck source scan workflow (go list -deps with the binary's tags, Go 1.25.14, linux/amd64) on github.com/juicedata/juicefs at 46af7afa9f81, the clean revision recorded in /usr/local/bin/juicefs of the pinned image (sha256:4177c77b); run https://github.com/cthtrifork/talos-gitops/actions/runs/45976951325. The build links the s2 package, imported only by badger/v4/table, minio/simdjson-go and the minio fork's cmd package. Read at their linked versions (badger v4.9.1, simdjson-go v0.2.1, the juicedata/minio revision 69a6cfc9da65): none of them, and no juicefs code, calls s2.NewDict, MakeDict or a dictionary option; badger uses EncodeSnappy and MaxEncodedLen, simdjson-go and minio use s2 readers and writers. Without a dictionary the vulnerable function is never called."
     },
     {
       "vulnerability": {
