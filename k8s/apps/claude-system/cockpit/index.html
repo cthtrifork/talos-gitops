@@ -499,6 +499,15 @@ function hardwareWarnings(nodes, window) {
   return { state: worst.violation.state, text: `${text} · ${worst.node}` };
 }
 
+// Room (H&T) and rack (Pill) air from the shelly-mqtt exporter; no thresholds, the readings are shown as they are.
+const AMBIENT = [{ place: "room", name: "Room" }, { place: "rack", name: "Rack" }];
+function ambientRows(d) {
+  return AMBIENT.map(({ place, name }) => {
+    const stats = Object.fromEntries((d.ambient_temperatures || []).filter((s) => s.place === place).map((s) => [s.stat, s.value]));
+    return { name, cells: ["current", "min", "max"].map((stat) => ({ stat, value: stats[stat] })) };
+  }).filter(({ cells }) => cells.some(({ value }) => Number.isFinite(value)));
+}
+
 const TEMPERATURE_RANGES = { "24h": [86400, 900], "7d": [604800, 7200], "30d": [2592000, 28800] };
 const TREND_COLORS = ["var(--accent)", "var(--suspend)", "var(--ok)"];
 const TREND_DASHES = ["none", "5 3", "2 3"];
@@ -545,11 +554,13 @@ const HardwarePanel = (d, nodes, warning, pendingWindow, setWindow) => {
   const [duration, step] = TEMPERATURE_RANGES[win] || TEMPERATURE_RANGES["24h"];
   const toggle = html`<div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((pendingWindow || win) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>`;
   const partial = nodes.some(({ rows }) => rows.some((row) => row.partial));
+  const ambient = ambientRows(d);
   return Panel({ title, state: warning?.state ?? "ok", text: warning?.text, d }, html`
     ${toggle}
     <span class="hardware-note" role="status" ?hidden=${!pendingWindow}>${pendingWindow ? `Loading ${pendingWindow} · showing ${win}` : ""}</span>
     ${Trend({ title: "Hottest sensor at each sample, across nodes", data: d.temperature_trend, labels: HARDWARE_COMPONENTS.map(({ driver, name }) => [driver, name]), end: d.generated_at, duration, step, unit: "°C", window: win })}
-    ${nodes.length ? html`
+    ${d.ambient_trend?.length ? Trend({ title: "Room and rack air", data: d.ambient_trend, labels: AMBIENT.map(({ place, name }) => [place, name]), end: d.generated_at, duration, step, unit: "°C", window: win }) : nothing}
+    ${nodes.length || ambient.length ? html`
       <table class="hardware-table" aria-label="Temperatures by node and sensor">
         <thead><tr><th scope="col">Sensor</th><th scope="col" class="hardware-now">Current</th><th scope="col">Min</th><th scope="col">Max</th></tr></thead>
         ${nodes.map(({ node, rows }) => html`<tbody>
@@ -561,6 +572,15 @@ const HardwarePanel = (d, nodes, warning, pendingWindow, setWindow) => {
               : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`)}
             </tr>`)}
         </tbody>`)}
+        ${ambient.length ? html`<tbody>
+          <tr><th scope="rowgroup" colspan="4" class="mono hardware-node">Ambient</th></tr>
+          ${ambient.map(({ name, cells }) => html`
+            <tr><th scope="row">${name}</th>
+            ${cells.map(({ stat, value }) => Number.isFinite(value)
+              ? html`<td class=${stat === "current" ? "hardware-now" : "hardware-history"}><span class="reading">${temperatureText(value)}</span></td>`
+              : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`)}
+            </tr>`)}
+        </tbody>` : nothing}
       </table>` : Muted(d.hardware_temperatures ? "No nodes reported by Prometheus." : "Temperature data unavailable.")}
     ${partial ? html`<span class="hardware-note">* Partial history. Min and max use available samples.</span>` : nothing}
   `);
