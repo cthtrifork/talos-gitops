@@ -499,12 +499,13 @@ function hardwareWarnings(nodes, window) {
   return { state: worst.violation.state, text: `${text} · ${worst.node}` };
 }
 
-// Room (H&T) and rack (Pill) air from the shelly-mqtt exporter; no thresholds, the readings are shown as they are.
+// Room (H&T) and rack (Pill) air and the room humidity from the shelly-mqtt exporter; no thresholds, the readings are shown as they are.
 const AMBIENT = [{ place: "room", name: "Room" }, { place: "rack", name: "Rack" }];
+const AMBIENT_ROWS = [...AMBIENT, { place: "humidity", name: "Room humidity", format: (value) => `${Number(value.toFixed(1))}%` }];
 function ambientRows(d) {
-  return AMBIENT.map(({ place, name }) => {
+  return AMBIENT_ROWS.map(({ place, name, format = temperatureText }) => {
     const stats = Object.fromEntries((d.ambient_temperatures || []).filter((s) => s.place === place).map((s) => [s.stat, s.value]));
-    return { name, cells: ["current", "min", "max"].map((stat) => ({ stat, value: stats[stat] })) };
+    return { name, cells: ["current", "min", "max"].map((stat) => ({ stat, value: stats[stat], format })) };
   }).filter(({ cells }) => cells.some(({ value }) => Number.isFinite(value)));
 }
 
@@ -576,8 +577,8 @@ const HardwarePanel = (d, nodes, warning, pendingWindow, setWindow) => {
           <tr><th scope="rowgroup" colspan="4" class="mono hardware-node">Ambient</th></tr>
           ${ambient.map(({ name, cells }) => html`
             <tr><th scope="row">${name}</th>
-            ${cells.map(({ stat, value }) => Number.isFinite(value)
-              ? html`<td class=${stat === "current" ? "hardware-now" : "hardware-history"}><span class="reading">${temperatureText(value)}</span></td>`
+            ${cells.map(({ stat, value, format }) => Number.isFinite(value)
+              ? html`<td class=${stat === "current" ? "hardware-now" : "hardware-history"}><span class="reading">${format(value)}</span></td>`
               : html`<td class="muted" aria-label="Unavailable" title="Unavailable">—</td>`)}
             </tr>`)}
         </tbody>` : nothing}
