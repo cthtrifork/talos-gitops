@@ -256,10 +256,17 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 20Gi
+                      storage: 16Gi
           - name: var-tmp
-            emptyDir:
-              sizeLimit: 4Gi
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-fast
+                  resources:
+                    requests:
+                      storage: 10Gi
           - name: work
             ephemeral:
               volumeClaimTemplate:
@@ -269,7 +276,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 8Gi
+                      storage: 6Gi
           - name: tmp
             ephemeral:
               volumeClaimTemplate:
@@ -279,7 +286,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 8Gi
+                      storage: 2Gi
           - name: container-rootless-storage
             ephemeral:
               volumeClaimTemplate:
