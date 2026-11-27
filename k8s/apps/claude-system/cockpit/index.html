@@ -90,6 +90,10 @@
   /* Each section is a few fixed columns, and every panel has its own column, chosen so the columns end at about the same height.
      A panel only ever changes height, never place. On a narrow screen the columns stack, left to right. */
   .cols { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
+  .section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; margin-bottom: 10px; }
+  .section-head h2 { margin: 0; }
+  .window-pick { display: flex; align-items: center; gap: 12px; }
+  .window-pick .seg { margin: 0; }
   .col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   @media (min-width: 900px) { .cols { grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); } }
   .panel { background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; }
@@ -344,7 +348,7 @@ function stripChips(d, hardwareWarning, environmentWarning) {
   }
   if (d.polaris) add(polarisState(d.polaris.score), `Polaris ${d.polaris.score}/100`, "p-polaris-score");
   const tv = trivyCounts(d);
-  if (tv) add(trivyState(tv), tv.critical ? `Trivy: ${tv.critical} critical` : tv.high ? `Trivy: ${tv.high} high` : "Trivy clean", "p-trivy-vulnerabilities");
+  if (tv) add(tv.critical ? "bad" : tv.high ? "none" : "ok", tv.critical ? `Trivy: ${tv.critical} critical` : tv.high ? `Trivy: ${tv.high} high` : "Trivy clean", "p-trivy-vulnerabilities");
   // The worst of the fullest volume and every node row (/var and the volume groups), linked to the panel it comes from.
   const vol = Math.max(0, ...(d.pvcs || []).map((n) => n.used_pct));
   const nodes = nodeRows(d);
@@ -354,9 +358,10 @@ function stripChips(d, hardwareWarning, environmentWarning) {
     add(usedState(m, 85), `Storage ${m}%`, slug(hot > vol ? "Node disks" : "Volumes"));
   }
   if (d.drops_total !== undefined) add(d.drops_total > 0 ? "warn" : "ok", `${d.drops_total} packets denied`, "p-dropped-traffic");
+  // Counts that are always there (high CVEs, open PRs) stay neutral: an amber chip is for something that needs a look today.
   if (d.github) {
     const o = d.github.other.count;
-    add(o ? "warn" : "ok", o + (o === 1 ? " open PR" : " open PRs"), "p-pull-requests");
+    add(o ? "none" : "ok", o + (o === 1 ? " open PR" : " open PRs"), "p-pull-requests");
   }
   const failed = d.renovate?.projects.filter(isFailed).length;
   if (failed) add("bad", `Renovate: ${failed} failed`, "p-renovate-runs");
@@ -455,7 +460,7 @@ const DropsPanel = (d) => {
     ${top.length > 0 ? Rows(top.map((t) => ({ title: `${t.source} → ${t.destination}`, right: html`<span class="num muted">${t.count}</span>` }))) : nothing}`);
 };
 
-const HARDWARE_WINDOWS = ["24h", "7d", "30d"];
+const HARDWARE_WINDOWS = ["1h", "24h", "7d"];
 const hardwareWindow = () => {
   const saved = localStorage.getItem("cockpit.hardware");
   return HARDWARE_WINDOWS.includes(saved) ? saved : "24h";
@@ -531,7 +536,7 @@ function environmentWarnings(rows, window) {
   return { state: worst.violation.state, text: worst.stat === "current" ? `${worst.name} at ${value} now` : `${worst.name} reached ${value} in ${window}` };
 }
 
-const TEMPERATURE_RANGES = { "24h": [86400, 900], "7d": [604800, 7200], "30d": [2592000, 28800] };
+const TEMPERATURE_RANGES = { "1h": [3600, 60], "24h": [86400, 900], "7d": [604800, 7200] };
 const TREND_COLORS = ["var(--accent)", "var(--suspend)", "var(--ok)"];
 const TREND_DASHES = ["none", "5 3", "2 3"];
 
@@ -570,28 +575,31 @@ function Trend({ title, data, labels, end, duration, step, unit, window }) {
   </figure>`;
 }
 
-// The history window buttons: one control above both temperature panels, since they share one setting.
+// The history window buttons, in the section heading: one setting for both temperature panels (Compute always shows the last hour).
 const WindowToggle = (d, pendingWindow, setWindow) => {
   const win = d.hardware_window || hardwareWindow();
-  return html`<div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((pendingWindow || win) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>
-  <span class="hardware-note" role="status" ?hidden=${!pendingWindow}>${pendingWindow ? `Loading ${pendingWindow} · showing ${win}` : ""}</span>`;
+  return html`<div class="window-pick">
+    <span class="hardware-note" role="status">${pendingWindow ? `Loading ${pendingWindow} · showing ${win}` : "Temperature history"}</span>
+    <div class="seg" role="group" aria-label="Temperature history window">${HARDWARE_WINDOWS.map((v) => html`<button type="button" aria-pressed=${String((pendingWindow || win) === v)} @click=${() => setWindow(v)}>${v}</button>`)}</div>
+  </div>`;
 };
 
-const HardwarePanel = (d, nodes, warning, toggle) => {
+const HardwarePanel = (d, nodes, warning) => {
   const title = "Node temperatures";
   if (!d.hardware_temperatures) return Unavailable({ title, source: "Prometheus · node hardware temperature metrics", d });
   const win = d.hardware_window || hardwareWindow();
   const [duration, step] = TEMPERATURE_RANGES[win] || TEMPERATURE_RANGES["24h"];
   const partial = nodes.some(({ rows }) => rows.some((row) => row.partial));
   return Panel({ title, state: warning?.state ?? "ok", text: warning?.text, d }, html`
-    ${toggle ?? nothing}
     ${Trend({ title: "Hottest sensor at each sample, across nodes", data: d.temperature_trend, labels: HARDWARE_COMPONENTS.map(({ driver, name }) => [driver, name]), end: d.generated_at, duration, step, unit: "°C", window: win })}
     ${nodes.length ? html`
       <table class="hardware-table" aria-label="Temperatures by node and sensor">
         <thead><tr><th scope="col">Sensor</th><th scope="col" class="hardware-now">Current</th><th scope="col">Min</th><th scope="col">Max</th></tr></thead>
         ${nodes.map(({ node, rows }) => html`<tbody>
           <tr><th scope="rowgroup" colspan="4" class="mono hardware-node">${node}</th></tr>
-          ${rows.map(({ name, cells, partial }) => html`
+          ${rows.map(({ name, cells, partial }) => !cells.some(({ value }) => Number.isFinite(value))
+            ? html`<tr><th scope="row">${name}</th><td colspan="3" class="muted">not reported</td></tr>`
+            : html`
             <tr><th scope="row">${name}${partial ? html`<sup aria-label="Partial history">*</sup>` : nothing}</th>
             ${cells.map(({ stat, value, violation }) => Number.isFinite(value)
               ? html`<td class=${stat === "current" ? "hardware-now" : "hardware-history"}><span class=${"reading " + (violation?.state ?? "")} title=${violation?.text ?? nothing} aria-label=${violation ? `${value}°C, ${violation.text}` : nothing}>${violation ? html`<span aria-hidden="true">${violation.text.startsWith("Low") ? "↓" : "↑"}</span> ` : nothing}${temperatureText(value)}</span></td>`
@@ -603,13 +611,12 @@ const HardwarePanel = (d, nodes, warning, toggle) => {
   `);
 };
 
-const EnvironmentPanel = (d, rows, warning, toggle) => {
+const EnvironmentPanel = (d, rows, warning) => {
   const title = "Environment";
   if (!d.ambient_temperatures) return Unavailable({ title, source: "Prometheus · Shelly sensor metrics", d });
   const win = d.hardware_window || hardwareWindow();
   const [duration, step] = TEMPERATURE_RANGES[win] || TEMPERATURE_RANGES["24h"];
   return Panel({ title, state: warning?.state ?? "ok", text: warning?.text, d }, html`
-    ${toggle ?? nothing}
     ${d.ambient_trend?.length ? Trend({ title: "Room and rack air", data: d.ambient_trend, labels: AMBIENT.map(({ place, name }) => [place, name]), end: d.generated_at, duration, step, unit: "°C", window: win }) : nothing}
     ${rows.length ? html`
       <table class="hardware-table" aria-label="Room and rack readings">
@@ -703,7 +710,9 @@ const TrivyPanel = (d) => {
 
 const GIB = 2 ** 30;
 const sizeText = (bytes) => (bytes >= 1024 * GIB ? (bytes / (1024 * GIB)).toFixed(1) + " TiB" : Math.round(bytes / GIB) + " GiB");
-const UsedRow = (label, pct, detail) => html`<div class="limit-row"><span>${label}</span><span class="num"><strong>${Math.round(pct)}%</strong> ${detail}</span></div>${Bar({ label: `${label}, ${Math.round(pct)} percent`, parts: [{ pct, color: usedColor(pct, 85) }] })}`;
+// A long name keeps its start and its end (the end tells volumes apart); the full name is the tooltip.
+const middle = (text, max = 30) => (text.length > max ? text.slice(0, max - 13) + "…" + text.slice(-12) : text);
+const UsedRow = (label, pct, detail) => html`<div class="limit-row"><span title=${label.length > 30 ? label : nothing}>${middle(label)}</span><span class="num"><strong>${Math.round(pct)}%</strong> ${detail}</span></div>${Bar({ label: `${label}, ${Math.round(pct)} percent`, parts: [{ pct, color: usedColor(pct, 85) }] })}`;
 
 const VolumesPanel = (d) => {
   const title = "Volumes";
@@ -732,7 +741,7 @@ function nodeRows(d) {
   for (const x of d.var_size) if (avail.has(x.node)) row(x.node, "Ephemeral /var", avail.get(x.node), x.bytes);
   const free = new Map(d.vg_free.map((x) => [x.node + "/" + x.name, x.bytes]));
   for (const x of d.vg_total) if (free.has(x.node + "/" + x.name)) row(x.node, x.name, free.get(x.node + "/" + x.name), x.bytes);
-  return [...by].map(([node, rows]) => ({ node, rows, max: Math.max(...rows.map((r) => r.pct)) })).sort((a, b) => compare(a.node, b.node));
+  return [...by].map(([node, rows]) => ({ node, rows, max: Math.max(...rows.map((r) => r.pct)) })).sort((a, b) => b.max - a.max || compare(a.node, b.node));
 }
 
 const NodesPanel = (d) => {
@@ -948,8 +957,8 @@ const Strip = (d, hardwareWarning, environmentWarning) => {
 };
 
 // `columns` is a list of lists of panels, one list per column.
-const Section = ({ id, title, layout = "cols" }, columns) => html`<section aria-labelledby=${"h-" + id}>
-  <h2 id=${"h-" + id}>${title}</h2>
+const Section = ({ id, title, layout = "cols", action }, columns) => html`<section aria-labelledby=${"h-" + id}>
+  <div class="section-head"><h2 id=${"h-" + id}>${title}</h2>${action ?? nothing}</div>
   <div class=${layout} style=${"--n: " + columns.length}>${columns.map((panels) => html`<div class="col">${panels}</div>`)}</div>
 </section>`;
 
@@ -1095,10 +1104,10 @@ class CockpitApp extends LitElement {
           [DropsPanel(d), VolumesPanel(d)],
           [TrivyPanel(d)],
         ])}
-        ${Section({ id: "hardware", title: "Cluster hardware", layout: "cols hardware-band" }, [
-          [ComputePanel(d), EnvironmentPanel(d, environment, environmentWarning, d.ambient_temperatures ? toggle : null)],
+        ${Section({ id: "hardware", title: "Cluster hardware", layout: "cols hardware-band", action: toggle }, [
+          [ComputePanel(d), EnvironmentPanel(d, environment, environmentWarning)],
           [NodesPanel(d)],
-          [HardwarePanel(d, hardware, hardwareWarning, d.ambient_temperatures ? null : toggle)],
+          [HardwarePanel(d, hardware, hardwareWarning)],
         ])}
         ${Machines()}
         ${Section({ id: "gh", title: "GitHub" }, [
