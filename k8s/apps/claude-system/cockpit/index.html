@@ -87,9 +87,8 @@
   .info { color: var(--accent); }
   /* A grid with fixed tracks, cards in a fixed order and top aligned: a card only ever changes height, it never changes place.
      (CSS columns balance by height, so a refresh that lengthened one list made cards jump between columns.) */
-  .band { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); align-items: start; gap: 12px; }
-  .band .panel { margin-bottom: 0; }
-  .panel { background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; break-inside: avoid; margin-bottom: 12px; }
+  .band { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); align-items: start; gap: 12px; }
+  .panel { background: var(--surface); border: 1px solid var(--grid); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; scroll-margin-top: 12px; }
   .panel.compact { padding: 10px 16px; gap: 4px; }
   .panel:target { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   a.pill:focus-visible { outline-offset: 1px; border-radius: 999px; }
@@ -109,7 +108,6 @@
      It only wraps when it is wider than the row itself. */
   ul.rows li > :not(.l) { flex: none; width: max-content; max-width: 100%; margin-left: auto; text-align: right; overflow-wrap: anywhere; }
   .hardware-band { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
-  .hardware-band .panel { margin-bottom: 0; }
   .hardware-band .panel-head { flex-wrap: wrap; }
   .hardware-band .panel-head .pill { white-space: normal; }
   @media (min-width: 900px) {
