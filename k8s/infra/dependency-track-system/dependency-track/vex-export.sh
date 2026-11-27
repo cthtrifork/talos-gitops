@@ -87,15 +87,17 @@ write_documents() {
     mkdir -p "$DOCS/$image"
 
     # keep timestamp and version of the existing document, bump_changed_documents updates them
-    old=$(cat "$PREVIOUS/$image/oci.openvex.json" 2>/dev/null || echo '{}')
+    # a file, not --argjson: a document with many statements is larger than the 128 KiB limit of one argument
+    old="$PREVIOUS/$image/oci.openvex.json"
+    [ -f "$old" ] || old=/dev/null
 
-    jq -s --arg image "$image" --arg now "$(date -u +%FT%TZ)" --argjson old "$old" '{
+    jq -s --arg image "$image" --arg now "$(date -u +%FT%TZ)" --slurpfile old "$old" '{
       "@context": "https://openvex.dev/ns/v0.2.0",
       "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/\($image)",
       author: "Dependency-Track",
       role: "Automated export from Dependency-Track",
-      timestamp: ($old.timestamp // $now),
-      version: ($old.version // 1),
+      timestamp: ($old[0].timestamp // $now),
+      version: ($old[0].version // 1),
       statements: (map(.[]) | unique | sort_by(.vulnerability.name, .products[0]."@id"))
     }' "$dir"/*.json > "$DOCS/$image/oci.openvex.json"
     cat "$dir"/*.ref 2>/dev/null | sort -u | jq -R . | jq -s . > "$DOCS/$image/oci.images.json"
