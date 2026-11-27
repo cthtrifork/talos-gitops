@@ -488,13 +488,16 @@ processor_resources:
             # findings per image and severity; the panel ranks them like the Trivy page (most critical, then high)
             trivy_findings:
               request_map: |
-                meta path = "/api/v1/query?query=" + "sum by (image_repository, image_tag, severity) (max by (image_repository, image_tag, image_digest, severity) (trivy_image_vulnerabilities{severity=~\"Critical|High\"}))".escape_url_query()
+                meta path = "/api/v1/query?query=" + "max by (namespace, image_registry, image_repository, image_tag, image_digest, severity) (trivy_image_vulnerabilities{severity=~\"Critical|High\"})".escape_url_query()
                 root = ""
               processors:
                 - resource: prom_get
               result_map: |
                 root.trivy_findings = this.data.result.map_each(r -> {
-                  "image": r.metric.image_repository.or("unknown") + ":" + r.metric.image_tag.or(""),
+                  "namespace": r.metric.namespace.or(""),
+                  "registry": r.metric.image_registry.or(""),
+                  "digest": r.metric.image_digest.or(""),
+                  "image": r.metric.image_repository.or("unknown") + (":" + r.metric.image_tag).catch(""),
                   "severity": r.metric.severity.lowercase(),
                   "count": r.value.index(1).number().round()
                 })
