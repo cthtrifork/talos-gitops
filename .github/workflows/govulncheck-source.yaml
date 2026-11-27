@@ -69,6 +69,7 @@ jobs:
           goos=$(setting GOOS) goarch=$(setting GOARCH) cgo=$(setting CGO_ENABLED) tags=$(setting -tags)
           ref=${REF:-$(setting vcs.revision)}; ref=${ref:-$version}
           [ -n "$goversion" ] || { echo "::error::no Go version in the binary"; exit 1; }
+          [ "$(setting vcs.modified)" != true ] || { echo "::error::binary was built from a modified working tree; the recorded revision cannot reproduce its source"; exit 1; }
           printf '%s\n' "module=$module" "ref=$ref" "goversion=$goversion" "goos=$goos" "goarch=$goarch" "cgo=$cgo" "tags=$tags" | tee -a "$GITHUB_OUTPUT"
 
       - name: Check out the source
