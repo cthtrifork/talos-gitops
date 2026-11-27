@@ -1,9 +1,92 @@
 #!/bin/sh
 # Usage: image-files ls <image> [egrep-pattern]   list file paths in the image (capped at 500 lines)
+#        image-files needed <image> <path>...      list the shared libraries each ELF file links (DT_NEEDED) and the dpkg package that owns each
+#        image-files symbols <image> <egrep>       list the ELF files that import dynamic symbols matching the pattern, with their dpkg package
 #        image-files cat <image> <path-in-image>   print one text file (capped at 256 KiB, or IMAGE_FILES_MAX bytes; binary files are refused)
 # Streams `crane export` through tar and writes nothing to disk. File content is only printed, never executed.
 set -eu
-[ $# -ge 2 ] || { echo "usage: image-files ls <image> [pattern] | image-files cat <image> <path>" >&2; exit 2; }
+py2='
+import sys,tarfile,struct,re
+rx=re.compile(sys.argv[1])
+lists={};hits={}
+tf=tarfile.open(fileobj=sys.stdin.buffer,mode="r|")
+def undef(b):
+    if b[:4]!=b"\x7fELF" or b[4]!=2 or b[5]!=1: return []
+    shoff,=struct.unpack_from("<Q",b,40);shsz,shn=struct.unpack_from("<HH",b,58)
+    if not shoff or shoff+shn*shsz>len(b): return []
+    sec=[struct.unpack_from("<IIQQQQIIQQ",b,shoff+i*shsz) for i in range(shn)]
+    out=[]
+    for name,typ,fl,addr,off,size,link,info,al,es in sec:
+        if typ!=11 or link>=len(sec): continue
+        st=sec[link][4]
+        for o in range(off+24,off+size,24):
+            nm,inf,oth,shndx,val,sz=struct.unpack_from("<IBBHQQ",b,o)
+            if shndx==0 and nm:
+                e=b.index(b"\0",st+nm);n=b[st+nm:e].decode("latin1")
+                if rx.search(n): out.append(n)
+    return out
+for m in tf:
+    n=m.name[2:] if m.name.startswith("./") else m.name
+    if not m.isfile() or m.size<64: continue
+    if n.startswith("var/lib/dpkg/info/") and n.endswith(".list"):
+        lists[n.rsplit("/",1)[1][:-5]]={x.strip().lstrip("/") for x in tf.extractfile(m).read().decode("utf-8","replace").splitlines()}
+        continue
+    f=tf.extractfile(m);h=f.read(5)
+    if h[:4]!=b"\x7fELF": continue
+    b=h+f.read()
+    try: r=undef(b)
+    except Exception: r=[]
+    if r: hits[n]=sorted(set(r))
+for n,sy in sorted(hits.items()):
+    pk=sorted(k for k,v in lists.items() if n in v) or ["(not dpkg)"]
+    print(n,"<-",",".join(pk),":",",".join(sy[:14])+(" ..." if len(sy)>14 else ""))
+'
+py='
+import sys,tarfile,struct
+want={p.lstrip("/") for p in sys.argv[1:]}
+lists={};found={};links={}
+tf=tarfile.open(fileobj=sys.stdin.buffer,mode="r|")
+for m in tf:
+    n=m.name[2:] if m.name.startswith("./") else m.name
+    if n.startswith("var/lib/dpkg/info/") and n.endswith(".list") and m.isfile():
+        lists[n.rsplit("/",1)[1][:-5]]={x.strip().lstrip("/") for x in tf.extractfile(m).read().decode("utf-8","replace").splitlines()}
+    elif n in want:
+        if m.isfile(): found[n]=tf.extractfile(m).read()
+        elif m.issym(): links[n]=m.linkname
+def needed(b):
+    if b[:4]!=b"\x7fELF" or b[4]!=2: return None,None
+    off,=struct.unpack_from("<Q",b,32);sz,num=struct.unpack_from("<HH",b,54)
+    loads=[];dyn=None
+    for i in range(num):
+        t,f,o,v,pa,fs,ms=struct.unpack_from("<IIQQQQQ",b,off+i*sz)
+        if t==1: loads.append((v,o,fs))
+        if t==2: dyn=(o,fs)
+    if dyn is None: return [],[]
+    ent=[];o,fs=dyn
+    for i in range(0,fs,16):
+        tag,val=struct.unpack_from("<qQ",b,o+i)
+        if tag==0: break
+        ent.append((tag,val))
+    def tooff(v):
+        for va,o2,f2 in loads:
+            if va<=v<va+f2: return o2+v-va
+    st=next((v for t,v in ent if t==5),None)
+    so=tooff(st) if st is not None else None
+    def s(k):
+        e=b.index(b"\0",so+k);return b[so+k:e].decode()
+    return [s(v) for t,v in ent if t==1],[s(v) for t,v in ent if t in(15,29)]
+for p in sorted(want):
+    if p in links: print(p,"-> symlink to",links[p],"(use the target path)");continue
+    if p not in found: print(p,"-> not in the archive");continue
+    nd,rp=needed(found[p])
+    if nd is None: print(p,"-> not a 64-bit ELF file");continue
+    print(p,"-> static" if not nd else p+" needs:")
+    for so in nd:
+        pk=sorted(k for k,v in lists.items() if any(x.rsplit("/",1)[-1]==so for x in v))
+        print("   ",so,"<-",",".join(pk) or "(not a dpkg file)")
+    if rp: print("    rpath/runpath:",rp)
+'
+[ $# -ge 2 ] || { echo "usage: image-files ls <image> [pattern] | cat <image> <path> | needed <image> <path>... | symbols <image> <egrep>" >&2; exit 2; }
 cmd=$1
 image=$2
 case $cmd in
@@ -24,8 +107,17 @@ case $cmd in
     fi
     printf '%s\n' "$data"
     ;;
+  needed)
+    [ $# -ge 3 ] || { echo "usage: image-files needed <image> <path>..." >&2; exit 2; }
+    shift 2
+    crane export "$image" - | python3 -I -c "$py" "$@"
+    ;;
+  symbols)
+    [ $# -eq 3 ] || { echo "usage: image-files symbols <image> <egrep>" >&2; exit 2; }
+    crane export "$image" - | python3 -I -c "$py2" "$3"
+    ;;
   *)
-    echo "usage: image-files ls <image> [pattern] | image-files cat <image> <path>" >&2
+    echo "usage: image-files ls <image> [pattern] | cat <image> <path> | needed <image> <path>... | symbols <image> <egrep>" >&2
     exit 2
     ;;
 esac
