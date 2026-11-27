@@ -37,6 +37,7 @@ runs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ github.token }}
+    # Trivy looks for the socket at ${XDG_RUNTIME_DIR}/podman/podman.sock
     # The private runners pull through zot with the mirrors of podman-registries, so the report keeps the original reference
     - name: Pull through podman
       if: runner.environment == 'self-hosted'
@@ -50,7 +51,6 @@ runs:
           nohup podman system service --time=0 "unix://${sock}" > /dev/null 2>&1 &
           for _ in {1..20}; do [[ -S "${sock}" ]] && break; sleep 0.5; done
         fi
-        echo "TRIVY_PODMAN_HOST=unix://${sock}" >> "${GITHUB_ENV}"
     # an empty TRIVY_VEX is ignored
     - name: Scan
       id: scan
