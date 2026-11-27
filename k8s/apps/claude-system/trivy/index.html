@@ -125,6 +125,12 @@
   .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 600; color: var(--c); border: 1px solid var(--c); }
   .pill.ok { --c: var(--ok); }
   .stale { color: var(--sev-high); font-weight: 600; }
+  /* the facts under an image name, each with its own label, so registry, namespace and scan time cannot be mistaken for one another */
+  .img .meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 18px; margin-top: 6px; font-size: var(--fs-sm); }
+  .img .kv { color: var(--ink-2); overflow-wrap: anywhere; }
+  .img .kv .lbl { color: var(--muted); margin-right: 5px; }
+  .img .kv.stale { color: var(--sev-high); }
+  .img .meta .ext { margin-left: auto; white-space: nowrap; }
   a.ext { color: var(--env-rc); text-decoration: none; }
   a.ext:hover { text-decoration: underline; }
   .cvecell { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
@@ -290,7 +296,12 @@ const ImageList = (all, cves, cveTotal, ui, set) => {
       return html`<li class="img">
         <span class="top"><span class="nm"><strong class="name">${shortImage(r.image)}</strong>${CopyChip(fullImage(r))}</span><span class="num">${r.c.critical ? html`<b style="color: var(--sev-critical)">${r.c.critical} critical</b> · ` : nothing}${r.c.high ? html`<b style="color: var(--sev-high)">${r.c.high} high</b> · ` : nothing}<span class="muted">${n} total</span></span></span>
         ${Bar(r.c, max)}
-        <span class="sub"><span class="muted">${r.registry ? r.registry + " · " : ""}${r.ns} · </span>${r.age === null ? html`<span class="muted">scan time unknown</span>` : html`<span class=${r.age > STALE_H ? "stale" : "muted"} title=${"Scanned " + ageText(r.age) + "; the operator rescans after " + REPORT_TTL_H + "h"}>scanned ${ageText(r.age)}${r.age > STALE_H ? " · overdue" : ""}</span>`}<span class="muted"> · </span><a class="ext" href=${dtrackLink(r)} rel="noopener noreferrer" target="_blank">Dependency-Track ↗</a></span>
+        <span class="meta">
+          ${r.registry ? html`<span class="kv"><span class="lbl">Registry</span>${r.registry}</span>` : nothing}
+          <span class="kv"><span class="lbl">Namespace</span>${r.ns}</span>
+          ${r.age === null ? html`<span class="kv"><span class="lbl">Scanned</span>time unknown</span>` : html`<span class=${"kv" + (r.age > STALE_H ? " stale" : "")} title=${"Scanned " + ageText(r.age) + "; the operator rescans after " + REPORT_TTL_H + "h"}><span class="lbl">Scanned</span>${ageText(r.age)}${r.age > STALE_H ? " · overdue" : ""}</span>`}
+          <a class="ext" href=${dtrackLink(r)} rel="noopener noreferrer" target="_blank">Dependency-Track ↗</a>
+        </span>
       </li>`;
     })}</ul>
   </section>`;
