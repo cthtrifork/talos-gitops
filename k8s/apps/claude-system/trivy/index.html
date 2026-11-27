@@ -145,7 +145,7 @@
   .empty { color: var(--muted); padding: 12px 0; }
   .more { all: unset; cursor: pointer; color: var(--env-rc); margin-top: 10px; display: inline-block; min-height: 32px; }
   .more:focus-visible { outline: 2px solid var(--env-rc); }
-  #error { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 12px; font-size: var(--fs-sm); }
+  #error { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 10px 14px; font-size: var(--fs-md); }
   ul.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
   ul.rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--grid); }
   ul.rows li:first-child { border-top: 0; padding-top: 0; }
@@ -364,17 +364,17 @@ class TrivyApp extends LitElement {
     const err = html`<p id="error" role="alert" ?hidden=${!error}>${error ? `Could not load Trivy data: ${error}.${data ? " Showing the last data received." : ""}` : nothing}</p>`;
     const back = html`<h1>Trivy vulnerabilities</h1>`;
     const top = (stamp) => html`<div class="topline"><a class="back" href=${COCKPIT}>← Cockpit</a><span id="updated" class="stamp" role="status">${stamp}</span></div>`;
-    if (!data) return html`<main>${top("")}${err}<header>${back}<div class="sub">${error ? "" : "Loading…"}</div></header></main>`;
+    if (!data) return html`<main>${top("")}<header>${back}<div class="sub">${error ? "" : "Loading…"}</div></header>${err}</main>`;
     const stamp = this.fetchedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const c = Object.fromEntries(SEVERITIES.map(([k]) => [k, data.cves.filter((r) => r.sev === k).length]));
     const ages = data.images.map((r) => r.age).filter((a) => a !== null);
     return html`<main>
       ${top("Updated " + stamp)}
-      ${err}
       <header>
         ${back}
         <div class="sub">${SEVERITIES.filter(([k]) => c[k]).map(([k, n]) => html`<span class="dot" style="background: ${sevVar(k)}"></span>${c[k]} ${n.toLowerCase()} `)}${ages.length ? "· oldest scan " + ageText(Math.max(...ages)) + " " : ""}· from Prometheus</div>
       </header>
+      ${err}
       <div class="cols">
         ${ImageList(data.images, data.cves, data.cveTotal, this.ui, this.set)}
         <div class="stack">${CveTable(this.ui, this.set, data.cves, "critical", data.images)}${CveTable(this.ui, this.set, data.cves, "high", data.images)}</div>

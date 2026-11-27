@@ -44,6 +44,8 @@
   .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .stamp { color: var(--ink-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .stamp:empty { display: none; }
+  .banner { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: var(--fs-md); white-space: pre-line; }
+  .banner:empty { display: none; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 
@@ -144,6 +146,7 @@
     <a id="jump" class="jump" href="#active" hidden></a>
   </header>
 
+  <p id="loadError" class="banner" role="alert"></p>
   <div class="layout">
     <form id="form" class="card" autocomplete="off" novalidate>
       <fieldset>
@@ -332,14 +335,14 @@
 
   // a refusal stays until the next action; only a failed status read is cleared when the reads recover
   function clearStatusError() {
-    if ($("error").textContent.indexOf("Cannot read status") === 0) $("error").textContent = "";
+    $("loadError").textContent = "";
   }
 
   function load() {
     return fetch("api/v1/status", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
       .then(function (s) { s.grants = (s.grants || []).filter(function (g) { return Date.parse(g.expires_at) > Date.now(); }); status = s; $("updated").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); clearStatusError(); buildMinutes(); render(); updateForm(); })
-      .catch(function (e) { $("error").textContent = "Cannot read status: " + e.message; });
+      .catch(function (e) { $("loadError").textContent = "Cannot read status: " + e.message + (status ? ". Showing the last data received." : ""); });
   }
 
   // one request per namespace; each answers by itself, and an error carries the API's reason

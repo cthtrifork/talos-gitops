@@ -57,8 +57,8 @@
   .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .stamp { color: var(--ink-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .stamp:empty { display: none; }
-  .err { margin: 12px 0 0; color: var(--warn); font-size: var(--fs-md); }
-  .err:empty { display: none; }
+  .banner { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: var(--fs-md); white-space: pre-line; }
+  .banner:empty { display: none; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -67,12 +67,12 @@
   <div class="topline"><a class="back" href="https://claudecockpit-portableinfo.workload.eu-central-1.omni.siderolabs.io/">← Cockpit</a><span id="updated" class="stamp" role="status"></span></div>
   <h1>Run jobs</h1>
   <p class="sub">Scheduled CronJobs and when they run next. Run now starts one from its own template.</p>
+  <p id="error" class="banner" role="alert"></p>
   <section class="card" aria-label="CronJobs">
     <ul id="jobs"></ul>
     <p id="loading" class="none">Loading jobs&hellip;</p>
     <p id="none" class="none" hidden>No namespace allows running jobs.</p>
   </section>
-  <p id="error" class="err" role="alert"></p>
 </main>
 <script>
 (function () {
