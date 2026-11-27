@@ -70,6 +70,7 @@ spec:
 
         - matchName: charts.fairwinds.com
         - matchName: kubernetes-sigs.github.io
+        - matchName: juicedata.github.io
         - matchName: charts.redpanda.com
         - matchName: aka.ms
         - matchName: packages.microsoft.com
@@ -77,6 +78,18 @@ spec:
         - matchName: json.schemastore.org
         - matchName: downloads.claude.ai
         - matchName: storage.googleapis.com
+
+        # govulncheck-source workflow: Go toolchain, modules and the vulnerability database
+        - matchName: go.dev
+        - matchName: dl.google.com
+        - matchName: proxy.golang.org
+        - matchName: sum.golang.org
+        - matchName: vuln.go.dev
+
+        # image builds: apk and pip in images/tools and images/claude-runner
+        - matchName: dl-cdn.alpinelinux.org
+        - matchName: pypi.org
+        - matchName: files.pythonhosted.org
 
         - matchName: registry.npmjs.org
         - matchName: cdn.playwright.dev
