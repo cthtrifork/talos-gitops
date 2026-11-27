@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CONNECT_VERSION: "4.119.0" # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
+  CONNECT_VERSION: "4.120.0" # renovate: datasource=docker depName=docker.io/redpandadata/connect versioning=docker
 
 permissions:
   contents: read
