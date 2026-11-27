@@ -51,7 +51,8 @@ ENV PATH="/home/runner/.local/bin:${PATH}"
 ENV XDG_RUNTIME_DIR=/run/user/1001
 
 # Ensure the home tree exists and is owned by the runner
-RUN mkdir -p /home/runner/.local/bin /home/runner/.cache /home/runner/.config /home/runner/.docker
+# .local/share/containers/storage is the podman storage mount point: without it kubelet creates the parents as root
+RUN mkdir -p /home/runner/.local/bin /home/runner/.local/share/containers/storage /home/runner/.cache /home/runner/.config /home/runner/.docker
 
 # Ensure default docker config
 RUN echo "{ \"auths\": {} }" > /home/runner/.docker/config.json
