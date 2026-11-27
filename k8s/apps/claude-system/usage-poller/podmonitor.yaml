@@ -13,4 +13,4 @@ spec:
       app: claude-rc
   podMetricsEndpoints:
     - port: metrics
-      path: /metrics.txt
+      path: /metrics

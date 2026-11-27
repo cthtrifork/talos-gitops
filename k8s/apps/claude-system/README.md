@@ -411,7 +411,7 @@ flowchart LR
   cockpit -->|"GET /api/v1/requests"| urlshare[claude-urlshare :8080]
   cockpit -->|"GET /api/v1/status"| vmup[claude-vm-upgrade]
   cockpit -->|"latest image digest"| ghcr[ghcr.io :443]
-  poller["claude-rc usage-poller :9102"] -->|"scraped (PodMonitor claude-rc)<br/>5 h and 7 d usage"| prom
+  poller["claude-rc usage-poller :4195"] -->|"scraped (PodMonitor claude-rc)<br/>5 h and 7 d usage"| prom
 
   classDef new fill:#e4eefb,stroke:#2a78d6,stroke-width:2px,color:#0b0b0b
   class cockpit new
@@ -442,21 +442,21 @@ entry and add it again; iOS caches it.
 
 `claude remote-control` is a server without a terminal UI, so its sessions never run a `statusLine`. The `usage-poller` container of
 `claude-rc` instead asks `GET https://api.anthropic.com/api/oauth/usage`, the endpoint behind Claude Code's `/usage`, every 5 minutes (`POLL_INTERVAL`)
-with the login on `claude-home`, mounted read-only. It writes the two windows to a file and serves it on `:9102/metrics.txt`, which Prometheus scrapes
-(`PodMonitor/claude-rc`, the `prometheus-scrape` label opens the port): `claude_plan_used_percent{window}`, `claude_plan_resets_at_seconds{window}` with
-`window` `five_hour` or `seven_day`, and `claude_plan_usage_polled_timestamp_seconds`. The cockpit reads them with PromQL, so every replica shows the same
-values, a restart loses nothing and Prometheus keeps the history. The script comes from the `claude-usage-poller` ConfigMap and logs the percentages
-of each poll; a failed poll logs the reason and the file keeps the last values.
+with the login on `claude-home`, mounted read-only. It is a Redpanda Connect pipeline (`usage-poller/redpanda-connect.yaml`) that exports the windows as gauges
+on `:4195/metrics`, which Prometheus scrapes (`PodMonitor/claude-rc`, the `prometheus-scrape` label opens the port): `claude_plan_used_percent{window}`,
+`claude_plan_resets_at_seconds{window}` with `window` `five_hour` or `seven_day`, and `claude_plan_usage_polled_timestamp_seconds`. The cockpit reads them with
+PromQL, so every replica shows the same values, a restart loses nothing and Prometheus keeps the history. The pipeline logs the percentages of each poll; a
+failed poll logs the reason and the gauges keep the last values.
 
 Caveats: the endpoint is undocumented (its `anthropic-beta` header is an internal detail) and can change. A long-lived `claude setup-token` token answers
 403 there (tested), so only the login can be used. The poller never refreshes the token: Claude Code does that in place, so while the login is expired the
-poll logs `usage endpoint answered 401` and the panel goes stale after 6 hours. Check with `kubectl -n claude-system logs deploy/claude-rc -c usage-poller`.
+poll logs `poll failed: unexpected response code: 401` and the panel goes stale after 6 hours. Check with `kubectl -n claude-system logs deploy/claude-rc -c usage-poller`.
 
 Check after Flux applied it:
 
 ```sh
 kubectl -n claude-system get pods -l app=claude-cockpit
-kubectl -n claude-system logs deploy/claude-rc -c usage-poller --tail=3                 # "posted" every 5 minutes
+kubectl -n claude-system logs deploy/claude-rc -c usage-poller --tail=3                 # "polled" every 5 minutes
 kubectl -n claude-system port-forward deploy/claude-cockpit 8080:8080                # needs the debug tier
 curl -s localhost:8080/api/v1/status | jq 'keys, .meta'                               # meta.workflow.failed names a source that did not answer
 ```

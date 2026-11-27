@@ -120,14 +120,14 @@ configMapGenerator:
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
       - claude-md/CLAUDE.md
-  - name: claude-usage-poller
+  - name: claude-usage-poller-connect-config
     namespace: claude-system
     options:
       annotations:
-        # A shell script, not a Flux template: skip postBuild envsubst
+        # Redpanda Connect interpolations, not Flux variables: skip postBuild envsubst
         kustomize.toolkit.fluxcd.io/substitute: disabled
     files:
-      - usage-poller/poll-usage
+      - usage-poller/redpanda-connect.yaml
   - name: claude-skills
     namespace: claude-system
     options:
