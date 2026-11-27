@@ -18,6 +18,9 @@ on:
       omit-tags:
         description: Build tags to leave out of the scan, comma separated, for cgo features whose C headers the runner lacks
         required: false
+      modules:
+        description: Module paths to explain, space separated (the packages of each that the build links and the packages that import them)
+        required: false
 
 permissions:
   contents: read
@@ -102,6 +105,7 @@ jobs:
           GOOS: ${{ steps.info.outputs.goos }}
           GOARCH: ${{ steps.info.outputs.goarch }}
           CGO_ENABLED: ${{ steps.info.outputs.cgo }}
+          EXPLAIN: ${{ inputs.modules }}
         run: |
           set -euo pipefail
           # the module root is the go.mod that declares the module, not always the repository root
@@ -114,6 +118,17 @@ jobs:
           scan() { "$GITHUB_WORKSPACE/bin/govulncheck" -tags "$tags" "$@" "$PKG" || [ $? -eq 3 ]; }
           scan -format openvex > "$GITHUB_WORKSPACE/openvex.json"
           scan -show traces > "$GITHUB_WORKSPACE/traces.txt"
+          # per line: a package of the build, then the packages it imports
+          go list -deps -tags "$tags" -f '{{.ImportPath}} {{join .Imports " "}}' "$PKG" > "$GITHUB_WORKSPACE/deps.txt"
+          read -ra explain <<< "$EXPLAIN"
+          for m in "${explain[@]}"; do
+            echo "::group::$m: packages in the build"
+            awk -v m="$m" 'index($1, m) == 1 {print $1}' "$GITHUB_WORKSPACE/deps.txt"
+            echo "::endgroup::"
+            echo "::group::$m: imported from outside the module by"
+            awk -v m="$m" 'index($1, m) != 1 {for (i = 2; i <= NF; i++) if (index($i, m) == 1) print $1 " -> " $i}' "$GITHUB_WORKSPACE/deps.txt"
+            echo "::endgroup::"
+          done
 
       - name: Report
         env:
