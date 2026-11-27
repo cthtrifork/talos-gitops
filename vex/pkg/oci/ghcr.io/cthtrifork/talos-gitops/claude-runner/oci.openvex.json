@@ -3,9 +3,139 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/cthtrifork/talos-gitops/claude-runner",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T22:00:32Z",
-  "version": 2,
+  "timestamp": "2026-11-27T13:59:50Z",
+  "version": 3,
   "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39822"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "root escape via symlink plus trailing slash in os.Root functions. Needs a program using os.Root. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-4970) on /usr/local/bin/kubeconform of claude-runner:2.1.332-20261127.108 (stdlib@v1.26.3 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39824"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/sys"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/sys"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "integer overflow in NewNTUnicodeString in golang.org/x/sys/windows. Needs a Windows-only function, called only by code that builds NT strings. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-5024) on /usr/local/bin/actionlint of claude-runner:2.1.332-20261127.108 (golang.org/x/sys@v0.42.0 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39824"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/sys"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/sys"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "integer overflow in NewNTUnicodeString in golang.org/x/sys/windows. Needs a Windows-only function, called only by code that builds NT strings. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-5024) on /usr/local/bin/kubectl of claude-runner:2.1.332-20261127.108 (golang.org/x/sys@v0.31.0 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42504"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "quadratic complexity in mime.WordDecoder.DecodeHeader. Needs a mail header handed to DecodeHeader. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-5038) on /usr/local/bin/kubeconform of claude-runner:2.1.332-20261127.108 (stdlib@v1.26.3 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-46600"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "panic parsing an invalid SVCB/HTTPS RR in net (LookupCNAME). Needs a program calling net LookupCNAME. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-5942) on /usr/local/bin/kubeconform of claude-runner:2.1.332-20261127.108 (stdlib@v1.26.3 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
     {
       "vulnerability": {
         "name": "CVE-2026-4738"
@@ -33,6 +163,84 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-56851"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "panic on crafted input in golang.org/x/text/secure/precis. Needs input passed to precis profiles. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-6629) on /usr/local/bin/kubeconform of claude-runner:2.1.332-20261127.108 (golang.org/x/text@v0.37.0 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56852"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "infinite loop on invalid input in golang.org/x/text/unicode/norm. Needs input passed to the unicode/norm functions. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-5970) on /usr/local/bin/kubeconform of claude-runner:2.1.332-20261127.108 (golang.org/x/text@v0.37.0 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56853"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "missing ReadHeaderTimeout on the unencrypted HTTP/2 check in net/http servers. Needs a program running an net/http server. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-6089) on /usr/local/bin/kubeconform of claude-runner:2.1.332-20261127.108 (stdlib@v1.26.3 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-56857"
       },
       "products": [
@@ -55,6 +263,136 @@
       ],
       "status": "not_affected",
       "impact_statement": "Windows-only (os.Root junction); all images are Linux"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56858"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "wrong JS regexp context tracking in html/template. Needs a program executing html/template templates. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-6091) on /usr/local/bin/kubeconform of claude-runner:2.1.332-20261127.108 (stdlib@v1.26.3 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56859"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "missing recursion depth guard in encoding/xml decoding. Needs a program decoding XML. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-6088) on /usr/local/bin/kubeconform of claude-runner:2.1.332-20261127.108 (stdlib@v1.26.3 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78667"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "unbounded Range header parsing in net/http file serving. Needs a program serving files with net/http. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-6609) on /usr/local/bin/kubeconform of claude-runner:2.1.332-20261127.108 (stdlib@v1.26.3 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-94448"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "html/template context tracking on consecutive expressions. Needs a program executing html/template templates. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-6599) on /usr/local/bin/kubeconform of claude-runner:2.1.332-20261127.108 (stdlib@v1.26.3 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-97030"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=ghcr.io%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/claude-runner?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fcthtrifork%2Ftalos-gitops%2Fclaude-runner",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "html/template yield regexp-preceder handling. Needs a program executing html/template templates. govulncheck v1.10.0 (binary mode, vuln.go.dev DB of 2026-11-24, GO-2026-6600) on /usr/local/bin/kubeconform of claude-runner:2.1.332-20261127.108 (stdlib@v1.26.3 is only in that binary) finds no vulnerable symbol: the affected package/symbols are not in the binary."
     }
   ]
 }
