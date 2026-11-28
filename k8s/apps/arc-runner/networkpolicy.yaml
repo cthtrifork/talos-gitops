@@ -61,6 +61,7 @@ spec:
         - matchName: fulcio.sigstore.dev
         - matchName: rekor.sigstore.dev
         - matchName: tuf-repo-cdn.sigstore.dev
+        - matchName: timestamp.sigstore.dev
 
         # Tool downloads
         - matchName: mise.jdx.dev
