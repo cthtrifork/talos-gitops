@@ -3,8 +3,8 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/fluxcd/notification-controller",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-27T04:50:09Z",
-  "version": 2,
+  "timestamp": "2026-11-28T07:45:31Z",
+  "version": 3,
   "statements": [
     {
       "vulnerability": {
@@ -26,6 +26,9 @@
               "@id": "pkg:apk/alpine/zlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:apk/alpine/zlib"
         }
       ],
       "status": "not_affected",
@@ -51,6 +54,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -76,6 +82,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -101,6 +110,9 @@
               "@id": "pkg:golang/golang.org/x/net"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
         }
       ],
       "status": "not_affected",
