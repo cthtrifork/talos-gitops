@@ -1,0 +1,78 @@
+# Database PKI: no passwords. PostgreSQL requires TLS and a client certificate whose CN equals the role name; one CA
+# signs server, replication and client certificates, and cert-manager (not CNPG) owns its key.
+---
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/certificate_v1.json
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gha-cache-db-ca
+  namespace: gha-cache-system
+spec:
+  isCA: true
+  commonName: gha-cache-db-ca
+  secretName: gha-cache-db-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: portableinfo-pmx01-root-ca-bootstrap
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gha-cache-db-server
+  namespace: gha-cache-system
+spec:
+  secretName: gha-cache-db-server
+  usages:
+    - server auth
+  dnsNames:
+    - gha-cache-db-rw
+    - gha-cache-db-rw.gha-cache-system
+    - gha-cache-db-rw.gha-cache-system.svc
+    - gha-cache-db-r
+    - gha-cache-db-r.gha-cache-system
+    - gha-cache-db-r.gha-cache-system.svc
+    - gha-cache-db-ro
+    - gha-cache-db-ro.gha-cache-system
+    - gha-cache-db-ro.gha-cache-system.svc
+  issuerRef:
+    name: gha-cache-db-ca
+    kind: Issuer
+    group: cert-manager.io
+---
+# Required by CNPG once a custom client CA is used.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gha-cache-db-replication
+  namespace: gha-cache-system
+spec:
+  secretName: gha-cache-db-replication
+  commonName: streaming_replica
+  usages:
+    - client auth
+  issuerRef:
+    name: gha-cache-db-ca
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gha-cache-db-client
+  namespace: gha-cache-system
+spec:
+  secretName: gha-cache-db-client
+  commonName: gha_cache
+  usages:
+    - client auth
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    encoding: PKCS8 # the cache server's TLS library reads PKCS#8 keys
+  issuerRef:
+    name: gha-cache-db-ca
+    kind: Issuer
+    group: cert-manager.io

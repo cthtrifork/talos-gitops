@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cert-manager.io/issuer_v1.json
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: gha-cache-db-ca
+  namespace: gha-cache-system
+spec:
+  ca:
+    secretName: gha-cache-db-ca
