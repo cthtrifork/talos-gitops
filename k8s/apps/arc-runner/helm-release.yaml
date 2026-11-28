@@ -150,7 +150,7 @@ spec:
         containers:
           - name: runner
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261128.77@sha256:6c1aa1ad51df1fe33be0221907fdf53128496ae5f05250b5d0d592b58ce8ed64
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261128.77@sha256:60a227f92bf300495f1a3a9d00119d2296c92690bb2ec761480487c8df14a223
             imagePullPolicy: IfNotPresent
             # Podman rejects an XDG_RUNTIME_DIR not owned by its user, and a fresh emptyDir is root-owned.
             command:
