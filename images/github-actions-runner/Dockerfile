@@ -68,6 +68,10 @@ COPY Brewfile Brewfile
 RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew bundle \
   && brew cleanup --prune=all && rm -rf "$(brew --cache)"
 
+# Preload the repository's mise tools (root mise.toml, named build context "repo"): jdx/mise-action finds them installed
+COPY --from=repo mise.toml /etc/mise/config.toml
+RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && mise install && mise cache clear
+
 ENV HOME=/home/runner
 
 # Remove Haskell, android and dotnet
