@@ -37,7 +37,7 @@ spec:
       containers:
         - name: admin
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/fileserver versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/fileserver:0.0.0-20261128.67@sha256:23ccbfa53c4c2b52af585f14f8045bde5918483c3598f8a838ecce51c6043337
+          image: ghcr.io/cthtrifork/talos-gitops/fileserver:0.0.0-20261128.67@sha256:bca17b8543e2caacbe4039dd38a9996dfe70c4f5713ddb86e25dbf95885bd612
           args:
             - "--mode=admin"
           env:
@@ -89,7 +89,7 @@ spec:
 
         - name: upload
           # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/fileserver versioning=semver
-          image: ghcr.io/cthtrifork/talos-gitops/fileserver:0.0.0-20261128.67@sha256:23ccbfa53c4c2b52af585f14f8045bde5918483c3598f8a838ecce51c6043337
+          image: ghcr.io/cthtrifork/talos-gitops/fileserver:0.0.0-20261128.67@sha256:bca17b8543e2caacbe4039dd38a9996dfe70c4f5713ddb86e25dbf95885bd612
           args:
             - "--mode=upload"
           env:
