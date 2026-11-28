@@ -18,6 +18,11 @@ on:
         required: false
         default: ""
         type: string
+      build-contexts:
+        description: "Extra named build contexts, one name=path per line (docker build --build-context)"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -120,6 +125,7 @@ jobs:
         with:
           context: ./images/${{ inputs.name }}
           file: ./images/${{ inputs.name }}/Dockerfile
+          build-contexts: ${{ inputs.build-contexts }}
           platforms: linux/amd64
           push: ${{ env.PUSH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}

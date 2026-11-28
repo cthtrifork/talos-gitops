@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - images/github-actions-runner/**
+      - mise.toml
       - .github/workflows/build-github-actions-runner.yaml
       - .github/workflows/build-release-image.yaml
       - .github/actions/trivy-scan/**
@@ -16,6 +17,7 @@ on:
       - main
     paths:
       - images/github-actions-runner/**
+      - mise.toml
       - .github/workflows/build-github-actions-runner.yaml
       - .github/workflows/build-release-image.yaml
       - .github/actions/trivy-scan/**
@@ -45,3 +47,5 @@ jobs:
       name: github-actions-runner
       tag-prefix: runner
       version-arg: RUNNER_VERSION
+      build-contexts: |
+        repo=.
