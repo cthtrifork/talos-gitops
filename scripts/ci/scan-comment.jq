@@ -1,5 +1,5 @@
 # PR comment from the Trivy reports of the new and the old image; {} stands in for a missing report (a real one has SchemaVersion).
-# jq -r --arg new_ref <ref> --arg old_ref <ref|""> --arg run_url <url> --slurpfile o old.json -f scan-comment.jq new.json
+# jq -r --arg new_ref <ref> --arg old_ref <ref|""> --arg run_url <url> [--arg old_size <bytes> --arg new_size <bytes>] --slurpfile o old.json -f scan-comment.jq new.json
 def sev_rank: {CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3}[.] // 4;
 def icon: {CRITICAL: "🟥", HIGH: "🟧", MEDIUM: "🟨", LOW: "🟦"}[.] // "⬜";
 def vulns: [.Results[]?.Vulnerabilities[]?];
@@ -12,6 +12,10 @@ def table(list; cap):
   (if (list | length) > cap then "", "…and \((list | length) - cap) more in the full report." else empty end);
 def count(l; s): l | map(select(.Severity == s)) | length;
 def fixable(l; s): l | map(select(.Severity == s and ((.FixedVersion // "") != ""))) | length;
+def mib: (. / 1048576 * 10 | round / 10 | tostring) + " MiB";
+def size_row($o; $n):
+  if $n == "" then empty else
+    "| Size (compressed) | \(if $o == "" then "–" else ($o | tonumber | mib) end) | \($n | tonumber | mib) | | \(if $o == "" then "" else (($n | tonumber) - ($o | tonumber)) as $d | "\(if $d > 0 then "+" else "" end)\($d / 1048576 * 10 | round / 10) MiB \(if $d > 0 then "⬆️" elif $d < 0 then "⬇️" else "➖" end)" end) |" end;
 def arrow(o; n): if n > o then "⬆️" elif n < o then "⬇️" else "➖" end;
 
 (vulns) as $new
@@ -28,6 +32,7 @@ def arrow(o; n): if n > o then "⬆️" elif n < o then "⬇️" else "➖" end;
     ("| Severity | Old | New | Fixable | |", "|---|---:|---:|---:|---|"),
     (("CRITICAL", "HIGH") as $s
      | "| \($s | icon) \($s) | \(if $hasold then count($old; $s) else "–" end) | \(count($new; $s)) | \(fixable($new; $s)) | \(if $hasold then arrow(count($old; $s); count($new; $s)) else "" end) |"),
+    size_row($ARGS.named.old_size // ""; $ARGS.named.new_size // ""),
     "",
     (if $hasold and ($added | length) > 0 then "**🆕 New: \($added | length)**", "", table($added; 10), "" else empty end),
     (if $hasold and ($fixed | length) > 0 then "<details><summary>✅ Fixed: \($fixed | length)</summary>", "", table($fixed; 10), "", "</details>", "" else empty end),
