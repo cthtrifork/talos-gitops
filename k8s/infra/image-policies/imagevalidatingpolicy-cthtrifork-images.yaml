@@ -6,8 +6,9 @@ kind: ImageValidatingPolicy
 metadata:
   name: cthtrifork-images
 spec:
+  # temporary: unsigned runner image blocks every runner, so no build can re-sign; back to Deny after
   validationActions:
-    - Deny
+    - Audit
   # fails closed, but matchConditions limit the webhook to pods with our images
   failurePolicy: Fail
   evaluation:
