@@ -1,6 +1,7 @@
 ---
 # https://gha-cache-server.falcondev.io/getting-started
-# Filesystem storage and SQLite on one JuiceFS volume, one replica: the pod starts on any node, and losing the data only costs a cold cache.
+# Cache files on a JuiceFS volume, SQLite on a node-local emptyDir (SQLite on JuiceFS failed with "database is locked" and "disk I/O error" under parallel builds),
+# one replica: the pod starts on any node, and losing the data only costs a cold cache.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -40,6 +41,9 @@ spec:
       # 80 GiB of the 100Gi volume, LRU eviction
       cacheMaxSizeBytes: 17179869184 # 16 GiB: peak use was 5.7 GiB, and the JuiceFS backend holds 30 Gi
       cacheCleanupOlderThanDays: 30
+    db:
+      sqlite:
+        path: /db/cache-server.db
     # Own claim (pvc.yaml); an LVM volume cannot move between nodes
     persistentVolumeClaim:
       enabled: false
@@ -70,12 +74,17 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: gha-cache-data-jfs
+      - name: db
+        emptyDir:
+          sizeLimit: 1Gi
       - name: tmp
         emptyDir:
           sizeLimit: 1Gi
     extraVolumeMounts:
       - name: data
         mountPath: /data
+      - name: db
+        mountPath: /db
       - name: tmp
         mountPath: /tmp
     resources:
