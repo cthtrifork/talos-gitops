@@ -1,0 +1,111 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/helm.toolkit.fluxcd.io/helmrelease_v2.json
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: coredns
+  namespace: kube-system
+spec:
+  interval: 30m
+  timeout: 10m
+  chartRef:
+    kind: OCIRepository
+    name: coredns
+  driftDetection:
+    mode: enabled
+  install:
+    # install remediation uninstalls the release, which would delete the adopted CoreDNS objects
+    strategy:
+      name: RetryOnFailure
+  upgrade:
+    remediation:
+      retries: 3
+  # https://github.com/coredns/helm/blob/master/charts/coredns/values.yaml
+  # Names, labels, selector and ClusterIP match the objects Talos created, so Helm adopts them in place.
+  values:
+    fullnameOverride: coredns
+    k8sAppLabelOverride: kube-dns
+    image:
+      repository: registry.k8s.io/coredns/coredns
+      # renovate: datasource=docker depName=registry.k8s.io/coredns/coredns versioning=docker
+      tag: v1.14.7@sha256:7efd3c635b03efd68c4e8398fc45f0d993d0e9ab016f72c1cefb0fd6d01aa286
+    replicaCount: 2
+    deployment:
+      selector:
+        matchLabels:
+          k8s-app: kube-dns
+    service:
+      name: kube-dns
+      clusterIP: 10.96.0.10
+      # The old pods only carry k8s-app: a chart selector with more labels would leave the Service empty during the first rollout.
+      selector:
+        k8s-app: kube-dns
+    clusterRole:
+      nameOverride: system:coredns
+    priorityClassName: system-cluster-critical
+    nodeSelector:
+      kubernetes.io/os: linux
+    tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node.cloudprovider.kubernetes.io/uninitialized
+        operator: Exists
+        effect: NoSchedule
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                  - key: k8s-app
+                    operator: In
+                    values:
+                      - kube-dns
+    env:
+      - name: GOMEMLIMIT
+        value: 161MiB
+    resources:
+      requests:
+        cpu: 100m
+        memory: 70Mi
+      limits:
+        cpu: null
+        memory: 170Mi
+    servers:
+      - zones:
+          - zone: .
+            use_tcp: true
+        port: 53
+        plugins:
+          - name: errors
+          - name: health
+            configBlock: |-
+              lameduck 5s
+          - name: ready
+          - name: log
+            parameters: .
+            configBlock: |-
+              class error
+          - name: prometheus
+            parameters: :9153
+          - name: kubernetes
+            parameters: cluster.local in-addr.arpa ip6.arpa
+            configBlock: |-
+              pods insecure
+              fallthrough in-addr.arpa ip6.arpa
+              ttl 30
+          - name: forward
+            parameters: . /etc/resolv.conf
+            configBlock: |-
+              max_concurrent 1000
+          - name: cache
+            parameters: 30
+            configBlock: |-
+              disable success cluster.local
+              disable denial cluster.local
+          - name: loop
+          - name: reload
+          - name: loadbalance

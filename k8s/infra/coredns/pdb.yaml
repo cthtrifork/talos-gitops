@@ -1,4 +1,4 @@
-# CoreDNS comes from Talos, not a chart; without this PDB a drain can evict both replicas.
+# Without this PDB a drain can evict both CoreDNS replicas (the chart's own PDB is off).
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone-strict/poddisruptionbudget-policy-v1.json
 apiVersion: policy/v1
