@@ -4,6 +4,9 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - helm-repository.yaml
+  - issuer.yaml
+  - certificate.yaml
+  - postgres-cluster.yaml
   - helm-release.yaml
   - networkpolicy.yaml
   - pvc.yaml

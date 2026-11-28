@@ -1,6 +1,7 @@
 ---
 # https://gha-cache-server.falcondev.io/getting-started
-# Filesystem storage and SQLite on one JuiceFS volume, one replica: the pod starts on any node, and losing the data only costs a cold cache.
+# Cache files on a JuiceFS volume, metadata in PostgreSQL (client certificate, no password; SQLite on JuiceFS failed with
+# "database is locked" and "disk I/O error" under parallel builds), one replica: the pod starts on any node, and losing the data only costs a cold cache.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -18,7 +19,7 @@ spec:
   upgrade:
     remediation:
       retries: 3
-  # No strategy value in the chart; a rolling update would run two pods on the same SQLite file
+  # No strategy value in the chart; keep one pod at a time
   postRenderers:
     - kustomize:
         patches:
@@ -40,6 +41,11 @@ spec:
       # 80 GiB of the 100Gi volume, LRU eviction
       cacheMaxSizeBytes: 17179869184 # 16 GiB: peak use was 5.7 GiB, and the JuiceFS backend holds 30 Gi
       cacheCleanupOlderThanDays: 30
+    db:
+      driver: postgres
+      postgres:
+        # sqlx reads the certificate paths from the URL; the mount is below
+        url: postgres://gha_cache@gha-cache-db-rw:5432/gha_cache?sslmode=verify-full&sslrootcert=/db-tls/ca.crt&sslcert=/db-tls/tls.crt&sslkey=/db-tls/tls.key
     # Own claim (pvc.yaml); an LVM volume cannot move between nodes
     persistentVolumeClaim:
       enabled: false
@@ -70,12 +76,19 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: gha-cache-data-jfs
+      - name: db-tls
+        secret:
+          secretName: gha-cache-db-client
+          defaultMode: 0440
       - name: tmp
         emptyDir:
           sizeLimit: 1Gi
     extraVolumeMounts:
       - name: data
         mountPath: /data
+      - name: db-tls
+        mountPath: /db-tls
+        readOnly: true
       - name: tmp
         mountPath: /tmp
     resources:
