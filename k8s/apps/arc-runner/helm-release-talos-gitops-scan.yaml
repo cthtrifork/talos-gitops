@@ -34,7 +34,7 @@ spec:
     githubConfigUrl: https://github.com/cthtrifork/talos-gitops
     runnerScaleSetName: arc-scan-talos-gitops
 
-    maxRunners: 4 # a scan matrix runs in parallel
+    maxRunners: 8 # a scan matrix runs in parallel; each runner needs 40Gi lvm-fast, 10Gi lvm-bulk
     minRunners: 0
 
     githubConfigSecret: github-auth
