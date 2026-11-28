@@ -1,0 +1,160 @@
+---
+# Jobs of cthtrifork/talos-gitops that need neither Docker nor podman (Trivy scans against the registry, linting, rendering, syncing):
+# the default runner of its workflows. No dind sidecar, no privileges and no image storage, so each runner takes 12 Gi of bulk
+# storage instead of 40 Gi of fast. Builds and container jobs use arc-light-talos-gitops. The workflows run fork PRs on GitHub-hosted runners.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: arc-runners-talos-gitops-light
+  namespace: arc-runners-system
+spec:
+  interval: 30m
+  releaseName: arc-runners-talos-gitops-light
+  chartRef:
+    kind: OCIRepository
+    name: arc-runners-system
+  install:
+    remediation:
+      retries: 3
+    createNamespace: false
+
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    resourceMeta:
+      ephemeralRunner:
+        annotations:
+          kubernetes.io/ingress-bandwidth: "300M"
+          kubernetes.io/egress-bandwidth: "300M"
+    controllerServiceAccount:
+      name: gha-runner-scale-set-controller-gha-rs-controller
+      namespace: arc-controller-system
+
+    githubConfigUrl: https://github.com/cthtrifork/talos-gitops
+    runnerScaleSetName: arc-light-talos-gitops
+
+    maxRunners: 8
+    minRunners: 0
+
+    githubConfigSecret: github-auth
+    containerMode: {}
+    template:
+      metadata:
+        annotations:
+          # Internal + public CAs (jobs reach the allowlisted internet).
+          trust.portableinfo.cloud/public: "true"
+      spec:
+        # lvm-bulk is not on talos-tba-msi
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/hostname
+                      operator: NotIn
+                      values:
+                        - talos-tba-msi
+        topologySpreadConstraints:
+          - maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                actions.github.com/scale-set-name: arc-light-talos-gitops
+        containers:
+          - name: runner
+            # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261128.77@sha256:6c1aa1ad51df1fe33be0221907fdf53128496ae5f05250b5d0d592b58ce8ed64
+            imagePullPolicy: IfNotPresent
+            command:
+              - /usr/local/bin/use-cache-server
+              - /home/runner/run.sh
+            resources:
+              requests:
+                cpu: 250m
+                memory: 768Mi
+              limits:
+                memory: 4Gi
+            securityContext:
+              runAsUser: 1001
+              runAsGroup: 1001
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - ALL
+            env:
+              # The trailing slash is required.
+              - name: ACTIONS_RESULTS_URL
+                value: http://gha-cache.gha-cache-system.svc.cluster.local:3000/
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+              - name: tmp
+                mountPath: /tmp
+        imagePullSecrets:
+          - name: github-auth
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+        volumes:
+          - name: work
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-bulk
+                  resources:
+                    requests:
+                      storage: 8Gi
+          - name: tmp
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: lvm-bulk
+                  resources:
+                    requests:
+                      storage: 4Gi
+    listenerTemplate:
+      metadata:
+        labels:
+          prometheus-scrape: "true"
+        annotations:
+          # talks to github.com
+          trust.portableinfo.cloud/public: "true"
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+          - name: listener
+            securityContext:
+              runAsUser: 1000
+              runAsNonRoot: true
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                  - ALL
+            # the exporter enabled by the controller's metrics.listenerAddr is the listener's only HTTP server
+            livenessProbe:
+              httpGet:
+                path: /metrics
+                port: 8080
+              initialDelaySeconds: 15
+              periodSeconds: 20
+            readinessProbe:
+              httpGet:
+                path: /metrics
+                port: 8080
+              periodSeconds: 10
+            resources:
+              limits:
+                memory: 256Mi
+              requests:
+                cpu: 15m
+                memory: 64Mi
