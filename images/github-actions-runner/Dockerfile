@@ -11,6 +11,7 @@ COPY --chmod=0755 use-cache-server /usr/local/bin/use-cache-server
 RUN chown runner /home/runner/bin/Runner.Worker.dll
 
 ENV NONINTERACTIVE=1
+ENV HOMEBREW_NO_ANALYTICS=1
 ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 
 RUN apt-get update \
@@ -50,8 +51,8 @@ ENV PATH="/home/runner/.local/bin:${PATH}"
 ENV XDG_RUNTIME_DIR=/run/user/1001
 
 # Ensure the home tree exists and is owned by the runner
-RUN mkdir -p /home/runner/.local/bin /home/runner/.cache /home/runner/.config /home/runner/.docker \
-  && chown -R 1001:1001 /home/runner
+# .local/share/containers/storage is the podman storage mount point: without it kubelet creates the parents as root
+RUN mkdir -p /home/runner/.local/bin /home/runner/.local/share/containers/storage /home/runner/.cache /home/runner/.config /home/runner/.docker
 
 # Ensure default docker config
 RUN echo "{ \"auths\": {} }" > /home/runner/.docker/config.json
@@ -64,7 +65,8 @@ RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/instal
   && echo "eval '$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)'" >> /home/runner/.bashrc
 
 COPY Brewfile Brewfile
-RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew bundle
+RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew bundle \
+  && brew cleanup --prune=all && rm -rf "$(brew --cache)"
 
 ENV HOME=/home/runner
 

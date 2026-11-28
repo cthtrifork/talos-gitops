@@ -3,9 +3,2822 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/mirror.gcr.io/openebs/lvm-driver",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T22:00:31Z",
-  "version": 1,
+  "timestamp": "2026-11-28T07:45:32Z",
+  "version": 2,
   "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2024-3220"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2024-3220 in pyc: There is a defect in the CPython standard library module “mimetypes” where on Windows the default list of known file locations are writable meaning other users can create invalid files to cause MemoryError to be raised on Python runtime startup or have file extensions be interpreted as the incorrect Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-3220"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2024-3220 in python3-pyc: There is a defect in the CPython standard library module “mimetypes” where on Windows the default list of known file locations are writable meaning other users can create invalid files to cause MemoryError to be raised on Python runtime startup or have file extensions be interpreted as the incorrect Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-3220"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2024-3220 in python3-pycache-pyc0: There is a defect in the CPython standard library module “mimetypes” where on Windows the default list of known file locations are writable meaning other users can create invalid files to cause MemoryError to be raised on Python runtime startup or have file extensions be interpreted as the incorrect Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-3220"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2024-3220 in python3: There is a defect in the CPython standard library module “mimetypes” where on Windows the default list of known file locations are writable meaning other users can create invalid files to cause MemoryError to be raised on Python runtime startup or have file extensions be interpreted as the incorrect Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-58251"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/busybox-binsh"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/busybox-binsh"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/busybox-binsh"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2024-58251 in busybox-binsh: In netstat in BusyBox through 1.37.0, local users can launch of network application with an argv[0] containing an ANSI terminal escape sequence, leading to a denial of service (terminal locked up) when netstat is used by a victim. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The flaw is in the busybox tar/netstat applet; no started program execs busybox, tar, netstat or sh (bin/mount, umount, blkid etc. are util-linux ELF programs that link libmount/libblkid)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-58251"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/busybox"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/busybox"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/busybox"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2024-58251 in busybox: In netstat in BusyBox through 1.37.0, local users can launch of network application with an argv[0] containing an ANSI terminal escape sequence, leading to a denial of service (terminal locked up) when netstat is used by a victim. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The flaw is in the busybox tar/netstat applet; no started program execs busybox, tar, netstat or sh (bin/mount, umount, blkid etc. are util-linux ELF programs that link libmount/libblkid)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2024-58251"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/ssl_client"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/ssl_client"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/ssl_client"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2024-58251 in ssl_client: In netstat in BusyBox through 1.37.0, local users can launch of network application with an argv[0] containing an ANSI terminal escape sequence, leading to a denial of service (terminal locked up) when netstat is used by a victim. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The flaw is in the busybox tar/netstat applet; no started program execs busybox, tar, netstat or sh (bin/mount, umount, blkid etc. are util-linux ELF programs that link libmount/libblkid)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-15467"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-15467 in libcrypto3: Issue summary: Parsing CMS AuthEnvelopedData or EnvelopedData message with maliciously crafted AEAD parameters can trigger a stack buffer overflow. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-15467"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-15467 in libssl3: Issue summary: Parsing CMS AuthEnvelopedData or EnvelopedData message with maliciously crafted AEAD parameters can trigger a stack buffer overflow. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-15469"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-15469 in libcrypto3: Issue summary: The 'openssl dgst' command-line tool silently truncates input data to 16MB when using one-shot signing algorithms and reports success instead of an error. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-15469"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-15469 in libssl3: Issue summary: The 'openssl dgst' command-line tool silently truncates input data to 16MB when using one-shot signing algorithms and reports success instead of an error. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-46394"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/busybox-binsh"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/busybox-binsh"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/busybox-binsh"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-46394 in busybox-binsh: In tar in BusyBox through 1.37.0, a TAR archive can have filenames hidden from a listing through the use of terminal escape sequences. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The flaw is in the busybox tar/netstat applet; no started program execs busybox, tar, netstat or sh (bin/mount, umount, blkid etc. are util-linux ELF programs that link libmount/libblkid)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-46394"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/busybox"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/busybox"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/busybox"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-46394 in busybox: In tar in BusyBox through 1.37.0, a TAR archive can have filenames hidden from a listing through the use of terminal escape sequences. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The flaw is in the busybox tar/netstat applet; no started program execs busybox, tar, netstat or sh (bin/mount, umount, blkid etc. are util-linux ELF programs that link libmount/libblkid)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-46394"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/ssl_client"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/ssl_client"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/ssl_client"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-46394 in ssl_client: In tar in BusyBox through 1.37.0, a TAR archive can have filenames hidden from a listing through the use of terminal escape sequences. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The flaw is in the busybox tar/netstat applet; no started program execs busybox, tar, netstat or sh (bin/mount, umount, blkid etc. are util-linux ELF programs that link libmount/libblkid)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-69418"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-69418 in libcrypto3: Issue summary: When using the low-level OCB API directly with AES-NI or<br>other hardware-accelerated code paths, inputs whose length is not a multiple<br>of 16 bytes can leave the final partial block unencrypted and unauthenticated.<br><br>Impact summary: The trailing 1-15 bytes of a message may be Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-69418"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-69418 in libssl3: Issue summary: When using the low-level OCB API directly with AES-NI or<br>other hardware-accelerated code paths, inputs whose length is not a multiple<br>of 16 bytes can leave the final partial block unencrypted and unauthenticated.<br><br>Impact summary: The trailing 1-15 bytes of a message may be Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-69419"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-69419 in libcrypto3: Issue summary: Calling PKCS12_get_friendlyname() function on a maliciously crafted PKCS#12 file with a BMPString (UTF-16BE) friendly name containing non-ASCII BMP code point can trigger a one byte write before the allocated buffer. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-69419"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-69419 in libssl3: Issue summary: Calling PKCS12_get_friendlyname() function on a maliciously crafted PKCS#12 file with a BMPString (UTF-16BE) friendly name containing non-ASCII BMP code point can trigger a one byte write before the allocated buffer. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-9230"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-9230 in libcrypto3: Issue summary: An application trying to decrypt CMS messages encrypted using password based encryption can trigger an out-of-bounds read and write. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-9230"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-9230 in libssl3: Issue summary: An application trying to decrypt CMS messages encrypted using password based encryption can trigger an out-of-bounds read and write. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-9231"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-9231 in libcrypto3: Issue summary: A timing side-channel which could potentially allow remote recovery of the private key exists in the SM2 algorithm implementation on 64 bit ARM platforms. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-9231"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2025-9231 in libssl3: Issue summary: A timing side-channel which could potentially allow remote recovery of the private key exists in the SM2 algorithm implementation on 64 bit ARM platforms. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-114583"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-114583 in pyc: tarfile.tar_filter could be bypassed using crafted link entries, including symlinks with empty or directory-like names, to redirect later archive members outside the intended extraction directory. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-114583"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-114583 in python3-pyc: tarfile.tar_filter could be bypassed using crafted link entries, including symlinks with empty or directory-like names, to redirect later archive members outside the intended extraction directory. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-114583"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-114583 in python3-pycache-pyc0: tarfile.tar_filter could be bypassed using crafted link entries, including symlinks with empty or directory-like names, to redirect later archive members outside the intended extraction directory. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-114583"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-114583 in python3: tarfile.tar_filter could be bypassed using crafted link entries, including symlinks with empty or directory-like names, to redirect later archive members outside the intended extraction directory. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-115506"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libexpat"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-115506 in libexpat: libexpat through 2.9.0 contains a denial of service vulnerability because billion laughs protection in accountingDiffTolerated() in xmlparse.c detects entity amplification too late. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The only importer of libexpat (XML_*) is Python's pyexpat module; no started program or library links libexpat and nothing started runs python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-115557"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-115557 in pyc: Python has added a denylist for known compromised certificates to the \"ssl\" module to ensure user safety even without certificate revocation configured. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-115557"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-115557 in python3-pyc: Python has added a denylist for known compromised certificates to the \"ssl\" module to ensure user safety even without certificate revocation configured. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-115557"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-115557 in python3-pycache-pyc0: Python has added a denylist for known compromised certificates to the \"ssl\" module to ensure user safety even without certificate revocation configured. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-115557"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-115557 in python3: Python has added a denylist for known compromised certificates to the \"ssl\" module to ensure user safety even without certificate revocation configured. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-118370"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libexpat"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-118370 in libexpat: libexpat through 2.9.0 contains a signed integer overflow vulnerability in storeAtts() in lib/xmlparse.c that allows attackers to trigger out-of-bounds writes via oversized attribute counts. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The only importer of libexpat (XML_*) is Python's pyexpat module; no started program or library links libexpat and nothing started runs python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-12345"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-12345 in pyc: The cleanup of tempfile.TemporaryDirectory is vulnerable to a race condition. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-12345"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-12345 in python3-pyc: The cleanup of tempfile.TemporaryDirectory is vulnerable to a race condition. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-12345"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-12345 in python3-pycache-pyc0: The cleanup of tempfile.TemporaryDirectory is vulnerable to a race condition. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-12345"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-12345 in python3: The cleanup of tempfile.TemporaryDirectory is vulnerable to a race condition. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-124317"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libexpat"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-124317 in libexpat: libexpat through 2.10.0 contains an out-of-bounds read vulnerability in unknown_toUtf8() and unknown_toUtf16() in xmltok.c when handling application-registered unknown encodings. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The only importer of libexpat (XML_*) is Python's pyexpat module; no started program or library links libexpat and nothing started runs python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-124709"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-124709 in libcrypto3: Issue summary: A QUIC server that rejects a stream opened by the peer may retain that stream's state for the lifetime of the connection if the peer resets the stream before the rejection is signalled, even though the peer's stream credit is returned. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-124709"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-124709 in libssl3: Issue summary: A QUIC server that rejects a stream opened by the peer may retain that stream's state for the lifetime of the connection if the peer resets the stream before the rejection is signalled, even though the peer's stream credit is returned. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-128241"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libexpat"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-128241 in libexpat: The xmlwf tool in libexpat through 2.10.0 contains a symlink following vulnerability because -d output mode opens files with fopen(\"wb\"), which follows symbolic links. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The only importer of libexpat (XML_*) is Python's pyexpat module; no started program or library links libexpat and nothing started runs python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-134703"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libexpat"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-134703 in libexpat: libexpat through 2.10.0 contains an improper Unicode handling vulnerability in DEFINE_UTF16_TO_UTF16 conversion functions in xmltok.c that can split valid surrogate pairs when output space is limited. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The only importer of libexpat (XML_*) is Python's pyexpat module; no started program or library links libexpat and nothing started runs python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-14456"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-14456 in libcrypto3: Issue summary: When an OpenSSL QUIC server (Listener SSL object) processes valid QUIC Initial packets for unknown destination connection IDs, it can allocate and queue new incoming channels without enforcing any limit. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-14456"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-14456 in libssl3: Issue summary: When an OpenSSL QUIC server (Listener SSL object) processes valid QUIC Initial packets for unknown destination connection IDs, it can allocate and queue new incoming channels without enforcing any limit. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-15806"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-15806 in pyc: The HTTPPasswordMgr class in the urllib.request module, along with its subclasses HTTPPasswordMgrWithDefaultRealm and HTTPPasswordMgrWithPriorAuth, did not take the URL scheme into account when matching stored credentials against a requested URL. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-15806"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-15806 in python3-pyc: The HTTPPasswordMgr class in the urllib.request module, along with its subclasses HTTPPasswordMgrWithDefaultRealm and HTTPPasswordMgrWithPriorAuth, did not take the URL scheme into account when matching stored credentials against a requested URL. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-15806"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-15806 in python3-pycache-pyc0: The HTTPPasswordMgr class in the urllib.request module, along with its subclasses HTTPPasswordMgrWithDefaultRealm and HTTPPasswordMgrWithPriorAuth, did not take the URL scheme into account when matching stored credentials against a requested URL. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-15806"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-15806 in python3: The HTTPPasswordMgr class in the urllib.request module, along with its subclasses HTTPPasswordMgrWithDefaultRealm and HTTPPasswordMgrWithPriorAuth, did not take the URL scheme into account when matching stored credentials against a requested URL. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-17084"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-17084 in pyc: The \"stringprep\" module didn't process characters from RFC 3454 tables B.2 or B.3 correctly: the latest Unicode codepoint attributes were used instead of the specified Unicode 3.2.0. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-17084"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-17084 in python3-pyc: The \"stringprep\" module didn't process characters from RFC 3454 tables B.2 or B.3 correctly: the latest Unicode codepoint attributes were used instead of the specified Unicode 3.2.0. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-17084"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-17084 in python3-pycache-pyc0: The \"stringprep\" module didn't process characters from RFC 3454 tables B.2 or B.3 correctly: the latest Unicode codepoint attributes were used instead of the specified Unicode 3.2.0. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-17084"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-17084 in python3: The \"stringprep\" module didn't process characters from RFC 3454 tables B.2 or B.3 correctly: the latest Unicode codepoint attributes were used instead of the specified Unicode 3.2.0. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19445"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19445 in pyc: A remote, unauthenticated TLS client can make a server crash or call through a freed pointer if its sni_callback assigns a different context to SSLSocket.context (the documented way to select a certificate per server name) and nothing else keeps the original ssl.SSLContext alive. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19445"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19445 in python3-pyc: A remote, unauthenticated TLS client can make a server crash or call through a freed pointer if its sni_callback assigns a different context to SSLSocket.context (the documented way to select a certificate per server name) and nothing else keeps the original ssl.SSLContext alive. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19445"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19445 in python3-pycache-pyc0: A remote, unauthenticated TLS client can make a server crash or call through a freed pointer if its sni_callback assigns a different context to SSLSocket.context (the documented way to select a certificate per server name) and nothing else keeps the original ssl.SSLContext alive. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19445"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19445 in python3: A remote, unauthenticated TLS client can make a server crash or call through a freed pointer if its sni_callback assigns a different context to SSLSocket.context (the documented way to select a certificate per server name) and nothing else keeps the original ssl.SSLContext alive. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19553"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19553 in pyc: ssl.SSLContext.wrap_bio() didn't require the server_hostname argument to not be None if ssl.SSLContext.check_hostname was set. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19553"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19553 in python3-pyc: ssl.SSLContext.wrap_bio() didn't require the server_hostname argument to not be None if ssl.SSLContext.check_hostname was set. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19553"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19553 in python3-pycache-pyc0: ssl.SSLContext.wrap_bio() didn't require the server_hostname argument to not be None if ssl.SSLContext.check_hostname was set. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19553"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19553 in python3: ssl.SSLContext.wrap_bio() didn't require the server_hostname argument to not be None if ssl.SSLContext.check_hostname was set. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19672"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19672 in pyc: The tarfile module's tar and data extraction filters created directories outside the destination for members whose name leaves the destination and returns to it, such as ../evil/../dest/sub/file. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19672"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19672 in python3-pyc: The tarfile module's tar and data extraction filters created directories outside the destination for members whose name leaves the destination and returns to it, such as ../evil/../dest/sub/file. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19672"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19672 in python3-pycache-pyc0: The tarfile module's tar and data extraction filters created directories outside the destination for members whose name leaves the destination and returns to it, such as ../evil/../dest/sub/file. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-19672"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-19672 in python3: The tarfile module's tar and data extraction filters created directories outside the destination for members whose name leaves the destination and returns to it, such as ../evil/../dest/sub/file. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-25681"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-5029: Invoking incorrect handling of character references in DOCTYPE nodes in golang.org/x/net/html. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning golang.org/x/net: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-2673"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-2673 in libcrypto3: Issue summary: An OpenSSL TLS 1.3 server may fail to negotiate the expected preferred key exchange group when its key exchange group configuration includes the default by using the 'DEFAULT' keyword. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-2673"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-2673 in libssl3: Issue summary: An OpenSSL TLS 1.3 server may fail to negotiate the expected preferred key exchange group when its key exchange group configuration includes the default by using the 'DEFAULT' keyword. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-27136"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-5030: Invoking duplicate attributes can cause XSS in golang.org/x/net/html. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning golang.org/x/net: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-27139"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-4602: FileInfo can escape from a Root in os. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning stdlib: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-28387"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-28387 in libcrypto3: Issue summary: An uncommon configuration of clients performing DANE TLSA-based server authentication, when paired with uncommon server DANE TLSA records, may result in a use-after-free and/or double-free on the client side. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-28387"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-28387 in libssl3: Issue summary: An uncommon configuration of clients performing DANE TLSA-based server authentication, when paired with uncommon server DANE TLSA records, may result in a use-after-free and/or double-free on the client side. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-31789"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-31789 in libcrypto3: Issue summary: Converting an excessively large OCTET STRING value to a hexadecimal string leads to a heap buffer overflow on 32 bit platforms. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-31789"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-31789 in libssl3: Issue summary: Converting an excessively large OCTET STRING value to a hexadecimal string leads to a heap buffer overflow on 32 bit platforms. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-31790"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-31790 in libcrypto3: Issue summary: Applications using RSASVE key encapsulation to establish a secret encryption key can send contents of an uninitialized memory buffer to a malicious peer. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-31790"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-31790 in libssl3: Issue summary: Applications using RSASVE key encapsulation to establish a secret encryption key can send contents of an uninitialized memory buffer to a malicious peer. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-34180"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-34180 in libcrypto3: Issue summary: Parsing a crafted DER-encoded ASN.1 structure with a primitive element whose content exceeds 2 gigabytes in length may cause a heap buffer over-read on 64-bit Unix and Unix-like platforms. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-34180"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-34180 in libssl3: Issue summary: Parsing a crafted DER-encoded ASN.1 structure with a primitive element whose content exceeds 2 gigabytes in length may cause a heap buffer over-read on 64-bit Unix and Unix-like platforms. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-34181"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-34181 in libcrypto3: Issue Summary: The PKCS#12 file processing fails to perform sufficient input validation for files that use Password-Based Message Authentication Code 1 (PBMAC1) integrity mechanism allowing a certificate and private key forgery. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-34181"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-34181 in libssl3: Issue Summary: The PKCS#12 file processing fails to perform sufficient input validation for files that use Password-Based Message Authentication Code 1 (PBMAC1) integrity mechanism allowing a certificate and private key forgery. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-34182"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-34182 in libcrypto3: Issue Summary: Cryptographic Message Services (CMS) processing fails to perform sufficient input validation on the cipher and tag length fields of AuthEnvelopedData containers, leading to various potential compromises. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-34182"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-34182 in libssl3: Issue Summary: Cryptographic Message Services (CMS) processing fails to perform sufficient input validation on the cipher and tag length fields of AuthEnvelopedData containers, leading to various potential compromises. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39820"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-4986: Quadratic string concatentation in consumeComment in net/mail. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning stdlib: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39822"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-4970: Root escape via symlink plus trailing slash in os. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning stdlib: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-39825"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-4976: ReverseProxy forwards queries with more than urlmaxqueryparams parameters in net/http/httputil. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning stdlib: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42499"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-4977: Quadratic string concatenation in consumePhrase in net/mail. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning stdlib: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42502"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-5027: Invoking incorrect handling of HTML elements in foreign content in golang.org/x/net/html. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning golang.org/x/net: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42506"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-5025: Invoking incorrect handling of namespaced elements in foreign content in golang.org/x/net/html. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning golang.org/x/net: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42768"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-42768 in libcrypto3: Issue summary: The CMS_decrypt and PKCS7_decrypt functions are vulnerable to Bleichenbacher-style attack when an attacker is able to provide the CMS or S/MIME messages and observe the error code and/or decryption output. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42768"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-42768 in libssl3: Issue summary: The CMS_decrypt and PKCS7_decrypt functions are vulnerable to Bleichenbacher-style attack when an attacker is able to provide the CMS or S/MIME messages and observe the error code and/or decryption output. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42770"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-42770 in libcrypto3: Issue summary: When EVP_PKEY_derive_set_peer() is called with a DHX (X9.42) peer key, the peer key is not properly checked for the subgroup membership. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42770"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-42770 in libssl3: Issue summary: When EVP_PKEY_derive_set_peer() is called with a DHX (X9.42) peer key, the peer key is not properly checked for the subgroup membership. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-45445"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-45445 in libcrypto3: Issue summary: When an application drives an AES-OCB context through the public EVP_Cipher() one-shot interface, the application-supplied initialisation vector (IV) is silently discarded. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-45445"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-45445 in libssl3: Issue summary: When an application drives an AES-OCB context through the public EVP_Cipher() one-shot interface, the application-supplied initialisation vector (IV) is silently discarded. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-45446"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-45446 in libcrypto3: Issue summary: The implementations of AES-SIV (RFC 5297) and AES-GCM-SIV (RFC 8452) mishandle the authentication of AAD (Additional Authenticated Data) with an empty ciphertext allowing a forgery of such messages. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-45446"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-45446 in libssl3: Issue summary: The implementations of AES-SIV (RFC 5297) and AES-GCM-SIV (RFC 8452) mishandle the authentication of AAD (Additional Authenticated Data) with an empty ciphertext allowing a forgery of such messages. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-45447"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-45447 in libcrypto3: Issue summary: A specially crafted PKCS#7 or S/MIME signed message could trigger a use-after-free during PKCS#7 signature verification. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-45447"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-45447 in libssl3: Issue summary: A specially crafted PKCS#7 or S/MIME signed message could trigger a use-after-free during PKCS#7 signature verification. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-46600"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-5942: Parsing an invalid SVCB or HTTPS RR can panic in golang.org/x/net/dns/dnsmessage. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning golang.org/x/net: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
     {
       "vulnerability": {
         "name": "CVE-2026-4738"
@@ -26,10 +2839,71 @@
               "@id": "pkg:apk/alpine/zlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:apk/alpine/zlib"
         }
       ],
       "status": "not_affected",
       "impact_statement": "gdal infback9 bug matched to zlib by mistake; gdal is not in any image"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56851"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/text"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-6629: Panic parsing crafted input in x/text/secure/precis in golang.org/x/text. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning golang.org/x/text: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-56852"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/text"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/text"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-5970: Infinite loop on invalid input in golang.org/x/text. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning golang.org/x/text: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
     },
     {
       "vulnerability": {
@@ -51,10 +2925,767 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
       "impact_statement": "Windows-only (os.Root junction); all images are Linux"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-7383"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-7383 in libcrypto3: Issue summary: A signed integer overflow when sizing the destination buffer for Unicode output in ASN1_mbstring_ncopy() can lead to a heap buffer overflow. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-7383"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-7383 in libssl3: Issue summary: A signed integer overflow when sizing the destination buffer for Unicode output in ASN1_mbstring_ncopy() can lead to a heap buffer overflow. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-75803"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-75803 in libcrypto3: Issue summary: ChaCha20-Poly1305 and AES-OCB decryption with an empty ciphertext can report success without verifying the supplied authentication tag when the operation is finalized by calling the EVP_Cipher() function. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-75803"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-75803 in libssl3: Issue summary: ChaCha20-Poly1305 and AES-OCB decryption with an empty ciphertext can report success without verifying the supplied authentication tag when the operation is finalized by calling the EVP_Cipher() function. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-77214"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libexpat"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-77214 in libexpat: libexpat before commit 13c5f63 contains a heap buffer over-read vulnerability in xmlparse.c. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The only importer of libexpat (XML_*) is Python's pyexpat module; no started program or library links libexpat and nothing started runs python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78661"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-6860: Avoid quadratic complexity when coalescing text nodes in html in golang.org/x/net. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning golang.org/x/net: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78667"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/stdlib"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-6609: Lack of limit on size of parsed Range headers in net/http. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning stdlib: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-82049"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-82049 in pyc: In CPython 3.13 and earlier, the tarfile module's data and tar extraction filters are vulnerable to crafted archives containing a hard link to a symbolic link. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-82049"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-82049 in python3-pyc: In CPython 3.13 and earlier, the tarfile module's data and tar extraction filters are vulnerable to crafted archives containing a hard link to a symbolic link. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-82049"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-82049 in python3-pycache-pyc0: In CPython 3.13 and earlier, the tarfile module's data and tar extraction filters are vulnerable to crafted archives containing a hard link to a symbolic link. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-82049"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-82049 in python3: In CPython 3.13 and earlier, the tarfile module's data and tar extraction filters are vulnerable to crafted archives containing a hard link to a symbolic link. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84303"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/google.golang.org/grpc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/google.golang.org/grpc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-6441: Bypass of xDS RBAC HTTP filter header matching in google.golang.org/grpc. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning google.golang.org/grpc: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-87910"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-87910 in pyc: When tarfile extracts a link on a system that doesn't support links, it falls back to extracting a member from the archive. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-87910"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pyc"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pyc"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-87910 in python3-pyc: When tarfile extracts a link on a system that doesn't support links, it falls back to extracting a member from the archive. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-87910"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3-pycache-pyc0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-87910 in python3-pycache-pyc0: When tarfile extracts a link on a system that doesn't support links, it falls back to extracting a member from the archive. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-87910"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/python3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/python3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-87910 in python3: When tarfile extracts a link on a system that doesn't support links, it falls back to extracting a member from the archive. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). Python is not started: no exec call names python, the image ships no python entry script (lvmdbusd.profile only), and no started program or library links libpython."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-88822"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-88822 in libcrypto3: Issue summary: QUIC, when performing automated peer detection, may allow uninitialized stack data to leak into the received address which is then used as the destination for outgoing packets. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-88822"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-88822 in libssl3: Issue summary: QUIC, when performing automated peer detection, may allow uninitialized stack data to leak into the received address which is then used as the destination for outgoing packets. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-88823"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-88823 in libcrypto3: Issue summary: The AES-GCM-SIV implementation treats a zero-length Additional Authenticated Data (AAD) update as a reset of all the AAD supplied so far, instead of leaving the AAD unchanged. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-88823"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-88823 in libssl3: Issue summary: The AES-GCM-SIV implementation treats a zero-length Additional Authenticated Data (AAD) update as a reset of all the AAD supplied so far, instead of leaving the AAD unchanged. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-93990"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libexpat"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libexpat"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-93990 in libexpat: Expat before 2.8.5 fails to validate that a high surrogate in UTF-16 input is followed by a low surrogate, allowing malformed UTF-16 sequences to be accepted. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). The only importer of libexpat (XML_*) is Python's pyexpat module; no started program or library links libexpat and nothing started runs python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-95691"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-95691 in libcrypto3: Issue summary: A retransmitted QUIC CRYPTO frame can release packet storage while the TLS record layer retains a direct pointer into that storage causing use after free. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-95691"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-95691 in libssl3: Issue summary: A retransmitted QUIC CRYPTO frame can release packet storage while the TLS record layer retains a direct pointer into that storage causing use after free. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-95692"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libcrypto3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libcrypto3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-95692 in libcrypto3: Issue summary: Setting an AES-GCM-SIV IV shorter than the expected nonce length via EVP_CipherInit_ex() may trigger a heap out-of-bounds read. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-95692"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/libssl3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:apk/alpine/libssl3"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "CVE-2026-95692 in libssl3: Issue summary: Setting an AES-GCM-SIV IV shorter than the expected nonce length via EVP_CipherInit_ex() may trigger a heap out-of-bounds read. Checked on lvm-driver:1.10.1@sha256:41f73aba7f31 (Alpine 3.22). Programs started: lvm-driver (static Go) and, from lvm-localpv v1.10.1 pkg/lvm and k8s.io/mount-utils v0.34.1 exec calls, lvm, wipefs, mount, umount, blkid, fsck, mkfs.<fs>, resize2fs, xfs_growfs, btrfs, blockdev (systemd-run is absent from the image). image-files symbols shows only apk, c_rehash, ssl_client, the OpenSSL engines/providers and Python _ssl/_hashlib import OpenSSL symbols; image-files needed shows none of the started programs or their libraries (libdevmapper*, libblkid, libmount, libudev, libext2fs, libz, libzstd, liblzo2) links libcrypto or libssl, and nothing started execs apk, c_rehash, ssl_client or python."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-97045"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=mirror.gcr.io%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/lvm-driver?repository_url=zot.registry-system.svc.cluster.local:5000%2Fdocker-hub-cache%2Fopenebs%2Flvm-driver",
+          "subcomponents": [
+            {
+              "@id": "pkg:golang/golang.org/x/net"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "GO-2026-6866: Check all ancestor namespace transitions when rendering raw text in html in golang.org/x/net. govulncheck@v1.10.0 (DB 2026-11-24) -mode=binary -show verbose on usr/local/bin/lvm-driver of lvm-driver:1.10.1@sha256:41f73aba7f31, scanning golang.org/x/net: the module is linked but the vulnerable symbols are not in the binary (Module Results only, no Symbol Results entry)."
     }
   ]
 }

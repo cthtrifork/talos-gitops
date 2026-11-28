@@ -114,7 +114,7 @@ spec:
                 mountPath: /volumes/xdg-runtime
           - name: init-dind-externals
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261127.53@sha256:e3642773ca890749afc05257d9c50e0393810de47798cc886510447d7d93a51a
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261128.77@sha256:6c1aa1ad51df1fe33be0221907fdf53128496ae5f05250b5d0d592b58ce8ed64
             imagePullPolicy: IfNotPresent
             command:
               - "cp"
@@ -152,8 +152,8 @@ spec:
                 value: "123"
             resources:
               requests:
-                cpu: 250m
-                memory: 1Gi
+                cpu: 100m
+                memory: 384Mi
               limits:
                 memory: 6Gi
             securityContext:
@@ -179,7 +179,7 @@ spec:
         containers:
           - name: runner
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261127.53@sha256:e3642773ca890749afc05257d9c50e0393810de47798cc886510447d7d93a51a
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261128.77@sha256:6c1aa1ad51df1fe33be0221907fdf53128496ae5f05250b5d0d592b58ce8ed64
             imagePullPolicy: IfNotPresent
             # Podman rejects an XDG_RUNTIME_DIR not owned by its user, and a fresh emptyDir is root-owned.
             command:
@@ -190,9 +190,9 @@ spec:
             resources:
               requests:
                 cpu: 250m
-                memory: 1Gi
+                memory: 768Mi
               limits:
-                memory: 6Gi
+                memory: 4Gi
 
             securityContext:
               seLinuxOptions:
@@ -266,7 +266,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 16Gi
+                      storage: 20Gi
           - name: var-tmp
             ephemeral:
               volumeClaimTemplate:
@@ -276,7 +276,7 @@ spec:
                   storageClassName: lvm-bulk
                   resources:
                     requests:
-                      storage: 10Gi
+                      storage: 6Gi
           - name: work
             ephemeral:
               volumeClaimTemplate:
@@ -286,7 +286,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 6Gi
+                      storage: 8Gi
           - name: tmp
             ephemeral:
               volumeClaimTemplate:
@@ -296,7 +296,7 @@ spec:
                   storageClassName: lvm-bulk
                   resources:
                     requests:
-                      storage: 16Gi
+                      storage: 4Gi
           - name: container-rootless-storage
             ephemeral:
               volumeClaimTemplate:
@@ -306,7 +306,7 @@ spec:
                   storageClassName: lvm-fast
                   resources:
                     requests:
-                      storage: 20Gi
+                      storage: 12Gi
     listenerTemplate:
       metadata:
         labels:

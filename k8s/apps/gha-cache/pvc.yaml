@@ -1,5 +1,5 @@
 ---
-# Cache and SQLite database of the cache server, on JuiceFS: its pod can start on any node. Peak use was 5.7 GiB; the cap is in helm-release.yaml.
+# Cache files of the cache server, on JuiceFS: its pod can start on any node. The metadata is in PostgreSQL (postgres-cluster.yaml). Peak use was 5.7 GiB; the cap is in helm-release.yaml.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

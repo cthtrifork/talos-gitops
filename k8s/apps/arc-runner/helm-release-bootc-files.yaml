@@ -46,7 +46,7 @@ spec:
         containers:
           - name: runner
             # renovate: datasource=docker depName=ghcr.io/cthtrifork/talos-gitops/github-actions-runner versioning=semver
-            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261127.53@sha256:e3642773ca890749afc05257d9c50e0393810de47798cc886510447d7d93a51a
+            image: ghcr.io/cthtrifork/talos-gitops/github-actions-runner:2.338.2-20261128.77@sha256:6c1aa1ad51df1fe33be0221907fdf53128496ae5f05250b5d0d592b58ce8ed64
             imagePullPolicy: IfNotPresent
             command:
               - "/home/runner/run.sh"
