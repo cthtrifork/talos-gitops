@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/postgresql.cnpg.io/cluster_v1.json
-# Metadata of the cache server (keys, versions, upload state). One instance, no backups: losing it only costs a cold cache.
+# Metadata of the cache server (keys, versions, upload state): three instances on different nodes and one synchronous standby,
+# so a node lost or rebooted keeps the cache server running. No backups: losing everything only costs a cold cache.
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -12,10 +13,12 @@ spec:
     kind: ClusterImageCatalog
     name: postgresql-minimal-trixie
     major: 18
-  instances: 1
-  # A single instance has nothing to fail over to; the default PDB would only block drains and Talos upgrades.
-  enablePDB: false
+  instances: 3
   enableSuperuserAccess: false
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
   storage:
     size: 1Gi
     storageClass: lvm-fast
@@ -41,6 +44,10 @@ spec:
     pg_hba:
       # Before CNPG's default "host all all all scram-sha-256" rule; cert auth matches CN against the role name.
       - hostssl gha_cache gha_cache all cert
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: preferred
   bootstrap:
     initdb:
       database: gha_cache
