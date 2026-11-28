@@ -37,7 +37,7 @@ spec:
               key: api-key
               name: dependency-track-api-key
               optional: true
-        image: mirror.gcr.io/redpandadata/connect:4.119.0@sha256:64a140553f57eaefe897ad9613b9190e30a51e08fa8cdc9ebb02120440654fa7
+        image: mirror.gcr.io/redpandadata/connect:4.120.0@sha256:d67bef65bace98c1a1ac7ea693836f8d79a28062d2d892eb1417a92da66d6caf
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
