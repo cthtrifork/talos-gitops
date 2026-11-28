@@ -42,12 +42,14 @@ def status_fields:
     + {impact_statement: (.analysis.detail // "Marked \(.analysis.state) in Dependency-Track")}
   end;
 
+# Each package is also a product of its own: Trivy checks the package itself first, while the image path is skipped for packages in
+# a dependency cycle (reachRoot in trivy pkg/vex/vex.go), e.g. libssl3t64 and libzstd1.
 def statement($product; $alias; $purls):
   subcomponents($purls) as $subcomponents
   | select($subcomponents | length > 0)
   | {
       vulnerability: {name: .id},
-      products: ([$product, $alias] | unique | map({"@id": ., subcomponents: $subcomponents}))
+      products: (([$product, $alias] | unique | map({"@id": ., subcomponents: $subcomponents})) + ($subcomponents | map({"@id": .["@id"]})))
     }
     + status_fields;
 

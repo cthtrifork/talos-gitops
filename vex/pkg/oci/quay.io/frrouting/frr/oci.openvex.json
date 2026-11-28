@@ -3,8 +3,8 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/quay.io/frrouting/frr",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T22:00:31Z",
-  "version": 1,
+  "timestamp": "2026-11-28T07:45:32Z",
+  "version": 2,
   "statements": [
     {
       "vulnerability": {
@@ -32,6 +32,12 @@
               "@id": "pkg:apk/alpine/zlib-dev"
             }
           ]
+        },
+        {
+          "@id": "pkg:apk/alpine/zlib"
+        },
+        {
+          "@id": "pkg:apk/alpine/zlib-dev"
         }
       ],
       "status": "not_affected",

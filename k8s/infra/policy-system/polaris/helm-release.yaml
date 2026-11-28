@@ -909,6 +909,7 @@ spec:
             - arc-files-bootc
             - arc-e2e-talos-gitops
             - arc-scan-talos-gitops
+            - arc-light-talos-gitops
           rules:
             - notReadOnlyRootFilesystem
             - readinessProbeMissing

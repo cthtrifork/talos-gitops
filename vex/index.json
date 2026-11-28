@@ -1,6 +1,742 @@
 {
-  "updated_at": "2026-11-27T14:23:33Z",
+  "updated_at": "2026-11-28T07:45:32Z",
   "packages": [
+    {
+      "id": "pkg:apk/alpine/brotli-libs",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/busybox",
+      "location": "pkg/oci/mirror.gcr.io/openebs/lvm-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/busybox-binsh",
+      "location": "pkg/oci/mirror.gcr.io/openebs/lvm-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/git",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/git-init-template",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/libcrypto3",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/libcurl",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/libexpat",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/libssl3",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/musl",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/musl-utils",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/openssh-client-common",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/openssh-client-default",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/openssh-keygen",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/pcre2",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/pyc",
+      "location": "pkg/oci/mirror.gcr.io/openebs/lvm-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/python3",
+      "location": "pkg/oci/mirror.gcr.io/openebs/lvm-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/python3-pyc",
+      "location": "pkg/oci/mirror.gcr.io/openebs/lvm-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/python3-pycache-pyc0",
+      "location": "pkg/oci/mirror.gcr.io/openebs/lvm-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/ssl_client",
+      "location": "pkg/oci/mirror.gcr.io/openebs/lvm-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/zlib",
+      "location": "pkg/oci/ghcr.io/aquasecurity/trivy/oci.openvex.json"
+    },
+    {
+      "id": "pkg:apk/alpine/zlib-dev",
+      "location": "pkg/oci/quay.io/frrouting/frr/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/apt",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/attr",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/bash",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/bsdutils",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/coreutils",
+      "location": "pkg/oci/mirror.gcr.io/valkey/valkey/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/curl",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/dbus",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/dbus-bin",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/dbus-daemon",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/dbus-session-bus-common",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/dbus-system-bus-common",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/dbus-user-session",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/diffutils",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/dirmngr",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/dpkg",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gcc-14-base",
+      "location": "pkg/oci/mirror.gcr.io/valkey/valkey/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gnupg",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gnupg-l10n",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gnupg-utils",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gnupg2",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gpg",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gpg-agent",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gpg-wks-client",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gpg-wks-server",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gpgconf",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gpgsm",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gpgv",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/gzip",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/iputils-ping",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/krb5-locales",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libacl1",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libacl1-dev",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libaom3",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libapparmor1",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libapt-pkg6.0",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libapt-pkg7.0",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libattr1",
+      "location": "pkg/oci/mirror.gcr.io/valkey/valkey/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libattr1-dev",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libblkid1",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libbpf1",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libbrotli1",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libc-bin",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libc-dev-bin",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libc-devtools",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libc-l10n",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libc6",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libc6-dev",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libcurl3-gnutls",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libcurl4",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libdbus-1-3",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libde265-0",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libelf1",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libexpat1",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libfdisk1",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libgcc-s1",
+      "location": "pkg/oci/mirror.gcr.io/valkey/valkey/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libgcrypt20",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libgd3",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libglib2.0-0",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libglib2.0-bin",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libglib2.0-data",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libgnutls30",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libgnutls30t64",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libgssapi-krb5-2",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libgstreamer1.0-0",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libheif1",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libip4tc2",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libk5crypto3",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libkrb5-3",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libkrb5support0",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/liblastlog2-2",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libldap-2.5-0",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libldap-common",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libmount1",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libncursesw6",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libnghttp2-14",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libnss-systemd",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libpam-modules",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libpam-modules-bin",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libpam-runtime",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libpam-systemd",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libpam0g",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libpcap0.8",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libperl5.40",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libpng16-16",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libpython3.11-minimal",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libpython3.11-stdlib",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/librados-dev",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/librados2",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libsasl2-2",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libsasl2-modules",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libsasl2-modules-db",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libseccomp2",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libsmartcols1",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libsqlite3-0",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libssl3",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libssl3t64",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libstdc%2B%2B6",
+      "location": "pkg/oci/mirror.gcr.io/valkey/valkey/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libsystemd-shared",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libsystemd0",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libtiff6",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libtinfo6",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libtirpc-dev",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libudev1",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libuuid1",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libx11-6",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libx11-data",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libxml2",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libxslt1.1",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libxtables12",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/libzstd1",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/locales",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/login",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/login.defs",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/lrzsz",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/mount",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/ncurses-base",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/ncurses-bin",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/ncurses-term",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/net-tools",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/openssh-client",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/openssh-server",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/openssh-sftp-server",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/openssl",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/openssl-provider-legacy",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/passwd",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/perl",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/perl-base",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/python3-certifi",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/python3-cryptography",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/python3-jwt",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/python3-oauthlib",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/python3-requests",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/python3-urllib3",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/python3.11",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/python3.11-minimal",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/systemd",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/systemd-sysv",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/systemd-timesyncd",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/sysvinit-utils",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/tar",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/tzdata",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/util-linux",
+      "location": "pkg/oci/ghcr.io/cloudnative-pg/postgresql/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/util-linux-extra",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/uuid-dev",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/wget",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/xfsprogs",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/xxd",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/debian/zlib1g",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/ubuntu/libgssapi-krb5-2",
+      "location": "pkg/oci/ghcr.io/renovatebot/renovate/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/ubuntu/libk5crypto3",
+      "location": "pkg/oci/ghcr.io/renovatebot/renovate/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/ubuntu/libkrb5-3",
+      "location": "pkg/oci/ghcr.io/renovatebot/renovate/oci.openvex.json"
+    },
+    {
+      "id": "pkg:deb/ubuntu/libkrb5support0",
+      "location": "pkg/oci/ghcr.io/renovatebot/renovate/oci.openvex.json"
+    },
+    {
+      "id": "pkg:golang/github.com/coredns/coredns",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:golang/github.com/go-jose/go-jose/v4",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:golang/github.com/klauspost/compress",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:golang/github.com/tidwall/gjson",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
+    },
+    {
+      "id": "pkg:golang/golang.org/x/crypto",
+      "location": "pkg/oci/ghcr.io/fluxcd/helm-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:golang/golang.org/x/net",
+      "location": "pkg/oci/ghcr.io/fluxcd/helm-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:golang/golang.org/x/sys",
+      "location": "pkg/oci/ghcr.io/cthtrifork/talos-gitops/claude-runner/oci.openvex.json"
+    },
+    {
+      "id": "pkg:golang/golang.org/x/text",
+      "location": "pkg/oci/ghcr.io/cthtrifork/talos-gitops/claude-runner/oci.openvex.json"
+    },
+    {
+      "id": "pkg:golang/google.golang.org/grpc",
+      "location": "pkg/oci/ghcr.io/fluxcd/kustomize-controller/oci.openvex.json"
+    },
+    {
+      "id": "pkg:golang/stdlib",
+      "location": "pkg/oci/ghcr.io/cthtrifork/talos-gitops/claude-runner/oci.openvex.json"
+    },
     {
       "id": "pkg:oci/apiserver?repository_url=mirror.gcr.io%2Fdependencytrack%2Fapiserver",
       "location": "pkg/oci/mirror.gcr.io/dependencytrack/apiserver/oci.openvex.json"
@@ -258,6 +994,14 @@
       "location": "pkg/oci/mirror.gcr.io/juicedata/mount/oci.openvex.json"
     },
     {
+      "id": "pkg:oci/mqtt2prometheus?repository_url=ghcr.io%2Fhikhvar%2Fmqtt2prometheus",
+      "location": "pkg/oci/ghcr.io/hikhvar/mqtt2prometheus/oci.openvex.json"
+    },
+    {
+      "id": "pkg:oci/mqtt2prometheus?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fhikhvar%2Fmqtt2prometheus",
+      "location": "pkg/oci/ghcr.io/hikhvar/mqtt2prometheus/oci.openvex.json"
+    },
+    {
       "id": "pkg:oci/nginx-unprivileged?repository_url=mirror.gcr.io%2Fnginxinc%2Fnginx-unprivileged",
       "location": "pkg/oci/mirror.gcr.io/nginxinc/nginx-unprivileged/oci.openvex.json"
     },
@@ -408,6 +1152,14 @@
     {
       "id": "pkg:oci/zot?repository_url=zot.registry-system.svc.cluster.local:5000%2Fghcr-cache%2Fproject-zot%2Fzot",
       "location": "pkg/oci/ghcr.io/project-zot/zot/oci.openvex.json"
+    },
+    {
+      "id": "pkg:pypi/pip",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
+    },
+    {
+      "id": "pkg:pypi/setuptools",
+      "location": "pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver/oci.openvex.json"
     }
   ]
 }

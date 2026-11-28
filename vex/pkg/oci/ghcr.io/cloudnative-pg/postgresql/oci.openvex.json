@@ -3,8 +3,8 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/cloudnative-pg/postgresql",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-27T14:23:33Z",
-  "version": 3,
+  "timestamp": "2026-11-28T07:45:31Z",
+  "version": 4,
   "statements": [
     {
       "vulnerability": {
@@ -26,6 +26,9 @@
               "@id": "pkg:deb/debian/tar"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/tar"
         }
       ],
       "status": "not_affected",
@@ -52,6 +55,9 @@
               "@id": "pkg:deb/debian/login.defs"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/login.defs"
         }
       ],
       "status": "not_affected",
@@ -78,6 +84,9 @@
               "@id": "pkg:deb/debian/passwd"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/passwd"
         }
       ],
       "status": "not_affected",
@@ -104,6 +113,9 @@
               "@id": "pkg:deb/debian/apt"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/apt"
         }
       ],
       "status": "not_affected",
@@ -130,6 +142,9 @@
               "@id": "pkg:deb/debian/libapt-pkg7.0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libapt-pkg7.0"
         }
       ],
       "status": "not_affected",
@@ -156,6 +171,9 @@
               "@id": "pkg:deb/debian/libgnutls30t64"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgnutls30t64"
         }
       ],
       "status": "not_affected",
@@ -182,6 +200,9 @@
               "@id": "pkg:deb/debian/libperl5.40"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libperl5.40"
         }
       ],
       "status": "not_affected",
@@ -208,6 +229,9 @@
               "@id": "pkg:deb/debian/perl"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/perl"
         }
       ],
       "status": "not_affected",
@@ -234,6 +258,9 @@
               "@id": "pkg:deb/debian/libsystemd-shared"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsystemd-shared"
         }
       ],
       "status": "not_affected",
@@ -260,6 +287,9 @@
               "@id": "pkg:deb/debian/libudev1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libudev1"
         }
       ],
       "status": "not_affected",
@@ -286,6 +316,9 @@
               "@id": "pkg:deb/debian/systemd"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/systemd"
         }
       ],
       "status": "not_affected",
@@ -312,6 +345,9 @@
               "@id": "pkg:deb/debian/libldap-common"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libldap-common"
         }
       ],
       "status": "not_affected",
@@ -338,6 +374,9 @@
               "@id": "pkg:deb/debian/libxslt1.1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libxslt1.1"
         }
       ],
       "status": "not_affected",
@@ -382,6 +421,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -407,6 +458,9 @@
               "@id": "pkg:deb/debian/libgcrypt20"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgcrypt20"
         }
       ],
       "status": "not_affected",
@@ -451,6 +505,18 @@
               "@id": "pkg:deb/debian/locales"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libc-bin"
+        },
+        {
+          "@id": "pkg:deb/debian/libc-l10n"
+        },
+        {
+          "@id": "pkg:deb/debian/libc6"
+        },
+        {
+          "@id": "pkg:deb/debian/locales"
         }
       ],
       "status": "not_affected",
@@ -476,6 +542,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -502,6 +571,9 @@
               "@id": "pkg:deb/debian/bsdutils"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/bsdutils"
         }
       ],
       "status": "not_affected",
@@ -528,6 +600,9 @@
               "@id": "pkg:deb/debian/libblkid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libblkid1"
         }
       ],
       "status": "not_affected",
@@ -554,6 +629,9 @@
               "@id": "pkg:deb/debian/liblastlog2-2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/liblastlog2-2"
         }
       ],
       "status": "not_affected",
@@ -580,6 +658,9 @@
               "@id": "pkg:deb/debian/libmount1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libmount1"
         }
       ],
       "status": "not_affected",
@@ -606,6 +687,9 @@
               "@id": "pkg:deb/debian/libsmartcols1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsmartcols1"
         }
       ],
       "status": "not_affected",
@@ -632,6 +716,9 @@
               "@id": "pkg:deb/debian/login"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/login"
         }
       ],
       "status": "not_affected",
@@ -658,6 +745,9 @@
               "@id": "pkg:deb/debian/mount"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/mount"
         }
       ],
       "status": "not_affected",
@@ -684,6 +774,9 @@
               "@id": "pkg:deb/debian/util-linux"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux"
         }
       ],
       "status": "not_affected",
@@ -710,6 +803,9 @@
               "@id": "pkg:deb/debian/libsystemd-shared"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsystemd-shared"
         }
       ],
       "status": "not_affected",
@@ -736,6 +832,9 @@
               "@id": "pkg:deb/debian/libudev1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libudev1"
         }
       ],
       "status": "not_affected",
@@ -762,6 +861,9 @@
               "@id": "pkg:deb/debian/systemd"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/systemd"
         }
       ],
       "status": "not_affected",
@@ -788,6 +890,9 @@
               "@id": "pkg:deb/debian/libsystemd-shared"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsystemd-shared"
         }
       ],
       "status": "not_affected",
@@ -814,6 +919,9 @@
               "@id": "pkg:deb/debian/libudev1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libudev1"
         }
       ],
       "status": "not_affected",
@@ -840,6 +948,9 @@
               "@id": "pkg:deb/debian/systemd"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/systemd"
         }
       ],
       "status": "not_affected",
@@ -866,6 +977,9 @@
               "@id": "pkg:deb/debian/libsystemd-shared"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsystemd-shared"
         }
       ],
       "status": "not_affected",
@@ -892,6 +1006,9 @@
               "@id": "pkg:deb/debian/libudev1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libudev1"
         }
       ],
       "status": "not_affected",
@@ -918,6 +1035,9 @@
               "@id": "pkg:deb/debian/systemd"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/systemd"
         }
       ],
       "status": "not_affected",
@@ -944,6 +1064,9 @@
               "@id": "pkg:deb/debian/libgcrypt20"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgcrypt20"
         }
       ],
       "status": "not_affected",
@@ -988,6 +1111,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1031,6 +1166,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1056,6 +1203,9 @@
               "@id": "pkg:deb/debian/login.defs"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/login.defs"
         }
       ],
       "status": "not_affected",
@@ -1082,6 +1232,9 @@
               "@id": "pkg:deb/debian/passwd"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/passwd"
         }
       ],
       "status": "not_affected",
@@ -1108,6 +1261,9 @@
               "@id": "pkg:deb/debian/libncursesw6"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libncursesw6"
         }
       ],
       "status": "not_affected",
@@ -1134,6 +1290,9 @@
               "@id": "pkg:deb/debian/ncurses-base"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/ncurses-base"
         }
       ],
       "status": "not_affected",
@@ -1160,6 +1319,9 @@
               "@id": "pkg:deb/debian/ncurses-bin"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/ncurses-bin"
         }
       ],
       "status": "not_affected",
@@ -1186,6 +1348,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -1212,6 +1377,9 @@
               "@id": "pkg:deb/debian/dirmngr"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/dirmngr"
         }
       ],
       "status": "not_affected",
@@ -1238,6 +1406,9 @@
               "@id": "pkg:deb/debian/gnupg"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gnupg"
         }
       ],
       "status": "not_affected",
@@ -1264,6 +1435,9 @@
               "@id": "pkg:deb/debian/gnupg-l10n"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gnupg-l10n"
         }
       ],
       "status": "not_affected",
@@ -1290,6 +1464,9 @@
               "@id": "pkg:deb/debian/gpg"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpg"
         }
       ],
       "status": "not_affected",
@@ -1316,6 +1493,9 @@
               "@id": "pkg:deb/debian/gpg-agent"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpg-agent"
         }
       ],
       "status": "not_affected",
@@ -1342,6 +1522,9 @@
               "@id": "pkg:deb/debian/gpgconf"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpgconf"
         }
       ],
       "status": "not_affected",
@@ -1368,6 +1551,9 @@
               "@id": "pkg:deb/debian/gpgsm"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpgsm"
         }
       ],
       "status": "not_affected",
@@ -1394,6 +1580,9 @@
               "@id": "pkg:deb/debian/libsasl2-modules"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsasl2-modules"
         }
       ],
       "status": "not_affected",
@@ -1420,6 +1609,9 @@
               "@id": "pkg:deb/debian/openssl"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/openssl"
         }
       ],
       "status": "not_affected",
@@ -1446,6 +1638,9 @@
               "@id": "pkg:deb/debian/libssl3t64"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libssl3t64"
         }
       ],
       "status": "not_affected",
@@ -1472,6 +1667,9 @@
               "@id": "pkg:deb/debian/openssl-provider-legacy"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/openssl-provider-legacy"
         }
       ],
       "status": "not_affected",
@@ -1516,6 +1714,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1559,6 +1769,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1584,6 +1806,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -1610,6 +1835,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -1636,6 +1864,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -1662,6 +1893,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -1688,6 +1922,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -1714,6 +1951,9 @@
               "@id": "pkg:deb/debian/openssl"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/openssl"
         }
       ],
       "status": "not_affected",
@@ -1740,6 +1980,9 @@
               "@id": "pkg:deb/debian/libssl3t64"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libssl3t64"
         }
       ],
       "status": "not_affected",
@@ -1766,6 +2009,9 @@
               "@id": "pkg:deb/debian/openssl-provider-legacy"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/openssl-provider-legacy"
         }
       ],
       "status": "not_affected",
@@ -1792,6 +2038,9 @@
               "@id": "pkg:deb/debian/libgnutls30t64"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgnutls30t64"
         }
       ],
       "status": "not_affected",
@@ -1818,6 +2067,9 @@
               "@id": "pkg:deb/debian/libgnutls30t64"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgnutls30t64"
         }
       ],
       "status": "not_affected",
@@ -1844,6 +2096,9 @@
               "@id": "pkg:deb/debian/libgnutls30t64"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgnutls30t64"
         }
       ],
       "status": "not_affected",
@@ -1870,6 +2125,9 @@
               "@id": "pkg:deb/debian/login.defs"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/login.defs"
         }
       ],
       "status": "not_affected",
@@ -1896,6 +2154,9 @@
               "@id": "pkg:deb/debian/passwd"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/passwd"
         }
       ],
       "status": "not_affected",
@@ -1922,6 +2183,9 @@
               "@id": "pkg:deb/debian/libperl5.40"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libperl5.40"
         }
       ],
       "status": "not_affected",
@@ -1948,6 +2212,9 @@
               "@id": "pkg:deb/debian/perl"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/perl"
         }
       ],
       "status": "not_affected",
@@ -1974,6 +2241,9 @@
               "@id": "pkg:deb/debian/libsystemd-shared"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsystemd-shared"
         }
       ],
       "status": "not_affected",
@@ -2000,6 +2270,9 @@
               "@id": "pkg:deb/debian/libudev1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libudev1"
         }
       ],
       "status": "not_affected",
@@ -2026,6 +2299,9 @@
               "@id": "pkg:deb/debian/systemd"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/systemd"
         }
       ],
       "status": "not_affected",
@@ -2052,6 +2328,9 @@
               "@id": "pkg:deb/debian/tar"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/tar"
         }
       ],
       "status": "not_affected",
@@ -2078,6 +2357,9 @@
               "@id": "pkg:deb/debian/tar"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/tar"
         }
       ],
       "status": "not_affected",
@@ -2104,6 +2386,9 @@
               "@id": "pkg:deb/debian/libldap-common"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libldap-common"
         }
       ],
       "status": "not_affected",
@@ -2130,6 +2415,9 @@
               "@id": "pkg:deb/debian/dirmngr"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/dirmngr"
         }
       ],
       "status": "not_affected",
@@ -2156,6 +2444,9 @@
               "@id": "pkg:deb/debian/gnupg"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gnupg"
         }
       ],
       "status": "not_affected",
@@ -2182,6 +2473,9 @@
               "@id": "pkg:deb/debian/gnupg-l10n"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gnupg-l10n"
         }
       ],
       "status": "not_affected",
@@ -2208,6 +2502,9 @@
               "@id": "pkg:deb/debian/gpg"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpg"
         }
       ],
       "status": "not_affected",
@@ -2234,6 +2531,9 @@
               "@id": "pkg:deb/debian/gpg-agent"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpg-agent"
         }
       ],
       "status": "not_affected",
@@ -2260,6 +2560,9 @@
               "@id": "pkg:deb/debian/gpgconf"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpgconf"
         }
       ],
       "status": "not_affected",
@@ -2286,6 +2589,9 @@
               "@id": "pkg:deb/debian/gpgsm"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpgsm"
         }
       ],
       "status": "not_affected",
@@ -2312,6 +2618,9 @@
               "@id": "pkg:deb/debian/bsdutils"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/bsdutils"
         }
       ],
       "status": "not_affected",
@@ -2338,6 +2647,9 @@
               "@id": "pkg:deb/debian/libblkid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libblkid1"
         }
       ],
       "status": "not_affected",
@@ -2364,6 +2676,9 @@
               "@id": "pkg:deb/debian/liblastlog2-2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/liblastlog2-2"
         }
       ],
       "status": "not_affected",
@@ -2390,6 +2705,9 @@
               "@id": "pkg:deb/debian/libmount1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libmount1"
         }
       ],
       "status": "not_affected",
@@ -2416,6 +2734,9 @@
               "@id": "pkg:deb/debian/libsmartcols1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsmartcols1"
         }
       ],
       "status": "not_affected",
@@ -2442,6 +2763,9 @@
               "@id": "pkg:deb/debian/login"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/login"
         }
       ],
       "status": "not_affected",
@@ -2468,6 +2792,9 @@
               "@id": "pkg:deb/debian/mount"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/mount"
         }
       ],
       "status": "not_affected",
@@ -2494,6 +2821,9 @@
               "@id": "pkg:deb/debian/util-linux"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux"
         }
       ],
       "status": "not_affected",
@@ -2520,6 +2850,9 @@
               "@id": "pkg:deb/debian/libperl5.40"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libperl5.40"
         }
       ],
       "status": "not_affected",
@@ -2546,6 +2879,9 @@
               "@id": "pkg:deb/debian/perl"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/perl"
         }
       ],
       "status": "not_affected",
@@ -2572,6 +2908,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -2598,6 +2937,9 @@
               "@id": "pkg:deb/debian/diffutils"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/diffutils"
         }
       ],
       "status": "not_affected",
@@ -2624,6 +2966,9 @@
               "@id": "pkg:deb/debian/libpam-modules"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libpam-modules"
         }
       ],
       "status": "not_affected",
@@ -2650,6 +2995,9 @@
               "@id": "pkg:deb/debian/libpam-modules-bin"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libpam-modules-bin"
         }
       ],
       "status": "not_affected",
@@ -2676,6 +3024,9 @@
               "@id": "pkg:deb/debian/libpam-runtime"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libpam-runtime"
         }
       ],
       "status": "not_affected",
@@ -2702,6 +3053,9 @@
               "@id": "pkg:deb/debian/dirmngr"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/dirmngr"
         }
       ],
       "status": "not_affected",
@@ -2728,6 +3082,9 @@
               "@id": "pkg:deb/debian/gnupg"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gnupg"
         }
       ],
       "status": "not_affected",
@@ -2754,6 +3111,9 @@
               "@id": "pkg:deb/debian/gnupg-l10n"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gnupg-l10n"
         }
       ],
       "status": "not_affected",
@@ -2780,6 +3140,9 @@
               "@id": "pkg:deb/debian/gpg"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpg"
         }
       ],
       "status": "not_affected",
@@ -2806,6 +3169,9 @@
               "@id": "pkg:deb/debian/gpg-agent"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpg-agent"
         }
       ],
       "status": "not_affected",
@@ -2832,6 +3198,9 @@
               "@id": "pkg:deb/debian/gpgconf"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpgconf"
         }
       ],
       "status": "not_affected",
@@ -2858,6 +3227,9 @@
               "@id": "pkg:deb/debian/gpgsm"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/gpgsm"
         }
       ],
       "status": "not_affected",
@@ -2884,6 +3256,9 @@
               "@id": "pkg:deb/debian/libgnutls30t64"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgnutls30t64"
         }
       ],
       "status": "not_affected",
@@ -2910,6 +3285,9 @@
               "@id": "pkg:deb/debian/libxml2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2"
         }
       ],
       "status": "not_affected",
@@ -2936,6 +3314,9 @@
               "@id": "pkg:deb/debian/bsdutils"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/bsdutils"
         }
       ],
       "status": "not_affected",
@@ -2962,6 +3343,9 @@
               "@id": "pkg:deb/debian/libblkid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libblkid1"
         }
       ],
       "status": "not_affected",
@@ -2988,6 +3372,9 @@
               "@id": "pkg:deb/debian/liblastlog2-2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/liblastlog2-2"
         }
       ],
       "status": "not_affected",
@@ -3014,6 +3401,9 @@
               "@id": "pkg:deb/debian/libmount1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libmount1"
         }
       ],
       "status": "not_affected",
@@ -3040,6 +3430,9 @@
               "@id": "pkg:deb/debian/libsmartcols1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsmartcols1"
         }
       ],
       "status": "not_affected",
@@ -3066,6 +3459,9 @@
               "@id": "pkg:deb/debian/login"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/login"
         }
       ],
       "status": "not_affected",
@@ -3092,6 +3488,9 @@
               "@id": "pkg:deb/debian/mount"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/mount"
         }
       ],
       "status": "not_affected",
@@ -3118,6 +3517,9 @@
               "@id": "pkg:deb/debian/util-linux"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux"
         }
       ],
       "status": "not_affected",
@@ -3144,6 +3546,9 @@
               "@id": "pkg:deb/debian/bsdutils"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/bsdutils"
         }
       ],
       "status": "not_affected",
@@ -3170,6 +3575,9 @@
               "@id": "pkg:deb/debian/libblkid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libblkid1"
         }
       ],
       "status": "not_affected",
@@ -3196,6 +3604,9 @@
               "@id": "pkg:deb/debian/liblastlog2-2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/liblastlog2-2"
         }
       ],
       "status": "not_affected",
@@ -3222,6 +3633,9 @@
               "@id": "pkg:deb/debian/libmount1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libmount1"
         }
       ],
       "status": "not_affected",
@@ -3248,6 +3662,9 @@
               "@id": "pkg:deb/debian/libsmartcols1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsmartcols1"
         }
       ],
       "status": "not_affected",
@@ -3274,6 +3691,9 @@
               "@id": "pkg:deb/debian/login"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/login"
         }
       ],
       "status": "not_affected",
@@ -3300,6 +3720,9 @@
               "@id": "pkg:deb/debian/mount"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/mount"
         }
       ],
       "status": "not_affected",
@@ -3326,6 +3749,9 @@
               "@id": "pkg:deb/debian/util-linux"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux"
         }
       ],
       "status": "not_affected",
@@ -3352,6 +3778,9 @@
               "@id": "pkg:deb/debian/bsdutils"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/bsdutils"
         }
       ],
       "status": "not_affected",
@@ -3378,6 +3807,9 @@
               "@id": "pkg:deb/debian/libblkid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libblkid1"
         }
       ],
       "status": "not_affected",
@@ -3404,6 +3836,9 @@
               "@id": "pkg:deb/debian/liblastlog2-2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/liblastlog2-2"
         }
       ],
       "status": "not_affected",
@@ -3430,6 +3865,9 @@
               "@id": "pkg:deb/debian/libmount1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libmount1"
         }
       ],
       "status": "not_affected",
@@ -3456,6 +3894,9 @@
               "@id": "pkg:deb/debian/libsmartcols1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsmartcols1"
         }
       ],
       "status": "not_affected",
@@ -3482,6 +3923,9 @@
               "@id": "pkg:deb/debian/login"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/login"
         }
       ],
       "status": "not_affected",
@@ -3508,6 +3952,9 @@
               "@id": "pkg:deb/debian/mount"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/mount"
         }
       ],
       "status": "not_affected",
@@ -3534,6 +3981,9 @@
               "@id": "pkg:deb/debian/util-linux"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux"
         }
       ],
       "status": "not_affected",
@@ -3560,6 +4010,9 @@
               "@id": "pkg:deb/debian/bsdutils"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/bsdutils"
         }
       ],
       "status": "not_affected",
@@ -3586,6 +4039,9 @@
               "@id": "pkg:deb/debian/libblkid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libblkid1"
         }
       ],
       "status": "not_affected",
@@ -3612,6 +4068,9 @@
               "@id": "pkg:deb/debian/liblastlog2-2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/liblastlog2-2"
         }
       ],
       "status": "not_affected",
@@ -3638,6 +4097,9 @@
               "@id": "pkg:deb/debian/libmount1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libmount1"
         }
       ],
       "status": "not_affected",
@@ -3664,6 +4126,9 @@
               "@id": "pkg:deb/debian/libsmartcols1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsmartcols1"
         }
       ],
       "status": "not_affected",
@@ -3690,6 +4155,9 @@
               "@id": "pkg:deb/debian/login"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/login"
         }
       ],
       "status": "not_affected",
@@ -3716,6 +4184,9 @@
               "@id": "pkg:deb/debian/mount"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/mount"
         }
       ],
       "status": "not_affected",
@@ -3742,6 +4213,9 @@
               "@id": "pkg:deb/debian/util-linux"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux"
         }
       ],
       "status": "not_affected",
@@ -3768,6 +4242,9 @@
               "@id": "pkg:deb/debian/libxml2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2"
         }
       ],
       "status": "not_affected",
@@ -3794,6 +4271,9 @@
               "@id": "pkg:deb/debian/libxml2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2"
         }
       ],
       "status": "not_affected",
@@ -3820,6 +4300,9 @@
               "@id": "pkg:deb/debian/libxml2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2"
         }
       ],
       "status": "not_affected",
@@ -3846,6 +4329,9 @@
               "@id": "pkg:deb/debian/libxml2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2"
         }
       ],
       "status": "not_affected",
@@ -3872,6 +4358,9 @@
               "@id": "pkg:deb/debian/libgnutls30t64"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgnutls30t64"
         }
       ],
       "status": "not_affected",
@@ -3898,6 +4387,9 @@
               "@id": "pkg:deb/debian/dpkg"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/dpkg"
         }
       ],
       "status": "not_affected",
@@ -3924,6 +4416,9 @@
               "@id": "pkg:deb/debian/libperl5.40"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libperl5.40"
         }
       ],
       "status": "not_affected",
@@ -3950,6 +4445,9 @@
               "@id": "pkg:deb/debian/perl"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/perl"
         }
       ],
       "status": "not_affected",
@@ -3976,6 +4474,9 @@
               "@id": "pkg:deb/debian/libssl3t64"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libssl3t64"
         }
       ],
       "status": "not_affected",
@@ -4002,6 +4503,9 @@
               "@id": "pkg:deb/debian/openssl-provider-legacy"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/openssl-provider-legacy"
         }
       ],
       "status": "not_affected",
@@ -4028,6 +4532,9 @@
               "@id": "pkg:deb/debian/libssl3t64"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libssl3t64"
         }
       ],
       "status": "not_affected",
@@ -4054,6 +4561,9 @@
               "@id": "pkg:deb/debian/openssl-provider-legacy"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/openssl-provider-legacy"
         }
       ],
       "status": "not_affected",
@@ -4080,6 +4590,9 @@
               "@id": "pkg:deb/debian/libseccomp2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libseccomp2"
         }
       ],
       "status": "not_affected",
@@ -4106,6 +4619,9 @@
               "@id": "pkg:deb/debian/libseccomp2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libseccomp2"
         }
       ],
       "status": "not_affected",
@@ -4132,6 +4648,9 @@
               "@id": "pkg:deb/debian/libseccomp2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libseccomp2"
         }
       ],
       "status": "not_affected",
@@ -4158,6 +4677,9 @@
               "@id": "pkg:deb/debian/libseccomp2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libseccomp2"
         }
       ],
       "status": "not_affected",
@@ -4184,6 +4706,9 @@
               "@id": "pkg:deb/debian/libseccomp2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libseccomp2"
         }
       ],
       "status": "not_affected",
@@ -4210,6 +4735,9 @@
               "@id": "pkg:deb/debian/libseccomp2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libseccomp2"
         }
       ],
       "status": "not_affected",
@@ -4236,6 +4764,9 @@
               "@id": "pkg:deb/debian/libseccomp2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libseccomp2"
         }
       ],
       "status": "not_affected",
@@ -4262,6 +4793,9 @@
               "@id": "pkg:deb/debian/tar"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/tar"
         }
       ],
       "status": "not_affected",
@@ -4288,6 +4822,9 @@
               "@id": "pkg:deb/debian/sysvinit-utils"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/sysvinit-utils"
         }
       ],
       "status": "not_affected",
@@ -4314,6 +4851,9 @@
               "@id": "pkg:deb/debian/login.defs"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/login.defs"
         }
       ],
       "status": "not_affected",
@@ -4340,6 +4880,9 @@
               "@id": "pkg:deb/debian/passwd"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/passwd"
         }
       ],
       "status": "not_affected",
@@ -4366,6 +4909,9 @@
               "@id": "pkg:deb/debian/bash"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/bash"
         }
       ],
       "status": "not_affected",

@@ -3,8 +3,8 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/registry.k8s.io/coredns/coredns",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-26T22:00:32Z",
-  "version": 1,
+  "timestamp": "2026-11-28T07:45:32Z",
+  "version": 2,
   "statements": [
     {
       "vulnerability": {
@@ -26,6 +26,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -51,6 +54,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -76,6 +82,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -101,6 +110,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -126,6 +138,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -151,6 +166,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -176,6 +194,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -201,6 +222,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -226,6 +250,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -251,6 +278,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -276,6 +306,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -301,6 +334,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -326,6 +362,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",

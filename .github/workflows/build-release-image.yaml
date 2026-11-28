@@ -90,6 +90,30 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build cache
+        id: cache
+        # zot on the private runner, as the homeserver-gui build does (buildcache/** is kept 72 hours); the GitHub cache for fork pull requests
+        env:
+          NAME: ${{ inputs.name }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [[ "${RUNNER_ENVIRONMENT}" != self-hosted ]]; then
+            { echo "from=type=gha,scope=${NAME}"; echo "to=type=gha,mode=max,scope=${NAME}"; } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          repo="zot.registry-system.svc.cluster.local:5000/buildcache/${NAME}"
+          # a pull request reads main's cache and writes its own tag
+          tag=main
+          [[ -z "${PR}" ]] || tag="pr-${PR}"
+          {
+            echo "from<<EOF"
+            echo "type=registry,ref=${repo}:main"
+            [[ "${tag}" == main ]] || echo "type=registry,ref=${repo}:${tag}"
+            echo "EOF"
+            # a lost cache write (zot race) must not fail the build
+            echo "to=type=registry,ref=${repo}:${tag},mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build image${{ env.PUBLISH == 'true' && ' and push to GHCR' || (env.PUSH == 'true' && ' (pr tag only)' || ' (not pushed)') }}
         id: build-push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -102,8 +126,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           # the weekly run picks up new packages; a warm cache would reuse the old install layers
           no-cache: ${{ github.event_name == 'schedule' }}
-          cache-from: type=gha,scope=${{ inputs.name }}
-          cache-to: type=gha,mode=max,scope=${{ inputs.name }}
+          cache-from: ${{ steps.cache.outputs.from }}
+          cache-to: ${{ steps.cache.outputs.to }}
           sbom: ${{ env.PUBLISH == 'true' }}
           provenance: ${{ env.PUBLISH == 'true' && 'mode=max' || 'false' }}
           build-args: |
@@ -206,20 +230,39 @@ jobs:
           severity: CRITICAL,HIGH
           trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
           ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
+      - name: Resolve the released image
+        id: released
+        # zot serves a stale cached :latest whose manifests it can no longer read (the pull resets); the digest from ghcr.io is synced fresh
+        run: |
+          digest=$(crane digest "${IMAGE}:latest" 2>/dev/null || true)
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+          echo "ref=${IMAGE}$([ -n "${digest}" ] && echo "@${digest}" || echo ":latest")" >> "$GITHUB_OUTPUT"
       - name: Scan the released image
         id: old
+        # nothing to compare on the first release
+        if: steps.released.outputs.digest != ''
         uses: ./.github/actions/trivy-scan
         with:
-          image: ${{ env.IMAGE }}:latest
+          image: ${{ steps.released.outputs.ref }}
           output: out/old.json
           version: ${{ needs.trivy-db.outputs.version }}
           skip-setup: true
           severity: CRITICAL,HIGH
           trivyignores: k8s/infra/trivy-system/trivy-operator/ignore/trivyignore.yaml
           ignore-policy: k8s/infra/trivy-system/trivy-operator/ignore/ignore-policy.rego
+      - name: Image sizes
+        id: size
+        run: |
+          echo "old=$(scripts/ci/image-size.sh "${IMAGE}:latest")" >> "$GITHUB_OUTPUT"
+          echo "new=$(scripts/ci/image-size.sh "${IMAGE}@${DIGEST}")" >> "$GITHUB_OUTPUT"
+        env:
+          DIGEST: ${{ needs.build.outputs.digest }}
+          OLD: ${{ steps.released.outputs.ref }}
       - name: Write the comment
         env:
           NEW_REF: ${{ env.IMAGE }}@${{ needs.build.outputs.digest }}
+          OLD_SIZE: ${{ steps.size.outputs.old }}
+          NEW_SIZE: ${{ steps.size.outputs.new }}
           OLD_REF: ${{ env.IMAGE }}:latest
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -228,7 +271,7 @@ jobs:
           new=out/new.json old=out/old.json
           [ -s "${new}" ] || new=empty.json
           [ -s "${old}" ] || old=empty.json
-          jq -r --arg new_ref "${NEW_REF}" --arg old_ref "${OLD_REF}" --arg run_url "${RUN_URL}" --slurpfile o "${old}" -f scripts/ci/scan-comment.jq "${new}" > out/comment.md
+          jq -r --arg new_ref "${NEW_REF}" --arg old_ref "${OLD_REF}" --arg old_size "${OLD_SIZE}" --arg new_size "${NEW_SIZE}" --arg run_url "${RUN_URL}" --slurpfile o "${old}" -f scripts/ci/scan-comment.jq "${new}" > out/comment.md
           if [ -s out/new.json ]; then
             trivy convert --format template --template "@scripts/ci/vuln-list.tpl" out/new.json > list.md
             count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' out/new.json)
@@ -245,9 +288,9 @@ jobs:
           comment: out/comment.md
           report: out/*.trivy.json
           header: scan-images ${{ inputs.name }}
-      - name: Fail if the new scan failed
-        # findings never fail the job; a scan that could not run does (usually transient: re-run)
-        if: steps.new.outputs.outcome == 'failure'
+      - name: Fail if a scan failed
+        # findings never fail the job; a scan that could not run does, so does a missing comparison (usually transient: re-run)
+        if: steps.new.outputs.outcome == 'failure' || steps.old.outputs.outcome == 'failure'
         run: |
-          echo "::error::The Trivy scan failed (see the scan step above); re-run the job"
+          echo "::error::A Trivy scan failed (see the scan steps above); re-run the job"
           exit 1

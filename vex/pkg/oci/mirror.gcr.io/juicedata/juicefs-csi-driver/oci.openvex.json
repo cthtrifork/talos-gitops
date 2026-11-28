@@ -3,8 +3,8 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/mirror.gcr.io/juicedata/juicefs-csi-driver",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-27T06:00:25Z",
-  "version": 3,
+  "timestamp": "2026-11-28T07:45:32Z",
+  "version": 4,
   "statements": [
     {
       "vulnerability": {
@@ -44,6 +44,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -93,6 +105,21 @@
               "@id": "pkg:deb/debian/libc6-dev"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libc-bin"
+        },
+        {
+          "@id": "pkg:deb/debian/libc-dev-bin"
+        },
+        {
+          "@id": "pkg:deb/debian/libc-devtools"
+        },
+        {
+          "@id": "pkg:deb/debian/libc6"
+        },
+        {
+          "@id": "pkg:deb/debian/libc6-dev"
         }
       ],
       "status": "not_affected",
@@ -118,6 +145,9 @@
               "@id": "pkg:golang/github.com/coredns/coredns"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/github.com/coredns/coredns"
         }
       ],
       "status": "not_affected",
@@ -144,6 +174,9 @@
               "@id": "pkg:deb/debian/libaom3"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libaom3"
         }
       ],
       "status": "not_affected",
@@ -188,6 +221,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -231,6 +276,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -256,6 +313,9 @@
               "@id": "pkg:deb/debian/perl-base"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/perl-base"
         }
       ],
       "status": "not_affected",
@@ -282,6 +342,9 @@
               "@id": "pkg:pypi/setuptools"
             }
           ]
+        },
+        {
+          "@id": "pkg:pypi/setuptools"
         }
       ],
       "status": "not_affected",
@@ -308,6 +371,9 @@
               "@id": "pkg:deb/debian/libssl3"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libssl3"
         }
       ],
       "status": "not_affected",
@@ -334,6 +400,9 @@
               "@id": "pkg:deb/debian/openssl"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/openssl"
         }
       ],
       "status": "not_affected",
@@ -366,6 +435,12 @@
               "@id": "pkg:deb/debian/librados2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/librados-dev"
+        },
+        {
+          "@id": "pkg:deb/debian/librados2"
         }
       ],
       "status": "not_affected",
@@ -409,6 +484,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -452,6 +539,18 @@
               "@id": "pkg:deb/debian/libpam0g"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libpam-modules"
+        },
+        {
+          "@id": "pkg:deb/debian/libpam-modules-bin"
+        },
+        {
+          "@id": "pkg:deb/debian/libpam-runtime"
+        },
+        {
+          "@id": "pkg:deb/debian/libpam0g"
         }
       ],
       "status": "not_affected",
@@ -478,6 +577,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -504,6 +606,9 @@
               "@id": "pkg:deb/debian/libpcap0.8"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libpcap0.8"
         }
       ],
       "status": "not_affected",
@@ -530,6 +635,9 @@
               "@id": "pkg:deb/debian/python3-jwt"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/python3-jwt"
         }
       ],
       "status": "not_affected",
@@ -556,6 +664,9 @@
               "@id": "pkg:deb/debian/python3-jwt"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/python3-jwt"
         }
       ],
       "status": "not_affected",
@@ -582,6 +693,9 @@
               "@id": "pkg:deb/debian/python3-jwt"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/python3-jwt"
         }
       ],
       "status": "not_affected",
@@ -608,6 +722,9 @@
               "@id": "pkg:deb/debian/lrzsz"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/lrzsz"
         }
       ],
       "status": "not_affected",
@@ -652,6 +769,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -695,6 +824,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -738,6 +879,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -781,6 +934,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -806,6 +971,9 @@
               "@id": "pkg:deb/debian/xfsprogs"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/xfsprogs"
         }
       ],
       "status": "not_affected",
@@ -832,6 +1000,9 @@
               "@id": "pkg:deb/debian/apt"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/apt"
         }
       ],
       "status": "not_affected",
@@ -858,6 +1029,9 @@
               "@id": "pkg:deb/debian/libapt-pkg6.0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libapt-pkg6.0"
         }
       ],
       "status": "not_affected",
@@ -902,6 +1076,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -945,6 +1131,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -988,6 +1186,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1031,6 +1241,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1074,6 +1296,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1117,6 +1351,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1160,6 +1406,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1203,6 +1461,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1246,6 +1516,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1289,6 +1571,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1332,6 +1626,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1357,6 +1663,9 @@
               "@id": "pkg:deb/debian/libexpat1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libexpat1"
         }
       ],
       "status": "not_affected",
@@ -1383,6 +1692,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -1409,6 +1721,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -1453,6 +1768,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1496,6 +1823,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1521,6 +1860,9 @@
               "@id": "pkg:deb/debian/python3-oauthlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/python3-oauthlib"
         }
       ],
       "status": "not_affected",
@@ -1565,6 +1907,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -1590,6 +1944,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -1616,6 +1973,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -1642,6 +2002,9 @@
               "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsqlite3-0"
         }
       ],
       "status": "not_affected",
@@ -1680,6 +2043,15 @@
               "@id": "pkg:deb/debian/libcurl4"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/curl"
+        },
+        {
+          "@id": "pkg:deb/debian/libcurl3-gnutls"
+        },
+        {
+          "@id": "pkg:deb/debian/libcurl4"
         }
       ],
       "status": "not_affected",
@@ -1706,6 +2078,9 @@
               "@id": "pkg:deb/debian/libzstd1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libzstd1"
         }
       ],
       "status": "not_affected",
@@ -1732,6 +2107,9 @@
               "@id": "pkg:deb/debian/libgstreamer1.0-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgstreamer1.0-0"
         }
       ],
       "status": "not_affected",
@@ -1758,6 +2136,9 @@
               "@id": "pkg:deb/debian/libtiff6"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libtiff6"
         }
       ],
       "status": "not_affected",
@@ -1826,6 +2207,30 @@
               "@id": "pkg:deb/debian/systemd-timesyncd"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libnss-systemd"
+        },
+        {
+          "@id": "pkg:deb/debian/libpam-systemd"
+        },
+        {
+          "@id": "pkg:deb/debian/libsystemd-shared"
+        },
+        {
+          "@id": "pkg:deb/debian/libsystemd0"
+        },
+        {
+          "@id": "pkg:deb/debian/libudev1"
+        },
+        {
+          "@id": "pkg:deb/debian/systemd"
+        },
+        {
+          "@id": "pkg:deb/debian/systemd-sysv"
+        },
+        {
+          "@id": "pkg:deb/debian/systemd-timesyncd"
         }
       ],
       "status": "not_affected",
@@ -1852,6 +2257,9 @@
               "@id": "pkg:golang/golang.org/x/net"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
         }
       ],
       "status": "not_affected",
@@ -1878,6 +2286,9 @@
               "@id": "pkg:deb/debian/python3-cryptography"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/python3-cryptography"
         }
       ],
       "status": "not_affected",
@@ -1904,6 +2315,9 @@
               "@id": "pkg:golang/github.com/coredns/coredns"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/github.com/coredns/coredns"
         }
       ],
       "status": "not_affected",
@@ -1930,6 +2344,9 @@
               "@id": "pkg:golang/github.com/coredns/coredns"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/github.com/coredns/coredns"
         }
       ],
       "status": "not_affected",
@@ -1956,6 +2373,9 @@
               "@id": "pkg:golang/golang.org/x/net"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
         }
       ],
       "status": "not_affected",
@@ -1982,6 +2402,9 @@
               "@id": "pkg:deb/debian/libheif1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libheif1"
         }
       ],
       "status": "not_affected",
@@ -2008,6 +2431,9 @@
               "@id": "pkg:deb/debian/libgnutls30"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgnutls30"
         }
       ],
       "status": "not_affected",
@@ -2034,6 +2460,9 @@
               "@id": "pkg:deb/debian/libgnutls30"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgnutls30"
         }
       ],
       "status": "not_affected",
@@ -2060,6 +2489,9 @@
               "@id": "pkg:golang/github.com/coredns/coredns"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/github.com/coredns/coredns"
         }
       ],
       "status": "not_affected",
@@ -2086,6 +2518,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -2111,6 +2546,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -2136,6 +2574,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -2161,6 +2602,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -2186,6 +2630,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -2211,6 +2658,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -2236,6 +2686,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -2261,6 +2714,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -2292,6 +2748,12 @@
               "@id": "pkg:deb/debian/librados2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/librados-dev"
+        },
+        {
+          "@id": "pkg:deb/debian/librados2"
         }
       ],
       "status": "not_affected",
@@ -2317,6 +2779,9 @@
               "@id": "pkg:deb/debian/libgnutls30"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgnutls30"
         }
       ],
       "status": "not_affected",
@@ -2343,6 +2808,9 @@
               "@id": "pkg:deb/debian/libgnutls30"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgnutls30"
         }
       ],
       "status": "not_affected",
@@ -2369,6 +2837,9 @@
               "@id": "pkg:deb/debian/perl-base"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/perl-base"
         }
       ],
       "status": "not_affected",
@@ -2395,6 +2866,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -2420,6 +2894,9 @@
               "@id": "pkg:deb/debian/libssl3"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libssl3"
         }
       ],
       "status": "not_affected",
@@ -2446,6 +2923,9 @@
               "@id": "pkg:deb/debian/openssl"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/openssl"
         }
       ],
       "status": "not_affected",
@@ -2472,6 +2952,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -2497,6 +2980,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -2522,6 +3008,9 @@
               "@id": "pkg:deb/debian/python3-jwt"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/python3-jwt"
         }
       ],
       "status": "not_affected",
@@ -2548,6 +3037,9 @@
               "@id": "pkg:deb/debian/perl-base"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/perl-base"
         }
       ],
       "status": "not_affected",
@@ -2574,6 +3066,9 @@
               "@id": "pkg:deb/debian/python3-oauthlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/python3-oauthlib"
         }
       ],
       "status": "not_affected",
@@ -2606,6 +3101,12 @@
               "@id": "pkg:deb/debian/librados2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/librados-dev"
+        },
+        {
+          "@id": "pkg:deb/debian/librados2"
         }
       ],
       "status": "not_affected",
@@ -2631,6 +3132,9 @@
               "@id": "pkg:deb/debian/libtiff6"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libtiff6"
         }
       ],
       "status": "not_affected",
@@ -2657,6 +3161,9 @@
               "@id": "pkg:deb/debian/bsdutils"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/bsdutils"
         }
       ],
       "status": "not_affected",
@@ -2683,6 +3190,9 @@
               "@id": "pkg:deb/debian/libblkid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libblkid1"
         }
       ],
       "status": "not_affected",
@@ -2709,6 +3219,9 @@
               "@id": "pkg:deb/debian/libfdisk1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libfdisk1"
         }
       ],
       "status": "not_affected",
@@ -2735,6 +3248,9 @@
               "@id": "pkg:deb/debian/libmount1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libmount1"
         }
       ],
       "status": "not_affected",
@@ -2761,6 +3277,9 @@
               "@id": "pkg:deb/debian/libsmartcols1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsmartcols1"
         }
       ],
       "status": "not_affected",
@@ -2787,6 +3306,9 @@
               "@id": "pkg:deb/debian/libuuid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libuuid1"
         }
       ],
       "status": "not_affected",
@@ -2813,6 +3335,9 @@
               "@id": "pkg:deb/debian/mount"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/mount"
         }
       ],
       "status": "not_affected",
@@ -2839,6 +3364,9 @@
               "@id": "pkg:deb/debian/util-linux-extra"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux-extra"
         }
       ],
       "status": "not_affected",
@@ -2865,6 +3393,9 @@
               "@id": "pkg:deb/debian/util-linux"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux"
         }
       ],
       "status": "not_affected",
@@ -2891,6 +3422,9 @@
               "@id": "pkg:deb/debian/uuid-dev"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/uuid-dev"
         }
       ],
       "status": "not_affected",
@@ -2917,6 +3451,9 @@
               "@id": "pkg:deb/debian/bsdutils"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/bsdutils"
         }
       ],
       "status": "not_affected",
@@ -2943,6 +3480,9 @@
               "@id": "pkg:deb/debian/libblkid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libblkid1"
         }
       ],
       "status": "not_affected",
@@ -2969,6 +3509,9 @@
               "@id": "pkg:deb/debian/libfdisk1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libfdisk1"
         }
       ],
       "status": "not_affected",
@@ -2995,6 +3538,9 @@
               "@id": "pkg:deb/debian/libmount1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libmount1"
         }
       ],
       "status": "not_affected",
@@ -3021,6 +3567,9 @@
               "@id": "pkg:deb/debian/libsmartcols1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsmartcols1"
         }
       ],
       "status": "not_affected",
@@ -3047,6 +3596,9 @@
               "@id": "pkg:deb/debian/libuuid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libuuid1"
         }
       ],
       "status": "not_affected",
@@ -3073,6 +3625,9 @@
               "@id": "pkg:deb/debian/mount"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/mount"
         }
       ],
       "status": "not_affected",
@@ -3099,6 +3654,9 @@
               "@id": "pkg:deb/debian/util-linux-extra"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux-extra"
         }
       ],
       "status": "not_affected",
@@ -3125,6 +3683,9 @@
               "@id": "pkg:deb/debian/util-linux"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux"
         }
       ],
       "status": "not_affected",
@@ -3151,6 +3712,9 @@
               "@id": "pkg:deb/debian/uuid-dev"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/uuid-dev"
         }
       ],
       "status": "not_affected",
@@ -3183,6 +3747,12 @@
               "@id": "pkg:deb/debian/librados2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/librados-dev"
+        },
+        {
+          "@id": "pkg:deb/debian/librados2"
         }
       ],
       "status": "not_affected",
@@ -3208,6 +3778,9 @@
               "@id": "pkg:deb/debian/libacl1-dev"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libacl1-dev"
         }
       ],
       "status": "not_affected",
@@ -3234,6 +3807,9 @@
               "@id": "pkg:deb/debian/libacl1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libacl1"
         }
       ],
       "status": "not_affected",
@@ -3260,6 +3836,9 @@
               "@id": "pkg:golang/golang.org/x/crypto"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/crypto"
         }
       ],
       "status": "not_affected",
@@ -3285,6 +3864,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -3310,6 +3892,9 @@
               "@id": "pkg:deb/debian/perl-base"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/perl-base"
         }
       ],
       "status": "not_affected",
@@ -3336,6 +3921,9 @@
               "@id": "pkg:deb/debian/libglib2.0-0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libglib2.0-0"
         }
       ],
       "status": "not_affected",
@@ -3362,6 +3950,9 @@
               "@id": "pkg:deb/debian/libglib2.0-bin"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libglib2.0-bin"
         }
       ],
       "status": "not_affected",
@@ -3388,6 +3979,9 @@
               "@id": "pkg:deb/debian/libglib2.0-data"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libglib2.0-data"
         }
       ],
       "status": "not_affected",
@@ -3414,6 +4008,9 @@
               "@id": "pkg:deb/debian/libpcap0.8"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libpcap0.8"
         }
       ],
       "status": "not_affected",
@@ -3440,6 +4037,9 @@
               "@id": "pkg:deb/debian/python3-cryptography"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/python3-cryptography"
         }
       ],
       "status": "not_affected",
@@ -3484,6 +4084,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -3527,6 +4139,18 @@
               "@id": "pkg:deb/debian/libkrb5support0"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libgssapi-krb5-2"
+        },
+        {
+          "@id": "pkg:deb/debian/libk5crypto3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5-3"
+        },
+        {
+          "@id": "pkg:deb/debian/libkrb5support0"
         }
       ],
       "status": "not_affected",
@@ -3552,6 +4176,9 @@
               "@id": "pkg:deb/debian/libxml2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2"
         }
       ],
       "status": "not_affected",
@@ -3578,6 +4205,9 @@
               "@id": "pkg:deb/debian/bsdutils"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/bsdutils"
         }
       ],
       "status": "not_affected",
@@ -3604,6 +4234,9 @@
               "@id": "pkg:deb/debian/libblkid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libblkid1"
         }
       ],
       "status": "not_affected",
@@ -3630,6 +4263,9 @@
               "@id": "pkg:deb/debian/libfdisk1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libfdisk1"
         }
       ],
       "status": "not_affected",
@@ -3656,6 +4292,9 @@
               "@id": "pkg:deb/debian/libmount1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libmount1"
         }
       ],
       "status": "not_affected",
@@ -3682,6 +4321,9 @@
               "@id": "pkg:deb/debian/libsmartcols1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libsmartcols1"
         }
       ],
       "status": "not_affected",
@@ -3708,6 +4350,9 @@
               "@id": "pkg:deb/debian/libuuid1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libuuid1"
         }
       ],
       "status": "not_affected",
@@ -3734,6 +4379,9 @@
               "@id": "pkg:deb/debian/mount"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/mount"
         }
       ],
       "status": "not_affected",
@@ -3760,6 +4408,9 @@
               "@id": "pkg:deb/debian/util-linux-extra"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux-extra"
         }
       ],
       "status": "not_affected",
@@ -3786,6 +4437,9 @@
               "@id": "pkg:deb/debian/util-linux"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux"
         }
       ],
       "status": "not_affected",
@@ -3812,6 +4466,9 @@
               "@id": "pkg:deb/debian/uuid-dev"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/uuid-dev"
         }
       ],
       "status": "not_affected",
@@ -3838,6 +4495,9 @@
               "@id": "pkg:golang/golang.org/x/net"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
         }
       ],
       "status": "not_affected",
@@ -3864,6 +4524,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -3896,6 +4559,12 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/net"
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -3922,6 +4591,9 @@
               "@id": "pkg:golang/github.com/coredns/coredns"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/github.com/coredns/coredns"
         }
       ],
       "status": "not_affected",
@@ -3960,6 +4632,15 @@
               "@id": "pkg:deb/debian/libcurl4"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/curl"
+        },
+        {
+          "@id": "pkg:deb/debian/libcurl3-gnutls"
+        },
+        {
+          "@id": "pkg:deb/debian/libcurl4"
         }
       ],
       "status": "not_affected",
@@ -3986,6 +4667,9 @@
               "@id": "pkg:golang/google.golang.org/grpc"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/google.golang.org/grpc"
         }
       ],
       "status": "not_affected",
@@ -4012,6 +4696,9 @@
               "@id": "pkg:deb/debian/libheif1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libheif1"
         }
       ],
       "status": "not_affected",
@@ -4038,6 +4725,9 @@
               "@id": "pkg:golang/google.golang.org/grpc"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/google.golang.org/grpc"
         }
       ],
       "status": "not_affected",
@@ -4064,6 +4754,9 @@
               "@id": "pkg:deb/debian/libheif1"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libheif1"
         }
       ],
       "status": "not_affected",
@@ -4090,6 +4783,9 @@
               "@id": "pkg:deb/debian/curl"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/curl"
         }
       ],
       "status": "not_affected",
@@ -4116,6 +4812,9 @@
               "@id": "pkg:deb/debian/libcurl3-gnutls"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libcurl3-gnutls"
         }
       ],
       "status": "not_affected",
@@ -4142,6 +4841,9 @@
               "@id": "pkg:deb/debian/libcurl4"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libcurl4"
         }
       ],
       "status": "not_affected",
@@ -4168,6 +4870,9 @@
               "@id": "pkg:deb/debian/libssl3"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libssl3"
         }
       ],
       "status": "not_affected",
@@ -4194,6 +4899,9 @@
               "@id": "pkg:deb/debian/openssl"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/openssl"
         }
       ],
       "status": "not_affected",
@@ -4220,6 +4928,9 @@
               "@id": "pkg:deb/debian/zlib1g"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/zlib1g"
         }
       ],
       "status": "not_affected",
@@ -4246,6 +4957,9 @@
               "@id": "pkg:golang/github.com/coredns/coredns"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/github.com/coredns/coredns"
         }
       ],
       "status": "not_affected",
@@ -4272,6 +4986,9 @@
               "@id": "pkg:deb/debian/libxml2"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2"
         }
       ],
       "status": "not_affected",
@@ -4298,6 +5015,9 @@
               "@id": "pkg:pypi/pip"
             }
           ]
+        },
+        {
+          "@id": "pkg:pypi/pip"
         }
       ],
       "status": "not_affected",
@@ -4324,6 +5044,9 @@
               "@id": "pkg:deb/debian/libx11-6"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libx11-6"
         }
       ],
       "status": "not_affected",
@@ -4350,6 +5073,9 @@
               "@id": "pkg:deb/debian/libx11-data"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/libx11-data"
         }
       ],
       "status": "not_affected",
@@ -4388,6 +5114,15 @@
               "@id": "pkg:deb/debian/libcurl4"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/curl"
+        },
+        {
+          "@id": "pkg:deb/debian/libcurl3-gnutls"
+        },
+        {
+          "@id": "pkg:deb/debian/libcurl4"
         }
       ],
       "status": "not_affected",
@@ -4414,6 +5149,9 @@
               "@id": "pkg:deb/debian/perl-base"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/perl-base"
         }
       ],
       "status": "not_affected",
@@ -4440,6 +5178,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -4466,6 +5207,9 @@
               "@id": "pkg:deb/debian/python3-urllib3"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/python3-urllib3"
         }
       ],
       "status": "not_affected",
@@ -4492,6 +5236,9 @@
               "@id": "pkg:deb/debian/python3-urllib3"
             }
           ]
+        },
+        {
+          "@id": "pkg:deb/debian/python3-urllib3"
         }
       ],
       "status": "not_affected",
@@ -4518,6 +5265,9 @@
               "@id": "pkg:golang/google.golang.org/grpc"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/google.golang.org/grpc"
         }
       ],
       "status": "not_affected",

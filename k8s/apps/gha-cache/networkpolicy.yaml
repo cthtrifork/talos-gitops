@@ -53,6 +53,13 @@ spec:
             - port: "3000"
               protocol: TCP
   egress:
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: gha-cache-db
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
     - toFQDNs:
         # OIDC token verification (JWKS) and the results service
         - matchName: token.actions.githubusercontent.com
@@ -60,4 +67,53 @@ spec:
       toPorts:
         - ports:
             - port: "443"
+              protocol: TCP
+---
+# PostgreSQL: the Kubernetes API (the CNPG instance manager needs it; DNS is allowed namespace-wide) and its peers; ingress from the cache server, its peers and the CNPG operator.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: gha-cache-db
+  namespace: gha-cache-system
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: gha-cache-db
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: github-actions-cache-server
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: gha-cache-db # replication and the instance managers between pods
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+            - port: "8000"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+            - port: "5432"
+              protocol: TCP
+  egress:
+    - toEntities:
+        - kube-apiserver
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: gha-cache-db
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+            - port: "8000"
               protocol: TCP

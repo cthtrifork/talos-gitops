@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/postgresql.cnpg.io/cluster_v1.json
+# Metadata of the cache server (keys, versions, upload state): three instances on different nodes and one synchronous standby,
+# so a node lost or rebooted keeps the cache server running. No backups: losing everything only costs a cold cache.
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: gha-cache-db
+  namespace: gha-cache-system
+spec:
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: postgresql-minimal-trixie
+    major: 18
+  instances: 3
+  enableSuperuserAccess: false
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+  storage:
+    size: 1Gi
+    storageClass: lvm-fast
+  resources:
+    requests:
+      cpu: 30m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  managed:
+    roles:
+      # the database owner: certificate only, the password is removed
+      - name: gha_cache
+        ensure: present
+        login: true
+        disablePassword: true
+  certificates:
+    serverTLSSecret: gha-cache-db-server
+    serverCASecret: gha-cache-db-ca
+    clientCASecret: gha-cache-db-ca
+    replicationTLSSecret: gha-cache-db-replication
+  postgresql:
+    pg_hba:
+      # Before CNPG's default "host all all all scram-sha-256" rule; cert auth matches CN against the role name.
+      - hostssl gha_cache gha_cache all cert
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: preferred
+  bootstrap:
+    initdb:
+      database: gha_cache
+      owner: gha_cache
+      encoding: UTF8

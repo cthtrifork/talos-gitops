@@ -3,8 +3,8 @@
   "@id": "https://github.com/cthtrifork/talos-gitops/vex/pkg/oci/ghcr.io/cthtrifork/talos-gitops/claude-runner",
   "author": "Dependency-Track",
   "role": "Automated export from Dependency-Track",
-  "timestamp": "2026-11-27T13:59:50Z",
-  "version": 3,
+  "timestamp": "2026-11-28T07:45:31Z",
+  "version": 4,
   "statements": [
     {
       "vulnerability": {
@@ -26,6 +26,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -52,6 +55,9 @@
               "@id": "pkg:golang/golang.org/x/sys"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/sys"
         }
       ],
       "status": "not_affected",
@@ -78,6 +84,9 @@
               "@id": "pkg:golang/golang.org/x/sys"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/sys"
         }
       ],
       "status": "not_affected",
@@ -104,6 +113,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -130,6 +142,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -156,6 +171,9 @@
               "@id": "pkg:apk/alpine/zlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:apk/alpine/zlib"
         }
       ],
       "status": "not_affected",
@@ -181,6 +199,9 @@
               "@id": "pkg:golang/golang.org/x/text"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/text"
         }
       ],
       "status": "not_affected",
@@ -207,6 +228,9 @@
               "@id": "pkg:golang/golang.org/x/text"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/golang.org/x/text"
         }
       ],
       "status": "not_affected",
@@ -233,6 +257,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -259,6 +286,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -284,6 +314,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -310,6 +343,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -336,6 +372,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -362,6 +401,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
@@ -388,6 +430,9 @@
               "@id": "pkg:golang/stdlib"
             }
           ]
+        },
+        {
+          "@id": "pkg:golang/stdlib"
         }
       ],
       "status": "not_affected",
