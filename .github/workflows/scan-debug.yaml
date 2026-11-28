@@ -27,7 +27,7 @@ jobs:
   scan:
     name: Scan ${{ inputs.image }}
     needs: trivy-db
-    runs-on: arc-scan-talos-gitops
+    runs-on: arc-light-talos-gitops
     timeout-minutes: 20
     env:
       TRIVY_SKIP_DB_UPDATE: true

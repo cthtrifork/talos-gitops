@@ -21,7 +21,7 @@ jobs:
   render-manifests:
     # a fork's token is read-only
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: arc-scan-talos-gitops # the job already skips fork PRs
+    runs-on: arc-light-talos-gitops # the job already skips fork PRs
     env:
       REGISTRY: ghcr.io
       # Renovate PRs and manual runs get the render commit; any other PR must already contain its rendered manifests
