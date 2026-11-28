@@ -23,7 +23,7 @@ env:
 jobs:
   update:
     name: Update Trivy database
-    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-scan-talos-gitops' || 'ubuntu-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'arc-light-talos-gitops' || 'ubuntu-latest' }}
     timeout-minutes: 15
     outputs:
       version: ${{ env.TRIVY_VERSION }}
