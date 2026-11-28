@@ -95,6 +95,7 @@ spec:
         imagePullSecrets:
           - name: github-auth
         securityContext:
+          fsGroup: 1001
           seccompProfile:
             type: RuntimeDefault
         volumes:
